@@ -1,0 +1,89 @@
+openapi: 3.0.1
+info:
+  description: OpenAPI for the NCATS Biomedical Translator Knowledge Graph Exchange Registry
+  version: 0.0.1-dev
+  title: OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGX) Registry
+  contact:
+    email: deepak.unni3@lbl.gov
+  license:
+    name: MIT 2.0
+    url: https://en.wikipedia.org/wiki/MIT_License
+  termsOfService: https://ncats.nih.gov/translator
+externalDocs:
+  description: >-
+    Documentation for the NCATS Biomedical Translator Knowledge Graph Exchange (KGX) Registry
+  url: https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
+tags:
+  - name: metadata
+    description: Get KGX Registry metadata
+    externalDocs:
+      description: Documentation relating to Knowledge Graph registry and content metadata
+      url: http://kge.ncats.io/overview.html#metadata
+  - name: access
+    description: Access KGX-formatted data files
+    externalDocs:
+      description: Documentation relating to KGX-formatted data file access
+      url: http://kge.ncats.io/overview.html#access
+paths:
+  /catalog:
+    get:
+      tags:
+        - metadata
+      summary: Get catalog of available knowledge graphs
+        '200':
+          description: Knowledge Graphs available with metadata attributes indexed by Name
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Catalog of graphs (as a dictionary), where keys are the name of the graph
+                additionalProperties:
+                  $ref: '#/components/schemas/GraphMetaData'
+                example:
+                  'Some Knowledge Graph Name':
+                    'metadata_tag_1': "value1"
+                    'metadata_tag_2': "value2"
+components:
+  schemas:
+    GraphMetaData:
+      type: array
+      description: A list of metadata attributes describing a given knowledge graph
+      items:
+        $ref: '#/components/schemas/Attribute'
+      additionalProperties: false
+    Attribute:
+      type: object
+      description: Generic attribute for a node
+      properties:
+        name:
+          type: string
+          description: >-
+            Human-readable name or label for the attribute. Should be the name
+            of the semantic type term.
+          example: PubMed Identifier
+        value:
+          example: 32529952
+          description: >-
+            Value of the attribute. May be any data type, including a list.
+        type:
+          type: string
+          description: >-
+            CURIE of the semantic type of the attribute, from the EDAM ontology
+            if possible. If a suitable identifier does not exist, enter a
+            descriptive phrase here and submit the new type for consideration
+            by the appropriate authority.
+          example: EDAM:data_1187
+        url:
+          type: string
+          description: >-
+            Human-consumable URL to link out and read about the attribute (not
+            the node).
+          example: https://pubmed.ncbi.nlm.nih.gov/32529952
+        source:
+          type: string
+          description: Source of the attribute, as a CURIE prefix.
+          example: UniProtKB
+      required:
+        - type
+        - value
+      additionalProperties: false
