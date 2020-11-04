@@ -4,7 +4,7 @@ The KGEAPI is a web service for providing metadata indexed access to KGX formatt
 
 # Application Programming Interface Specification
 
-The [`api` subdirectory](../api) contains the OpenAPI 3 specification of the web service API.
+The [KGER API specification](../api/kgerapi.yaml) contains the OpenAPI 3 specification of the web service API.
 
 # Implementation
 
