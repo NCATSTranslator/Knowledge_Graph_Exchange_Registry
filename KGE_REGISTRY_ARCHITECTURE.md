@@ -38,6 +38,6 @@ Discussions are underway to add a new "knowledge map" endpoint to the TRAPI rele
 
 On the surface, assuming that this is a plain REST URL, the option merely absolves the implementer of a KGE archive of the need to worry about file names for a static content metadata file. Rather, there is only a need to serve the static metadata file (possibly precomputed by KGX) through the "knowledge map" endpoint.
 
+## Additional Issues
 
-
- 
+Irrespective of the how the metadata is transmitted and its specific composition, it is likely that some KGE archives may publish several knowledge subgraphs alongside one another in the archive. Some kind of lightweight 'catalog' enumerating each distinct knowledge graph will be needed. The KGE metadata will need to generally describe the scope of each distinct knowledge graph, to support the decision to its use.
