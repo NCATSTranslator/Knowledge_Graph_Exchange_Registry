@@ -1,4 +1,5 @@
-# Knowledge Graph Exchange (KGE) Registry & Working Group
+# Knowledge Graph Exchange (KGE)
+## Registry & Working Group
 
 The NCATS Biomedical Translator Consortium has a goal to share knowledge graphs in the form of [KGX formatted Knowledge Graph files](https://github.com/biolink/kgx/blob/master/data-preparation.md), indexed in a global registry with agreed upon [Translator Registry metadata](https://github.com/NCATSTranslator/TranslatorArchitecture/blob/master/RegistryMetadata.md).  This KGX tool generated metadata like this [sample file](./SAMPLE_KGE_METADATA_OUTPUT.md) could be the source for most of the metadata.
 
@@ -8,7 +9,7 @@ This repository will coordinate the efforts of a Knowledge Graph Exchange (KGE) 
 
 For further information about the terms of reference and activities of the KGE Working Group, see the [KGE Working Group Charter](https://docs.google.com/document/d/1UAo11n3PXvKAX8UxpR06I-TMlRGSJzcX0bVtpJPAfAA) and [KGE Working Group running agenda & minutes](https://docs.google.com/document/d/1eXB7bsT6-vnwyfsJjKF1Zlj1XqfOwYlmOwRV5AyRYpg).
 
-## Design Requirements & Implementation
+### Design Requirements & Implementation
 
 Five "epic" issue pull requests define the initial components of KGE Working Group deliberations and activities:
 
