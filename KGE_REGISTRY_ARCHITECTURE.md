@@ -13,7 +13,7 @@ The first general requirement is the ability to locate and describe such KGE fil
 
 The second general requirement notes that since by design, the SmartAPI registry only records and publishes metadata about its indexed resources, for human or programmatic lookup, as OpenAPI 3 compliant Application Programming Interfaces, it has been concluded that from the standpoint of SmartAPI, **all** resources registered in the Translator Registry **must** be "API-like" in nature, both by specification and by the implementation of a live web service access.  
 
-In alignment with this vision,  KGE files related endpoints and metadata could conceivably be specified within future releases of the TRAPI specification for Translator Knowledge Providers (KP) or Autonomous Relay Agents (ARA). However, if KGE files of interest are not directly associated with a KP or ARA, the metadata (including access endpoint) for such files will need to be wrapped by some other implemented ("live") SmartAPI OpenAPI 3 API endpoint.  The KGE Registry API is proposed to be that specification and (by default) a NCATS hosted implementation of a KGE Registry is proposed.
+In alignment with this vision,  KGE files related endpoints and metadata could conceivably be specified within future releases of the TRAPI specification for Translator Knowledge Providers (KP) or Autonomous Relay Agents (ARA). However, if KGE files of interest are not directly associated with a KP or ARA, the metadata (including access endpoint) for such files will need to be wrapped by some other implemented ("live") SmartAPI OpenAPI 3 API endpoint.  The KGE Registry API is proposed to be that specification and (by default) a NCATS hosted implementation of a KGE Registry is also proposed.
 
 ## Architectural Options for a KGE File Sharing
 
@@ -30,9 +30,9 @@ Such **Content Metadata** could also be directly encoded inside the KGE files th
 
 The TRAPI hosting option is not prescriptive about exactly where the KGE files themselves sit: this could be any internet location accessible by REST protocols, perhaps not even within the given TRAPI implementation site of the KP (i.e. the link may point elsewhere, perhaps to a NCATS-hosted cloud storage site).
 
-One limitation of this option is that not all useful KGE file sets may be KP (or ARA) associated outputs. For such additional KGE file sets, a separately SmartAPI indexed API endpoint will need to be associated with the file sets.
+One limitation of this option is that not all useful KGE file sets may be KP (or ARA) associated outputs. For such additional KGE file sets, a separately SmartAPI indexed API endpoint will need to be associated with the file sets. This is primarily specified in the next section as the "Translator Central Registry Option", although in principle, specialised KGE Registries could be implemented by team for independent management of KGE files by that team.
 
-### Central Repository Option
+### Translator Central Repository Option
 
 Another option for KGE file sharing, especially of KGE datasets not closely linked to any single KP (or ARA) would be to host such files in a central (NCATS) Translator implemented archive implemented in cloud storage.  In such a case, a single SmartAPI record describing the archive may have metadata consisting of a similar KGE file access URL as the one noted for the TRAPI-wrapped resources described above.  Similar standards-defined 'metadata' files as described above, residing at the documented endpoint, could catalog and qualify the contents of the archive.
 
