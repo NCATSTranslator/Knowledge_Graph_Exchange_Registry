@@ -14,7 +14,7 @@ However, the Translator registry only records and publishes metadata about APIs 
 
 ## Architectural Options for a KGE Registry Function
 
-A couple of possible configurations could be envisioned to fulfill the function of KGE Registration, not all mutually exclusive:
+A couple of possible configurations could be envisioned to fulfill the function of KGE Registration, not mutually exclusive:
 
 ### TRAPI Indexing Option
 
