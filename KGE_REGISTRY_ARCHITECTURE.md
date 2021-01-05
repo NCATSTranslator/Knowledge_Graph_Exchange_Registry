@@ -1,20 +1,22 @@
 # Knowledge Graph Exchange Registry Architecture
 
-This discussion document will strive to compile and review general options for KGE Registry architecture.
-
+This discussion document will strive to compile and review general options for KGE Registry architecture supporting the 
+[use cases for community-wide sharing of Translator standards compliant knowledge graphs ("KGE files")](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_USE_CASES.md) captured or exported as structured text files. KGX-compliant TSV or JSON formatted files and Neo4j database text file dumps are two examples of possible file formats which could be shared.
+ 
 ## Landscape of Translator Sharing of Knowledge Products
 
-The general goal of the registry is to facilitate community-wide sharing of Translator standards compliant knowledge graphs ("KGE files") captured or exported as structured text files. KGX-compliant TSV or JSON formatted files and Neo4j database text file dumps are two examples of possible file formats which could be shared.
+KGE files are one of three channels with which Knowledge Providers (KP) implementations can share knowledge graphs, the other two channels being an implementation of the Translator Reasoner Application Programming Interface ("TRAPI") or possibly, of a non-TRAPI SmartAPI-registered bespoke APIs.  Autonomous Relay Agents (ARA) serving novel knowledge may also publish them either through KGE file sets.
 
-The first general requirement is the ability to locate such files. For this purpose, a SmartAPI-based Translator component registry is foreseen. In alignment with this vision, it is proposed that knowledge graph file sets will somehow be indexed, directly or indirectly in the registry, alongside documented Translator Knowledge Providers (KP) and Autonomous Relay Agents (ARA), which represent primary Translator project knowledge products. 
+The first general requirement is the ability to locate and describe such KGE files. For this purpose, indexing of such KGE files within the SmartAPI-based Translator registry with Translator standardized metadata is mandated.
 
-KGE files are one of three channels with which KP implementations can share their imported knowledge graphs, the other two channels being an implementation of the Translator Reasoner Application Programming Interface ("TRAPI") or possibly, of a non-TRAPI SmartAPI-registered bespoke APIs. 
+The second general requirement notes that since by design, the SmartAPI registry only records and publishes metadata about its indexed resources, for human or programmatic lookup, as OpenAPI 3 compliant Application Programming Interfaces, it has been concluded that from the standpoint of SmartAPI, **all** resources registered in the Translator Registry **must** be "API-like" in nature, both by specification and by the implementation of a live web service access.  
 
-However, the Translator registry only records and publishes metadata about APIs for human or programmatic lookup, but won't serve as the actual endpoints for accessing knowledge resources. However, it has been concluded that from the standpoint of SmartAPI, **all** components registered in the Translator Registry **must** be "API-like" in nature, both by specification and by the implementation of a live web service access. This design parameter poses some specific global design requirements on the process of KGE file sharing.
+In alignment with this vision,  KGE files related endpoints and metadata could conceivably be specified within future releases of the TRAPI specification for Translator Knowledge Providers (KP) or Autonomous Relay Agents (ARA). However, if KGE files of interest are not directly associated with a KP or ARA, the metadata (including access endpoint) for such files will need to be wrapped by some other implemented ("live") SmartAPI OpenAPI 3 API endpoint.  The KGE Registry API is proposed to be that specification and (by default) a NCATS hosted implementation of a KGE Registry is proposed.
 
-## Architectural Options for a KGE Registry Function
+## Architectural Options for a KGE File Sharing
 
-A couple of possible configurations could be envisioned to fulfill the function of KGE Registration, not mutually exclusive:
+Again, with reference to [KGE files Sharing Use Cases](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_USE_CASES.md), 
+a couple of complementary architectural options could be envisioned, as follows.
 
 ### TRAPI Indexing Option
 
@@ -26,7 +28,7 @@ Such **Content Metadata** could also be directly encoded inside the KGE files th
 
 The TRAPI hosting option is not prescriptive about exactly where the KGE files themselves sit: this could be any internet location accessible by REST protocols, perhaps not even within the given TRAPI implementation site of the KP (i.e. the link may point elsewhere, perhaps to a NCATS-hosted cloud storage site).
 
-One limitation of this option is that not all useful KGE file sets may be KP associated outputs. 
+One limitation of this option is that not all useful KGE file sets may be KP (or ARA) associated outputs. For such additional KGE file sets, a separately SmartAPI indexed API endpoint will need to be associated with the file sets.
 
 ### Central Repository Option
 
