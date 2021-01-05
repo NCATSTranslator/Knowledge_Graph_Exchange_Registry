@@ -14,6 +14,7 @@ For further information about the terms of reference and activities of the KGE W
 Five "epic" issue pull requests define the initial components of KGE Working Group deliberations and activities:
 
 - [KGE Use Cases](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/10)
+    - **Completed & Merged to Master:** see [Use Case Document](./KGE_USE_CASES.md)
 - [KGE Metadata](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/2)
    - [Translator Registry Metadata PR](https://github.com/NCATSTranslator/TranslatorArchitecture/pull/13)
 - [KGE Registry Architectural Design](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/4)
