@@ -1,7 +1,9 @@
 # Knowledge Graph Exchange Registry Architecture
 
 This discussion document will strive to compile and review general options for KGE Registry architecture supporting the 
-[use cases for community-wide sharing of Translator standards compliant knowledge graphs ("KGE files")](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_USE_CASES.md) captured or exported as structured text files. KGX-compliant TSV or JSON formatted files and Neo4j database text file dumps are two examples of possible file formats which could be shared.
+[use cases for community-wide sharing of Translator standards compliant knowledge graphs ("KGE files")](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_USE_CASES.md) captured or exported as structured text files. 
+
+KGX-compliant TSV or JSON formatted files and Neo4j database text file dumps are two examples of possible file formats which could be shared.
  
 ## Landscape of Translator Sharing of Knowledge Products
 
