@@ -38,7 +38,7 @@ Since the possibility that Translator teams may not wish to host KGE files on th
 
 ### Option of Dynamic Publication of Content Metadata
 
-Discussions are underway to add a new "knowledge map" endpoint to the TRAPI release 1.1 specification, which will serve publish content metadata. For full TRAPI implementations, such content metadata may be dynamically updated as the KP (or ARA) evolves with time.  An alternative to the aforementioned REST access to a KGE metadata file, may be the implementation of the proposed new "knowledge map" endpoint to serve such metadata.
+Discussions are underway to add a new [TRAPI Knowledge Map endpoint](https://github.com/NCATSTranslator/ReasonerAPI/pull/171/files), that will serve publish knowledge graph content metadata. For full TRAPI implementations, such content metadata may be dynamically updated as the KP (or ARA) evolves with time.  Perhaps, an alternative to the aforementioned REST access to a static KGE metadata file may be the implementation of the proposed new "knowledge map" endpoint to serve such metadata.
 
 On the surface, assuming that this is a plain REST URL, the option merely absolves the implementer of a KGE archive of the need to worry about file names for a static content metadata file. Rather, there is only a need to serve the static metadata file (possibly precomputed by KGX) through the "knowledge map" endpoint.
 
