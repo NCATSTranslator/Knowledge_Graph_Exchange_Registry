@@ -20,32 +20,26 @@ In alignment with this vision, all KGE files of interest will need to be wrapped
 ## Architectural Options for a KGE File Sharing
 
 Again, with reference to [KGE files Sharing Use Cases](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_USE_CASES.md), 
-a couple of complementary architectural options could be envisioned, as follows.
+the following architectural could be envisioned:
 
 ### TRAPI Indexing Option
 
-Many of the KGE files to be shared may actually be full or partial static knowledge graph contents exported from TRAPI-wrapped KP (or possibly, ARA-embedded KP). One option is to simply add basic KGE access metadata in the KP (ARA) SmartAPI-registered TRAPI entry. This metadata may be as minimal as a URL endpoint declared as the location of the KGE files. Additional metadata in the SmartAPI record could further describe the basic contents of KGE file archive dereferenced by the URL specified location of the URL. 
+Many of the KGE files to be shared may actually be full or partial static knowledge graph contents exported from TRAPI-wrapped KP (or possibly, ARA-embedded KP).
 
 Alternately (or concurrently?), standards-defined "Content Metadata" could be stored at the URL location. Such ([Translator standard metadata](https://github.com/NCATSTranslator/TranslatorArchitecture/blob/master/RegistryMetadata.md) would catalog and qualify the contents of the KGE file archive location. In any case, such metadata would have to be REST accessible with a standard file name.  This option assumes a one-to-one relationship between each collection of KGE files and their owner KP (or ARA) described by the SmartAPI entry.
 
-Such **Content Metadata** could also be directly encoded inside the KGE files themselves, rather than in separate files. This would be workable only if the end user already makes the default decision of downloading the file, thus accessing the metadata. however, it may be expedient (and necessary?) that such metadata reside outside of the KGE data files themselves, to avoid the need to download the KGE files, which may be very large.
-
 The TRAPI hosting option is not prescriptive about exactly where the KGE files themselves sit: this could be any internet location accessible by REST protocols, perhaps not even within the given TRAPI implementation site of the KP (i.e. the link may point elsewhere, perhaps to a NCATS-hosted cloud storage site).
 
-One limitation of this option is that not all useful KGE file sets may be KP (or ARA) associated outputs. For such additional KGE file sets, a separately SmartAPI indexed API endpoint will need to be associated with the file sets. Implementing a full TRAPI wrapper around a KGE file set is one option. It the intent is to provide query access to the KGE files, this may be a viable alternative. However, the use case of simply accessing metadata to locate and describe such KGE files for web access suggests that a simpler API may suffice. This is the purpose of the proposed [KGE Registry API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/api/kgerapi.yaml) in this project.
+However, the use case of simply accessing metadata to locate and describe such KGE files for web access suggests that a simpler API may suffice. This is the purpose of the proposed [KGE Archive API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/api/kgea_api.yaml) in this project.
 
 ### Translator Central KGE File Archive
 
-Since the possibility that Translator teams may not wish to host KGE files on their own servers or that non-KP or non-ARA specific knowledge files are generated, a third party location for hosting such files is also desired. This is purpose of specifying a "Translator Central KGE File Archive" ("Translator Archive") as a reference implementation of the KGE Registry API, although in principle, specialised KGE Registries could be implemented by team for independent management of KGE files by that team, assuming that such files are not already directly hosted behind the teams TRAPI implementations. The KGE Registry API of such a Translator Archive could subsequently be registered in the Translator SmartAPI Registry in a  similar fashion (with similar design concerns) to the TRAPI-specific implementation outlined above.
+The results of a community survey some months ago suggested that Translator teams generally prefer to host all the KGE file sets that they generate on a common Translator community location. This is purpose of specifying a central "Translator KGE Archive" as a reference implementation of a KGE Archive API, although in principle, specialised KGE Archives could be implemented by teams for independent management of their KGE files.
 
-### Option of Dynamic Publication of Content Metadata
+### Metadata Access
 
-Discussions are underway to add a new [TRAPI Knowledge Map endpoint](https://github.com/NCATSTranslator/ReasonerAPI/pull/171/files), that will serve publish knowledge graph content metadata. For full TRAPI implementations, such content metadata may be dynamically updated as the KP (or ARA) evolves with time.  Perhaps, an alternative to the aforementioned REST access to a static KGE metadata file may be the implementation of the proposed new "knowledge map" endpoint to serve such metadata.
+Discussions are underway to add a new [TRAPI Knowledge Map endpoint](https://github.com/NCATSTranslator/ReasonerAPI/pull/171/files), that will serve publish knowledge graph content metadata. For full TRAPI implementations, such content metadata may be dynamically updated as the KP (or ARA) evolves with time.  It is the consensus of the Working Group that the KGE Archive API can implement an equivalent `/knowledge_map` endpoint to remain harmonized with the TRAPI standard for serving such metadata to the users of the system. Further design discussions is required to discern the precise overlap in functionality between the TRAPI and KGE Archive API implementation.
 
-On the surface, assuming that this is a plain REST URL, the option merely absolves the implementer of a KGE archive of the need to worry about file names for a static content metadata file. Rather, there is only a need to serve the static metadata file (possibly precomputed by KGX) through the "knowledge map" endpoint.
+## KGE File Registry
 
-## Additional Issues
-
-Irrespective of the how the metadata is transmitted and its specific composition, it is likely that both TRAPI-centric and Translator archive centric file sharing may publish several knowledge subgraphs alongside one another for the given resource. Some kind of lightweight 'catalog' enumerating each distinct knowledge graph will be needed. The KGE metadata will need to generally describe the scope of each distinct knowledge graph, to support the decision to its use.
-
-One open question about the SmartAPI indexing of the Translator Archive itself is whether or not SmartAPI would contain a single API entry for the KGE Registry API or, alternately, whether every distinct KGE file set will have its own SmartAPI entry.  The former design option is simple to implement but perhaps more challenging for resource discovery. In contrast, the latter option likely simplifies the discovery of specific knowledge graphs, but may be more challenging to design.
+Irrespective of the how the metadata is transmitted and its specific composition, it is likely that there will be multiple distinct TRAPI and and non-TRAPI KGE file sets to be indexed for sharing. There appears to be a consensus that the indexing will be within the Translator SmartAPI Registry ("the Registry") and will ideally be represented as multiple distinct entries in the Registry, even if the base URIs of these entries simply resolve into separate REST URI paths on a single Translator Archive web server, to access the specific metadata for each instance, primarily at the end of a `/knowledge_map` endpoint.
