@@ -13,7 +13,7 @@ The first general requirement is the ability to locate and describe such KGE fil
 
 The second general requirement notes that since by design, the SmartAPI registry only records and publishes metadata about its indexed resources, for human or programmatic lookup, as OpenAPI 3 compliant Application Programming Interfaces, it has been concluded that from the standpoint of SmartAPI, **all** resources registered in the Translator Registry **must** be "API-like" in nature, both by specification and by the implementation of a live web service access.  
 
-In alignment with this vision,  KGE files related endpoints and metadata could conceivably be specified within future releases of the TRAPI specification for Translator Knowledge Providers (KP) or Autonomous Relay Agents (ARA). However, if KGE files of interest are not directly associated with a KP or ARA, the metadata (including access endpoint) for such files will need to be wrapped by some other implemented ("live") SmartAPI OpenAPI 3 API endpoint.  The KGE Registry API is proposed to be that specification and (by default) a NCATS hosted implementation of a KGE Registry is also proposed.
+In alignment with this vision,  KGE files of interest will need to be wrapped by some other implemented ("live") SmartAPI OpenAPI 3 API endpoint.  The KGE Archive API is proposed to be that specification and (by default) a NCATS hosted implementation of a KGE Archive is also proposed.
 
 ## Architectural Options for a KGE File Sharing
 
