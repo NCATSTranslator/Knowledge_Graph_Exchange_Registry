@@ -1,19 +1,21 @@
 # Translator Knowledge Graph Exchange Registry and Archive Architecture
 
-This discussion document will strive to compile and review general options for KGE Registry architecture supporting the 
-[use cases for community-wide sharing of Translator standards compliant knowledge graphs ("KGE files")](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_USE_CASES.md) captured or exported as structured text files. 
+This discussion document will strive to compile and review general options for KGE Registry and Archive architecture supporting the 
+[use cases for community-wide exchange of Translator standards compliant knowledge graphs](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_USE_CASES.md) captured or exported as as distinct sets of KGX-formatted text files ("KGE files"). 
 
-KGX-compliant TSV or JSON formatted files and Neo4j database text file dumps are two examples of possible file formats which could be shared. However, it is generally anticipated that KGX tooling itself will enforce a uniform representation within the Translator Knowledge Graph Exchange Archive itself. 
+KGX-compliant TSV or JSON formatted files and Neo4j database text file dumps are two examples of possible file formats which could be shared. However, it is generally anticipated that KGX tooling itself will enforce a uniform KGX file format within the Translator Knowledge Graph Exchange Archive itself. 
+
+Note that we use the acronyms "KGX" and "KGE" somewhat interchangeably, where the former pertains more to standard formats and associated tooling for interconverting Biolink Model compliant graphs in various format; the latter, more commonly designates distinct knowledge graphs being shared in the form of a metadata documented set KGX formatted files, within the Translator community and information system.
  
 ## Landscape of Translator Sharing of Knowledge Products
 
-KGE files are one of three channels with which Knowledge Providers (KP) implementations can share knowledge graphs, the other two channels being an implementation of the Translator Reasoner Application Programming Interface ("TRAPI") or possibly, of a non-TRAPI SmartAPI-registered bespoke APIs.  Autonomous Relay Agents (ARA) serving novel knowledge may also publish them either through KGE file sets.
+KGX formatted files are one of three channels with which Knowledge Providers (KP) implementations can share knowledge graphs, the other two channels being an implementation of the Translator Reasoner Application Programming Interface ("TRAPI") or possibly, of a non-TRAPI SmartAPI-registered bespoke APIs.  Autonomous Relay Agents (ARA) serving novel knowledge may also publish them either through KGE file sets.
 
 The first general requirement is the ability to locate and describe such KGE files. For this purpose, [indexing of such KGE files within the SmartAPI-based Translator registry with Translator standardized metadata](https://github.com/NCATSTranslator/TranslatorArchitecture) is now a Translator community agreed requirement.
 
 The second general requirement notes that since by design, the SmartAPI registry only records and publishes metadata about its indexed resources, for human or programmatic lookup, as OpenAPI 3 compliant Application Programming Interfaces, it has been concluded that from the standpoint of SmartAPI, **all** resources registered in the Translator Registry **must** be "API-like" in nature, both by specification and by the implementation of a live web service access.  
 
-In alignment with this vision,  KGE files of interest will need to be wrapped by some other implemented ("live") SmartAPI OpenAPI 3 API endpoint.  The KGE Archive API is proposed to be that specification and (by default) a NCATS hosted implementation of a KGE Archive is also proposed.
+In alignment with this vision, all KGE files of interest will need to be wrapped behind some other implemented ("live") SmartAPI OpenAPI 3 API endpoint.  The KGE Archive API is proposed to be that specification and (by default) a NCATS hosted implementation and deployment of a reference KGE Archive is also proposed.
 
 ## Architectural Options for a KGE File Sharing
 
