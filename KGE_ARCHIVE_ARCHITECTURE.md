@@ -44,3 +44,7 @@ There is a consensus in the working group that the indexing of such distinct KGE
 The exact procedure by which KGE API entries are published to the Registry, and KGE file set versions tracked, remains to be specified as an KGE Archive implementation detail.
 
 How the KGE Archive will publish the existence of uploaded KGE file sets, to the Registry, is a design detail to be specified.
+
+# Architecture
+
+![KGE Archive Architecture](./docs/KGE_Archive_Architecture?raw=true "KGE Archive Architecture")
