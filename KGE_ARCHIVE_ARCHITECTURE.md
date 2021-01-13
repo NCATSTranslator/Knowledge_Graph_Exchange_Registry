@@ -23,9 +23,11 @@ The KGE files to be shared could be the full or a partial subset of knowledge gr
 
 ### Translator KGE Archive
 
-The results of a community survey some months ago suggested that all Translator teams would avail of the option to host all the KGE file sets that they generate in a common Translator community location. This is the purpose of the proposed **Translator KGE Archive** to be deployed as a reference implementation of a [KGE Archive API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/api/kgea_api.yaml), although in principle, additional specialised KGE Archives could be implemented by teams for independent management of their KGE files.
+The results of a community survey some months ago suggested that all Translator teams would avail of the option to host all the KGE file sets that they generate in a common Translator community location. This is the purpose of the proposed **Translator KGE Archive** to be deployed as a reference implementation of a [KGE Archive API](./api/kgea_api.yaml), although in principle, additional specialised KGE Archives could be implemented by teams for independent management of their KGE files.
 
 The current concept of the **Translator KGE Archive** is not prescriptive about exactly where the KGE files themselves will be hosted: they may reside within the web server running the Archive or perhaps to a NCATS-hosted (Amazon Web Services S3?) cloud storage site.  The **Translator KGE Archive** web services will themselves obviously be deployed on a live web server somewhere, likely on a (Amazon Web Services EC2?) cloud instance.
+
+The [hostname of the production server]() for the **Translator KGE Archive** web server remains to be decided by Translator community.
 
 ### Metadata Access
 
