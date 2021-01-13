@@ -19,6 +19,6 @@ Five "epic" issue pull requests define the initial components of KGE Working Gro
 - [KGE Metadata](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/2)
    - [Translator Registry Metadata PR](https://github.com/NCATSTranslator/TranslatorArchitecture/pull/13)
    - [**Draft** Metadata Discussion Document](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/issue-1-kge-metadata/KGE_METADATA.md)
-- [KGE Registry API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/6)
-    - [**Draft** KGE Registry API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/issue-5-kgerapi-design/api/kgea_api.yaml)
+- [KGE Archive API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/6)
+    - [**Draft** KGE Archive API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/issue-5-kgerapi-design/api/kgea_api.yaml)
 - [KGE Registry Implementation](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/8)
