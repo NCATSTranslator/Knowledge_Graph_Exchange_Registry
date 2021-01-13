@@ -15,7 +15,7 @@ Five "epic" issue pull requests define the initial components of KGE Working Gro
 - [KGE Use Cases](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/10)
     - **Completed & Merged to Master:** see [Use Case Document](./KGE_USE_CASES.md)
 - [KGE Registry Architectural Design](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/4)
-    - [**Draft** Architecture Discussion Document](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/issue-3-kge-registry-architecture/KGE_REGISTRY_ARCHITECTURE.md)
+    - **Completed & Merged to Master:** see[Architecture Vision Document](./KGE_REGISTRY_ARCHITECTURE.md)
 - [KGE Metadata](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/2)
    - [Translator Registry Metadata PR](https://github.com/NCATSTranslator/TranslatorArchitecture/pull/13)
    - [**Draft** Metadata Discussion Document](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/issue-1-kge-metadata/KGE_METADATA.md)
