@@ -47,4 +47,4 @@ How the KGE Archive will publish the existence of uploaded KGE file sets, to the
 
 # Architecture
 
-![KGE Archive Architecture](./docs/KGE_Archive_Architecture?raw=true "KGE Archive Architecture")
+![KGE Archive Architecture](./docs/KGE_Archive_Architecture.png?raw=true "KGE Archive Architecture")
