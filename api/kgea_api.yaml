@@ -1,8 +1,12 @@
 openapi: 3.0.1
 info:
-  description: OpenAPI for the NCATS Biomedical Translator Knowledge Graph Exchange Archive
+  description: >-
+    OpenAPI for the NCATS Biomedical Translator
+    Knowledge Graph Exchange (KGE) Archive
   version: 0.0.1-dev
-  title: OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGE) Archive
+  title: >-
+    OpenAPI for the NCATS Biomedical Translator
+    Knowledge Graph Exchange (KGE) Archive
   contact:
     email: richard.bruskiewich@delphinai.com
   license:
@@ -11,13 +15,15 @@ info:
   termsOfService: https://ncats.nih.gov/translator
 externalDocs:
   description: >-
-    Documentation for the NCATS Biomedical Translator Knowledge Graph Exchange (KGE) Archive
+    Documentation for the NCATS Biomedical Translator
+    Knowledge Graph Exchange (KGE) Archive
   url: https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
 tags:
   - name: metadata
     description: Get KGX metadata
     externalDocs:
-      description: Documentation relating to Knowledge Graph registry and content metadata
+      description: >-
+        Documentation relating to Knowledge Graph registry and content metadata
       url: http://kge.ncats.io/overview.html#metadata
   - name: access
     description: Access KGX-formatted data files
