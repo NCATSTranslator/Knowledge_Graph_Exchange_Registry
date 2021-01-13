@@ -2,26 +2,28 @@ openapi: 3.0.1
 info:
   version: 0.0.1-dev
   title: >-
-    OpenAPI for the NCATS Biomedical Translator
-    Knowledge Graph EXchange (KGE) Archive
+    (Template for) Knowledge Graph EXchange (KGE) File Set SmartAPI Entry
   description: >-
-    OpenAPI for the NCATS Biomedical Translator
-    Knowledge Graph Exchange Archive
+    (Template for) SmartAPI Entry for a distinct
+    NCATS Biomedical Translator
+    Knowledge Graph EXchange (KGE) File Set
   license:
     name: MIT 2.0
     url: https://en.wikipedia.org/wiki/MIT_License
   termsOfService: https://ncats.nih.gov/translator
   contact:
-    name: Richard Bruskiewich
-    x-role: responsible developer
-    email: richard.bruskiewich@delphinai.com
-    x-id: https://github.com/RichardBruskiewich
+    name: $nameOfSomebody
+    x-role: responsible curator
+    email: $email4somebody
+    x-id: https://github.com/$gitId4somebody
   x-translator:
-        component: SRI service
+        component: KP # could sometimes be ARA or SRI Service or ???
         team:
-        - "SRI"
+        - $nameOfTeam
 servers:
-  - url: translator.ncats.io/kge-archive
+  # $kg_name should be set to the
+  # registered Knowledge Graph name in the KGE Archive
+  - url: translator.ncats.io/kge-archive/$kg_name
     description: Production Server
 externalDocs:
   description: >-
@@ -42,7 +44,7 @@ tags:
         Documentation of Knowledge Graph Exchange content metadata
       url: https://translator.ncats.io/kge-archive/overview.html#content
 paths:
-  /{kg_name}/access:
+  /access:
     get:
       tags:
         - provider
@@ -73,7 +75,7 @@ paths:
                   description: >-
                      Provider metadata attributes
                   $ref: '#/components/schemas/Attribute'
-  /{kg_name}/knowledge_map:
+  /knowledge_map:
     get:
       tags:
         - content
