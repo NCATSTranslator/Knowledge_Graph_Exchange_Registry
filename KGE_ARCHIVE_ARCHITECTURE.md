@@ -1,4 +1,4 @@
-# Translator Knowledge Graph Exchange Registry and Archive Architecture
+# Translator Knowledge Graph Exchange Archive Architecture
 
 This discussion document will strive to compile and review general options for KGE Registry and Archive architecture supporting the 
 [use cases for community-wide exchange of Translator standards compliant knowledge graphs](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_USE_CASES.md) captured or exported as as distinct sets of KGX-formatted text files ("KGE files"). 
