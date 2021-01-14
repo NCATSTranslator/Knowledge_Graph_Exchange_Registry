@@ -1,150 +1,207 @@
-```
-graph_name: Graph
-node_stats:
-  total_nodes: 14759537
-  node_categories:
-  - biolink:AnatomicalEntity
-  - biolink:BiologicalProcess
-  - biolink:CellularComponent
-  - biolink:ChemicalSubstance
-  - biolink:MolecularActivity
-  - biolink:OntologyClass
-  count_by_category:
-    biolink:AnatomicalEntity:
-      count: 67411
-      provided_by:
-        bgee:
-          count: 3927
-        coriell:
-          count: 12
-        mgi:
-          count: 3
-        mmrrc:
-          count: 42614
-        monarch:
-          count: 14
-        monarch-ontologies:
-          count: 24798
-    biolink:BiologicalProcess:
-      count: 47548
-      provided_by:
-        flybase:
-          count: 4
-        go:
-          count: 17416
-        gwascatalog:
-          count: 68
-        kegg:
-          count: 538
-        monarch-ontologies:
-          count: 30825
-        reactome:
-          count: 15910
-        zfin:
-          count: 278
-    biolink:CellularComponent:
-      count: 4464
-      provided_by:
-        go:
-          count: 2325
-        monarch-ontologies:
-          count: 4464
-    biolink:MolecularActivity:
-      count: 12231
-      provided_by:
-        go:
-          count: 5587
-        monarch-ontologies:
-          count: 12231
-    biolink:OntologyClass:
-      count: 149188
-      provided_by:
-        animalqtldb:
-          count: 25
-        bgee:
-          count: 1033
-        biogrid:
-          count: 21
-        chebi:
-          count: 25
-        clinvar:
-          count: 16
-        coriell:
-          count: 30
-        ctd:
-          count: 11
-edge_stats:
-  total_edges: 35578700
-  edge_labels:
-  - biolink:actively_involved_in
-  - biolink:affects
-  - biolink:affects_localization_of
-  - biolink:biomarker_for
-  count_by_edge_label:
-    biolink:actively_involved_in:
-      count: 2261221
-      provided_by:
-        go:
-          count: 1133614
-        kegg:
-          count: 81602
-        reactome:
-          count: 1046005
-    biolink:affects:
-      count: 24218
-      provided_by:
-        monarch-ontologies:
-          count: 24218
-    biolink:affects_localization_of:
-      count: 6
-      provided_by:
-        monarch-ontologies:
-          count: 6
-    biolink:biomarker_for:
-      count: 649384
-      provided_by:
-        animalqtldb:
-          count: 584426
-        ctd:
-          count: 64341
-        omim:
-          count: 201
-        orphanet:
-          count: 416
-  count_by_spo:
-    biolink:AnatomicalEntity-biolink:affects-biolink:AnatomicalEntity:
-      count: 8338
-      provided_by:
-        monarch-ontologies:
-          count: 8338
-    biolink:BiologicalProcess-biolink:affects_localization_of-biolink:CellularComponent:
-      count: 6
-      provided_by:
-        monarch-ontologies:
-          count: 6
-    biolink:Cell-biolink:affects-biolink:Cell:
-      count: 943
-      provided_by:
-        monarch-ontologies:
-          count: 943
-    biolink:OntologyClass-biolink:affects-biolink:BiologicalProcess:
-      count: 4917
-      provided_by:
-        monarch-ontologies:
-          count: 4917
-    biolink:OntologyClass-biolink:affects-biolink:CellularComponent:
-      count: 604
-      provided_by:
-        monarch-ontologies:
-          count: 604
-    biolink:OntologyClass-biolink:affects-biolink:MolecularActivity:
-      count: 407
-      provided_by:
-        monarch-ontologies:
-          count: 407
-    biolink:OntologyClass-biolink:affects-biolink:OntologyClass:
-      count: 9009
-      provided_by:
-        monarch-ontologies:
-          count: 9009
+```json
+
+"knowledge_map": {
+    "nodes": {
+        "id_prefixes": [
+            "HP",
+            "NCBIGene",
+            "ZFIN",
+            "REACT",
+            "ENSEMBL",
+            "MONDO",
+            "MGI",
+            "RGD",
+            "GO",
+            "HGNC",
+            "FlyBase",
+            "EFO",
+            "UBERON"
+        ],
+        "count": 512,
+        "count_by_source": {
+            "unknown": 512
+        }
+    },
+    "edges": [
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:interacts_with",
+            "object": "biolink:Gene",
+            "relations": [
+                "RO:0002434"
+            ],
+            "count": 165,
+            "count_by_source": {
+                "unknown": 0,
+                "biogrid": 9,
+                "string": 159
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:part_of",
+            "object": "biolink:CellularComponent",
+            "relations": [
+                "BFO:0000050"
+            ],
+            "count": 8,
+            "count_by_source": {
+                "unknown": 0,
+                "go": 8
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:related_to",
+            "object": "biolink:BiologicalProcess",
+            "relations": [
+                "RO:0002331"
+            ],
+            "count": 143,
+            "count_by_source": {
+                "unknown": 0,
+                "go": 143
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:related_to",
+            "object": "biolink:MolecularActivity",
+            "relations": [
+                "RO:0002327"
+            ],
+            "count": 8,
+            "count_by_source": {
+                "unknown": 0,
+                "go": 8
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:related_to",
+            "object": "biolink:Pathway",
+            "relations": [
+                "RO:0002331"
+            ],
+            "count": 8,
+            "count_by_source": {
+                "unknown": 0,
+                "reactome": 8
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:orthologous_to",
+            "object": "biolink:Gene",
+            "relations": [
+                "RO:HOM0000020",
+                "RO:HOM0000017"
+            ],
+            "count": 13,
+            "count_by_source": {
+                "unknown": 0,
+                "panther": 13,
+                "zfin": 2
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:expressed_in",
+            "object": "biolink:AnatomicalEntity",
+            "relations": [
+                "RO:0002206"
+            ],
+            "count": 20,
+            "count_by_source": {
+                "unknown": 0,
+                "bgee": 20
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:has_phenotype",
+            "object": "biolink:PhenotypicFeature",
+            "relations": [
+                "RO:0002200"
+            ],
+            "count": 111,
+            "count_by_source": {
+                "unknown": 0,
+                "omim": 54,
+                "hpoa": 111,
+                "orphanet": 72
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:contributes_to",
+            "object": "biolink:PhenotypicFeature",
+            "relations": [
+                "RO:0003304"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "gwascatalog": 1
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:related_to",
+            "object": "biolink:Disease",
+            "relations": [
+                "RO:0003303",
+                "RO:0004013",
+                "RO:0004015"
+            ],
+            "count": 18,
+            "count_by_source": {
+                "unknown": 0,
+                "omim": 4,
+                "orphanet": 14
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:contributes_to",
+            "object": "biolink:Disease",
+            "relations": [
+                "RO:0003304"
+            ],
+            "count": 2,
+            "count_by_source": {
+                "unknown": 0,
+                "omim": 2
+            }
+        },
+        {
+            "subject": "biolink:Disease",
+            "predicate": "biolink:involved_in",
+            "object": "biolink:Pathway",
+            "relations": [
+                "RO:0002331"
+            ],
+            "count": 22,
+            "count_by_source": {
+                "unknown": 0,
+                "omim": 8,
+                "reactome": 22,
+                "orphanet": 14
+            }
+        },
+        {
+            "subject": "biolink:Disease",
+            "predicate": "biolink:has_phenotype",
+            "object": "biolink:PhenotypicFeature",
+            "relations": [
+                "RO:0002200"
+            ],
+            "count": 13,
+            "count_by_source": {
+                "unknown": 0,
+                "hpoa": 13
+            }
+        }
+    ]
+}
 ```
