@@ -1,5 +1,9 @@
-```json
+# Sample KGE Metadata
 
+The following metadata format is in-line to the developments on TRAPI (see https://github.com/NCATSTranslator/ReasonerAPI/pull/171) and will be updated frequently.
+
+**kg-metadata.json**:
+```json
 "knowledge_map": {
     "nodes": {
         "id_prefixes": [
