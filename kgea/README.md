@@ -59,11 +59,11 @@ To run Docker, you'll obviously need to [install Docker first](https://docs.dock
 in your target Linux operating environment (bare metal server or virtual machine running Linux).
 
 For our installations, we typically use Ubuntu Linux, for which there is an 
-[Ubuntu-specific docker installation using the repository](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#install-using-the-repository).
+[Ubuntu-specific docker installation using the repository](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#install-using-the-repository). There is also a [post installation step with Linux](https://docs.docker.com/engine/install/linux-postinstall/) to allow the running of docker as a regular user (i.e. without `sudo`).
 
-Note that you should have 'curl' installed first before installing Docker:
+Note that you may need to install `curl` first before installing Docker:
 
-```
+```shell
 $ sudo apt-get install curl
 ```
 
@@ -73,13 +73,13 @@ For other installations, please find instructions specific to your choice of Lin
 
 In order to ensure that Docker is working correctly, run the following command:
 
-```
-$ sudo docker run hello-world
+```shell
+$ docker run hello-world
 ```
 
 This should result in something akin to the following output:
 
-```
+```shell
 Unable to find image 'hello-world:latest' locally
 latest: Pulling from library/hello-world
 ca4f61b1923c: Pull complete
@@ -112,23 +112,19 @@ For more examples and ideas, visit:
 
 You will then also need to [install Docker Compose](https://docs.docker.com/compose/install/) alongside Docker in your target Linux operating environment.
 
-Note that under Ubuntu, you need to run docker (and docker-compose) as 'sudo'. 
-
 ## Testing Docker Compose
 
 In order to ensure Docker Compose is working correctly, issue the following command:
-```
+
+```shell
 $ docker-compose --version
 docker-compose version 1.18.0, build 8dd22a9
 ```
-Note that your particular version and build number may be different than what is shown here. We don't currently 
-expect that docker-compose version differences should have a significant impact on the build, but if in doubt, 
-refer to the release notes of the docker-compose site for advice.
+Note that your particular version and build number may be different than what is shown here. We don't currently expect that docker-compose version differences should have a significant impact on the build, but if in doubt, refer to the release notes of the docker-compose site for advice.
 
-## Coding Dependencies
+## Installing Project Library Dependencies
 
 Aside from basic Python, this project uses the [openapitools openapi-generator-cli](https://www.npmjs.com/package/@openapitools/openapi-generator-cli) module to generate its server code.
-
 
 ## Build & Tests
 
