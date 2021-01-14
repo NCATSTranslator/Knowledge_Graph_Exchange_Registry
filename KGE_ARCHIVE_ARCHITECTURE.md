@@ -45,6 +45,6 @@ The exact procedure by which KGE API entries are published to the Registry, and 
 
 How the KGE Archive will publish the existence of uploaded KGE file sets, to the Registry, is a design detail to be specified.
 
-# Architecture
+# Implementation
 
-![KGE Archive Architecture](./docs/KGE_Archive_Architecture.png?raw=true "KGE Archive Architecture")
+See [KGE Archive Implementation page](../kgea/README.md) for full details about the architecture and function of the Archive.
