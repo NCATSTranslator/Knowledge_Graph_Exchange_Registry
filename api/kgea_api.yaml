@@ -23,7 +23,7 @@ tags:
     description: Get KGX metadata
     externalDocs:
       description: >-
-        Documentation relating to Knowledge Graph registry and content metadata
+        Documentation of Knowledge Graph Exchange content metadata
       url: http://kge.ncats.io/overview.html#metadata
   - name: access
     description: Access KGX-formatted data files
@@ -37,26 +37,29 @@ paths:
         - metadata
       summary: Get catalog of available knowledge graphs
         '200':
-          description: Knowledge Graphs available with metadata attributes indexed by Name
+          description: >-
+            Knowledge Graphs available by identifier, with metadata attributes
           content:
             application/json:
               schema:
+                description: Catalog of knowledge graphs indexed by identifier
                 type: object
-                description: Catalog of graphs (as a dictionary), where keys are the name of the graph
                 additionalProperties:
-                  $ref: '#/components/schemas/GraphMetaData'
+                  description: >-
+                    Array of metadata describing a knowledge graph
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Attribute'
+                # This is a bit of a facetious example since not KGE metadata
                 example:
-                  'Some Knowledge Graph Name':
-                    'metadata_tag_1': "value1"
-                    'metadata_tag_2': "value2"
+                  'Some-KG-identifier':
+                    - name: PubMed Identifier
+                      value: 29146545
+                      type: EDAM:data_1187
+                      url: https://pubmed.ncbi.nlm.nih.gov/29146545
+                      source: PMID
 components:
   schemas:
-    GraphMetaData:
-      type: array
-      description: A list of metadata attributes describing a given knowledge graph
-      items:
-        $ref: '#/components/schemas/Attribute'
-      additionalProperties: false
     Attribute:
       type: object
       description: Generic attribute for a node
@@ -68,7 +71,7 @@ components:
             of the semantic type term.
           example: PubMed Identifier
         value:
-          example: 32529952
+          example: 29146545
           description: >-
             Value of the attribute. May be any data type, including a list.
         type:
@@ -84,11 +87,11 @@ components:
           description: >-
             Human-consumable URL to link out and read about the attribute (not
             the node).
-          example: https://pubmed.ncbi.nlm.nih.gov/32529952
+          example: https://pubmed.ncbi.nlm.nih.gov/29146545
         source:
           type: string
           description: Source of the attribute, as a CURIE prefix.
-          example: UniProtKB
+          example: PMID
       required:
         - type
         - value
