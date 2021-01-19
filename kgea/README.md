@@ -4,7 +4,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
 
 # Architecture & Functions
 
-![KGE Archive Architecture](./docs/KGE_Archive_Architecture.png?raw=true "KGE Archive Architecture")
+![KGE Archive Architecture](../docs/KGE_Archive_Architecture.png?raw=true "KGE Archive Architecture")
 
 The core functions of the Archive are:
 
