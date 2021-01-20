@@ -141,7 +141,7 @@ The project is developed in the latest Python release (3.9 as of January 2021).
 The project also uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, both for bare metal development/testing, and within the Docker production development. To install the tool (assuming a user-centric local installation), type:
 
 ```shell
-python -m pip install --user pipenv
+python -m pip install pipenv
 ```
 
 (note: we use the 'module' access to pip to ensure that we are installing our tools and dependencies under the correct Python installation on our system).
@@ -149,7 +149,7 @@ python -m pip install --user pipenv
 Sometimes, as needed, `pipenv` is upgraded:
 
 ```shell
-python -m pip install --user --upgrade pipenv
+python -m pip install --upgrade pipenv
 ```
 After `pipenv` is installed, other required Python dependencies were added to the project:
 
