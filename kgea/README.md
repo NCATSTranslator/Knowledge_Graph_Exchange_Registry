@@ -1,10 +1,30 @@
 **January 20, 2021: DRAFT WORK-IN-PROGRESS at this time... your mileage may vary...**
 
+- [Knowledge Graph Exchange Archive Web Server](#knowledge-graph-exchange-archive-web-server)
+    - [Architecture & Functions](#architecture-functions)
+    - [Design Overview](#design-overview)
+- [Development Deployment](#development-deployment)
+    - [Cloning the Code](#cloning-the-code)
+    - [Configuration](#configuration)
+        - [`pipenv`](#pipenv)
+            - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
+        - [Project Python Package Dependencies](#project-python-package-dependencies)
+    - [Build & Tests](#build-tests)
+    - [Running the System](#running-the-system)
+- [Production Deployment](#production-deployment)
+    - [Installation of Docker](#installation-of-docker)
+        - [Testing Docker](#testing-docker)
+    - [Installing Docker Compose](#installing-docker-compose)
+        - [Testing Docker Compose](#testing-docker-compose)
+    - [Configuration](#configuration)
+    - [Build & Tests](#build-tests)
+    - [Running the System](#running-the-system)
+
 # Knowledge Graph Exchange Archive Web Server
 
-The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an online host to share knowledge graphs formatted as KGX standard compliant formatted files that are indexed for access, complete with their metadata, in the Translator SmartAPI Registry.  
+The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an online host to share knowledge graphs formatted as KGX standard compliant formatted files that are indexed for access, complete with their metadata, in the Translator SmartAPI Registry. 
 
-# Architecture & Functions
+## Architecture & Functions
 
 ![KGE Archive Architecture](../docs/KGE_Archive_Architecture.png?raw=true "KGE Archive Architecture")
 
@@ -18,7 +38,7 @@ The components and operations of the KGE Archive system (including related Trans
 6. client access to **KGE File Set** metadata from the Register (Note that the details and implementation of the indexing and accessing of KGE entries in the Registry will be within the technical scope of the Registry team, not this Archive code base).
 7. a file streaming gateway/protocol to download **KGE File Sets**, using information from KGEA API entries retrieved from the Registry.
 
-# Design Overview
+## Design Overview
 
 The proposed implementation of the Archive is as a Python web application consisting of components running within a Docker Compose coordinated set of Docker containers, hosted on a (Translator hosted AWS EC2 cloud?) server instance and accessing suitable (Translator hosted AWS S3 or EBS cloud) storage.
 
@@ -30,11 +50,13 @@ The web application will publish KGE SmartAPI entries to the Translator SmartAPI
 
 Using accessed KGE SmartAPI metadata, clients will connect to the Archive to read the available Content Metadata, then access the files themselves though some link or protocol of file data transfer from the remote network storage (by a protocol to be further specified), for their intended local computational use.
 
-# Getting Started
+The remainder of this document reviews deployment of the system for development and for production.
+
+# Development Deployment
 
 ## Cloning the Code
 
-In your code workspace, either Git clone project using HTTPS...
+Make sure that you have a copy of [git installed](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git). Then, in your chosen project workspace location, either Git clone project using HTTPS...
 
 ```shell
 $ git clone https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
@@ -46,12 +68,88 @@ $ git clone https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
 $ git clone git@github.com:NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
 ```
 
-# Docker Deployment of the KGE Archive
+## Configuration
 
-The KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or 
-virtual machine. Some preparation is required.
+The project is developed in the latest Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage the Python version in its own virtual environment.
+
+### Pipenv
+
+The project also uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, both for bare metal development/testing, and within the Docker production development. To install the tool (assuming a user-centric local installation), type:
+
+```shell
+python -m pip install pipenv
+```
+
+(note: we use the 'module' access to pip to ensure that we are installing our tools and dependencies under the correct Python installation on our system).  Sometimes, as needed, `pipenv` may be upgraded:
+
+```shell
+python -m pip install --upgrade pipenv
+```
+
+After `pipenv` is installed, it is used to create a virtual environment and install the required Python dependencies to the project (including the necessary Python release).  
+
+Developers installing an existing Github clone of the project generally just want to install previously specified dependencies, in which case, a simple command may be run in the root project directory on one's own development machine:
+
+```shell
+pipenv install
+```
+
+This uses the existing `PipFile` project configuration in the root project directory, which is persisted in the project repository.  This also ensures installation and use of the required version of Python (3.9 as of January 2021).
+
+Once everything is set up, `pipenv` can be used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
+
+```shell
+pipenv run python myProjectScript.py
+```
+
+#### Upgrading or Adding to the System via `pipenv`
+
+Developers may sometimes wish or need to upgrade the project over time with updated versions of existing project Python package dependencies (including the Python release being used for the project) or add new package dependencies. This is once again easily accomplished using `pipenv`.
+
+To upgrade the project to a specific Python release and set up a new virtual environment using it, the following is typed:
+
+```shell
+pipenv install --python 3.#
+```
+
+Where '#' is the number of the desired Python 3 release (e.g. perhaps '10', when it is stably released)
+
+To update existing packages:
+
+1. Want to upgrade everything? Just do ```pipenv update```
+2. Want to upgrade packages one-at-a-time?  Do ```pipenv update <some-existing-python-package>``` for each outdated package.
+
+To install new packages into the project.
+
+```shell
+pipenv install <some-new-python-package>
+```
+
+Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
+
+## Project Python Package Dependencies
+
+Aside from basic Python, this project uses the [openapitools openapi-generator-cli](https://www.npmjs.com/package/@openapitools/openapi-generator-cli) module to generate its server code.
+
+## Build & Tests
+
+T.B.A.
+
+## Running the System
+
+T.B.A.
+
+# Production Deployment
+
+The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine. Some preparation is required.
 
 ## Installation of Docker
+
+Note that you may first need to install `curl` before installing Docker:
+
+```shell
+$ sudo apt-get install curl
+```
 
 To run Docker, you'll obviously need to [install Docker first](https://docs.docker.com/engine/installation/) 
 in your target Linux operating environment (bare metal server or virtual machine running Linux).
@@ -59,15 +157,9 @@ in your target Linux operating environment (bare metal server or virtual machine
 For our installations, we typically use Ubuntu Linux, for which there is an 
 [Ubuntu-specific docker installation using the repository](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/#install-using-the-repository). There is also a [post installation step with Linux](https://docs.docker.com/engine/install/linux-postinstall/) to allow the running of docker as a regular user (i.e. without `sudo`).
 
-Note that you may need to install `curl` first before installing Docker:
-
-```shell
-$ sudo apt-get install curl
-```
-
 For other installations, please find instructions specific to your choice of Linux variant, on the Docker site.
 
-## Testing Docker
+### Testing Docker
 
 In order to ensure that Docker is working correctly, run the following command:
 
@@ -110,7 +202,7 @@ For more examples and ideas, visit:
 
 You will then also need to [install Docker Compose](https://docs.docker.com/compose/install/) alongside Docker in your target Linux operating environment.
 
-## Testing Docker Compose
+### Testing Docker Compose
 
 In order to ensure Docker Compose is working correctly, issue the following command:
 
@@ -120,73 +212,14 @@ docker-compose version 1.18.0, build 8dd22a9
 ```
 Note that your particular version and build number may be different than what is shown here. We don't currently expect that docker-compose version differences should have a significant impact on the build, but if in doubt, refer to the release notes of the docker-compose site for advice.
 
-## Installing Project Library Dependencies
+## Configuration
 
-Aside from basic Python, this project uses the [openapitools openapi-generator-cli](https://www.npmjs.com/package/@openapitools/openapi-generator-cli) module to generate its server code.
+T.B.A.
 
 ## Build & Tests
 
 T.B.A.
 
-## Deployment
+## Running the System
 
 T.B.A.
-
-# Developer Details
-
-The project is developed in the latest Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage your Python version in its own virtual environment.
-
-## Pipenv
-
-The project also uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, both for bare metal development/testing, and within the Docker production development. To install the tool (assuming a user-centric local installation), type:
-
-```shell
-python -m pip install pipenv
-```
-
-(note: we use the 'module' access to pip to ensure that we are installing our tools and dependencies under the correct Python installation on our system).  Sometimes, as needed, `pipenv` may be upgraded:
-
-```shell
-python -m pip install --upgrade pipenv
-```
-
-After `pipenv` is installed, it is used to create a virtual environment and install the required Python dependencies to the project (including the necessary Python release).  
-
-Developers installing an existing Github clone of the project generally just want to install previously specified dependencies, in which case, a simple command may be run in the root project directory on one's own development machine:
-
-```shell
-pipenv install
-```
-
-This uses the existing `PipFile` project configuration in the root project directory, which is persisted in the project repository.  This also ensures installation and use of the required version of Python (3.9 as of January 2021).
-
-Once everything is set up, `pipenv` can be used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
-
-```shell
-pipenv run python myProjectScript.py
-```
-
-### Upgrading or Adding to the System via `pipenv`
-
-Developers may sometimes wish or need to upgrade the project over time with updated versions of existing project Python package dependencies (including the Python release being used for the project) or add new package dependencies. This is once again easily accomplished using `pipenv`.
-
-To upgrade the project to a specific Python release and set up a new virtual environment using it, the following is typed:
-
-```shell
-pipenv install --python 3.#
-```
-
-Where '#' is the number of the desired Python 3 release (e.g. perhaps '10', when it is stably released)
-
-To update existing packages:
-
-1. Want to upgrade everything? Just do ```pipenv update```
-2. Want to upgrade packages one-at-a-time?  Do ```pipenv update <some-existing-python-package>``` for each outdated package.
-
-To install new packages into the project.
-
-```shell
-pipenv install <some-new-python-package>
-```
-
-Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
