@@ -1,6 +1,12 @@
 **January 20, 2021: DRAFT WORK-IN-PROGRESS at this time... your mileage may vary...**
 
-- [Knowledge Graph Exchange Archive Web Server](#knowledge-graph-exchange-archive-web-server)
+# Knowledge Graph Exchange Archive Web Server
+
+The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an online host to share knowledge graphs formatted as KGX standard compliant formatted files that are indexed for access, complete with their metadata, in the Translator SmartAPI Registry. 
+
+## Table of Contents
+
+- **Knowledge Graph Exchange Archive Web Server**
     - [Architecture & Functions](#architecture-functions)
     - [Design Overview](#design-overview)
 - [Development Deployment](#development-deployment)
@@ -9,20 +15,15 @@
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
-    - [Build & Tests](#build-tests)
-    - [Running the System](#running-the-system)
+    - [Build & Tests](#build--tests)
+    - [Running the System Locally](#running-the-system-locally)
 - [Production Deployment](#production-deployment)
     - [Installation of Docker](#installation-of-docker)
         - [Testing Docker](#testing-docker)
     - [Installing Docker Compose](#installing-docker-compose)
         - [Testing Docker Compose](#testing-docker-compose)
-    - [Configuration](#configuration)
-    - [Build & Tests](#build-tests)
-    - [Running the System](#running-the-system)
-
-# Knowledge Graph Exchange Archive Web Server
-
-The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an online host to share knowledge graphs formatted as KGX standard compliant formatted files that are indexed for access, complete with their metadata, in the Translator SmartAPI Registry. 
+    - [Site Configuration](#site-configuration)
+    - [Running the Production System](#running-the-production-system)
 
 ## Architecture & Functions
 
@@ -135,7 +136,7 @@ Aside from basic Python, this project uses the [openapitools openapi-generator-c
 
 T.B.A.
 
-## Running the System
+## Running the System Locally
 
 T.B.A.
 
@@ -212,14 +213,10 @@ docker-compose version 1.18.0, build 8dd22a9
 ```
 Note that your particular version and build number may be different than what is shown here. We don't currently expect that docker-compose version differences should have a significant impact on the build, but if in doubt, refer to the release notes of the docker-compose site for advice.
 
-## Configuration
+## Site Configuration
 
 T.B.A.
 
-## Build & Tests
-
-T.B.A.
-
-## Running the System
+## Running the Production System
 
 T.B.A.
