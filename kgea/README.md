@@ -7,7 +7,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
 ## Table of Contents
 
 - **Knowledge Graph Exchange Archive Web Server**
-    - [Architecture & Functions](#architecture-functions)
+    - [Architecture & Functions](#architecture--functions)
     - [Design Overview](#design-overview)
 - [Development Deployment](#development-deployment)
     - [Cloning the Code](#cloning-the-code)
