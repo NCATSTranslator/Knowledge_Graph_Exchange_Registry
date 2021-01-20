@@ -134,7 +134,7 @@ T.B.A.
 
 # Developer Details
 
-The project is developed in the latest Python release (3.9 as of January 2021). 
+The project is developed in the latest Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage your Python version in its own virtual environment.
 
 ## Pipenv
 
@@ -144,29 +144,49 @@ The project also uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/
 python -m pip install pipenv
 ```
 
-(note: we use the 'module' access to pip to ensure that we are installing our tools and dependencies under the correct Python installation on our system).
-
-Sometimes, as needed, `pipenv` is upgraded:
+(note: we use the 'module' access to pip to ensure that we are installing our tools and dependencies under the correct Python installation on our system).  Sometimes, as needed, `pipenv` may be upgraded:
 
 ```shell
 python -m pip install --upgrade pipenv
 ```
-After `pipenv` is installed, other required Python dependencies were added to the project:
 
-```shell
-pipenv install <some-python-package>
-```
+After `pipenv` is installed, it is used to create a virtual environment and install the required Python dependencies to the project (including the necessary Python release).  
 
-This command updates a `PipFile` configuration in the root project directory, which is persisted in the project repository.
-
-Developers installing an existing Github clone of the project generally just want to install previously specified dependencies, in which case, a simple command may be run on one's own development machine:
+Developers installing an existing Github clone of the project generally just want to install previously specified dependencies, in which case, a simple command may be run in the root project directory on one's own development machine:
 
 ```shell
 pipenv install
 ```
 
-Once everything is set up, `pipenv` is used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
+This uses the existing `PipFile` project configuration in the root project directory, which is persisted in the project repository.  This also ensures installation and use of the required version of Python (3.9 as of January 2021).
+
+Once everything is set up, `pipenv` can be used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
 
 ```shell
 pipenv run python myProjectScript.py
 ```
+
+### Upgrading or Adding to the System via `pipenv`
+
+Developers may sometimes wish or need to upgrade the project over time with updated versions of existing project Python package dependencies (including the Python release being used for the project) or add new package dependencies. This is once again easily accomplished using `pipenv`.
+
+To upgrade the project to a specific Python release and set up a new virtual environment using it, the following is typed:
+
+```shell
+pipenv install --python 3.#
+```
+
+Where '#' is the number of the desired Python 3 release (e.g. perhaps '10', when it is stably released)
+
+To update existing packages:
+
+1. Want to upgrade everything? Just do ```pipenv update```
+2. Want to upgrade packages one-at-a-time?  Do ```pipenv update <some-existing-python-package>``` for each outdated package.
+
+To install new packages into the project.
+
+```shell
+pipenv install <some-new-python-package>
+```
+
+Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
