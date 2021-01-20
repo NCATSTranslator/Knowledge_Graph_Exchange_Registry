@@ -134,4 +134,39 @@ T.B.A.
 
 # Developer Details
 
-T.B.A.
+The project is developed in the latest Python release (3.9 as of January 2021). 
+
+## Pipenv
+
+The project also uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, both for bare metal development/testing, and within the Docker production development. To install the tool (assuming a user-centric local installation), type:
+
+```shell
+python -m pip install --user pipenv
+```
+
+(note: we use the 'module' access to pip to ensure that we are installing our tools and dependencies under the correct Python installation on our system).
+
+Sometimes, as needed, `pipenv` is upgraded:
+
+```shell
+python -m pip install --user --upgrade pipenv
+```
+After `pipenv` is installed, other required Python dependencies were added to the project:
+
+```shell
+pipenv install <some-python-package>
+```
+
+This command updates a `PipFile` configuration in the root project directory, which is persisted in the project repository.
+
+Developers installing an existing Github clone of the project generally just want to install previously specified dependencies, in which case, a simple command may be run on one's own development machine:
+
+```shell
+pipenv install
+```
+
+Once everything is set up, `pipenv` is used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
+
+```shell
+pipenv run python myProjectScript.py
+```
