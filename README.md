@@ -10,15 +10,8 @@ For further information about the terms of reference and activities of the KGE W
 
 ### Design Requirements & Implementation
 
-Five "epic" issue pull requests define the initial components of KGE Working Group deliberations and activities:
-
-- [KGE Use Cases](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/10)
-    - **Completed & Merged to Master:** see [Use Case Document](./KGE_USE_CASES.md)
-- [KGE Registry Architectural Design](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/4)
-    - **Completed & Merged to Master:** see [Architecture Vision Document](./KGE_ARCHIVE_ARCHITECTURE.md)
-- [KGE Metadata](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/2)
-   - [Translator Registry Metadata PR](https://github.com/NCATSTranslator/TranslatorArchitecture/pull/13)
-   - [**Draft** Metadata Discussion Document](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/issue-1-kge-metadata/KGE_METADATA.md)
-- [KGE Archive API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/6)
-    - [**Draft** KGE Archive API](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/issue-5-kgerapi-design/api/kgea_api.yaml)
-- [KGE Registry Implementation](https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pull/8)
+- [KGE Use Cases](./KGE_USE_CASES.md)
+- [KGE Archive Architectural Design](./KGE_ARCHIVE_ARCHITECTURE.md)
+- [KGE Metadata](./KGE_METADATA.md)
+- [KGE Archive API](./api/kgea_api.yaml)
+- [KGE Archive Implementation](./kgea)
