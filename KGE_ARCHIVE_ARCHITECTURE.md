@@ -47,4 +47,4 @@ How the KGE Archive will publish the existence of uploaded KGE file sets, to the
 
 # Implementation
 
-See [KGE Archive Implementation page](../kgea/README.md) for full details about the architecture and function of the Archive.
+See [KGE Archive Implementation page](./kgea/README.md) for full details about the architecture and function of the Archive.

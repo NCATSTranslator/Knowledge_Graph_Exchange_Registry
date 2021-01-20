@@ -17,9 +17,9 @@ info:
     email: richard.bruskiewich@delphinai.com
     x-id: https://github.com/RichardBruskiewich
   x-translator:
-        component: SRI service
-        team:
-        - "SRI"
+    component: SRI service
+    team:
+    - "SRI"
 servers:
   - url: translator.ncats.io/kge-archive
     description: Production Server

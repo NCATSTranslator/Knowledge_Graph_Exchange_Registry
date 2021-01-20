@@ -3,7 +3,7 @@
 The [KGE Archive API](./kgea_api.yaml) is a SmartAPI annotated OpenAPI 3 specification intended to define a possible API contract for a KGE Archive, implemented as a live REST web services endpoint.
 
 The KGE Archive API is a key component to implemented the agreed upon  [KGE Registry and Archive architecture](../KGE_ARCHIVE_ARCHITECTURE.md) supporting the 
-[use cases for community-wide exchange of Translator standards compliant knowledge graphs](../KGE_USE_CASES.md) captured or exported as as distinct sets of KGX-formatted text files ("KGE files"). 
+[use cases for community-wide exchange of Translator standards compliant knowledge graphs](../KGE_USE_CASES.md) captured or exported as distinct sets of KGX-formatted text files ("KGE files"). 
 
 ## General Design Principles (copied from SmartAPI site, for short term reference)
 
@@ -63,4 +63,3 @@ Regardless the type of APIs you are implementing, we recommend to follow these A
     See this live example from MyGene.info API:
 
     https://mygene.info/v3/query?q=cdk2&size=50&from=20
-
