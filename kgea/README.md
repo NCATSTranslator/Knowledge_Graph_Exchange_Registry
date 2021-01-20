@@ -97,12 +97,6 @@ pipenv install
 
 This uses the existing `PipFile` project configuration in the root project directory, which is persisted in the project repository.  This also ensures installation and use of the required version of Python (3.9 as of January 2021).
 
-Once everything is set up, `pipenv` can be used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
-
-```shell
-pipenv run python myProjectScript.py
-```
-
 #### Upgrading or Adding to the System via `pipenv`
 
 Developers may sometimes wish or need to upgrade the project over time with updated versions of existing project Python package dependencies (including the Python release being used for the project) or add new package dependencies. This is once again easily accomplished using `pipenv`.
@@ -138,7 +132,11 @@ T.B.A.
 
 ## Running the System Locally
 
-T.B.A.
+Once everything is set up, `pipenv` can be used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
+
+```shell
+pipenv run python myProjectScript.py
+```
 
 # Production Deployment
 
