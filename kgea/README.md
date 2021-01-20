@@ -37,23 +37,19 @@ Using accessed KGE SmartAPI metadata, clients will connect to the Archive to rea
 In your code workspace, either Git clone project using HTTPS...
 
 ```shell
-$ git clone --recursive https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
+$ git clone https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
 ```
 
 ... or with SSH
 
 ```shell
-$ git clone --recursive git@github.com:NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
+$ git clone git@github.com:NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
 ```
 
-# Docker Deployment of KBA
+# Docker Deployment of the KGE Archive
 
-KBA is typically run within a **Docker** container when the application is run on a Linux server or 
+The KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or 
 virtual machine. Some preparation is required.
-
-The following steps also assume that you have already run the *gradle clean build* on the project (see above) 
-from within the */opt/kba/beacon-aggregator* directory of your server) to generate the requisite 
-JAR file for Docker to use.
 
 ## Installation of Docker
 
