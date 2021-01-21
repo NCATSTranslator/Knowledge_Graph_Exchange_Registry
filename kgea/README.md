@@ -14,7 +14,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
     - [Configuration](#configuration)
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
-        - [Non-Python Project Dependencies](#non--python-project-dependencies)
+        - [Non-Python Project Dependencies](#non-python-project-dependencies)
             - [OpenAPI 3 Code Generation](#openapi-3-code-generation)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
     - [Build & Tests](#build--tests)
@@ -132,7 +132,7 @@ AS noted previously, this project once deployed, exposes an OpenAPI 3 web servic
 
 Although the project itself is coded in Python, updating the Python code for the web services requires re-running the code generator, after any revisions to the API specification. This code generator is a Java software program. Thus, such a Java binary (release 8 or better) needs to be installed and available on the OS PATH (might not be on minimal operating systems).
 
-If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A (January 2021) copy of this script is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, release 3.3.4 or better of the [Maven dependency management tool](https://maven.apache.org/) is used in the script thus also needs to be installed on locally.
+If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, release 3.3.4 or better of the [Maven dependency management tool](https://maven.apache.org/) is used in the script thus also needs to be installed on locally.
 
 ## Project Python Package Dependencies
 
