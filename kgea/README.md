@@ -130,9 +130,27 @@ Note that pipenv, like pip, can install packages from various sources: local, py
 
 AS noted previously, this project once deployed, exposes an OpenAPI 3 web service defined by the [KGE Archive Web Services OpenAPI 3 specification](./api/kgea_api.yaml).  Thus, this project uses the [OpenAPI Tools openapi-generator-cli](https://github.com/OpenAPITools/openapi-generator) code generator program to generate its web service implementation.
 
-Although the project itself is coded in Python, updating the Python code for the web services requires re-running the code generator, after any revisions to the API specification. This code generator is a Java software program. Thus, such a Java binary (release 8 or better) needs to be installed and available on the OS PATH (might not be on minimal operating systems).
+Although the project itself is coded in Python, updating the Python code for the web services requires re-running the code generator, after any revisions to the API specification. This code generator is a Java software program. Thus, such a Java binary (release 8 or better) needs to be installed and available on the OS PATH (might not be on minimal operating systems). For a Debian Linux (e.g. Ubuntu), it may suffice to execute the following installation:
 
-If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, release 3.3.4 or better of the [Maven dependency management tool](https://maven.apache.org/) is used in the script thus also needs to be installed on locally.
+```shell
+sudo apt install default-jre
+```
+
+If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8,  [Maven dependency management tool](https://maven.apache.org/) (release 3.3.4 or better) as well as the `jq` program are used in the script thus also needs to be installed on locally. Again, a Debian Linux (e.g. Ubuntu), it may suffice to execute the following installations:
+
+```shell
+sudo apt install maven
+sudo apt install jq
+```
+
+Running the `openapi-generator-cli.sh` the first time downloads the required JAR file to the same directory as the script, thus when the script is rerun again, it performs all the expected operations. For example:
+
+```shell
+scripts/openapi-generator-cli.sh
+#... lots of output showing the script execution
+scripts/openapi-generator-cli.sh version
+5.0.0
+```
 
 ## Project Python Package Dependencies
 
