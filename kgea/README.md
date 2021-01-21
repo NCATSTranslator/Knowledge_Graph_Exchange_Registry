@@ -73,11 +73,11 @@ $ git clone git@github.com:NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
 
 ## Configuration
 
-The project is developed in the latest Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage the Python version in its own virtual environment.
+The project is developed in the latest Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage the Python version in its own virtual environment, as follows.
 
 ### Pipenv
 
-The project also uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, both for bare metal development/testing, and within the Docker production development. To install the tool (assuming a user-centric local installation), type:
+The project uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, both for bare metal development/testing, and within the Docker production development. To install the tool (assuming a user-centric local installation), type:
 
 ```shell
 python -m pip install pipenv
