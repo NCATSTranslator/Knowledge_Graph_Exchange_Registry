@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CODE_GEN_CLI=./scripts/openapi-generator-cli
+CODE_GEN_CLI=./scripts/openapi-generator-cli.sh
 
 # Script to (re-)generate the KGE Server, whenever the
 # underlying api/kgea_api.yaml specification is modified.
