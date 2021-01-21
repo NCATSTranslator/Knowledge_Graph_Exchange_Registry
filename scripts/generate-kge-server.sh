@@ -8,7 +8,8 @@ CODE_GEN_CLI=./scripts/openapi-generator-cli.sh
 # A SemVer major.minor.patch version identifier (e.g. 0.0.1)
 # can be given as the first argument of the script.
 #
-SPECIFICATION=./api/kgea_api.yaml
+#SPECIFICATION=./api/kgea_api.yaml
+SPECIFICATION=./api/trapi.yaml
 
 # Capture any project metadata likely to be overwritten
 # by the code generation, e.g. package.json version?
