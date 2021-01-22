@@ -1,6 +1,6 @@
 # KGE Archive Roadmap
 
-This document is serving as a general focal point for planning the implementation of the Knowledge Graph Exchange Archive system ("Archive"), the general architectural vision for which is discussed in [the high level architectural vision document](../KGE_ARCHIVE_ARCHITECTURE.md).  
+This document serves as a general focal point for planning and coding the implementation of the Knowledge Graph Exchange Archive system ("Archive"), the design vision for which is discussed in the high level  [Architectural Vision](../KGE_ARCHIVE_ARCHITECTURE.md) document, and the practical deployment specifics for which are discussed in the [Getting Started](./README.md) document.
 
 In discussing the plan, the 'primary' client pertains to the initial user transaction with the Archive of uploading the original KGE File Set to the Archive. A 'secondary' client pertains to a second user activity (fo the same, or different, user) of accessing that KGE File Set, after it has been uploaded to the Archive.
 

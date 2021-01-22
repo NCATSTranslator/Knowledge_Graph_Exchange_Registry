@@ -47,4 +47,4 @@ How the KGE Archive will publish the existence of uploaded KGE file sets, to the
 
 # Implementation
 
-See [/kgea subdirectory](./kgea/README.md) for more practical details about the Archive, including a [detailed roadmap for its implementation](./kgea/KGE_ARCHIVE_ROADMAP.md).
+See [/kgea subdirectory](./kgea/README.md) for more practical details about deploying and to the [detailed roadmap for its implementation](./kgea/KGE_ARCHIVE_ROADMAP.md).
