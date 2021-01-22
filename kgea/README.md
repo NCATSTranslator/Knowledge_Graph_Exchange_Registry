@@ -1,8 +1,10 @@
-**January 20, 2021: DRAFT WORK-IN-PROGRESS at this time... your mileage may vary...**
+**January 20, 2021: INCOMPLETE DRAFT WORK-IN-PROGRESS at this time... your mileage may vary...**
 
 # Knowledge Graph Exchange Archive Web Server
 
 The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an online host to share knowledge graphs formatted as KGX standard compliant formatted files that are indexed for access, complete with their metadata, in the Translator SmartAPI Registry. 
+
+After a brief overview of the Archive design (more extensive details provided in the [KGE Archive Roadmap document](./KGE_ARCHIVE_ROADMAP.md)), this document mainly focuses on the practical activities for local development and production system deployment. 
 
 ## Table of Contents
 
