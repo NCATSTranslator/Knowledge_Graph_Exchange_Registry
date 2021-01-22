@@ -31,7 +31,8 @@ The precise form, protocol and software support for KGE File Set uploading [1] i
 - The core web service application [2] will be installed to run within a suitable software deployment framework (a Docker Compose managed set of Docker containers) hosted on an AWS EC2 instance, running a common flavor (i.e. Ubuntu) of the Linux operating system.
   
 
-- **Web Services Specification:** a current release of the OpenAPI 3 web services specification standard is being used to specify the web services application programming interface (API) of the Archive. [OpenAPI Tools code generation](https://github.com/openapitools/openapi-generator-cli) is used to convert the API into stub server code for elaboration. This tool is wrapped in a pair of (bash) shell scripts, run to further automate and parameterize the server code generation process.
+- **Web Services Specification:** a current release of the OpenAPI 3 web services specification standard is being used to specify the web services application programming interface (API) of the Archive. [OpenAPI Tools code generation](https://github.com/openapitools/openapi-generator-cli) is used to convert the API into stub server code for elaboration. This tool is wrapped in a pair of (bash) shell scripts - a custom script [generate-kge-server.sh](../scripts/generate-kge-server.sh), calling a locally mirrored copy of the [OpenAPI Generator Script](../scripts/openapi-generator-cli.sh) - that are executed to further automate and parameterize the server code generation process.
+
 
 - **Primary implementation language:** for Archive software components will be a recent release (3.9++) of Python. Related off-the-shelf standards and libraries are being used to develop the required components:
 
