@@ -12,49 +12,41 @@ info:
     url: https://en.wikipedia.org/wiki/MIT_License
   termsOfService: https://ncats.nih.gov/translator
   contact:
-    name: Richard Bruskiewich
-    x-role: responsible developer
-    email: richard.bruskiewich@delphinai.com
-    x-id: https://github.com/RichardBruskiewich
+    name: "Richard Bruskiewich"
+    x-role: "responsible developer"
+    email: "richard.bruskiewich@delphinai.com"
+    x-id: "https://github.com/RichardBruskiewich"
   x-translator:
-    component: SRI service
+    component: "SRI service"
     team:
     - "SRI"
 servers:
-  - url: translator.ncats.io/kge-archive
-    description: Production Server
+  - url: "translator.ncats.io/kge-archive"
+    description: "Production Server"
 externalDocs:
   description: >-
     Documentation for the NCATS Biomedical Translator
     Knowledge Graph Exchange (KGE) Archive
-  url: https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
+  url: "https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 tags:
   - name: translator
   - name: provider
     description: Provider metadata for KGX-formatted data files
-    externalDocs:
-      description: Documentation relating to KGX-formatted data file access
-      url: https://translator.ncats.io/kge-archive/overview.html#provider
   - name: content
     description: Content metadata for KGX-formatted data files
-    externalDocs:
-      description: >-
-        Documentation of Knowledge Graph Exchange content metadata
-      url: https://translator.ncats.io/kge-archive/overview.html#content
 paths:
-  /{kg_name}/access:
+  /{kgName}/access:
     get:
       tags:
         - provider
       summary: Get KGE File Sets
+      operationId: predicates
       parameters:
-        - name: kg_name
+        - name: kgName
           in: path
           description: >-
             Name label of KGE File Set whose files are being accessed
           required: true
-          # x-valueType:
-          #  - don't know if this needs a SmartAPI value type?
           schema:
             type: string
       responses:
@@ -71,7 +63,7 @@ paths:
                 type: object
                 additionalProperties:
                   description: >-
-                     Provider metadata attributes
+                    Provider metadata attributes
                   $ref: '#/components/schemas/Attribute'
   /{kg_name}/knowledge_map:
     get:
@@ -82,8 +74,8 @@ paths:
         - name: kg_name
           in: path
           description: >-
-            Name label of KGE File Set whose
-            knowledge graph content metadata is being reported
+            Name label of KGE File Set whose knowledge graph
+            content metadata is being reported
           required: true
           # x-valueType:
           #  - don't know if this needs a SmartAPI value type?
@@ -91,7 +83,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Predicates by source and target
+          description: Knowledge Map of predicates by source and target
           content:
             application/json:
               schema:
@@ -125,7 +117,7 @@ components:
           description: >-
             Value of the attribute. May be any data type, including a list.
           example: bar
-    required:
-        - type
-        - value
+      required:
+          - type
+          - value
       additionalProperties: false
