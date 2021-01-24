@@ -16,9 +16,6 @@ SPECIFICATION=./api/trapi.yaml
 # Using 'awk'?
 VERSION=${1:-0.0.1}
 
-# Set some environment variable for the code generation
-export JS_POST_PROCESS_FILE="/usr/local/bin/js-beautify -r -f"
-#
 # Note: the generator CLI parser does NOT properly parse spaces
 # anywhere in the '--additional-properties' argument strings below.
 # Use underscores or hyphens. You've been warned...

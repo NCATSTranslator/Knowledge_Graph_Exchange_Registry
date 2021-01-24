@@ -137,7 +137,12 @@ Although the project itself is coded in Python, updating the Python code for the
 sudo apt install default-jre
 ```
 
-If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8,  [Maven dependency management tool](https://maven.apache.org/) (release 3.3.4 or better) as well as the `jq` program are used in the script thus also needs to be installed on locally. Again, a Debian Linux (e.g. Ubuntu), it may suffice to execute the following installations:
+If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, the script has a few other dependencies:
+
+1. [Maven dependency management tool](https://maven.apache.org/) (release 3.3.4 or better)
+2.  `jq` program 
+   
+Again, assuming a Debian Linux OS (e.g. Ubuntu) build environment, it may suffice to execute the following installations:
 
 ```shell
 sudo apt install maven
