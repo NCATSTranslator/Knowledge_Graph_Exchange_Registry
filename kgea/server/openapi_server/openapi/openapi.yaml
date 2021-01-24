@@ -1,0 +1,118 @@
+openapi: 3.0.1
+info:
+  contact:
+    email: richard.bruskiewich@delphinai.com
+    name: Richard Bruskiewich
+    x-role: responsible developer
+    x-id: https://github.com/RichardBruskiewich
+  description: OpenAPI for the NCATS Biomedical Translator Knowledge Graph Exchange
+    Archive
+  license:
+    name: MIT 2.0
+    url: https://en.wikipedia.org/wiki/MIT_License
+  termsOfService: https://ncats.nih.gov/translator
+  title: OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGE)
+    Archive
+  version: 0.0.1-dev
+  x-translator:
+    component: SRI service
+    team:
+    - SRI
+externalDocs:
+  description: Documentation for the NCATS Biomedical Translator Knowledge Graph Exchange
+    (KGE) Archive
+  url: https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
+servers:
+- description: Production Server
+  url: translator.ncats.io/kge-archive
+tags:
+- name: translator
+- description: Provider metadata for KGX-formatted data files
+  name: provider
+- description: Content metadata for KGX-formatted data files
+  name: content
+paths:
+  /{kgName}/access:
+    get:
+      operationId: predicates
+      parameters:
+      - description: Name label of KGE File Set whose files are being accessed
+        explode: false
+        in: path
+        name: kgName
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/Attribute'
+                description: Provider metadata describing the location and inventory
+                  of KGE files
+                type: object
+          description: Name label of KGE File Set whose provider metadata is being
+            reported
+      summary: Get KGE File Sets
+      tags:
+      - provider
+      x-openapi-router-controller: openapi_server.controllers.provider_controller
+  /{kg_name}/knowledge_map:
+    get:
+      operationId: kg_name_knowledge_map_get
+      parameters:
+      - description: Name label of KGE File Set whose knowledge graph content metadata
+          is being reported
+        explode: false
+        in: path
+        name: kg_name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  additionalProperties:
+                    description: Array of predicates
+                    items:
+                      type: string
+                    type: array
+                  description: Target map
+                  type: object
+                description: Source map
+                example:
+                  biolink:ChemicalSubstance:
+                    biolink:Gene:
+                    - biolink:directly_interacts_with
+                    - biolink:decreases_activity_of
+                type: object
+          description: Knowledge Map of predicates by source and target
+      summary: Get supported relationships by source and target
+      tags:
+      - content
+      x-openapi-router-controller: openapi_server.controllers.content_controller
+components:
+  schemas:
+    Attribute:
+      additionalProperties: false
+      description: Generic metadata attribute.
+      properties:
+        type:
+          description: Type of the metadata attribute, from the Translator Registry
+            metadata dictionary.
+          example: Foo
+          type: string
+        value:
+          description: Value of the attribute. May be any data type, including a list.
+          example: bar
+      required:
+      - type
+      - value
+      type: object
