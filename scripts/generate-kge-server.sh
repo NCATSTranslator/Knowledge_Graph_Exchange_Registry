@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-
-CODE_GEN_CLI=./scripts/openapi-generator-cli.sh
+SCRIPTS=`pwd`
+CODE_GEN_CLI=$SCRIPTS/openapi-generator-cli.sh
 
 # Script to (re-)generate the KGE Server, whenever the
 # underlying api/kgea_api.yaml specification is modified.
@@ -8,8 +8,8 @@ CODE_GEN_CLI=./scripts/openapi-generator-cli.sh
 # A SemVer major.minor.patch version identifier (e.g. 0.0.1)
 # can be given as the first argument of the script.
 #
-#SPECIFICATION=./api/kgea_api.yaml
-SPECIFICATION=./api/trapi.yaml
+#SPECIFICATION=$SCRIPTS/../api/trapi.yaml
+SPECIFICATION=$SCRIPTS/../api/kgea_api.yaml
 
 # Capture any project metadata likely to be overwritten
 # by the code generation, e.g. package.json version?
