@@ -160,7 +160,12 @@ scripts/openapi-generator-cli.sh version
 
 ## Project Python Package Dependencies
 
-T.B.A.
+The project has several Python package dependencies, but these are actually already recorded in the Pipfile which `pipenv` manages. Therefore, installing the required Python dependencies merely requires execution of the following from within the root directory, after the `pipenv` tool itself plus all other non-Python external software (see above) are installed :
+
+```shell
+pipenv install
+```
+
 
 ## Build & Tests
 
