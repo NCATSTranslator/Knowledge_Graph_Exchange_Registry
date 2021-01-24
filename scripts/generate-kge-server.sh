@@ -18,20 +18,22 @@ echo
 
 # Identify your location of script execution
 # Assume it to be the project 'root' directory
+# one directory up, relative to scripts
 PROJECT=`pwd`
-echo "The root of all (project) evils: "$PROJECT
+#echo "The root of all (project) evils: "$PROJECT
 
 SCRIPTS=$PROJECT/scripts
-echo "Scripts are here: "$SCRIPTS
+#echo "Scripts are here: "$SCRIPTS
 CODE_GEN_CLI=$SCRIPTS/openapi-generator-cli.sh
 
-API=$PROJECT/api
+# define source code as relative path from scripts
+SRC=./kgea
+echo "Project source code: "$SRC
+
+API=$SRC/api
 #SPECIFICATION=$API/trapi.yaml
 SPECIFICATION=$API/kgea_api.yaml
 echo "Target OpenAPI: "$SPECIFICATION
-
-SRC=$PROJECT/kgea
-echo "Project source code is here: "$SRC
 
 # Server code placed in its own KGEA subdirectory?
 MODULE="server"

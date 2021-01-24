@@ -64,7 +64,7 @@ The standard mechanism for the recording of Translator SmartAPI Registry ("Regis
 
 After uploading KGE File Set (and adding KGX 'content' metadata [4] if required), the Archive needs to publish such a SmartAPI entry to the Translator and make provisions for the live hosting of the API.
 
-For the former objective, the Archive will populate a KGE File Set specific instance of a [KGE File Set SmartAPI specification template](../api/kge_smartapi_entry.yaml). For the latter objective, the resulting KGE SmartAPI YAML file will actually resolve to a KGE File Set associated subpath on the Archive, as programmatically defined in the full [Archive API web services OpenAPI specification](../api/kgea_api.yaml) and its implementation, described herein.
+For the former objective, the Archive will populate a KGE File Set specific instance of a [KGE File Set SmartAPI specification template](api/kge_smartapi_entry.yaml). For the latter objective, the resulting KGE SmartAPI YAML file will actually resolve to a KGE File Set associated subpath on the Archive, as programmatically defined in the full [Archive API web services OpenAPI specification](api/kgea_api.yaml) and its implementation, described herein.
 
 Archive publication of KGE File Set SmartAPI entries will consist of a `git` commit and push of the KGE File Set-specific API YAML file to a  SmartApi registered Github repository location, likely within the [Translator API Registry github repository](https://github.com/NCATS-Tangerine/translator-api-registry) and updating of any associated [API List](https://github.com/NCATS-Tangerine/translator-api-registry/blob/master/API_LIST.yml) on the site. The full details of full automation of this process require further elaboration.
 
@@ -76,7 +76,7 @@ As mentioned in [the high level architectural vision document](../KGE_ARCHIVE_AR
 
 As noted in [5] above, KGE File Set SmartAPI entries will point to a live server path indexed by knowledge graph name and hosted by the Archive web service application [2].  The key design considerations for this step is to specify the specific modality of access and its practical implementation.
 
-With respect to modality, one specific REST path definition in the [Archive API web services OpenAPI specification](../api/kgea_api.yaml) is defined to handle file retrieval as a some kind of URL brokered access to the files. How this URL is to be accessed remains to be further elaborated.
+With respect to modality, one specific REST path definition in the [Archive API web services OpenAPI specification](api/kgea_api.yaml) is defined to handle file retrieval as a some kind of URL brokered access to the files. How this URL is to be accessed remains to be further elaborated.
 
 In terms of practical implementation, given the anticipated large anticipated size of many KGE File Sets, technical options for downloading or streaming such files will require additional consideration. Two general ideas come to mind at the moment:
 
