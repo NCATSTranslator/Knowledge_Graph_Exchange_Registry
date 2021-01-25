@@ -43,7 +43,7 @@ paths:
         - upload
       description: >-
         Get Web Form for specifying KGE File Set upload
-      operationId: upload
+      operationId: getUploadForm
       responses:
         '200':
           description: Returns a web form for uploading a KGE File Set
@@ -58,7 +58,7 @@ paths:
       description: >-
         Upload Web Form details specifying
         a KGE File Set upload process
-      operationId: query
+      operationId: uploadFileSet
       requestBody:
         description: KGE File Set metadata and data files submitted
         required: true
@@ -126,6 +126,14 @@ paths:
                   description: >-
                     Provider metadata attributes
                   $ref: '#/components/schemas/Attribute'
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
+          content:
+            application/json:
+              schema:
+                type: string
   /{kg_name}/knowledge_map:
     get:
       tags:
@@ -162,6 +170,14 @@ paths:
                     'biolink:Gene':
                       - biolink:directly_interacts_with
                       - biolink:decreases_activity_of
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
+          content:
+            application/json:
+              schema:
+                type: string
 components:
   schemas:
     KgeFileSet:

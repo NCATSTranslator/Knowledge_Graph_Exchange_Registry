@@ -36,16 +36,56 @@ tags:
 paths:
   /upload:
     get:
-      operationId: upload
+      description: Get Web Form for specifying KGE File Set upload
+      operationId: get_upload_form
       responses:
         "200":
           content:
             text/html:
               schema:
-                description: KGE File Set upload web form (HTML?)
+                description: KGE File Set upload HTML web form
                 type: string
           description: Returns a web form for uploading a KGE File Set
-      summary: Get KGE File Sets
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+    post:
+      description: Upload Web Form details specifying a KGE File Set upload process
+      operationId: upload_file_set
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KgeFileSet'
+        description: KGE File Set metadata and data files submitted
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Upload successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow (not
+            just unrecognized).
+        "500":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Internal server error.
+        "501":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Not implemented.
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
@@ -73,6 +113,13 @@ paths:
                 type: object
           description: Name label of KGE File Set whose provider metadata is being
             reported
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
       summary: Get KGE File Sets
       tags:
       - provider
@@ -111,12 +158,32 @@ paths:
                     - biolink:decreases_activity_of
                 type: object
           description: Knowledge Map of predicates by source and target
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
       summary: Get supported relationships by source and target
       tags:
       - content
       x-openapi-router-controller: openapi_server.controllers.content_controller
 components:
   schemas:
+    KgeFileSet:
+      description: Stub implementation of KGE File Set upload web form.
+      properties:
+        submitter:
+          type: string
+        data_file:
+          type: string
+        metadata_file:
+          type: string
+      required:
+      - data_file
+      - submitter
+      type: object
     Attribute:
       additionalProperties: false
       description: Generic metadata attribute.

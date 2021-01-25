@@ -1,4 +1,10 @@
-def kge_upload():  # noqa: E501
+"""
+Knowledge Graph Exchange Archive
+Web form and service handler logic
+"""
+
+
+def get_kge_upload_form():  # noqa: E501
     """Get KGE File Sets
 
      # noqa: E501
@@ -18,6 +24,24 @@ def kge_upload():  # noqa: E501
     """
     return webform
 
+
+def upload_kge_file_set(submitter, data_file, metadata_file=None):  # noqa: E501
+    """upload_file_set
+
+    Upload Web Form details specifying a KGE File Set upload process # noqa: E501
+
+    :param submitter:
+    :type submitter: str
+    :param data_file:
+    :type data_file: str
+    :param metadata_file:
+    :type metadata_file: str
+
+    :rtype: str
+    """
+    return "Implement me!"
+
+
 def kge_access(kg_name):  # noqa: E501
     """Get KGE File Sets
 
@@ -29,6 +53,7 @@ def kge_access(kg_name):  # noqa: E501
     :rtype: Dict[str, Attribute]
     """
     return "Implement me!"
+
 
 def kge_knowledge_map(kg_name):  # noqa: E501
     """Get supported relationships by source and target
