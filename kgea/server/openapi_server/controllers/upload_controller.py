@@ -14,7 +14,3 @@ def upload():  # noqa: E501
     :rtype: str
     """
     return kge_upload()
-
-def test_dummy():
-    
-    return "Am I going to be overwritten by code generation?"

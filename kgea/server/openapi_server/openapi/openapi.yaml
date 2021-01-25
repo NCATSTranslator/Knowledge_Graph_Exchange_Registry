@@ -49,14 +49,14 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
-  /{kgName}/access:
+  /{kg_name}/access:
     get:
       operationId: access
       parameters:
       - description: Name label of KGE File Set whose files are being accessed
         explode: false
         in: path
-        name: kgName
+        name: kg_name
         required: true
         schema:
           type: string

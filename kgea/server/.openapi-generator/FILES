@@ -17,7 +17,6 @@ openapi_server/models/attribute.py
 openapi_server/models/base_model_.py
 openapi_server/openapi/openapi.yaml
 openapi_server/test/__init__.py
-openapi_server/test/test_upload_controller.py
 openapi_server/typing_utils.py
 openapi_server/util.py
 requirements.txt
