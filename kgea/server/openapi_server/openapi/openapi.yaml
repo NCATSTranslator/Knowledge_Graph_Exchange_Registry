@@ -36,7 +36,6 @@ tags:
 paths:
   /upload:
     get:
-      description: Get Web Form for specifying KGE File Set upload
       operationId: get_upload_form
       responses:
         "200":
@@ -46,17 +45,25 @@ paths:
                 description: KGE File Set upload HTML web form
                 type: string
           description: Returns a web form for uploading a KGE File Set
+      summary: Get web form for specifying KGE File Set upload
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
     post:
-      description: Upload Web Form details specifying a KGE File Set upload process
       operationId: upload_file_set
       requestBody:
+        $ref: '#/components/requestBodies/inline_object'
         content:
-          application/x-www-form-urlencoded:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/KgeFileSet'
+              description: '$ref: ''#/components/schemas/KgeFileSet'''
+              properties:
+                formData:
+                  $ref: '#/components/schemas/_upload_formData'
+              required:
+              - formData
+              type: object
+              x-body-name: formData
         description: KGE File Set metadata and data files submitted
         required: true
       responses:
@@ -86,6 +93,7 @@ paths:
               schema:
                 type: string
           description: Not implemented.
+      summary: Upload web form details specifying a KGE File Set upload process
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
@@ -170,6 +178,13 @@ paths:
       - content
       x-openapi-router-controller: openapi_server.controllers.content_controller
 components:
+  requestBodies:
+    inline_object:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/inline_object'
+      required: true
   schemas:
     KgeFileSet:
       description: Stub implementation of KGE File Set upload web form.
@@ -204,3 +219,28 @@ components:
       - type
       - value
       type: object
+    _upload_formData:
+      description: Stub implementation of KGE File Set upload web form.
+      properties:
+        submitter:
+          type: string
+        kg_name:
+          type: string
+        data_file_name:
+          type: string
+        metadata_file_name:
+          type: string
+      required:
+      - data_file_name
+      - kg_name
+      - submitter
+      type: object
+    inline_object:
+      description: '$ref: ''#/components/schemas/KgeFileSet'''
+      properties:
+        formData:
+          $ref: '#/components/schemas/_upload_formData'
+      required:
+      - formData
+      type: object
+      x-body-name: formData
