@@ -41,9 +41,8 @@ paths:
     get:
       tags:
         - upload
-      description: >-
-        Get Web Form for specifying KGE File Set upload
-      operationId: upload
+      summary: Get web form for specifying KGE File Set upload
+      operationId: getUploadForm
       responses:
         '200':
           description: Returns a web form for uploading a KGE File Set
@@ -55,10 +54,8 @@ paths:
     post:
       tags:
         - upload
-      description: >-
-        Upload Web Form details specifying
-        a KGE File Set upload process
-      operationId: query
+      summary: Upload web form details specifying a KGE File Set upload process
+      operationId: uploadFileSet
       requestBody:
         description: KGE File Set metadata and data files submitted
         required: true
