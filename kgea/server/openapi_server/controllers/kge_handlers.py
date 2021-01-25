@@ -3,27 +3,18 @@ Knowledge Graph Exchange Archive
 Web form and service handler logic
 """
 
+from flask import render_template
+
 
 def get_kge_upload_form():  # noqa: E501
     """Get KGE File Sets
 
      # noqa: E501
 
-
     :rtype: str
     """
-    webform = """
-<html>
-<head>
-<title>KGE Archive</title>
-</head>
-<body text="yellow" bgcolor="darkgreen">
-<h1>Hello World!</h1>
-</body>
-</html
-    """
-    return webform
-
+    return render_template('hello.html')
+    
 
 def upload_kge_file_set(submitter, data_file, metadata_file=None):  # noqa: E501
     """upload_file_set
