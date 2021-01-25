@@ -131,18 +131,9 @@ The project has several Python package dependencies, but these are actually alre
 pipenv install
 ```
 
-
 ## Build & Tests
 
 T.B.A.
-
-## Running the System Locally
-
-Once everything is set up, `pipenv` can be used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
-
-```shell
-pipenv run python myProjectScript.py
-```
 
 # Production Deployment
 
@@ -223,4 +214,4 @@ T.B.A.
 
 ## Running the Production System
 
-T.B.A.
+Basic instructions for running the server are provided in the [generated server README file](./server/README.md) from API code generation. Those instructions provide for both bare metal and Docker container execution of the server.
