@@ -6,7 +6,17 @@ def kge_upload():  # noqa: E501
 
     :rtype: str
     """
-    return "<h1>Hello World!</h1>"
+    webform = """
+<html>
+<head>
+<title>KGE Archive</title>
+</head>
+<body bgcolor="0x402000">
+<h1 color="0x808000">Hello World!</h1>
+</body>
+</html
+    """
+    return webform
 
 def kge_access(kg_name):  # noqa: E501
     """Get KGE File Sets
