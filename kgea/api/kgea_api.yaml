@@ -60,9 +60,30 @@ paths:
         description: KGE File Set metadata and data files submitted
         required: true
         content:
-          application/x-www-form-urlencoded:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/KgeFileSet'
+              x-body-name: formData
+              type: object
+              description: "$ref: '#/components/schemas/KgeFileSet'"
+              properties:
+                formData:
+                  description: Stub implementation of KGE File Set upload web form.
+                  type: object
+                  properties:
+                    submitter:
+                      type: string
+                    kg_name:
+                      type: string
+                    data_file_name:
+                      type: string
+                    metadata_file_name:
+                      type: string
+                  required:
+                    - submitter
+                    - kg_name
+                    - data_file_name
+              required:
+                - formData
       responses:
         '201':
           description: Upload successfully completed.
