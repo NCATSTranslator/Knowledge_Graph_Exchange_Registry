@@ -21,8 +21,8 @@ info:
     team:
     - "SRI"
 servers:
-  - url: "translator.ncats.io/kge-archive"
-    description: "Production Server"
+  - url: "http://localhost:8080/kge-archive"
+    description: "Localhost URL for server, to be proxied to the real internet"
 externalDocs:
   description: >-
     Documentation for the NCATS Biomedical Translator
