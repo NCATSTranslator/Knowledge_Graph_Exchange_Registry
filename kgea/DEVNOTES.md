@@ -4,11 +4,45 @@ This file complement both the ["Getting Started"](README.md) document which outl
 
 # OpenAPI Server Code Generation
 
-The OpenAPI 3 code generation process described under the section about the [KGE Archive Server](#2-kge-archive-server), and involves running the [generate-kge-server.sh](../scripts/generate-kge-server.sh) script from the root of the KGE Archive project, i.e.
+AS noted previously, this project once deployed, exposes an OpenAPI 3 web service defined by the [KGE Archive Web Services OpenAPI 3 specification](./api/kgea_api.yaml).  Thus, this project uses the [OpenAPI Tools openapi-generator-cli](https://github.com/OpenAPITools/openapi-generator) code generator program to generate its web service implementation.
+
+Although the project itself is coded in Python, updating the Python code for the web services requires re-running the code generator, after any revisions to the API specification. This code generator is a Java software program. Thus, such a Java binary (release 8 or better) needs to be installed and available on the OS PATH (might not be on minimal operating systems). For a Debian Linux (e.g. Ubuntu), it may suffice to execute the following installation:
 
 ```shell
-cd /path/to/your/local/Knowledge_Graph_Exchange
+sudo apt install default-jre
+```
+
+If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, the script has a few other dependencies:
+
+1. [Maven dependency management tool](https://maven.apache.org/) (release 3.3.4 or better)
+2.  `jq` program 
+   
+Again, assuming a Debian Linux OS (e.g. Ubuntu) build environment, it may suffice to execute the following installations:
+
+```shell
+sudo apt install maven
+sudo apt install jq
+```
+
+A custom project script [generate-kge-server.sh](../scripts/generate-kge-server.sh) calls a locally mirrored copy of the [OpenAPI Generator Script](../scripts/openapi-generator-cli.sh). Running the `openapi-generator-cli.sh` the first time downloads the required OpenAPI code generator JAR file to the same directory as the script. 
+
+The output is something like:
+
+```shell
 ./scripts/generate-kge-server.sh
+
+Project name: kge-archive
+Project description: NCATS_Knowledge_Graph_Exchange_Archive_Web_Services
+
+Project source code: ./kgea
+Target OpenAPI: ./kgea/api/kgea_api.yaml
+Generated server code: ./kgea/server
+Target version is: 0.0.1
+
+Continue (yes/no - default 'no'): Yes
+
+... lots of output
+
 ```
 
 The code generator creates a basic README file under the [KGEA Server subdirectory](./server/README.md) which provides basic instructions about how to run the resulting server code, either from a OS terminal or within a Docker container.
