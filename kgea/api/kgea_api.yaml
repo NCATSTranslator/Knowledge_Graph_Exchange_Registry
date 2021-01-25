@@ -63,7 +63,7 @@ paths:
         description: KGE File Set metadata and data files submitted
         required: true
         content:
-          application/json:
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/KgeFileSet'
       responses:
@@ -138,8 +138,6 @@ paths:
             Name label of KGE File Set whose knowledge graph
             content metadata is being reported
           required: true
-          # x-valueType:
-          #  - don't know if this needs a SmartAPI value type?
           schema:
             type: string
       operationId: knowledgeMap
@@ -167,12 +165,20 @@ paths:
 components:
   schemas:
     KgeFileSet:
-      type: array
-      items:
-        $ref: '#/components/schemas/Attribute'
       description: >-
-        Stub implementation of KGE File Set upload web form details,
-        initially modelled as a list of Attributes.
+        Stub implementation of KGE File Set upload web form.
+      type: object
+      properties:
+        submitter:
+          type: string
+        data_file:
+          type: string
+        metadata_file:
+          type: string
+      required:
+        - submitter
+        - data_file
+
     Attribute:
       type: object
       description: Generic metadata attribute.
