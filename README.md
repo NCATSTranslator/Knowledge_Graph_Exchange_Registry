@@ -13,5 +13,5 @@ For further information about the terms of reference and activities of the KGE W
 - [KGE Use Cases](./KGE_USE_CASES.md)
 - [KGE Archive Architectural Design](./KGE_ARCHIVE_ARCHITECTURE.md)
 - [KGE Metadata](./KGE_METADATA.md)
-- [KGE Archive API](./kgea/api/kgea_api.yaml)
+- [KGE Archive API](./kgea/api)
 - [KGE Archive Implementation](./kgea)
