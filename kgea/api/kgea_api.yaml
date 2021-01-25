@@ -45,10 +45,11 @@ paths:
       operationId: upload
       responses:
         '200':
+          description: Returns a web form for uploading a KGE File Set
           content:
             application/html:
               schema:
-                description: KGE File Set upload form
+                description: KGE File Set upload web form (HTML?)
                 type: string
   /{kgName}/access:
     get:

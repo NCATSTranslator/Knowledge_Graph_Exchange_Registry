@@ -26,15 +26,32 @@ servers:
 - description: Production Server
   url: translator.ncats.io/kge-archive
 tags:
-- name: translator
-- description: Provider metadata for KGX-formatted data files
+- description: KGE file set upload form
+  name: upload
+- description: Provider metadata for KGE file set
   name: provider
-- description: Content metadata for KGX-formatted data files
+- description: Content metadata for KGX-formatted data files in a KGE file set.
   name: content
+- name: translator
 paths:
+  /upload:
+    get:
+      operationId: upload
+      responses:
+        "200":
+          content:
+            application/html:
+              schema:
+                description: KGE File Set upload web form (HTML?)
+                type: string
+          description: Returns a web form for uploading a KGE File Set
+      summary: Get KGE File Sets
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
   /{kgName}/access:
     get:
-      operationId: predicates
+      operationId: access
       parameters:
       - description: Name label of KGE File Set whose files are being accessed
         explode: false
@@ -62,7 +79,7 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.provider_controller
   /{kg_name}/knowledge_map:
     get:
-      operationId: kg_name_knowledge_map_get
+      operationId: knowledge_map
       parameters:
       - description: Name label of KGE File Set whose knowledge graph content metadata
           is being reported
