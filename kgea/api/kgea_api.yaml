@@ -45,6 +45,7 @@ paths:
       operationId: upload
       responses:
         '200':
+          description: Returns a web form for uploading a KGE File Set
           content:
             application/html:
               schema:
@@ -128,11 +129,12 @@ components:
           type: string
           description: >-
             Type of the metadata attribute, from the Translator Registry metadata dictionary.
-          example: Foo
+          example: "Foo"
         value:
+          type: string
           description: >-
-            Value of the attribute. May be any data type, including a list.
-          example: bar
+            Value of the attribute, encoded as a string.
+          example: "Bar"
       required:
           - type
           - value
