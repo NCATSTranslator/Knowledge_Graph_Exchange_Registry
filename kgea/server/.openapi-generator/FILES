@@ -15,6 +15,7 @@ openapi_server/encoder.py
 openapi_server/models/__init__.py
 openapi_server/models/attribute.py
 openapi_server/models/base_model_.py
+openapi_server/models/kge_file_set.py
 openapi_server/openapi/openapi.yaml
 openapi_server/test/__init__.py
 openapi_server/typing_utils.py
