@@ -47,7 +47,7 @@ paths:
         '200':
           description: Returns a web form for uploading a KGE File Set
           content:
-            application/html:
+            text/html:
               schema:
                 description: KGE File Set upload form
                 type: string
