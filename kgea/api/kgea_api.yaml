@@ -41,7 +41,8 @@ paths:
     get:
       tags:
         - upload
-      summary: Get KGE File Sets
+      description: >-
+        Get Web Form for specifying KGE File Set upload
       operationId: upload
       responses:
         '200':
@@ -49,7 +50,51 @@ paths:
           content:
             text/html:
               schema:
-                description: KGE File Set upload web form (HTML?)
+                description: KGE File Set upload HTML web form
+                type: string
+    post:
+      tags:
+        - upload
+      description: >-
+        Upload Web Form details specifying
+        a KGE File Set upload process
+      operationId: query
+      requestBody:
+        description: KGE File Set metadata and data files submitted
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KgeFileSet'
+      responses:
+        '201':
+          description: Upload successfully completed.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow
+            (not just unrecognized).
+          content:
+            application/json:
+              schema:
+                type: string
+        '500':
+          description: >-
+            Internal server error.
+          content:
+            application/json:
+              schema:
+                type: string
+        '501':
+          description: >-
+            Not implemented.
+          content:
+            application/json:
+              schema:
                 type: string
   /{kg_name}/access:
     get:
@@ -93,8 +138,6 @@ paths:
             Name label of KGE File Set whose knowledge graph
             content metadata is being reported
           required: true
-          # x-valueType:
-          #  - don't know if this needs a SmartAPI value type?
           schema:
             type: string
       operationId: knowledgeMap
@@ -121,6 +164,21 @@ paths:
                       - biolink:decreases_activity_of
 components:
   schemas:
+    KgeFileSet:
+      description: >-
+        Stub implementation of KGE File Set upload web form.
+      type: object
+      properties:
+        submitter:
+          type: string
+        data_file:
+          type: string
+        metadata_file:
+          type: string
+      required:
+        - submitter
+        - data_file
+
     Attribute:
       type: object
       description: Generic metadata attribute.
