@@ -11,8 +11,8 @@ def kge_upload():  # noqa: E501
 <head>
 <title>KGE Archive</title>
 </head>
-<body bgcolor="0x402000">
-<h1 color="0x808000">Hello World!</h1>
+<body text="yellow" bgcolor="darkgreen">
+<h1>Hello World!</h1>
 </body>
 </html
     """
