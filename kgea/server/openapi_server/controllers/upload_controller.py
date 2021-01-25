@@ -2,7 +2,7 @@ import connexion
 import six
 
 from openapi_server import util
-from kge_handlers import kge_upload
+from .kge_handlers import kge_upload
 
 
 def upload():  # noqa: E501

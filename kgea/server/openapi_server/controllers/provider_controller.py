@@ -3,7 +3,7 @@ import six
 
 from openapi_server.models.attribute import Attribute  # noqa: E501
 from openapi_server import util
-from kge_handlers import kge_access
+from .kge_handlers import kge_access
 
 
 def access(kg_name):  # noqa: E501

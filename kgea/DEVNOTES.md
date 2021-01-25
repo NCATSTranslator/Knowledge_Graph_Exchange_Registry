@@ -76,7 +76,7 @@ def access(kg_name):  # noqa: E501
 becomes something like:
 
 ```python
-from kge_handlers import kge_access
+from .kge_handlers import kge_access
 
 def access(kg_name):  # noqa: E501
     """Get KGE File Sets
