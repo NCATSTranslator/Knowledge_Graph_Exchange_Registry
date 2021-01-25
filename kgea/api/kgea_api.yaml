@@ -41,7 +41,8 @@ paths:
     get:
       tags:
         - upload
-      summary: Get KGE File Sets
+      description: >-
+        Get Web Form for specifying KGE File Set upload
       operationId: upload
       responses:
         '200':
@@ -49,7 +50,51 @@ paths:
           content:
             text/html:
               schema:
-                description: KGE File Set upload form
+                description: KGE File Set upload html web form
+                type: string
+    post:
+      tags:
+        - upload
+      description: >-
+        Upload Web Form details specifying
+        a KGE File Set upload process
+      operationId: query
+      requestBody:
+        description: KGE File Set metadata and data files submitted
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KgeFileSet'
+      responses:
+        '201':
+          description: Upload successfully completed.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow
+            (not just unrecognized).
+          content:
+            application/json:
+              schema:
+                type: string
+        '500':
+          description: >-
+            Internal server error.
+          content:
+            application/json:
+              schema:
+                type: string
+        '501':
+          description: >-
+            Not implemented.
+          content:
+            application/json:
+              schema:
                 type: string
   /{kgName}/access:
     get:
@@ -121,6 +166,13 @@ paths:
                       - biolink:decreases_activity_of
 components:
   schemas:
+    KgeFileSet:
+      type: array
+      items:
+        $ref: '#/components/schemas/Attribute'
+      description: >-
+        Stub implementation of KGE File Set upload web form details,
+        initially modelled as a list of Attributes.
     Attribute:
       type: object
       description: Generic metadata attribute.
