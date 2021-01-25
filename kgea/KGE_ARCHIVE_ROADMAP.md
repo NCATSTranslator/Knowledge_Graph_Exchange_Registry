@@ -24,7 +24,7 @@ Further specific details and road map of the Archive's design and its implementa
 
 # 1. Primary Client KGE File Set Upload
 
-The precise form, protocol and software support for KGE File Set uploading [1] is to be elaborated...
+The precise form, protocol and software support for KGE File Set uploading [1] is to be elaborated. A key issue to consider will be the necessity and nature of end user authentication and authorization within the system (see other comments in other sections below).
 
 # 2. KGE Archive Server
 
@@ -43,6 +43,8 @@ The precise form, protocol and software support for KGE File Set uploading [1] i
     - **Amazon Web Services:** the [latest release of the available Python AWS Software Development Kit (Boto3)](https://aws.amazon.com/sdk-for-python/) will be leveraged to integrate the web services application with AWS infrastructure.
   
     - **Github Transactions:** publication of SmartAPI entries for KGE File Sets [5] can be accomplished using an available [Python library for programmatic access to Github](https://docs.github.com/en/rest/overview/libraries#python). 
+  
+    - **User Authorization/Authentication:** it may be helpful (perhaps necessary) to leverage Oauth2 authentication/authorization. For this requirement, the [Lepture authlib package](https://github.com/lepture/authlib) looks promising as an actively maintained project (but this package or alternates will need to be reassessed at some point).
    
 # 3. KGE File Set Network Storage
 
@@ -80,7 +82,7 @@ With respect to modality, one specific REST path definition in the [Archive API 
 
 In terms of practical implementation, given the anticipated large anticipated size of many KGE File Sets, technical options for downloading or streaming such files will require additional consideration. Two general ideas come to mind at the moment:
 
-1. That the Archive web server acts like a proxy gateway streaming such files to a secondary client, through the server, from the back end network storage system (AWS S3 bucket, perhaps via EBS buffering on the EC2 server)
+1. That the Archive web server acts like a proxy gateway streaming such files to a secondary client, through the server, from the back end network storage system (AWS S3 bucket, perhaps via EBS buffering on the EC2 server). It is uncertain at this moment what level of bandwidth performance demands this may place upon the KGE Server, thus, we have a second option...
 
-2. That the Archive merely returns a direct URL - with an appropriate user authentication/authorization access token (OAuth2, with short term expiration?) - pointing to the back end network storage system (AWS S3 bucket), which the secondary client then uses to directly access the files from the storage system (without going through the server).
 
+2. ...that the Archive merely returns a direct URL - with an appropriate user authentication/authorization access token (OAuth2 brokered user authentication/authorization, with short term token expiration, using the Python library mentioned above in the [KGE Archive Server](#2-kge-archive-server) section?) - pointing to the back end network storage system (AWS S3 bucket), which the secondary client then uses to directly access the files from the storage system (without going through the server).
