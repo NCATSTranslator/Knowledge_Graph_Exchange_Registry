@@ -29,18 +29,33 @@ externalDocs:
     Knowledge Graph Exchange (KGE) Archive
   url: "https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 tags:
-  - name: translator
+  - name: upload
+    description: KGE file set upload form
   - name: provider
-    description: Provider metadata for KGX-formatted data files
+    description: Provider metadata for KGE file set
   - name: content
-    description: Content metadata for KGX-formatted data files
+    description: Content metadata for KGX-formatted data files in a KGE file set.
+  - name: translator
 paths:
+  /upload:
+    get:
+      tags:
+        - upload
+      summary: Get KGE File Sets
+      operationId: upload
+      responses:
+        '200':
+          content:
+            application/html:
+              schema:
+                description: KGE File Set upload form
+                type: string
   /{kgName}/access:
     get:
       tags:
         - provider
       summary: Get KGE File Sets
-      operationId: predicates
+      operationId: access
       parameters:
         - name: kgName
           in: path
@@ -81,6 +96,7 @@ paths:
           #  - don't know if this needs a SmartAPI value type?
           schema:
             type: string
+      operationId: knowledgeMap
       responses:
         '200':
           description: Knowledge Map of predicates by source and target
