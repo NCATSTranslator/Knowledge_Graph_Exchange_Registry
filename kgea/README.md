@@ -17,7 +17,7 @@ After a brief overview of the Archive design (more extensive details provided in
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
     - [Build & Tests](#build--tests)
-    - [Running the System Locally](#running-the-system-locally)
+    - [Basic Operation of the Server](#basic-operation-of-the-server)
 - [Production Deployment](#production-deployment)
     - [Installation of Docker](#installation-of-docker)
         - [Testing Docker](#testing-docker)
@@ -135,9 +135,13 @@ pipenv install
 
 T.B.A.
 
+## Basic Operation of the Server
+
+During development, it may be convenient to simply run the server from the command line.  Basic instructions for running the server are provided in the [server README file](./server/README.md) obtained from API code generation. These instructions provide for both for server execution from the command line and within a Docker container (see below).  With respect to command line execution, note the need to change the directory into the `kgea/server` before directly starting the `openapi_server` as a Python module.
+
 # Production Deployment
 
-The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine. Some preparation is required.
+Although the KGE Archive can be run as a standalone application from a terminal, for production deployments, the KGE Archive system could typically be run within a **Docker** container. Some additional preparation is required.
 
 ## Installation of Docker
 
@@ -215,4 +219,4 @@ T.B.A.
 
 ## Running the Production System
 
-Basic instructions for running the server are provided in the [generated server README file](./server/README.md) from API code generation. Those instructions provide for both bare metal and Docker container execution of the server.
+Once again, basic instructions for running the server in a Docker container are provided in the [server README file](./server/README.md) obtained from API code generation.
