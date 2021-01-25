@@ -171,13 +171,16 @@ components:
       properties:
         submitter:
           type: string
-        data_file:
+        kg_name:
           type: string
-        metadata_file:
+        data_file_name:
+          type: string
+        metadata_file_name:
           type: string
       required:
         - submitter
-        - data_file
+        - kg_name
+        - data_file_name
 
     Attribute:
       type: object
