@@ -127,8 +127,9 @@ components:
           example: Foo
           type: string
         value:
-          description: Value of the attribute. May be any data type, including a list.
-          example: bar
+          description: Value of the attribute, encoded as a string.
+          example: Bar
+          type: string
       required:
       - type
       - value
