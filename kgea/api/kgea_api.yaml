@@ -51,14 +51,14 @@ paths:
               schema:
                 description: KGE File Set upload web form (HTML?)
                 type: string
-  /{kgName}/access:
+  /{kg_name}/access:
     get:
       tags:
         - provider
       summary: Get KGE File Sets
       operationId: access
       parameters:
-        - name: kgName
+        - name: kg_name
           in: path
           description: >-
             Name label of KGE File Set whose files are being accessed
