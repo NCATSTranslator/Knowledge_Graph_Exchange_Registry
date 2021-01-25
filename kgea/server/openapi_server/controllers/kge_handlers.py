@@ -13,7 +13,7 @@ def get_kge_upload_form():  # noqa: E501
 
     :rtype: str
     """
-    return render_template('hello.html')
+    return render_template('upload.html')
     
 
 def upload_kge_file_set(submitter, data_file, metadata_file=None):  # noqa: E501
