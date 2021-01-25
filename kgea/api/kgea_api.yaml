@@ -81,13 +81,13 @@ paths:
                   description: >-
                     Provider metadata attributes
                   $ref: '#/components/schemas/Attribute'
-  /{kgName}/knowledge_map:
+  /{kg_name}/knowledge_map:
     get:
       tags:
         - content
       summary: Get supported relationships by source and target
       parameters:
-        - name: kgName
+        - name: kg_name
           in: path
           description: >-
             Name label of KGE File Set whose knowledge graph
