@@ -16,18 +16,20 @@ def get_upload_form():  # noqa: E501
     return get_kge_upload_form()
 
 
-def upload_file_set(submitter, data_file, metadata_file=None):  # noqa: E501
+def upload_file_set(submitter, kg_name, data_file_name, metadata_file_name=None):  # noqa: E501
     """upload_file_set
 
     Upload Web Form details specifying a KGE File Set upload process # noqa: E501
 
     :param submitter: 
     :type submitter: str
-    :param data_file: 
-    :type data_file: str
-    :param metadata_file: 
-    :type metadata_file: str
+    :param kg_name: 
+    :type kg_name: str
+    :param data_file_name: 
+    :type data_file_name: str
+    :param metadata_file_name: 
+    :type metadata_file_name: str
 
     :rtype: str
     """
-    return upload_kge_file_set(submitter, data_file, metadata_file=None)
+    return upload_kge_file_set(submitter, kg_name, data_file_name, metadata_file_name)

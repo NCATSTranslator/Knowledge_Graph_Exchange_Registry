@@ -16,7 +16,7 @@ def get_kge_upload_form():  # noqa: E501
     return render_template('upload.html')
     
 
-def upload_kge_file_set(submitter, data_file, metadata_file=None):  # noqa: E501
+def upload_file_set(submitter, kg_name, data_file_name, metadata_file_name=None):  # noqa: E501
     """upload_file_set
 
     Upload Web Form details specifying a KGE File Set upload process # noqa: E501
