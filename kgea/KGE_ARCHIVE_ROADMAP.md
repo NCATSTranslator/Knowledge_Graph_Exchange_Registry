@@ -2,7 +2,7 @@
 
 This document serves as a general focal point for planning and coding the implementation of the Knowledge Graph Exchange Archive system ("Archive"), the design vision for which is discussed in the high level  [Architectural Vision](../KGE_ARCHIVE_ARCHITECTURE.md) document, and the practical deployment specifics for which are discussed in the [Getting Started](./README.md) document.
 
-In discussing the plan, the 'primary' client pertains to the initial user transaction with the Archive of uploading the original KGE File Set to the Archive. A 'secondary' client pertains to a second user activity (fo the same, or different, user) of accessing that KGE File Set, after it has been uploaded to the Archive.
+In discussing the plan, the 'primary' client pertains to the initial user transaction with the Archive of uploading the original KGE File Set to the Archive. A 'secondary' client pertains to a second user activity (for the same, or a different, user) of accessing that KGE File Set, after it has been uploaded to the Archive.
 
 Further specific details and road map of the Archive's design and its implementation - in global terms and with respect to the numbered functional parts noted on the KGE Archive Component Architecture diagram are summarized here below in this document .
 
@@ -20,7 +20,7 @@ Further specific details and road map of the Archive's design and its implementa
 
 # General Considerations
 
-- The heart of the KGE Archive system will be a publicly visible, user authentication secured, web service application [2].
+- The heart of the KGE Archive system will be a publicly visible, user authentication secured, web service application [3].
 - Since NCATS (Biomedical Translator Consortium) operates most of its deployed infrastructure on a private (VPN) leased sub-cloud of Amazon Web Services (AWS) servers and related components, deployment of the KGI Archive is assumed to target AWS EC2, and related PAAS services, as its deployment platform.
 
 # 1. Client Authentication & Authorization
@@ -29,11 +29,14 @@ Clients to the Archive will need to be authenticated. AWS off-the-shelf services
 
 # 2. Primary Client KGE File Set Upload
 
-The precise form, protocol and software support for KGE File Set uploading [1] is to be elaborated...
+The precise form, protocol and software support for KGE File Set uploading [2] is to be elaborated. Two design patterns are under consideration:
+
+1. Files via the interfaces [2] upload to the KGE Archive Server [3] then proxied onward to network storage [4], .
+2. Files uploaded by network storage SDK's embedded in the interface [2], through to network storage [4].
 
 # 3. KGE Archive Server
 
-- The core web service application [2] will be installed to run within a suitable software deployment framework (a Docker Compose managed set of Docker containers) hosted on an AWS EC2 instance, running a common flavor (i.e. Ubuntu) of the Linux operating system.
+- The core web service application [3] will be installed to run within a suitable software deployment framework (a Docker Compose managed set of Docker containers) hosted on an AWS EC2 instance, running a common flavor (i.e. Ubuntu) of the Linux operating system.
   
 
 - **Web Services Specification:** a current release of the OpenAPI 3 web services specification standard is being used to specify the web services application programming interface (API) of the Archive. [OpenAPI Tools code generation](https://github.com/openapitools/openapi-generator-cli) is used to convert the API into stub server code for elaboration. This tool is wrapped in a pair of (bash) shell scripts - a custom script [generate-kge-server.sh](../scripts/generate-kge-server.sh), calling a locally mirrored copy of the [OpenAPI Generator Script](../scripts/openapi-generator-cli.sh) - that are executed to further automate and parameterize the server code generation process.
@@ -47,7 +50,7 @@ The precise form, protocol and software support for KGE File Set uploading [1] i
       
     - **Amazon Web Services:** the [latest release of the available Python AWS Software Development Kit (Boto3)](https://aws.amazon.com/sdk-for-python/) will be leveraged to integrate the web services application with AWS infrastructure.
   
-    - **Github Transactions:** publication of SmartAPI entries for KGE File Sets [5] can be accomplished using an available [Python library for programmatic access to Github](https://docs.github.com/en/rest/overview/libraries#python). 
+    - **Github Transactions:** publication of SmartAPI entries for KGE File Sets [6] can be accomplished using an available [Python library for programmatic access to Github](https://docs.github.com/en/rest/overview/libraries#python). 
    
 # 4. KGE File Set Network Storage
 
@@ -67,7 +70,7 @@ Two options are possible for the provision of KGX 'content' metadata:
 
 The standard mechanism for the recording of Translator SmartAPI Registry ("Registry") entries to Translator resources to consume SmartAPI-compliant OpenAPI 3 YAML specifications from a designated Github repository location (e.g. the [Translator API Registry github repository](https://github.com/NCATS-Tangerine/translator-api-registry)).  Such a location can contain multiple distinct SmartAPI entries, one per distinct API.  Every API registered in such a location needs to resolve to a host/path location of a live OpenAPI 3 implementation of the API.
 
-After uploading KGE File Set (and adding KGX 'content' metadata [4] if required), the Archive needs to publish such a SmartAPI entry to the Translator and make provisions for the live hosting of the API.
+After uploading KGE File Set (and adding KGX 'content' metadata [5] if required), the Archive needs to publish such a SmartAPI entry to the Translator and make provisions for the live hosting of the API.
 
 For the former objective, the Archive will populate a KGE File Set specific instance of a [KGE File Set SmartAPI specification template](api/kge_smartapi_entry.yaml). For the latter objective, the resulting KGE SmartAPI YAML file will actually resolve to a KGE File Set associated subpath on the Archive, as programmatically defined in the full [Archive API web services OpenAPI specification](api/kgea_api.yaml) and its implementation, described herein.
 
@@ -79,7 +82,7 @@ As mentioned in [the high level architectural vision document](../KGE_ARCHIVE_AR
    
 # 8. Secondary Client Access to KGE Files
 
-As noted in [5] above, KGE File Set SmartAPI entries will point to a live server path indexed by knowledge graph name and hosted by the Archive web service application [2].  The key design considerations for this step is to specify the specific modality of access and its practical implementation.
+As noted in [6] above, KGE File Set SmartAPI entries will point to a live server path indexed by knowledge graph name and hosted by the Archive web service application [3].  The key design considerations for this step is to specify the specific modality of access and its practical implementation.
 
 With respect to modality, one specific REST path definition in the [Archive API web services OpenAPI specification](api/kgea_api.yaml) is defined to handle file retrieval as a some kind of URL brokered access to the files. How this URL is to be accessed remains to be further elaborated.
 
