@@ -62,7 +62,6 @@ paths:
         content:
           multipart/form-data:
             schema:
-              x-body-name: formData
               type: object
               description: "$ref: '#/components/schemas/KgeFileSet'"
               properties:
@@ -70,6 +69,8 @@ paths:
                   description: Stub implementation of KGE File Set upload web form.
                   type: object
                   properties:
+                    body:
+                      type: string
                     submitter:
                       type: string
                     kg_name:
