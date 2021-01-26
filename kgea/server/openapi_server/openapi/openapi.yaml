@@ -55,15 +55,19 @@ paths:
         $ref: '#/components/requestBodies/inline_object'
         content:
           multipart/form-data:
+            encoding:
+              data_file_content:
+                contentType: text/csv, text/tab-separated-values
+                style: form
             schema:
               description: '$ref: ''#/components/schemas/KgeFileSet'''
               properties:
-                formData:
-                  $ref: '#/components/schemas/_upload_formData'
+                data_file_content:
+                  format: binary
+                  type: string
               required:
-              - formData
+              - data_file_content
               type: object
-              x-body-name: formData
         description: KGE File Set metadata and data files submitted
         required: true
       responses:
@@ -219,28 +223,12 @@ components:
       - type
       - value
       type: object
-    _upload_formData:
-      description: Stub implementation of KGE File Set upload web form.
-      properties:
-        submitter:
-          type: string
-        kg_name:
-          type: string
-        data_file_name:
-          type: string
-        metadata_file_name:
-          type: string
-      required:
-      - data_file_name
-      - kg_name
-      - submitter
-      type: object
     inline_object:
       description: '$ref: ''#/components/schemas/KgeFileSet'''
       properties:
-        formData:
-          $ref: '#/components/schemas/_upload_formData'
+        data_file_content:
+          format: binary
+          type: string
       required:
-      - formData
+      - data_file_content
       type: object
-      x-body-name: formData

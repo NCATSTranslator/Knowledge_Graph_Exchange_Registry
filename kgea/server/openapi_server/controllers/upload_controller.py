@@ -1,9 +1,8 @@
 import connexion
 import six
 
-#from openapi_server.models.upload_form_data import UploadFormData  # noqa: E501
 from openapi_server import util
-from .kge_handlers import get_kge_upload_form, upload_kge_file_set
+
 
 def get_upload_form():  # noqa: E501
     """Get web form for specifying KGE File Set upload
@@ -13,19 +12,20 @@ def get_upload_form():  # noqa: E501
 
     :rtype: str
     """
-    return get_kge_upload_form()
+    return 'do some magic!'
 
 
-def upload_file_set(form_data):  # noqa: E501
+def upload_file_set(data_file_content):  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
      # noqa: E501
 
-    :param form_data: 
-    :type form_data: dict | bytes
+    :param data_file_content: 
+    :type data_file_content: str
 
     :rtype: str
     """
-    #if connexion.request.is_json:
-    #    form_data = UploadFormData.from_dict(connexion.request.get_json())  # noqa: E501
-    return upload_kge_file_set(form_data)
+    with data_file_content.stream as file:
+        content = file.read()
+        print(content)
+    return "working on file"

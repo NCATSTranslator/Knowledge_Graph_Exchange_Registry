@@ -6,14 +6,15 @@ import unittest
 from flask import json
 from six import BytesIO
 
+from openapi_server.models.attribute import Attribute  # noqa: E501
 from openapi_server.test import BaseTestCase
 
 
 class TestProviderController(BaseTestCase):
     """ProviderController integration test stubs"""
 
-    def test_predicates(self):
-        """Test case for predicates
+    def test_access(self):
+        """Test case for access
 
         Get KGE File Sets
         """

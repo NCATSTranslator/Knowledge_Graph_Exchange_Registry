@@ -2,7 +2,7 @@ import connexion
 import six
 
 from openapi_server import util
-from .kge_handlers import kge_knowledge_map
+
 
 def knowledge_map(kg_name):  # noqa: E501
     """Get supported relationships by source and target
@@ -14,4 +14,4 @@ def knowledge_map(kg_name):  # noqa: E501
 
     :rtype: Dict[str, Dict[str, List[str]]]
     """
-    return kge_knowledge_map(kg_name)
+    return 'do some magic!'
