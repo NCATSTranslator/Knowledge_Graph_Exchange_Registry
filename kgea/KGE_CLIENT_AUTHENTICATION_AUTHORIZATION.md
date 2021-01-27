@@ -21,9 +21,9 @@ For its functional needs, the Archive needs to implement the [Access AWS Service
 
 ## Step 1 - Create a User Pool
 
-The Archive is need a User Pool to manage the identities of users in the community of clients given authorization to upload and download KGE File Sets.  To create such a User Pool, see https://docs.aws.amazon.com/cognito/latest/developerguide/tutorial-create-user-pool.html. Specific configuration decisions that need to be made during pool creation are discussed here in the following subsections.  
+An [AWS Cognito User Pool needs to be created](https://docs.aws.amazon.com/cognito/latest/developerguide/tutorial-create-user-pool.html) to manage the identities of users in the community of clients given authorization to upload and download KGE File Sets.  Specific configuration decisions that need to be made during pool creation are discussed here in the following subsections.  
 
-The identity of the User Pool should be a secure, external system configuration parameter, to allow for flexible reconfiguration of User Pool characteristics in the future.  The following User Pool profile is the one initially specified during Archive prototyping. The profile may change in Production.
+The specific identity of the User Pool should be a secure, external system configuration parameter, to allow for flexible reconfiguration of User Pool characteristics in the future.  The following User Pool profile is the one initially specified during Archive prototyping. The profile may change in Production.
 
 ### Login Identifiers
 
