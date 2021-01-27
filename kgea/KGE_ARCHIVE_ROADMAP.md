@@ -25,7 +25,7 @@ Further specific details and road map of the Archive's design and its implementa
 
 # 1. Client Authentication & Authorization
 
-Clients to the Archive will need to be authenticated. AWS off-the-shelf services (e.g. [AWS Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)) will be leveraged, though available AWS SDK's, to implement all Client user authentication and authorization. Given the complexities of this task, a separate  [KGE Archive client authentication and authorization](./KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md) document is provided here to review the design and configuration of the associated software components.
+Client access to the Archive will need to be authenticated (see related comments in other sections below). AWS off-the-shelf services (e.g. [AWS Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)) will be leveraged, though available AWS SDK's, to implement all Client user authentication and authorization. Given the complexities of this task, a separate  [KGE Archive client authentication and authorization](./KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md) document is provided here to review the design and configuration of the associated software components.
 
 # 2. Primary Client KGE File Set Upload
 
@@ -90,6 +90,6 @@ With respect to modality, one specific REST path definition in the [Archive API 
 
 In terms of practical implementation, given the anticipated large anticipated size of many KGE File Sets, technical options for downloading or streaming such files will require additional consideration. Two general ideas come to mind at the moment:
 
-1. That the Archive web server acts like a proxy gateway streaming such files to a secondary client, through the server, from the back end network storage system (AWS S3 bucket, perhaps via EBS buffering on the EC2 server)
+1. That the Archive web server acts like a proxy gateway streaming such files to a secondary client, through the server, from the back end network storage system (AWS S3 bucket, perhaps via EBS buffering on the EC2 server). It is uncertain at this moment what level of bandwidth performance demands this may place upon the KGE Server, thus, we have a second option...
 
-2. That the Archive merely returns a suitable interface - CLI, web form, web service call endpoint, etc. - authorizing system access with temporary resource access tokens (i.e. [AWS Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)) to the back end network storage system (AWS S3 bucket), which the secondary client then uses to directly access the files from the storage system (without going through the server).
+2. ...That the Archive merely returns a suitable interface - CLI, web form, web service call endpoint, etc. - authorizing system access with temporary resource access tokens (i.e. [AWS Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)) to the back end network storage system (AWS S3 bucket), which the secondary client then uses to directly access the files from the storage system (without going through the server).
