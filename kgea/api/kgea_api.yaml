@@ -65,26 +65,14 @@ paths:
               type: object
               description: "$ref: '#/components/schemas/KgeFileSet'"
               properties:
-                formData:
-                  description: Stub implementation of KGE File Set upload web form.
-                  type: object
-                  properties:
-                    body:
-                      type: string
-                    submitter:
-                      type: string
-                    kg_name:
-                      type: string
-                    data_file_name:
-                      type: string
-                    metadata_file_name:
-                      type: string
-                  required:
-                    - submitter
-                    - kg_name
-                    - data_file_name
+                data_file_content:
+                  type: string
+                  format: binary
               required:
-                - formData
+                - data_file_content
+            encoding: # The same level as schema
+              data_file_content: # Property name (see above)
+                contentType: text/csv, text/tab-separated-values
       responses:
         '201':
           description: Upload successfully completed.

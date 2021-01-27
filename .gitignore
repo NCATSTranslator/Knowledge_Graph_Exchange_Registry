@@ -130,3 +130,6 @@ dmypy.json
 
 # PyCharm IDEA metadata
 .idea/
+
+# AWS Environment
+.aws/
