@@ -55,6 +55,8 @@ The precise form, protocol and software support for KGE File Set uploading [2] i
 # 4. KGE File Set Network Storage
 
 Archived KGE file sets encoding Translator Knowledge Graphs, are KGX text files which are anticipated to be, on average, fairly large (e.g. gigabytes in size). Although such files could potentially be hosted on AWS EBS volumes attached to the aforementioned EC2 server instance, longer term stable persistence of such large files only periodically accessed, suggests that they should be hosted within an AWS S3 bucket. The aforementioned Boto3 Python AWS SDK library will (hopefully) efficiently broker web service application transactions with S3.
+
+We will need to consider how to manage versioning of KGE File Sets, reflecting both Translator policy for knowledge graph versioning, as well as, the network storage (AWS S3) versioning characteristics.
    
 # 5. KGX Metadata Generation
 
