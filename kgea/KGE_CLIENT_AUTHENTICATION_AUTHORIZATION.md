@@ -101,11 +101,11 @@ None initially configured. To be reviewed at a later date. Available options are
 
 ## Step 2 - Implement KGE Archive Web Site Login
 
-T.B.A.
+The [AWS Cognito procedure for creating a client app login](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-app-integration.html) is our initial guide here.
 
 ## Step 3 - Create an Identity Pool
 
-T.B.A.
+[Creating an AWS Cognito Identity Pool](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-identity.html)
 
 ### User Group Roles
 
