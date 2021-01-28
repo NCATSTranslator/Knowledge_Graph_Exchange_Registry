@@ -25,6 +25,10 @@ An [AWS Cognito User Pool needs to be created](https://docs.aws.amazon.com/cogni
 
 The specific identity of the User Pool should be a secure, external system configuration parameter, to allow for flexible reconfiguration of User Pool characteristics in the future.  The following User Pool profile is the one initially specified during Archive prototyping. The profile may change in Production.
 
+### User Pool Region
+
+Given that NCATS resides in Maryland, we host  Cognito IDP host in the AWS **us-east-1** Region.
+
 ### Login Identifiers
 
 For the moment, the following options for Archive client Login identification are specified:
@@ -102,6 +106,26 @@ None initially configured. To be reviewed at a later date. Available options are
 ## Step 2 - Implement KGE Archive Web Site Login
 
 The [AWS Cognito procedure for creating a client app login](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-app-integration.html) is our initial guide here.
+
+### App Client Creation
+
+#### Sign in and sign out URLs
+
+A suitably active https-secured web server host needs to be deployed, live and visible. We point the `Callback URL` and `Sign out URL` to that host.
+
+#### Configure a Login Associated Domain
+
+After setting up an app client, one can configure the address of one's sign-up and sign-in webpages. One can use an Amazon Cognito hosted domain and choose an available domain prefix (which added to one of the regio-specific AWS Cognito hostnames, becomes the "_Login Associated Domain_"), or one can use one's own web address as a custom domain (set as the "_Login Associated Domain_").  
+
+In principle, the specified hostname of the live (https-secured) KGE Archive server will be designated in the future as a custom domain, following directives to obtain and record an associated certificate in the AWS Certificate Manager (ACM) and to add an alias record to the domain’s hosted zone after it’s associated with the given user pool.   However, for testing purposes, a request can be made to register and use an available AWS Cognito prefixed domain name prefix (connected with a the regio-specific AWS Cognito hostname).
+
+#### Using the login interface
+
+Basic operation of the AWS Cognito hosted login UI is obtained by going to the following URL (with site-specific details included as required):
+
+```
+https://<Login_Associated_Domain>/login?response_type=code&client_id=<your_app_client_id>&redirect_uri=<your_callback_url>
+```
 
 ## Step 3 - Create an Identity Pool
 
