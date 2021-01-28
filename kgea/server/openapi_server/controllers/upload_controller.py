@@ -124,7 +124,7 @@ def upload_file_set(data_file_content):  # noqa: E501
         return True
 
     maybeUploadContent = upload_file(data_file_content, bucket="star-ncats-translator", object_name=object_location+"content/"+data_file_content.filename)
-    maybeUploadMetaData = True #or upload_file(data_file_metadata, bucket_name="star-ncats-translator", object_name=object_location+"meta/"+data_file_metadata.filename)
+    maybeUploadMetaData = True #or upload_file(data_file_metadata, bucket_name="star-ncats-translator", object_name=object_location+"metadata/"+data_file_metadata.filename)
     maybeRegisterSmartAPI = register_smartapi()
     if maybeUploadContent and maybeUploadMetaData and maybeRegisterSmartAPI:
         # DONE: "Authorization mechanism not provided" Error
