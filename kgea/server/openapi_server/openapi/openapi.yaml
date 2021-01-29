@@ -34,21 +34,6 @@ tags:
   name: content
 - name: translator
 paths:
-  /form:
-    get:
-      operationId: get_upload_form
-      responses:
-        "200":
-          content:
-            text/html:
-              schema:
-                description: KGE File Set upload HTML web form
-                type: string
-          description: Returns a web form for uploading a KGE File Set
-      summary: Get web form for specifying KGE File Set upload
-      tags:
-      - upload
-      x-openapi-router-controller: openapi_server.controllers.upload_controller
   /register:
     post:
       operationId: register_file_set
@@ -95,6 +80,21 @@ paths:
                 type: string
           description: Not implemented.
       summary: Register web form details specifying a KGE File Set location
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /register_form:
+    get:
+      operationId: get_register_form
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string
+          description: Returns a web form for uploading a KGE File Set
+      summary: Get web form for specifying KGE File Set upload
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
@@ -159,6 +159,21 @@ paths:
                 type: string
           description: Not implemented.
       summary: Upload web form details specifying a KGE File Set upload process
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /upload_form:
+    get:
+      operationId: get_upload_form
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string
+          description: Returns a web form for uploading a KGE File Set
+      summary: Get web form for specifying KGE File Set upload
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller

@@ -37,7 +37,7 @@ tags:
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
 paths:
-  /form:
+  /upload_form:
     get:
       tags:
         - upload
@@ -51,6 +51,20 @@ paths:
               schema:
                 description: KGE File Set upload HTML web form
                 type: string
+  /register_form:
+    get:
+      tags:
+        - upload
+      summary: Get web form for specifying KGE File Set upload
+      operationId: getRegisterForm
+      responses:
+        '200':
+          description: Returns a web form for uploading a KGE File Set
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string             
   /register:
     post:
       tags:
