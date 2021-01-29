@@ -1,14 +1,8 @@
 import connexion
 import six
 
-import boto3
-from botocore.exceptions import ClientError
-from botocore.client import Config
+from openapi_server import util
 
-import yaml
-
-from string import Template
-from pathlib import Path
 
 def get_upload_form():  # noqa: E501
     """Get web form for specifying KGE File Set upload
@@ -18,28 +12,7 @@ def get_upload_form():  # noqa: E501
 
     :rtype: str
     """
-    page = """
-    <!DOCTYPE html>
-    <html>
-
-    <head>
-        <title>Upload New File</title>
-    </head>
-
-    <body>
-        <h1>Upload Files</h1>
-
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <input type="file" name="data_file_content">
-            <input type="file" name="metadata_file_content">
-            <input type="submit" value="Upload">
-        </form>
-
-    </body>
-
-    </html>
-    """
-    return page
+    return 'do some magic!'
 
 
 def register_file_set(submitter, kg_name):  # noqa: E501
@@ -54,7 +27,6 @@ def register_file_set(submitter, kg_name):  # noqa: E501
 
     :rtype: str
     """
-    print(submitter, kg_name)
     return 'do some magic!'
 
 
@@ -113,7 +85,6 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
 
         # Upload the file
         s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
-        # TODO: change location available to work better with "register"
         if location_available(bucket, object_name) or override:
             try:
                 with data_file_content.stream as f:

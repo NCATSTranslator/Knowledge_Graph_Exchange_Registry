@@ -37,7 +37,7 @@ tags:
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
 paths:
-  /upload:
+  /form:
     get:
       tags:
         - upload
@@ -51,7 +51,64 @@ paths:
               schema:
                 description: KGE File Set upload HTML web form
                 type: string
+  /register:
     post:
+      tags:
+        - upload
+      summary: Register web form details specifying a KGE File Set location
+      operationId: registerFileSet
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                submitter:
+                  type: string
+                kg_name:
+                  type: string
+              required:
+                - submitter
+                - kg_name
+      responses:
+        '201':
+          description: Upload successfully completed.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow
+            (not just unrecognized).
+          content:
+            application/json:
+              schema:
+                type: string
+        '500':
+          description: >-
+            Internal server error.
+          content:
+            application/json:
+              schema:
+                type: string
+        '501':
+          description: >-
+            Not implemented.
+          content:
+            application/json:
+              schema:
+                type: string
+  /upload/{kg_name}:
+    post:
+      parameters:
+        - name: kg_name
+          in: path
+          required: true
+          schema:
+            type: string
       tags:
         - upload
       summary: Upload web form details specifying a KGE File Set upload process
@@ -66,6 +123,9 @@ paths:
               description: "$ref: '#/components/schemas/KgeFileSet'"
               properties:
                 data_file_content:
+                  type: string
+                  format: binary
+                data_file_metadata:
                   type: string
                   format: binary
               required:

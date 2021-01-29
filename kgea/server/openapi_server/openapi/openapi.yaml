@@ -34,7 +34,7 @@ tags:
   name: content
 - name: translator
 paths:
-  /upload:
+  /form:
     get:
       operationId: get_upload_form
       responses:
@@ -49,10 +49,68 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /register:
     post:
-      operationId: upload_file_set
+      operationId: register_file_set
       requestBody:
         $ref: '#/components/requestBodies/inline_object'
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              properties:
+                submitter:
+                  type: string
+                kg_name:
+                  type: string
+              required:
+              - kg_name
+              - submitter
+              type: object
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Upload successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow (not
+            just unrecognized).
+        "500":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Internal server error.
+        "501":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Not implemented.
+      summary: Register web form details specifying a KGE File Set location
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /upload/{kg_name}:
+    post:
+      operationId: upload_file_set
+      parameters:
+      - explode: false
+        in: path
+        name: kg_name
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object_1'
         content:
           multipart/form-data:
             encoding:
@@ -63,6 +121,9 @@ paths:
               description: '$ref: ''#/components/schemas/KgeFileSet'''
               properties:
                 data_file_content:
+                  format: binary
+                  type: string
+                data_file_metadata:
                   format: binary
                   type: string
               required:
@@ -183,9 +244,15 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.content_controller
 components:
   requestBodies:
-    inline_object:
+    inline_object_1:
       content:
         multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/inline_object_1'
+      required: true
+    inline_object:
+      content:
+        application/x-www-form-urlencoded:
           schema:
             $ref: '#/components/schemas/inline_object'
       required: true
@@ -224,9 +291,22 @@ components:
       - value
       type: object
     inline_object:
+      properties:
+        submitter:
+          type: string
+        kg_name:
+          type: string
+      required:
+      - kg_name
+      - submitter
+      type: object
+    inline_object_1:
       description: '$ref: ''#/components/schemas/KgeFileSet'''
       properties:
         data_file_content:
+          format: binary
+          type: string
+        data_file_metadata:
           format: binary
           type: string
       required:

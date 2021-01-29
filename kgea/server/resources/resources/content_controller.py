@@ -14,4 +14,10 @@ def knowledge_map(kg_name):  # noqa: E501
 
     :rtype: Dict[str, Dict[str, List[str]]]
     """
+    # TODO: deserializing KGX files?
+    object_location = Template('$DIRECTORY_NAME/$KG_NAME/$SUBFOLDER/').substitute(
+        DIRECTORY_NAME='kge-data', 
+        KG_NAME=kg_name,
+        SUBFOLDER='metadata'
+    )
     return 'do some magic!'
