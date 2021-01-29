@@ -23,10 +23,10 @@ def access(kg_name):  # noqa: E501
     :rtype: Dict[str, Attribute]
     """
 
-    object_location = Template('$DIRECTORY_NAME/$KG_NAME/$SUBFOLDER/').substitute(
+    object_location = Template('$DIRECTORY_NAME/$KG_NAME/$CONTENT_TYPE/').substitute(
         DIRECTORY_NAME='kge-data', 
         KG_NAME=kg_name,
-        SUBFOLDER='content'
+        CONTENT_TYPE='content'
     )
 
     def create_presigned_url(bucket, object_name, expiration=3600):

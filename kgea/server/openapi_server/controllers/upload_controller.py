@@ -59,7 +59,7 @@ def register_file_set(body):  # noqa: E501
 
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data', 
-        KG_NAME=Path(data_file_content.filename).stem
+        KG_NAME=kg_name
     )
     
     def location_available(bucket_name, object_key):
@@ -83,12 +83,16 @@ def register_file_set(body):  # noqa: E501
             # invert because available
             return not False
 
-    def register_smartapi():
+    def register_smartapi(submitter, kg_name):
         # using https://github.com/NCATS-Tangerine/translator-api-registry
-        
-        return True
+        return 'url', {}
 
-    return 'do some magic!'
+    smart_api_data = register_smartapi(submitter, kg_name)
+    
+    return {
+        url: smart_api_data[0],
+        api: smart_api_data[1] 
+    }
 
 
 def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
@@ -170,7 +174,7 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
     
     if maybeUploadContent or maybeUploadMetaData:
         return {
-            [data_file_content.filename]: maybeUploadContent
+            [data_file_content.filename]: maybeUploadContent,
             [data_file_metadata.filename]: maybeUploadMetaData
         }
     else:
