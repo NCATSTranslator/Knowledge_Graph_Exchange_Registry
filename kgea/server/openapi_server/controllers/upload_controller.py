@@ -10,6 +10,8 @@ import yaml
 from string import Template
 from pathlib import Path
 
+from Flask import abort
+
 def get_upload_form():  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
@@ -30,8 +32,8 @@ def get_upload_form():  # noqa: E501
         <h1>Upload Files</h1>
 
         <form action="/upload" method="post" enctype="multipart/form-data">
-            <input type="file" name="data_file_content">
-            <input type="file" name="metadata_file_content">
+            API Files: <input type="file" name="data_file_content"><br>
+            API Metadata: <input type="file" name="data_file_metadata"><br>
             <input type="submit" value="Upload">
         </form>
 
@@ -83,28 +85,34 @@ def register_file_set(body):  # noqa: E501
             # invert because available
             return not False
 
-    # using https://github.com/NCATS-Tangerine/translator-api-registry
+    # TODO
     def create_smartapi(submitter, kg_name):
         spec = {}
+
+         def convert_to_yaml(spec):
+            yaml_file = lambda spec: spec
+            return yaml_file(spec)
+
+        yaml_file = convert_to_yaml(api_specification)
+
         return spec
 
-    def convert_to_yaml(spec):
-        yaml_file = lambda spec: spec
-        return yaml_file(spec)
-
-    def add_to_github(yaml_file):
+    # TODO
+    def add_to_github(api_specification):
+        # using https://github.com/NCATS-Tangerine/translator-api-registry
         repo = ''
         return repo
 
     api_specification = create_smartapi(submitter, kg_name)
-    yaml_file = convert_to_yaml(api_specification)
-    url = add_to_github(yaml_file)
+    url = add_to_github(api_specification)
 
-    return dict({
-        "url": url,
-        "api": api_specification
-    })
-
+    if api_specification and url:
+        return dict({
+            "url": url,
+            "api": api_specification
+        })
+    else:
+        abort(400)
 
 def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
@@ -120,8 +128,6 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
 
     :rtype: str
     """
-
-    print(kg_name, data_file_content, data_file_metadata)
 
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data', 
@@ -144,10 +150,12 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
             with data_file.stream as f:
                 s3_client.upload_fileobj(f, bucket_name, object_key)
         except ClientError as e:
+            # TODO: replace with logger
             print(e)
             return None
         return object_key
 
+    # TODO
     def api_registered(kg_name):
         return True 
 
@@ -200,16 +208,25 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
         # The response contains the presigned URL
         return response
 
+
+
     if maybeUploadContent or maybeUploadMetaData:
         response = { "content": dict({}), "metadata": dict({}) }
 
         content_name = Path(maybeUploadContent).stem
-        response["content"][content_name] = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadContent)
+        content_url = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadContent)
+        if response["content"][content_name] is None:
+            abort(400)
+        else:
+            response["content"][content_name] = content_url
 
         if maybeUploadMetaData:
             metadata_name = Path(maybeUploadMetaData).stem
-            response["metadata"][metadata_name] = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadMetaData)
+            metadata_url = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadMetaData)
+            if response["metadata"][metadata_name] is not None:
+                response["metadata"][metadata_name] = metadata_url
+            # don't care if not there since optional
 
         return response
     else:
-        return "Failure!"
+        abort(400)

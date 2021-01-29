@@ -62,25 +62,12 @@ def access(kg_name):  # noqa: E501
 
         return object_matches
 
-    # Redirect Approach
-    # TODO: https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/s3-example-configuring-buckets.html
-    """
-    url = create_presigned_url(bucket="star-ncats-translator", object_name=object_location)
-    if url is not None:
-        # TODO: authentication?
-        response = make_response(redirect(url))
-        response['Access-Control-Allow-Origin'] = "https://star-ncats-translator.s3.amazonaws.com"
-        return response
-    else:
-        # TODO
-        return "Request Failed"
-    """
-
     # Listings Approach
     # - Introspect on Bucket
     # - Create URL per Item Listing
     # - Send Back URL with Dictionary
     # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+    # TODO: convert into redirect approach with cross-origin scripting?
     kg_files = kg_files_in_location(bucket_name='star-ncats-translator', object_location=object_location)
     kg_listing = dict(map(lambda kg_file: [ Path(kg_file).stem, create_presigned_url('star-ncats-translator', kg_file) ], kg_files))
     return kg_listing
