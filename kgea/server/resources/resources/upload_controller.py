@@ -3,6 +3,14 @@ import six
 
 from openapi_server import util
 
+import boto3
+from botocore.exceptions import ClientError
+from botocore.client import Config
+
+import yaml
+
+from string import Template
+from pathlib import Path
 
 def get_upload_form():  # noqa: E501
     """Get web form for specifying KGE File Set upload
@@ -12,40 +20,40 @@ def get_upload_form():  # noqa: E501
 
     :rtype: str
     """
-    return 'do some magic!'
+    page = """
+    <!DOCTYPE html>
+    <html>
 
+    <head>
+        <title>Upload New File</title>
+    </head>
 
-def register_file_set(submitter, kg_name):  # noqa: E501
-    """Register web form details specifying a KGE File Set location
+    <body>
+        <h1>Upload Files</h1>
 
-     # noqa: E501
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="data_file_content">
+            <input type="file" name="metadata_file_content">
+            <input type="submit" value="Upload">
+        </form>
 
-    :param submitter: 
-    :type submitter: str
-    :param kg_name: 
-    :type kg_name: str
+    </body>
 
-    :rtype: str
+    </html>
     """
-    return 'do some magic!'
+    return page
 
 
-def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
+def upload_file_set(data_file_content):  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
      # noqa: E501
 
-    :param kg_name: 
-    :type kg_name: str
     :param data_file_content: 
     :type data_file_content: str
-    :param data_file_metadata: 
-    :type data_file_metadata: str
 
     :rtype: str
     """
-
-    print(kg_name, data_file_content, data_file_metadata)
 
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/$CONTENT_TYPE/').substitute(
         DIRECTORY_NAME='kge-data', 
@@ -53,7 +61,9 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
         KG_NAME=Path(data_file_content.filename).stem
     )
 
+    # TODO: Lift bucket into configuration
     def upload_file(data_file_content, bucket, object_name, override=False):
+        # print(data_file_content.filename, dir(data_file_content.name))
         """Upload a file to an S3 bucket
 
         :param file_name: File to upload
@@ -83,7 +93,18 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
                 # invert because available
                 return not False
 
+        # # If S3 object_name was not specified, use file_name
+        """
+        if object_name is None:
+            object_name = Template('$DIRECTORY_NAME/$CONTENT_NAME/'+data_file_content.filename).substitute(
+                # TODO: Lift bucket folder into configuration
+                DIRECTORY_NAME='kge-data', 
+                CONTENT_NAME=Path(data_file_content.filename).stem
+            )
+        """
+
         # Upload the file
+        # TODO: export a single project-wide client
         s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
         if location_available(bucket, object_name) or override:
             try:

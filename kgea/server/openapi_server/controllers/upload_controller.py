@@ -83,33 +83,27 @@ def register_file_set(body):  # noqa: E501
             # invert because available
             return not False
 
-    def register_smartapi(submitter, kg_name):
-        # using https://github.com/NCATS-Tangerine/translator-api-registry
+    # using https://github.com/NCATS-Tangerine/translator-api-registry
+    def create_smartapi(submitter, kg_name):
+        spec = {}
+        return spec
 
-        def create_smartapi(submitter, kg_name):
-            spec = {}
-            return spec
+    def convert_to_yaml(spec):
+        yaml_file = lambda spec: spec
+        return yaml_file(spec)
 
-        def convert_to_yaml(spec):
-            yaml_file = lambda x: spec
-            return yaml_file()
+    def add_to_github(yaml_file):
+        repo = ''
+        return repo
 
-        def add_to_github():
-            repo = ''
-            return repo
+    api_specification = create_smartapi(submitter, kg_name)
+    yaml_file = convert_to_yaml(api_specification)
+    url = add_to_github(yaml_file)
 
-        api_specification = create_smartapi(submitter, kg_name)
-        yaml_file = convert_to_yaml(api_specification)
-        url = add_to_github(yaml_file)
-
-        return api_specification, url
-
-    smart_api_data = register_smartapi(submitter, kg_name)
-    
-    return {
-        url: smart_api_data[0],
-        api: smart_api_data[1] 
-    }
+    return dict({
+        "url": url,
+        "api": api_specification
+    })
 
 
 def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
@@ -142,57 +136,80 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
         :param object_name: S3 object name. If not specified then file_name is used
         :return: True if file was uploaded, else False
         """
-
-        def registered(kg_name):
-            pass
-
-        def location_available(bucket_name, object_key):
-            """
-            Guarantee that we can write to the location of the object without overriding everything
-
-            :param bucket: The bucket
-            :param object: The object in the bucket
-            :return: True if the object is not in the bucket, False if it is already in the bucket
-            """
-            s3 = boto3.resource('s3')
-            bucket = s3.Bucket(bucket_name)
-            key = object_key
-            objs = list(bucket.objects.filter(Prefix=key))
-            if any([w.key == path_s3 for w in objs]):
-                # exists
-                # invert because unavailable
-                return not True
-            else:
-                # doesn't exist
-                # invert because available
-                return not False
-
-        object_key = object_location + content_type + '/' + data_file
-
+        object_key = object_location + content_type + '/' + data_file.filename
+        
         # Upload the file
         s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
-        if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
-            try:
-                with data_file.stream as f:
-                    s3_client.upload_fileobj(f, bucket_name, object_name)
-            except ClientError as e:
-                print(e)
-                return False
-            return True
-        else:
-            return False
-    
-    def register_smartapi():
-        # using https://github.com/NCATS-Tangerine/translator-api-registry
-        return True
+        try:
+            with data_file.stream as f:
+                s3_client.upload_fileobj(f, bucket_name, object_key)
+        except ClientError as e:
+            print(e)
+            return None
+        return object_key
 
+    def api_registered(kg_name):
+        return True 
+
+    def location_available(bucket_name, object_key):
+        """
+        Guarantee that we can write to the location of the object without overriding everything
+
+        :param bucket: The bucket
+        :param object: The object in the bucket
+        :return: True if the object is not in the bucket, False if it is already in the bucket
+        """
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket(bucket_name)
+        key = object_key
+        objs = list(bucket.objects.filter(Prefix=key))
+        if any([w.key == path_s3 for w in objs]):
+            # exists
+            # invert because unavailable
+            return not True
+        else:
+            # doesn't exist
+            # invert because available
+            return not False
+
+    # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
     maybeUploadContent = upload_file(data_file_content, bucket_name="star-ncats-translator", object_location=object_location, content_type="content") 
     maybeUploadMetaData = None or upload_file(data_file_metadata, bucket_name="star-ncats-translator", object_location=object_location, content_type="metadata")
     
+    def create_presigned_url(bucket, object_name, expiration=3600):
+        """Generate a presigned URL to share an S3 object
+
+        :param bucket: string
+        :param object_name: string
+        :param expiration: Time in seconds for the presigned URL to remain valid
+        :return: Presigned URL as string. If error, returns None.
+        """
+
+        # Generate a presigned URL for the S3 object
+        # TODO: https://stackoverflow.com/a/52642792
+        s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
+        try:
+            response = s3_client.generate_presigned_url('get_object',
+                                                        Params={'Bucket': bucket,
+                                                                'Key': object_name},
+                                                        ExpiresIn=expiration)
+        except ClientError as e:
+            logging.error(e)
+            return None
+
+        # The response contains the presigned URL
+        return response
+
     if maybeUploadContent or maybeUploadMetaData:
-        return {
-            [data_file_content.filename]: maybeUploadContent,
-            [data_file_metadata.filename]: maybeUploadMetaData
-        }
+        response = { "content": dict({}), "metadata": dict({}) }
+
+        content_name = Path(maybeUploadContent).stem
+        response["content"][content_name] = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadContent)
+
+        if maybeUploadMetaData:
+            metadata_name = Path(maybeUploadMetaData).stem
+            response["metadata"][metadata_name] = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadMetaData)
+
+        return response
     else:
         return "Failure!"

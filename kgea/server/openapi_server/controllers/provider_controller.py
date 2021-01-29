@@ -85,10 +85,4 @@ def access(kg_name):  # noqa: E501
     kg_listing = dict(map(lambda kg_file: [ Path(kg_file).stem, create_presigned_url('star-ncats-translator', kg_file) ], kg_files))
     return kg_listing
 
-    # Download Approach
-    # DEPRECATED: would involve striping large files locally before sending them over? I don't think so! Unless we can stream it (and even then...)
-    # s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
-    # with open('FILE_NAME', 'wb') as f:
-    #     s3.download_fileobj('BUCKET_NAME', 'OBJECT_NAME', f)
-
     
