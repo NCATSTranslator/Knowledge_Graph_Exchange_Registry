@@ -21,26 +21,84 @@ info:
     team:
     - "SRI"
 servers:
-  - url: "translator.ncats.io/kge-archive"
-    description: "Production Server"
+  - url: "http://localhost:8080/kge-archive"
+    description: "Localhost URL for server, to be proxied to the real internet"
 externalDocs:
   description: >-
     Documentation for the NCATS Biomedical Translator
     Knowledge Graph Exchange (KGE) Archive
   url: "https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 tags:
-  - name: translator
+  - name: upload
+    description: KGE file set upload form
   - name: provider
-    description: Provider metadata for KGX-formatted data files
+    description: Provider metadata for KGE file set
   - name: content
-    description: Content metadata for KGX-formatted data files
+    description: Content metadata for KGX-formatted data files in a KGE file set.
+  - name: translator
 paths:
+  /upload:
+    get:
+      tags:
+        - upload
+      summary: Get web form for specifying KGE File Set upload
+      operationId: getUploadForm
+      responses:
+        '200':
+          description: Returns a web form for uploading a KGE File Set
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload html web form
+                type: string
+    post:
+      tags:
+        - upload
+      summary: Upload web form details specifying a KGE File Set upload process
+      operationId: uploadFileSet
+      requestBody:
+        description: KGE File Set metadata and data files submitted
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KgeFileSet'
+      responses:
+        '201':
+          description: Upload successfully completed.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow
+            (not just unrecognized).
+          content:
+            application/json:
+              schema:
+                type: string
+        '500':
+          description: >-
+            Internal server error.
+          content:
+            application/json:
+              schema:
+                type: string
+        '501':
+          description: >-
+            Not implemented.
+          content:
+            application/json:
+              schema:
+                type: string
   /{kgName}/access:
     get:
       tags:
         - provider
       summary: Get KGE File Sets
-      operationId: predicates
+      operationId: access
       parameters:
         - name: kgName
           in: path
@@ -77,10 +135,9 @@ paths:
             Name label of KGE File Set whose knowledge graph
             content metadata is being reported
           required: true
-          # x-valueType:
-          #  - don't know if this needs a SmartAPI value type?
           schema:
             type: string
+      operationId: knowledgeMap
       responses:
         '200':
           description: Knowledge Map of predicates by source and target
@@ -104,6 +161,24 @@ paths:
                       - biolink:decreases_activity_of
 components:
   schemas:
+    KgeFileSet:
+      description: >-
+        Stub implementation of KGE File Set upload web form.
+      type: object
+      properties:
+        submitter:
+          type: string
+        kg_name:
+          type: string
+        data_file_name:
+          type: string
+        metadata_file_name:
+          type: string
+      required:
+        - submitter
+        - kg_name
+        - data_file_name
+
     Attribute:
       type: object
       description: Generic metadata attribute.
@@ -112,11 +187,12 @@ components:
           type: string
           description: >-
             Type of the metadata attribute, from the Translator Registry metadata dictionary.
-          example: Foo
+          example: "Foo"
         value:
+          type: string
           description: >-
-            Value of the attribute. May be any data type, including a list.
-          example: bar
+            Value of the attribute, encoded as a string.
+          example: "Bar"
       required:
           - type
           - value
