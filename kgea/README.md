@@ -216,7 +216,21 @@ Note that your particular version and build number may be different than what is
 
 ## Site Configuration
 
-T.B.A.
+### Server Instance
+
+Configure and deploy a suitably sized Linux server with a public IP address.  For the Archive, the production server would be an AWS EC2 instance with a public Elastic IP. The EC2 instance size required remains to be empirically determined.
+
+### Domain and Hostname
+
+The set a CNAME record to resolve to a suitable prefix on an available domain to the web server's real or (Translator) proxied internet address.
+
+### HTTPS and SSL
+
+Install the host production server **https** SSL using the free public services and tools of [Lets Encrypt](https://letsencrypt.org/) or proxied through a suitable **https** (Translator) hostname.
+
+### Validate Login Callbacks, etc.
+
+The [Archive system leverages AWS Cognito for its client user authentication](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). The above https prefixed hostname needs to be specified as the login URL's callback endpoint, through the Archive software site configuration.
 
 ## Running the Production System
 
