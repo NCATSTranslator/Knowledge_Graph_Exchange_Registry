@@ -37,7 +37,7 @@ tags:
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
 paths:
-  /upload:
+  /upload_form:
     get:
       tags:
         - upload
@@ -49,20 +49,42 @@ paths:
           content:
             text/html:
               schema:
-                description: KGE File Set upload html web form
+                description: KGE File Set upload HTML web form
                 type: string
+  /register_form:
+    get:
+      tags:
+        - upload
+      summary: Get web form for specifying KGE File Set upload
+      operationId: getRegisterForm
+      responses:
+        '200':
+          description: Returns a web form for uploading a KGE File Set
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string             
+  /register:
     post:
       tags:
         - upload
-      summary: Upload web form details specifying a KGE File Set upload process
-      operationId: uploadFileSet
+      summary: Register web form details specifying a KGE File Set location
+      operationId: registerFileSet
       requestBody:
-        description: KGE File Set metadata and data files submitted
         required: true
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/KgeFileSet'
+              type: object
+              properties:
+                submitter:
+                  type: string
+                kg_name:
+                  type: string
+              required:
+                - submitter
+                - kg_name
       responses:
         '201':
           description: Upload successfully completed.
@@ -93,14 +115,76 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kgName}/access:
+  /upload/{kg_name}:
+    post:
+      parameters:
+        - name: kg_name
+          in: path
+          required: true
+          schema:
+            type: string
+      tags:
+        - upload
+      summary: Upload web form details specifying a KGE File Set upload process
+      operationId: uploadFileSet
+      requestBody:
+        description: KGE File Set metadata and data files submitted
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description: "$ref: '#/components/schemas/KgeFileSet'"
+              properties:
+                data_file_content:
+                  type: string
+                  format: binary
+                data_file_metadata:
+                  type: string
+                  format: binary
+              required:
+                - data_file_content
+            encoding: # The same level as schema
+              data_file_content: # Property name (see above)
+                contentType: text/csv, text/tab-separated-values
+      responses:
+        '201':
+          description: Upload successfully completed.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow
+            (not just unrecognized).
+          content:
+            application/json:
+              schema:
+                type: string
+        '500':
+          description: >-
+            Internal server error.
+          content:
+            application/json:
+              schema:
+                type: string
+        '501':
+          description: >-
+            Not implemented.
+          content:
+            application/json:
+              schema:
+                type: string
+  /{kg_name}/access:
     get:
       tags:
         - provider
       summary: Get KGE File Sets
       operationId: access
       parameters:
-        - name: kgName
+        - name: kg_name
           in: path
           description: >-
             Name label of KGE File Set whose files are being accessed
@@ -123,6 +207,14 @@ paths:
                   description: >-
                     Provider metadata attributes
                   $ref: '#/components/schemas/Attribute'
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
+          content:
+            application/json:
+              schema:
+                type: string
   /{kg_name}/knowledge_map:
     get:
       tags:
@@ -159,6 +251,14 @@ paths:
                     'biolink:Gene':
                       - biolink:directly_interacts_with
                       - biolink:decreases_activity_of
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
+          content:
+            application/json:
+              schema:
+                type: string
 components:
   schemas:
     KgeFileSet:

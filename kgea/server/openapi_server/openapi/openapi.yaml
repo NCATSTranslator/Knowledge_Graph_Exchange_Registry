@@ -1,0 +1,329 @@
+openapi: 3.0.1
+info:
+  contact:
+    email: richard.bruskiewich@delphinai.com
+    name: Richard Bruskiewich
+    x-role: responsible developer
+    x-id: https://github.com/RichardBruskiewich
+  description: OpenAPI for the NCATS Biomedical Translator Knowledge Graph Exchange
+    Archive
+  license:
+    name: MIT 2.0
+    url: https://en.wikipedia.org/wiki/MIT_License
+  termsOfService: https://ncats.nih.gov/translator
+  title: OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGE)
+    Archive
+  version: 0.0.1-dev
+  x-translator:
+    component: SRI service
+    team:
+    - SRI
+externalDocs:
+  description: Documentation for the NCATS Biomedical Translator Knowledge Graph Exchange
+    (KGE) Archive
+  url: https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
+servers:
+- description: Localhost URL for server, to be proxied to the real internet
+  url: http://localhost:8080/kge-archive
+tags:
+- description: KGE file set upload form
+  name: upload
+- description: Provider metadata for KGE file set
+  name: provider
+- description: Content metadata for KGX-formatted data files in a KGE file set.
+  name: content
+- name: translator
+paths:
+  /register:
+    post:
+      operationId: register_file_set
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object'
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              properties:
+                submitter:
+                  type: string
+                kg_name:
+                  type: string
+              required:
+              - kg_name
+              - submitter
+              type: object
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Upload successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow (not
+            just unrecognized).
+        "500":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Internal server error.
+        "501":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Not implemented.
+      summary: Register web form details specifying a KGE File Set location
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /register_form:
+    get:
+      operationId: get_register_form
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string
+          description: Returns a web form for uploading a KGE File Set
+      summary: Get web form for specifying KGE File Set upload
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /upload/{kg_name}:
+    post:
+      operationId: upload_file_set
+      parameters:
+      - explode: false
+        in: path
+        name: kg_name
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object_1'
+        content:
+          multipart/form-data:
+            encoding:
+              data_file_content:
+                contentType: text/csv, text/tab-separated-values
+                style: form
+            schema:
+              description: '$ref: ''#/components/schemas/KgeFileSet'''
+              properties:
+                data_file_content:
+                  format: binary
+                  type: string
+                data_file_metadata:
+                  format: binary
+                  type: string
+              required:
+              - data_file_content
+              type: object
+        description: KGE File Set metadata and data files submitted
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Upload successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow (not
+            just unrecognized).
+        "500":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Internal server error.
+        "501":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Not implemented.
+      summary: Upload web form details specifying a KGE File Set upload process
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /upload_form:
+    get:
+      operationId: get_upload_form
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string
+          description: Returns a web form for uploading a KGE File Set
+      summary: Get web form for specifying KGE File Set upload
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /{kg_name}/access:
+    get:
+      operationId: access
+      parameters:
+      - description: Name label of KGE File Set whose files are being accessed
+        explode: false
+        in: path
+        name: kg_name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/Attribute'
+                description: Provider metadata describing the location and inventory
+                  of KGE files
+                type: object
+          description: Name label of KGE File Set whose provider metadata is being
+            reported
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
+      summary: Get KGE File Sets
+      tags:
+      - provider
+      x-openapi-router-controller: openapi_server.controllers.provider_controller
+  /{kg_name}/knowledge_map:
+    get:
+      operationId: knowledge_map
+      parameters:
+      - description: Name label of KGE File Set whose knowledge graph content metadata
+          is being reported
+        explode: false
+        in: path
+        name: kg_name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  additionalProperties:
+                    description: Array of predicates
+                    items:
+                      type: string
+                    type: array
+                  description: Target map
+                  type: object
+                description: Source map
+                example:
+                  biolink:ChemicalSubstance:
+                    biolink:Gene:
+                    - biolink:directly_interacts_with
+                    - biolink:decreases_activity_of
+                type: object
+          description: Knowledge Map of predicates by source and target
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
+      summary: Get supported relationships by source and target
+      tags:
+      - content
+      x-openapi-router-controller: openapi_server.controllers.content_controller
+components:
+  requestBodies:
+    inline_object_1:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/inline_object_1'
+      required: true
+    inline_object:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/inline_object'
+      required: true
+  schemas:
+    KgeFileSet:
+      description: Stub implementation of KGE File Set upload web form.
+      properties:
+        submitter:
+          type: string
+        kg_name:
+          type: string
+        data_file_name:
+          type: string
+        metadata_file_name:
+          type: string
+      required:
+      - data_file_name
+      - kg_name
+      - submitter
+      type: object
+    Attribute:
+      additionalProperties: false
+      description: Generic metadata attribute.
+      properties:
+        type:
+          description: Type of the metadata attribute, from the Translator Registry
+            metadata dictionary.
+          example: Foo
+          type: string
+        value:
+          description: Value of the attribute, encoded as a string.
+          example: Bar
+          type: string
+      required:
+      - type
+      - value
+      type: object
+    inline_object:
+      properties:
+        submitter:
+          type: string
+        kg_name:
+          type: string
+      required:
+      - kg_name
+      - submitter
+      type: object
+    inline_object_1:
+      description: '$ref: ''#/components/schemas/KgeFileSet'''
+      properties:
+        data_file_content:
+          format: binary
+          type: string
+        data_file_metadata:
+          format: binary
+          type: string
+      required:
+      - data_file_content
+      type: object
