@@ -85,7 +85,24 @@ def register_file_set(body):  # noqa: E501
 
     def register_smartapi(submitter, kg_name):
         # using https://github.com/NCATS-Tangerine/translator-api-registry
-        return 'url', {}
+
+        def create_smartapi(submitter, kg_name):
+            spec = {}
+            return spec
+
+        def convert_to_yaml(spec):
+            yaml_file = lambda x: spec
+            return yaml_file()
+
+        def add_to_github():
+            repo = ''
+            return repo
+
+        api_specification = create_smartapi(submitter, kg_name)
+        yaml_file = convert_to_yaml(api_specification)
+        url = add_to_github(yaml_file)
+
+        return api_specification, url
 
     smart_api_data = register_smartapi(submitter, kg_name)
     
