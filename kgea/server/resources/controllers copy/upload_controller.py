@@ -10,8 +10,8 @@ import yaml
 from string import Template
 from pathlib import Path
 
-from flask import abort
-import jinja2
+from Flask import abort
+
 def get_register_form():  # noqa: E501
     """Get web form for specifying KGE File Set register
 
@@ -41,7 +41,7 @@ def get_register_form():  # noqa: E501
 
     </html>
     """
-    return jinja2.Template(page)
+    return page
 
 
 def get_upload_form():  # noqa: E501
@@ -73,7 +73,7 @@ def get_upload_form():  # noqa: E501
 
     </html>
     """
-    return jinja2.Template(page)
+    return page
 
 
 def register_file_set(body):  # noqa: E501
