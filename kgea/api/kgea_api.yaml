@@ -49,7 +49,7 @@ paths:
           content:
             text/html:
               schema:
-                description: KGE File Set upload html web form
+                description: KGE File Set upload HTML web form
                 type: string
     post:
       tags:
@@ -60,9 +60,31 @@ paths:
         description: KGE File Set metadata and data files submitted
         required: true
         content:
-          application/x-www-form-urlencoded:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/KgeFileSet'
+              type: object
+              description: "$ref: '#/components/schemas/KgeFileSet'"
+              properties:
+                formData:
+                  description: Stub implementation of KGE File Set upload web form.
+                  type: object
+                  properties:
+                    body:
+                      type: string
+                    submitter:
+                      type: string
+                    kg_name:
+                      type: string
+                    data_file_name:
+                      type: string
+                    metadata_file_name:
+                      type: string
+                  required:
+                    - submitter
+                    - kg_name
+                    - data_file_name
+              required:
+                - formData
       responses:
         '201':
           description: Upload successfully completed.
@@ -93,14 +115,14 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kgName}/access:
+  /{kg_name}/access:
     get:
       tags:
         - provider
       summary: Get KGE File Sets
       operationId: access
       parameters:
-        - name: kgName
+        - name: kg_name
           in: path
           description: >-
             Name label of KGE File Set whose files are being accessed
@@ -123,6 +145,14 @@ paths:
                   description: >-
                     Provider metadata attributes
                   $ref: '#/components/schemas/Attribute'
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
+          content:
+            application/json:
+              schema:
+                type: string
   /{kg_name}/knowledge_map:
     get:
       tags:
@@ -159,6 +189,14 @@ paths:
                     'biolink:Gene':
                       - biolink:directly_interacts_with
                       - biolink:decreases_activity_of
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just unrecognized.
+          content:
+            application/json:
+              schema:
+                type: string
 components:
   schemas:
     KgeFileSet:

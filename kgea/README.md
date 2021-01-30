@@ -15,11 +15,9 @@ After a brief overview of the Archive design (more extensive details provided in
     - [Configuration](#configuration)
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
-        - [Non-Python Project Dependencies](#non-python-project-dependencies)
-            - [OpenAPI 3 Code Generation](#openapi-3-code-generation)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
     - [Build & Tests](#build--tests)
-    - [Running the System Locally](#running-the-system-locally)
+    - [Basic Operation of the Server](#basic-operation-of-the-server)
 - [Production Deployment](#production-deployment)
     - [Installation of Docker](#installation-of-docker)
         - [Testing Docker](#testing-docker)
@@ -126,39 +124,6 @@ pipenv install <some-new-python-package>
 
 Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
 
-### Non-Python Project Dependencies 
-
-#### OpenAPI 3 Code Generation
-
-AS noted previously, this project once deployed, exposes an OpenAPI 3 web service defined by the [KGE Archive Web Services OpenAPI 3 specification](./api/kgea_api.yaml).  Thus, this project uses the [OpenAPI Tools openapi-generator-cli](https://github.com/OpenAPITools/openapi-generator) code generator program to generate its web service implementation.
-
-Although the project itself is coded in Python, updating the Python code for the web services requires re-running the code generator, after any revisions to the API specification. This code generator is a Java software program. Thus, such a Java binary (release 8 or better) needs to be installed and available on the OS PATH (might not be on minimal operating systems). For a Debian Linux (e.g. Ubuntu), it may suffice to execute the following installation:
-
-```shell
-sudo apt install default-jre
-```
-
-If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, the script has a few other dependencies:
-
-1. [Maven dependency management tool](https://maven.apache.org/) (release 3.3.4 or better)
-2.  `jq` program 
-   
-Again, assuming a Debian Linux OS (e.g. Ubuntu) build environment, it may suffice to execute the following installations:
-
-```shell
-sudo apt install maven
-sudo apt install jq
-```
-
-Running the `openapi-generator-cli.sh` the first time downloads the required JAR file to the same directory as the script, thus when the script is rerun again, it performs all the expected operations. For example:
-
-```shell
-scripts/openapi-generator-cli.sh
-#... lots of output showing the script execution
-scripts/openapi-generator-cli.sh version
-5.0.0
-```
-
 ## Project Python Package Dependencies
 
 The project has several Python package dependencies, but these are actually already recorded in the Pipfile which `pipenv` manages. Therefore, installing the required Python dependencies merely requires execution of the following from within the root directory, after the `pipenv` tool itself plus all other non-Python external software (see above) are installed :
@@ -167,22 +132,17 @@ The project has several Python package dependencies, but these are actually alre
 pipenv install
 ```
 
-
 ## Build & Tests
 
 T.B.A.
 
-## Running the System Locally
+## Basic Operation of the Server
 
-Once everything is set up, `pipenv` can be used to run project scripts, which will see all the installed dependencies within the defined virtual environment, as follows:
-
-```shell
-pipenv run python myProjectScript.py
-```
+During development, it may be convenient to simply run the server from the command line.  Basic instructions for running the server are provided in the [server README file](./server/README.md) obtained from API code generation. These instructions provide for both for server execution from the command line and within a Docker container (see below).  With respect to command line execution, note the need to change the directory into the `kgea/server` before directly starting the `openapi_server` as a Python module.
 
 # Production Deployment
 
-The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine. Some preparation is required.
+Although the KGE Archive can be run as a standalone application from a terminal, for production deployments, the KGE Archive system could typically be run within a **Docker** container. Some additional preparation is required.
 
 ## Installation of Docker
 
@@ -211,10 +171,11 @@ $ docker run hello-world
 This should result in something akin to the following output:
 
 ```shell
+$ sudo docker run hello-world
 Unable to find image 'hello-world:latest' locally
 latest: Pulling from library/hello-world
-ca4f61b1923c: Pull complete
-Digest: sha256:be0cd392e45be79ffeffa6b05338b98ebb16c87b255f48e297ec7f98e123905c
+0e03bdcc26d7: Pull complete 
+Digest: sha256:31b9c7d48790f0d8c50ab433d9c3b7e17666d6993084c002c2ff1ca09b96391d
 Status: Downloaded newer image for hello-world:latest
 
 Hello from Docker!
@@ -233,10 +194,10 @@ To try something more ambitious, you can run an Ubuntu container with:
  $ docker run -it ubuntu bash
 
 Share images, automate workflows, and more with a free Docker ID:
- https://cloud.docker.com/
+ https://hub.docker.com/
 
 For more examples and ideas, visit:
- https://docs.docker.com/engine/userguide/
+ https://docs.docker.com/get-started/
 ```
 
 ## Installing Docker Compose
@@ -255,8 +216,22 @@ Note that your particular version and build number may be different than what is
 
 ## Site Configuration
 
-T.B.A.
+### Server Instance
+
+Configure and deploy a suitably sized Linux server with a public IP address.  For the Archive, the production server would be an AWS EC2 instance with a public Elastic IP. The EC2 instance size required remains to be empirically determined.
+
+### Domain and Hostname
+
+The set a CNAME record to resolve to a suitable prefix on an available domain to the web server's real or (Translator) proxied internet address.
+
+### HTTPS and SSL
+
+Install the host production server **https** SSL using the free public services and tools of [Lets Encrypt](https://letsencrypt.org/) or proxied through a suitable **https** (Translator) hostname.
+
+### Validate Login Callbacks, etc.
+
+The [Archive system leverages AWS Cognito for its client user authentication](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). The above https prefixed hostname needs to be specified as the login URL's callback endpoint, through the Archive software site configuration.
 
 ## Running the Production System
 
-T.B.A.
+Once again, basic instructions for running the server in a Docker container are provided in the [server README file](./server/README.md) obtained from API code generation.
