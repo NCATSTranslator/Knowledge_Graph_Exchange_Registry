@@ -154,6 +154,39 @@ The production deployment of the Archive web application targets the Amazon Web 
 
 Here, we assume, as a starting point, a modest sized live instance [AWS EC2 instance running Ubuntu 20.04 or better](ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20201026). We started installations on a live T2-Micro, to be upsized later as use case performance demands)  properly secured for SSH and HTTPS internet access. Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
 
+### Docker Image and Volume Storage
+
+By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker** which will end up being hosted on the root volume of a cloud image, which is generally of relatively modest size. To avoid "out of file storage" messages, which related to limits in inode and actual byte storage, it is advised that you remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
+
+In effect, it is generally useful to host the entire portal and its associated docker storage volumes on such an extra mounted volume. We generally use the **/opt** subdirectory as the target of the mount, then directly install various code and related subdirectories there, including the physical target of a symbolic link to the **/var/lib/docker** subdirectory. You will generally wish to set this latter symbolic link first before installing Docker itself (here we assume that docker has _not_ yet been installed (let alone running). Assuming that a suitable (AWS EBS)  volume is attached to the server instance, then:
+
+    # Verify the existence of the volume, in this case, xvdb
+    $ lsblk
+    NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+    ...
+    xvda    202:0    0    8G  0 disk
+    └─xvda1 202:1    0    8G  0 part /
+    xvdb    202:16   0   50G  0 disk 
+
+    # First, initialize the filing system on the new, empty, raw volume (assumed here to be on /dev/vdb)
+    $ sudo mkfs -t ext4 /dev/xvdb 
+   
+    # Mount the new volume in its place (we assume that the folder '/opt' already exists)
+    $ sudo mount /dev/xvdb /opt
+
+    # Provide a symbolic link to the future home of the docker storage subdirectories
+    $ sudo mkdir /opt/docker
+    $ sudo chmod go-r /opt/docker
+    
+    # It is assumed that /var/lib/docker doesn't already exist. 
+    # Otherwise, you'll need to delete it first,
+    $ sudo rm -rf /var/lib/docker  # optional, if necessary
+
+    # then create the symlink
+    $ sudo ln -s /opt/docker /var/lib  
+    
+Now, you can proceed to install Docker and Docker Compose.
+
 ## Installation of Docker
 
 Note that you may first need to install `curl` before installing Docker:
@@ -232,7 +265,13 @@ The set an 'A' DNS record to resolve to a suitable hostname prefix on an availab
 
 ### HTTPS and SSL
 
-Install the host production server **https** SSL using the free public services and tools of [Lets Encrypt](https://letsencrypt.org/) or proxied through a suitable **https** (Translator) hostname.
+If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access can be handled by the NGINX instance running on the core Translator server.
+
+If an independent Archive deployment is being implemented, then the Archive web application will generally need to configured with HTTPS, especially, if the AWS Cognito client user authentication is to properly work. 
+
+Here we first deploy NGINX as the web server,  to manage access the backend Archive (Python Flask) web application.
+
+After the Archive web application is installed, such **https** SSL can be installed using the free public services and [CertBot tool](https://certbot.eff.org/) linked with [Lets Encrypt](https://letsencrypt.org/). 
 
 ### Validate Login Callbacks, etc.
 
