@@ -184,7 +184,7 @@ This should result in something akin to the following output:
 $ sudo docker run hello-world
 Unable to find image 'hello-world:latest' locally
 latest: Pulling from library/hello-world
-0e03bdcc26d7: Pull complete 
+0e03bdcc26d7: Pull complete
 Digest: sha256:31b9c7d48790f0d8c50ab433d9c3b7e17666d6993084c002c2ff1ca09b96391d
 Status: Downloaded newer image for hello-world:latest
 
