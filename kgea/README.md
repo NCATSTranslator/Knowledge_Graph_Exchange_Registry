@@ -226,10 +226,6 @@ Note that your particular version and build number may be different than what is
 
 ## Site Configuration
 
-### Server Instance
-
-Configure and deploy a suitably sized Linux server with a public IP address.  For the Archive, the production server would be an AWS EC2 instance with a public Elastic IP. The EC2 instance size required remains to be empirically determined.
-
 ### Domain and Hostname
 
 The set a CNAME record to resolve to a suitable prefix on an available domain to the web server's real or (Translator) proxied internet address.
