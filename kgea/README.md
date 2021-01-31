@@ -228,7 +228,7 @@ Note that your particular version and build number may be different than what is
 
 ### Domain and Hostname
 
-The set a CNAME record to resolve to a suitable prefix on an available domain to the web server's real or (Translator) proxied internet address.
+The set an 'A' DNS record to resolve to a suitable hostname prefix on an available domain to the (AWS EC2) web server's real public or have Translator proxy a hostname to the (private?) hostname or IP of the machine running on the private subnet.
 
 ### HTTPS and SSL
 
