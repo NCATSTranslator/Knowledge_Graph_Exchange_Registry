@@ -142,7 +142,17 @@ During development, it may be convenient to simply run the server from the comma
 
 # Production Deployment
 
-Although the KGE Archive can be run as a standalone application from a terminal, for production deployments, the KGE Archive system could typically be run within a **Docker** container. Some additional preparation is required.
+The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine (e.g. on an AWS EC2 cloud server instance). Some preparation is required.
+
+## Operating System
+
+The Archive web application is mainly written in Python, so in principle, can tested and run on various operating systems. Our main focus here will be a Linux production deployment (specifically, Ubuntu/Debian flavor of Linux), so production deployment details will be biased in that direction. We leave it to other members of the interested user community to adapt these deployment details to other operating system environments (e.g. Microsoft Windows 10, Mac OSX, etc.).
+
+## Cloud Deployment
+
+The production deployment of the Archive web application targets the Amazon Web Service (AWS) cloud, specifically, EC2 server instances and S3 network storage. We do not cover the basic details of AWS account, EC2 and S3 setup here, except with respect to details specific to the design and operation of the Archive. For those details, consult [AWS EC2 and related documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). Pay attention to the need to set up a Virtual Private Cloud (VPC) with an Internet Gateway with suitable Routing Tables to enable internet access to the server. 
+
+Here, we assume, as a starting point, a modest sized live instance [AWS EC2 instance running Ubuntu 20.04 or better](ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20201026). We started installations on a live T2-Micro, to be upsized later as use case performance demands)  properly secured for SSH and HTTPS internet access. Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
 
 ## Installation of Docker
 
