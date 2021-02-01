@@ -5,13 +5,23 @@ import boto3
 from botocore.exceptions import ClientError
 from botocore.client import Config
 
-import yaml
-
 from string import Template
 from pathlib import Path
 
 from flask import abort
 import jinja2
+
+
+from yaml import load, dump
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
+
+kgea_config = dict({})
+with open('kgea_config.yaml') as kgea_config_yaml:
+    kgea_config = load(kgea_config_yaml, Loader=Loader)
+    print(kgea_config)
 
 def get_register_form(kg_name=None, submitter=None):  # noqa: E501
     """Get web form for specifying KGE File Set upload
@@ -26,6 +36,13 @@ def get_register_form(kg_name=None, submitter=None):  # noqa: E501
     :rtype: str
     """
 
+    kg_name_text = kg_name
+    submitter_text = submitter
+    if kg_name is None:
+        kg_name_text = ''
+    if submitter is None:
+        submitter_text = ''
+
     page = """
     <!DOCTYPE html>
     <html>
@@ -38,16 +55,16 @@ def get_register_form(kg_name=None, submitter=None):  # noqa: E501
         <h1>Register Files for Knowledge Graph</h1>
 
         <form action="/register" method="post" enctype="application/x-www-form-urlencoded">
-            KnowledgeGraph Name: <input type="text" name="kg_name"><br>
-            Submitter: <input type="text" name="submitter"><br>
-            <input type="submit" value="Upload">
+            KnowledgeGraph Name: <input type="text" name="kg_name" value="{kg_name}"><br>
+            Submitter: <input type="text" name="submitter" value="{submitter}"><br>
+            <input type="submit" value="Register">
         </form>
 
     </body>
 
     </html>
     """
-    return jinja2.Template(page)
+    return jinja2.Template(page).render(kg_name=kg_name_text, submitter=submitter_text)
 
 
 def get_upload_form(kg_name):  # noqa: E501
@@ -89,17 +106,6 @@ def get_upload_form(kg_name):  # noqa: E501
 
 
 def register_file_set(body):  # noqa: E501
-    """Register web form details specifying a KGE File Set location
-
-     # noqa: E501
-
-    :param submitter: 
-    :type submitter: str
-    :param kg_name: 
-    :type kg_name: str
-
-    :rtype: str
-    """
     submitter = body['submitter']
     kg_name = body['kg_name']
 
@@ -120,7 +126,7 @@ def register_file_set(body):  # noqa: E501
         bucket = s3.Bucket(bucket_name)
         key = object_key
         objs = list(bucket.objects.filter(Prefix=key))
-        if any([w.key == path_s3 for w in objs]):
+        if any([w.key == key for w in objs]):
             # exists
             # invert because unavailable
             return not True
@@ -129,14 +135,16 @@ def register_file_set(body):  # noqa: E501
             # invert because available
             return not False
 
-    def convert_to_yaml(spec):
-        yaml_file = lambda spec: spec
-        return yaml_file(spec)
-
     # TODO
     def create_smartapi(submitter, kg_name):
         spec = {}
+
+        def convert_to_yaml(spec):
+            yaml_file = lambda spec: spec
+            return yaml_file(spec)
+
         yaml_file = convert_to_yaml(api_specification)
+
         return spec
 
     # TODO
@@ -148,13 +156,16 @@ def register_file_set(body):  # noqa: E501
     api_specification = create_smartapi(submitter, kg_name)
     url = add_to_github(api_specification)
 
-    if api_specification and url:
-        return dict({
-            "url": url,
-            "api": api_specification
-        })
+    if location_available:
+        if api_specification and url:
+            return dict({
+                "url": url,
+                "api": api_specification
+            })
+        else:
+            abort(400)
     else:
-        abort(400)
+        abort(201)
 
 
 def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
@@ -213,7 +224,7 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
         bucket = s3.Bucket(bucket_name)
         key = object_key
         objs = list(bucket.objects.filter(Prefix=key))
-        if any([w.key == path_s3 for w in objs]):
+        if any([w.key == key for w in objs]):
             # exists
             # invert because unavailable
             return not True
@@ -244,11 +255,13 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
                                                                 'Key': object_name},
                                                         ExpiresIn=expiration)
         except ClientError as e:
-            logging.error(e)
+            print(e)
             return None
 
         # The response contains the presigned URL
         return response
+
+
 
     if maybeUploadContent or maybeUploadMetaData:
         response = { "content": dict({}), "metadata": dict({}) }

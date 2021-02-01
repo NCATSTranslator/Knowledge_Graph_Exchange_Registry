@@ -47,7 +47,7 @@ def access(kg_name):  # noqa: E501
                                                                 'Key': object_name},
                                                         ExpiresIn=expiration)
         except ClientError as e:
-            logging.error(e)
+            print(e)
             return None
 
         # The response contains the presigned URL
