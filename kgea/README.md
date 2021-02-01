@@ -10,14 +10,14 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
-    - [Build & Tests](#build--tests)
     - [Basic Operation of the Server](#basic-operation-of-the-server)
+    - [Running the Application within a Docker Container](#running-the-application-within-a-docker-container)
+        - [Installation of Docker](#installation-of-docker)
+            - [Testing Docker](#testing-docker)    
 - [Production Deployment](#production-deployment)
     - [Operating System](#operating-system)
     - [Cloud Deployment](#cloud-deployment)
         - [Docker Storage Considerations on the Cloud](#docker-storage-considerations-on-the-cloud)
-    - [Installation of Docker](#installation-of-docker)
-        - [Testing Docker](#testing-docker)
     - [Installing Docker Compose](#installing-docker-compose)
         - [Testing Docker Compose](#testing-docker-compose)
     - [Site Configuration](#site-configuration)
@@ -105,60 +105,15 @@ The project has several Python package dependencies, but these are actually alre
 pipenv install
 ```
 
-## Build & Tests
-
-T.B.A.
-
 ## Basic Operation of the Server
 
-During development, it may be convenient to simply run the server from the command line.  Basic instructions for running the server are provided in the [server README file](./server/README.md) obtained from API code generation. These instructions provide for both for server execution from the command line and within a Docker container (see below).  With respect to command line execution, note the need to change the directory into the `kgea/server` before directly starting the `openapi_server` as a Python module.
+During development, it may be convenient to simply run the server from the command line.  Basic instructions for running the server are provided in the [server README file](./server/README.md) obtained from API code generation. These instructions provide for both for server execution from the command line and within a Docker container (see below).  With respect to command line execution, note the need to change the directory into the `kgea/server` before directly starting the `openapi_server` as a Python module. 
 
-# Production Deployment
+Note that the README also mentions some basic Python `tox` tests which can be run. It also mentions the use of Docker, about which we further elaborate here below.
 
-The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine (e.g. on an AWS EC2 cloud server instance). Some preparation is required.
+# Running the Application within a Docker Container
 
-## Operating System
-
-The Archive web application is mainly written in Python, so in principle, can tested and run on various operating systems. Our main focus here will be a Linux production deployment (specifically, Ubuntu/Debian flavor of Linux), so production deployment details will be biased in that direction. We leave it to other members of the interested user community to adapt these deployment details to other operating system environments (e.g. Microsoft Windows 10, Mac OSX, etc.).
-
-## Cloud Deployment
-
-The production deployment of the Archive web application targets the Amazon Web Service (AWS) cloud, specifically, EC2 server instances and S3 network storage. We do not cover the basic details of AWS account, EC2 and S3 setup here, except with respect to details specific to the design and operation of the Archive. For those details, consult [AWS EC2 and related documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). Pay attention to the need to set up a Virtual Private Cloud (VPC) with an Internet Gateway with suitable Routing Tables to enable internet access to the server. 
-
-Here, we assume, as a starting point, a modest sized live instance [AWS EC2 instance running Ubuntu 20.04 or better](ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20201026). We started installations on a live T2-Micro, to be upsized later as use case performance demands)  properly secured for SSH and HTTPS internet access. Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
-
-### Docker Storage Considerations on the Cloud
-
-By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker** which will end up being hosted on the root volume of a cloud image, which is generally of relatively modest size. To avoid "out of file storage" messages, which related to limits in inode and actual byte storage, it is advised that you remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
-
-In effect, it is generally useful to host the entire portal and its associated docker storage volumes on such an extra mounted volume. We generally use the **/opt** subdirectory as the target of the mount, then directly install various code and related subdirectories there, including the physical target of a symbolic link to the **/var/lib/docker** subdirectory. You will generally wish to set this latter symbolic link first before installing Docker itself (here we assume that docker has _not_ yet been installed (let alone running). Assuming that a suitable (AWS EBS)  volume is attached to the server instance, then:
-
-    # Verify the existence of the volume, in this case, xvdb
-    $ lsblk
-    NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
-    ...
-    xvda    202:0    0    8G  0 disk
-    └─xvda1 202:1    0    8G  0 part /
-    xvdb    202:16   0   50G  0 disk 
-
-    # First, initialize the filing system on the new, empty, raw volume (assumed here to be on /dev/vdb)
-    $ sudo mkfs -t ext4 /dev/xvdb 
-   
-    # Mount the new volume in its place (we assume that the folder '/opt' already exists)
-    $ sudo mount /dev/xvdb /opt
-
-    # Provide a symbolic link to the future home of the docker storage subdirectories
-    $ sudo mkdir /opt/docker
-    $ sudo chmod go-r /opt/docker
-    
-    # It is assumed that /var/lib/docker doesn't already exist. 
-    # Otherwise, you'll need to delete it first,
-    $ sudo rm -rf /var/lib/docker  # optional, if necessary
-
-    # then create the symlink
-    $ sudo ln -s /opt/docker /var/lib  
-    
-Now, you can proceed to install Docker and Docker Compose.
+The simpler way to deploy and run the application may be within a Docker container.
 
 ## Installation of Docker
 
@@ -216,6 +171,74 @@ For more examples and ideas, visit:
  https://docs.docker.com/get-started/
 ```
 
+## Running the Application in Docker
+
+After Docker is installed, running the container is easy. Here we add a few flags to run it as a daemon (the `-d` flag) and ensure that the container is removed after it is stopped (the `--rm` flag). We also expose it to port 80, the regular http port (using `-p 80:8080`).
+
+```shell
+$ cd kgea/server
+$ docker build -t kge-test .
+$ docker run --rm  --name kge-test-run -d -p 80:8080 kge-test
+
+# check the logs
+$ docker logs -f kge-test-run
+```
+
+The web services UI should now be visible at http://localhost/kge-archive/ui.
+
+To shut down the server:
+
+```shell
+$ docker stop kge-test-run
+```
+
+# Production Deployment
+
+The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine (e.g. on an AWS EC2 cloud server instance). Some preparation is required.
+
+## Operating System
+
+The Archive web application is mainly written in Python, so in principle, can tested and run on various operating systems. Our main focus here will be a Linux production deployment (specifically, Ubuntu/Debian flavor of Linux), so production deployment details will be biased in that direction. We leave it to other members of the interested user community to adapt these deployment details to other operating system environments (e.g. Microsoft Windows 10, Mac OSX, etc.).
+
+## Cloud Deployment
+
+The production deployment of the Archive web application targets the Amazon Web Service (AWS) cloud, specifically, EC2 server instances and S3 network storage. We do not cover the basic details of AWS account, EC2 and S3 setup here, except with respect to details specific to the design and operation of the Archive. For those details, consult [AWS EC2 and related documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). Pay attention to the need to set up a Virtual Private Cloud (VPC) with an Internet Gateway with suitable Routing Tables to enable internet access to the server. 
+
+Here, we assume, as a starting point, a modest sized live instance [AWS EC2 instance running Ubuntu 20.04 or better](ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20201026). We started installations on a live T2-Micro, to be upsized later as use case performance demands)  properly secured for SSH and HTTPS internet access. Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
+
+### Docker Storage Considerations on the Cloud
+
+By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker** which will end up being hosted on the root volume of a cloud image, which is generally of relatively modest size. To avoid "out of file storage" messages, which related to limits in inode and actual byte storage, it is advised that you remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
+
+In effect, it is generally useful to host the entire portal and its associated docker storage volumes on such an extra mounted volume. We generally use the **/opt** subdirectory as the target of the mount, then directly install various code and related subdirectories there, including the physical target of a symbolic link to the **/var/lib/docker** subdirectory. You will generally wish to set this latter symbolic link first before installing Docker itself (here we assume that docker has _not_ yet been installed (let alone running). Assuming that a suitable (AWS EBS)  volume is attached to the server instance, then:
+
+    # Verify the existence of the volume, in this case, xvdb
+    $ lsblk
+    NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+    ...
+    xvda    202:0    0    8G  0 disk
+    └─xvda1 202:1    0    8G  0 part /
+    xvdb    202:16   0   50G  0 disk 
+
+    # First, initialize the filing system on the new, empty, raw volume (assumed here to be on /dev/vdb)
+    $ sudo mkfs -t ext4 /dev/xvdb 
+   
+    # Mount the new volume in its place (we assume that the folder '/opt' already exists)
+    $ sudo mount /dev/xvdb /opt
+
+    # Provide a symbolic link to the future home of the docker storage subdirectories
+    $ sudo mkdir /opt/docker
+    $ sudo chmod go-r /opt/docker
+    
+    # It is assumed that /var/lib/docker doesn't already exist. 
+    # Otherwise, you'll need to delete it first,
+    $ sudo rm -rf /var/lib/docker  # optional, if necessary
+
+    # then create the symlink
+    $ sudo ln -s /opt/docker /var/lib  
+    
+Now, you can proceed to install Docker and Docker Compose.
+
 ## Installing Docker Compose
 
 You will then also need to [install Docker Compose](https://docs.docker.com/compose/install/) alongside Docker in your target Linux operating environment.
@@ -240,11 +263,11 @@ The set an 'A' DNS record to resolve to a suitable hostname prefix on an availab
 
 For client user authentication (AWS Cognito) to properly work, the Archive needs to be hosted behind HTTPS / SSL.
 
-If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by the NGINX instance running on the core Translator server.
+If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by the NGINX instance running on the core Translator server. If an independent Archive deployment is being implemented, then the Archive web application access will generally need to proxied through a locally installed copy of NGINX (next section).
 
 ### NGINX Installation and Configuration
 
-If an independent Archive deployment is being implemented, then the Archive web application access will generally need to proxied through a locally installed copy of NGINX.  To deploy NGINX in this manner, it is once again most convenient to run it as a Docker container, assuming that the NGINX configuration is left externally accessible. 
+To deploy NGINX in this manner, it is once again most convenient to run it as a Docker container, assuming that the NGINX configuration is left externally accessible. 
 
 First, execute a [**docker pull nginx** from DockerHub](https://hub.docker.com/_/nginx).
 
