@@ -18,10 +18,21 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
+import configparser
+
 kgea_config = dict({})
-with open('kgea_config.yaml', "r") as kgea_config_yaml:
+s3_client = None
+primary_bucket = "star-ncats-translator" 
+with open('/Users/kenneth/git/Knowledge_Graph_Exchange_Registry/kgea/server/openapi_server/kgea_config.yaml', "r") as kgea_config_yaml:
     kgea_config = load(kgea_config_yaml, Loader=Loader)
     print(kgea_config)
+    if kgea_config['credentials_file']:
+        print('have credentials file')
+    if kgea_config['credentials']['aws_access_key']:
+        print(kgea_config['credentials']['aws_access_key'])
+    if kgea_config['credentials']['aws_secret_key']: 
+        print(kgea_config['credentials']['aws_secret_key']) 
+    primary_bucket = kgea_config['bucket']
 
 def get_register_form(kg_name=None, submitter=None):  # noqa: E501
     """Get web form for specifying KGE File Set upload
@@ -233,8 +244,8 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
             return not False
 
     # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
-    maybeUploadContent = upload_file(data_file_content, bucket_name="star-ncats-translator", object_location=object_location, content_type="content") 
-    maybeUploadMetaData = None or upload_file(data_file_metadata, bucket_name="star-ncats-translator", object_location=object_location, content_type="metadata")
+    maybeUploadContent = upload_file(data_file_content, bucket_name=primary_bucket, object_location=object_location, content_type="content") 
+    maybeUploadMetaData = None or upload_file(data_file_metadata, bucket_name=primary_bucket, object_location=object_location, content_type="metadata")
     
     def create_presigned_url(bucket, object_name, expiration=3600):
         """Generate a presigned URL to share an S3 object
@@ -266,7 +277,7 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
         response = { "content": dict({}), "metadata": dict({}) }
 
         content_name = Path(maybeUploadContent).stem
-        content_url = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadContent)
+        content_url = create_presigned_url(bucket=primary_bucket, object_name=maybeUploadContent)
         if response["content"][content_name] is None:
             abort(400)
         else:
@@ -274,7 +285,7 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
 
         if maybeUploadMetaData:
             metadata_name = Path(maybeUploadMetaData).stem
-            metadata_url = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadMetaData)
+            metadata_url = create_presigned_url(bucket=primary_bucket, object_name=maybeUploadMetaData)
             if response["metadata"][metadata_name] is not None:
                 response["metadata"][metadata_name] = metadata_url
             # don't care if not there since optional

@@ -219,8 +219,8 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
             return not False
 
     # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
-    maybeUploadContent = upload_file(data_file_content, bucket_name="star-ncats-translator", object_location=object_location, content_type="content") 
-    maybeUploadMetaData = None or upload_file(data_file_metadata, bucket_name="star-ncats-translator", object_location=object_location, content_type="metadata")
+    maybeUploadContent = upload_file(data_file_content, bucket_name=primary_bucket, object_location=object_location, content_type="content") 
+    maybeUploadMetaData = None or upload_file(data_file_metadata, bucket_name=primary_bucket, object_location=object_location, content_type="metadata")
     
     def create_presigned_url(bucket, object_name, expiration=3600):
         """Generate a presigned URL to share an S3 object
@@ -252,7 +252,7 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
         response = { "content": dict({}), "metadata": dict({}) }
 
         content_name = Path(maybeUploadContent).stem
-        content_url = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadContent)
+        content_url = create_presigned_url(bucket=primary_bucket, object_name=maybeUploadContent)
         if response["content"][content_name] is None:
             abort(400)
         else:
@@ -260,7 +260,7 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
 
         if maybeUploadMetaData:
             metadata_name = Path(maybeUploadMetaData).stem
-            metadata_url = create_presigned_url(bucket="star-ncats-translator", object_name=maybeUploadMetaData)
+            metadata_url = create_presigned_url(bucket=primary_bucket, object_name=maybeUploadMetaData)
             if response["metadata"][metadata_name] is not None:
                 response["metadata"][metadata_name] = metadata_url
             # don't care if not there since optional
