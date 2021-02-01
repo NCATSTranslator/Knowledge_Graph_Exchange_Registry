@@ -10,60 +10,16 @@ import yaml
 from string import Template
 from pathlib import Path
 
-from flask import abort
-import jinja2
+from Flask import abort
 
-def get_register_form(kg_name=None, submitter=None):  # noqa: E501
-    """Get web form for specifying KGE File Set upload
-
-     # noqa: E501
-
-    :param kg_name: 
-    :type kg_name: str
-    :param submitter: 
-    :type submitter: str
-
-    :rtype: str
-    """
-
-    page = """
-    <!DOCTYPE html>
-    <html>
-
-    <head>
-        <title>Register Files for Knowledge Graph</title>
-    </head>
-
-    <body>
-        <h1>Register Files for Knowledge Graph</h1>
-
-        <form action="/register" method="post" enctype="application/x-www-form-urlencoded">
-            KnowledgeGraph Name: <input type="text" name="kg_name"><br>
-            Submitter: <input type="text" name="submitter"><br>
-            <input type="submit" value="Upload">
-        </form>
-
-    </body>
-
-    </html>
-    """
-    return jinja2.Template(page)
-
-
-def get_upload_form(kg_name):  # noqa: E501
-    """Get web form for specifying KGE File Set upload
+def get_register_form():  # noqa: E501
+    """Get web form for specifying KGE File Set register
 
      # noqa: E501
 
-    :param kg_name: 
-    :type kg_name: str
 
     :rtype: str
     """
-    # TODO guard against absent kg_name
-    # TODO guard against invalid kg_name (check availability in bucket)
-    # TODO redirect to register_form with given optional param as the entered kg_name
-
     page = """
     <!DOCTYPE html>
     <html>
@@ -75,7 +31,39 @@ def get_upload_form(kg_name):  # noqa: E501
     <body>
         <h1>Upload Files</h1>
 
-        <form action="/upload/{kg_name}" method="post" enctype="multipart/form-data">
+        <form action="/register" method="post" enctype="application/x-www-form-urlencoded">
+            KnowledgeGraph Name: <input type="file" name="data_file_metadata"><br>
+            Submitter: <input type="file" name="data_file_content"><br>
+            <input type="submit" value="Upload">
+        </form>
+
+    </body>
+
+    </html>
+    """
+    return page
+
+
+def get_upload_form():  # noqa: E501
+    """Get web form for specifying KGE File Set upload
+
+     # noqa: E501
+
+
+    :rtype: str
+    """
+    page = """
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+        <title>Upload New File</title>
+    </head>
+
+    <body>
+        <h1>Upload Files</h1>
+
+        <form action="/upload" method="post" enctype="multipart/form-data">
             API Files: <input type="file" name="data_file_content"><br>
             API Metadata: <input type="file" name="data_file_metadata"><br>
             <input type="submit" value="Upload">
@@ -85,7 +73,7 @@ def get_upload_form(kg_name):  # noqa: E501
 
     </html>
     """
-    return jinja2.Template(page)
+    return page
 
 
 def register_file_set(body):  # noqa: E501
@@ -172,6 +160,7 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
 
     :rtype: str
     """
+
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data', 
         KG_NAME=kg_name
@@ -250,6 +239,8 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
 
         # The response contains the presigned URL
         return response
+
+
 
     if maybeUploadContent or maybeUploadMetaData:
         response = { "content": dict({}), "metadata": dict({}) }
