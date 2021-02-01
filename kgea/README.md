@@ -26,6 +26,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
         - [Securing the Site](#securing-the-site)
             - [NGINX Installation and Configuration](#nginx-installation-and-configuration)
             - [Configuring NGINX for HTTPS](#configuring-nginx-for-https)
+        - [WSGI Deployment](#wsgi-deployment)
     - [Client User Authentication](#client-user-authentication)
     - [Running the Production System](#running-the-production-system)
 
@@ -207,6 +208,8 @@ The production deployment of the Archive web application targets the Amazon Web 
 
 Here, we assume, as a starting point, a modest sized live instance [AWS EC2 instance running Ubuntu 20.04 or better](ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20201026). We started installations on a live T2-Micro, to be upsized later as use case performance demands)  properly secured for SSH and HTTPS internet access. Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
 
+Note that AWS has several complementary options for (Flask) web application deployment, such as [Elastic Beanstalk](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create-deploy-python-flask.html). The utility of deploying the KGE Archive within one of these frameworks could be revisited in the future.
+
 ### Docker Storage Considerations on the Cloud
 
 By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker** which will end up being hosted on the root volume of a cloud image, which is generally of relatively modest size. To avoid "out of file storage" messages, which related to limits in inode and actual byte storage, it is advised that you remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
@@ -290,7 +293,7 @@ cd /etc/nginx/sites-enabled
 ln -s ../sites-available/kge_nginx.conf
 ```
 
-It is a good idea to validate the `nginx.conf` configurations first by running the nginx command in 'test' mode:
+It is a good idea to validate the `nginx.conf` configurations first by running the nginx command in '_test_' mode:
 
 ```shell
 nginx -t
@@ -306,11 +309,26 @@ where <cmd> can be 'status', 'start', 'stop' and 'restart'.
 
 #### Configuring NGINX for HTTPS
 
-Afterwards, **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/).  After installing the CertBot tool as recommended on their site, following the prompts of the following command, will configure SSL/https:
+Afterwards, **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/).  After installing the CertBot tool as recommended on their site, following the prompts of the Certbot command will easily configure SSL/HTTPS (your NGINX configured hostname should be visible in the Certbot list (after it was linked into the `/etc/nginx/sites-enabled` subdirectory, see above):
 
 ```shell
 sudo certbot --nginx
 ```
+
+### WSGI Deployment
+
+Looking at the Flask server log (using `docker-compose log`), the following start-up message will be noted:
+
+```
+kge_1  |  * Serving Flask app "__main__" (lazy loading)
+kge_1  |  * Environment: production
+kge_1  |    WARNING: This is a development server. Do not use it in a production deployment.
+kge_1  |    Use a production WSGI server instead.
+kge_1  |  * Debug mode: off
+kge_1  |  * Running on http://0.0.0.0:8080/ (Press CTRL+C to quit)
+```
+
+While lightweight and easy to use, Flask’s built-in server is not suitable for production as it doesn’t scale well.  For this reason, one needs to consider WSGI servers. The [deployment options for WSGI](https://flask.palletsprojects.com/en/1.1.x/deploying/), accordingly, suggest suitable adjustments to the production NGINX and KGE Archive Python application installation and configuration.
 
 ## Client User Authentication
 
