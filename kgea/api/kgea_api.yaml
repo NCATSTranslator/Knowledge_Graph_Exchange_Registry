@@ -29,6 +29,8 @@ externalDocs:
     Knowledge Graph Exchange (KGE) Archive
   url: "https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 tags:
+  - name: site
+    description: site navigation paths
   - name: upload
     description: KGE file set upload form
   - name: provider
@@ -37,6 +39,20 @@ tags:
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
 paths:
+  /:
+    get:
+      tags:
+        - site
+      summary: Get default landing page
+      operationId: getHome
+      responses:
+        '200':
+          description: Returns the default landing page for the site.
+          content:
+            text/html:
+              schema:
+                description: HTML landing page
+                type: string
   /upload:
     get:
       tags:

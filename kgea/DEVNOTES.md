@@ -6,6 +6,8 @@ This file complement both the ["Getting Started"](README.md) document which outl
 
 AS noted previously, this project once deployed, exposes an OpenAPI 3 web service defined by the [KGE Archive Web Services OpenAPI 3 specification](./api/kgea_api.yaml).  Thus, this project uses the [OpenAPI Tools openapi-generator-cli](https://github.com/OpenAPITools/openapi-generator) code generator program to generate its web service implementation.
 
+## OpenAPI Code Generator Tool Dependencies
+
 Although the project itself is coded in Python, updating the Python code for the web services requires re-running the code generator, after any revisions to the API specification. This code generator is a Java software program. Thus, such a Java binary (release 8 or better) needs to be installed and available on the OS PATH (might not be on minimal operating systems). For a Debian Linux (e.g. Ubuntu), it may suffice to execute the following installation:
 
 ```shell
@@ -23,6 +25,17 @@ Again, assuming a Debian Linux OS (e.g. Ubuntu) build environment, it may suffic
 sudo apt install maven
 sudo apt install jq
 ```
+
+## Validating a modified API
+
+Whenever a change is made to the project OpenAPI yaml file, it is a good idea to validate it against OpenAPI 3 expectations, as follows:
+
+```shell
+./scripts/openapi-generator-cli.sh validate -i ./kgea/api/kgea_api.yaml
+
+```
+
+## Generating Code
 
 A custom project script [generate-kge-server.sh](../scripts/generate-kge-server.sh) calls a locally mirrored copy of the [OpenAPI Generator Script](../scripts/openapi-generator-cli.sh). Running the `openapi-generator-cli.sh` the first time downloads the required OpenAPI code generator JAR file to the same directory as the script. 
 
@@ -45,7 +58,9 @@ Continue (yes/no - default 'no'): Yes
 
 ```
 
-The code generator creates a basic README file under the [KGEA Server subdirectory](./server/README.md) which provides basic instructions about how to run the resulting server code, either from a OS terminal or within a Docker container.
+The code generator creates a basic README file under the [KGEA Server subdirectory](./server/README.md) which provides basic instructions about how to run the resulting server code, either from an OS terminal or within a Docker container.
+
+## Reconnecting the Generator Code to the Project Logic
 
 Rerunning the server code generation basically appears to rewrite most of the contents of the [KGEA Server subdirectory](./server) with a few notable exceptions such as:
 
