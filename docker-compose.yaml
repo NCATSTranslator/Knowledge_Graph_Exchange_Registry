@@ -3,25 +3,28 @@ version: '3.9'
 services:
 
   nginx:
-    build:
-      context: ./nginx
-    #ports:
-    #- "80:80"
+    image: nginx
+    volumes:
+    - ./html:/usr/share/nginx/html
+    - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+    - "80:80"
     #- "443:443"
     networks:
     - default
 
-  kge:
-    build:
-      context: ./kgea/server
-    #environment:
-    #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
-    ports:
-      - "8080:8080"
-#    depends_on:
-#      - "kgx"
-    networks:
-    - default
+#  kge:
+#    build:
+#      context: ./kgea/server
+#      dockerfile: Dockerfile
+#    #environment:
+#    #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
+#    ports:
+#    - "8080:8080"
+##    depends_on:
+##      - "kgx"
+#    networks:
+#    - default
 
 #  kgx:
 #    image: python:3.9
