@@ -126,6 +126,35 @@ pipenv install <some-new-python-package>
 
 Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
 
+### Amazon Web Services
+
+The KGE Archive uses Amazon S3 for storing knowledge graphs and their metadata – when a user registers a KGE Archive, it reserves a location on S3, which can then be used to take files from uploads. To make this work, it is necessary to configure an access key, a secret key, and the name of the bucket for KGE files. There are three ways to do this: using a dotfile, using envrionment variables, or, using this project's configuration template.
+
+By default, KGE will look for the access key ID and the secret key inside of `~/.aws/credentials` or `~/.aws/config`. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
+
+If you don't want to store your keys outside of the project, there are other two options. You may use envrionmental variables, and can read about this approach [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
+
+Or, you can use the configuration template. This is a YAML file provided as a template in the root folder as `kgea_config.yaml-template`. To apply this file, copy it into the `openapi_server` directory and fill out the information. When that is done, rename it to `kgea_config.yaml`. Now when you run the KGEA, it will use the access keys from this file to connect to S3. 
+
+(Note: `bucket` is a mandatory piece of configuration.)
+
+```yaml
+bucket: 'kgea-bucket'               # REQUIRED: the name of the S3 bucket that will host your kgea files
+
+# Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
+
+credentials_file: ''                # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
+credentials_mode: 'default'         # the part of the credentials to use. Allows for multiple setups, e.g. [dev], [production], [default]
+
+# these local keys are used to specify access key and secret key for the project
+# otherwise, the credentials file can be overriden using these local keys
+credentials:
+  aws_access_key_id: '...'          # the 20 character AWS access key id
+  aws_secret_access_key: '....'     # the 40 character AWS secret key
+```
+
+WARNING: `kgea_config.yaml` is in .gitignore, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
+
 ### Non-Python Project Dependencies 
 
 #### OpenAPI 3 Code Generation
@@ -271,3 +300,4 @@ T.B.A.
 ## Running the Production System
 
 T.B.A.
+

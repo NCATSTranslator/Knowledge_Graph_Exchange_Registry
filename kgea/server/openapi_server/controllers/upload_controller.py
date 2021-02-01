@@ -19,20 +19,44 @@ except ImportError:
     from yaml import Loader, Dumper
 
 import configparser
+import os
 
 kgea_config = dict({})
 s3_client = None
-primary_bucket = "star-ncats-translator" 
-with open('/Users/kenneth/git/Knowledge_Graph_Exchange_Registry/kgea/server/openapi_server/kgea_config.yaml', "r") as kgea_config_yaml:
+with open(os.path.dirname(os.path.dirname(__file__))+'/'+'kgea_config.yaml', "r") as kgea_config_yaml:
+    
     kgea_config = load(kgea_config_yaml, Loader=Loader)
-    print(kgea_config)
-    if kgea_config['credentials_file']:
-        print('have credentials file')
-    if kgea_config['credentials']['aws_access_key']:
-        print(kgea_config['credentials']['aws_access_key'])
-    if kgea_config['credentials']['aws_secret_key']: 
-        print(kgea_config['credentials']['aws_secret_key']) 
+
+    if 'credentials' in kgea_config and 'aws_access_key_id' in kgea_config['credentials'] and 'aws_secret_access_key' in kgea_config['credentials']:
+        print('using local credentials')
+        if kgea_config['credentials']['aws_access_key_id'] and kgea_config['credentials']['aws_secret_access_key']:
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=kgea_config['credentials']['aws_access_key_id'],
+                aws_secret_access_key=kgea_config['credentials']['aws_secret_access_key']
+            )
+        else:
+            print("you need both `aws_access_key_id` and `aws_secret_access_key` if you are using `credentials` from `kgea_config.yaml`")
+            if 'credentials_file' in kgea_config and kgea_config['credentials_file']:
+                print('using credentials in file', kgea_config)
+                credentials_mode = "default"
+                if 'credentials_mode' in kgea_config:
+                    credentials_mode = kgea_config['credentials_mode']
+                with open(Path(kgea_config['credentials_file']), "r") as aws_config:
+                    config = configparser.ConfigParser()
+                    config.read_file(aws_config)
+                    s3_client = boto3.client(
+                        's3',
+                        aws_access_key_id=config[credentials_mode]['aws_access_key_id'],
+                        aws_secret_access_key=config[credentials_mode]['aws_secret_access_key']
+                    )
+            else:
+                print('will look for configuration in `~/.aws` folder')
+                # will look for configuration
+                s3_client = boto3.client('s3')
+
     primary_bucket = kgea_config['bucket']
+    print('files will be saved within the bucket', '"%s"'.format(primary_bucket))
 
 def get_register_form(kg_name=None, submitter=None):  # noqa: E501
     """Get web form for specifying KGE File Set upload
@@ -66,8 +90,8 @@ def get_register_form(kg_name=None, submitter=None):  # noqa: E501
         <h1>Register Files for Knowledge Graph</h1>
 
         <form action="/register" method="post" enctype="application/x-www-form-urlencoded">
-            KnowledgeGraph Name: <input type="text" name="kg_name" value="{kg_name}"><br>
-            Submitter: <input type="text" name="submitter" value="{submitter}"><br>
+            KnowledgeGraph Name: <input type="text" name="kg_name" value="{{kg_name}}"><br>
+            Submitter: <input type="text" name="submitter" value="{{submitter}}"><br>
             <input type="submit" value="Register">
         </form>
 
