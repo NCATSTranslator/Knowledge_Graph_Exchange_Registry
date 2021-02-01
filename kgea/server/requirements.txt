@@ -10,4 +10,6 @@ python_dateutil >= 2.6.0
 setuptools >= 21.0.0
 
 boto3
+jinja2
 flask
+pyyaml

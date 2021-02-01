@@ -86,6 +86,21 @@ paths:
   /register_form:
     get:
       operationId: get_register_form
+      parameters:
+      - explode: true
+        in: query
+        name: kg_name
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: submitter
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -162,9 +177,17 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
-  /upload_form:
+  /upload_form/{kg_name}:
     get:
       operationId: get_upload_form
+      parameters:
+      - explode: false
+        in: path
+        name: kg_name
+        required: true
+        schema:
+          type: string
+        style: simple
       responses:
         "200":
           content:
