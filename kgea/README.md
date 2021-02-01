@@ -18,7 +18,7 @@ After a brief overview of the Archive design (more extensive details provided in
         - [Amazon Web Services Configuration](#amazon-web-services)
             - [AWS Configuration Files](#aws-configuration-files)
             - [AWS Environment Variables](#aws-environment-variables)
-            - [Project Configuration File](#project-configuration-file)
+            - [Project Configuration File (Recommended)](#project-configuration-file-recommended)
         - [Non-Python Project Dependencies](#non-python-project-dependencies)
             - [OpenAPI 3 Code Generation](#openapi-3-code-generation)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
@@ -147,9 +147,9 @@ If you don't really want to store your keys outside the project root directory, 
 
 First, [Boto can use environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
 
-#### Project Configuration File
+#### Project Configuration File (Recommended)
 
-Alternatively (recommended), you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
+Alternatively, you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
 
 ```yaml
 bucket: 'kgea-bucket'               # REQUIRED: the name of the S3 bucket that will host your kgea files
