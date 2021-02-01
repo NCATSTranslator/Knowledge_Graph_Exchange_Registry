@@ -15,7 +15,10 @@ After a brief overview of the Archive design (more extensive details provided in
     - [Configuration](#configuration)
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
-        - [Amazon Web Services](#amazon-web-services)
+        - [Amazon Web Services Configuration](#amazon-web-services)
+            - [AWS Configuration Files](#aws-configuration-files)
+            - [AWS Environment Variables](#aws-environment-variables)
+            - [Project Configuration File](#project-configuration-file)
         - [Non-Python Project Dependencies](#non-python-project-dependencies)
             - [OpenAPI 3 Code Generation](#openapi-3-code-generation)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
@@ -27,6 +30,7 @@ After a brief overview of the Archive design (more extensive details provided in
     - [Installing Docker Compose](#installing-docker-compose)
         - [Testing Docker Compose](#testing-docker-compose)
     - [Site Configuration](#site-configuration)
+        - [Configure AWS](#configure-aws)
     - [Running the Production System](#running-the-production-system)
 
 # Architecture & Functions
@@ -127,17 +131,23 @@ pipenv install <some-new-python-package>
 
 Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
 
-### Amazon Web Services
+### Amazon Web Services Configuration
 
 The KGE Archive uses AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which can then be used to receive the (meta-)data files from the upload. To make this work, it is necessary to configure an AWS access key with a secret key, plus the name of the bucket for KGE files. 
 
-There are three standard AWS ways to do this: using a dotfile, using environment variables, or, using this project's configuration template.
+There are three standard AWS options to do this: in the AWS configuration files, using environment variables, or, using this project's configuration template.
+
+#### AWS Configuration Files
 
 By default, KGE will look for the access key ID and the secret key inside of `~/.aws/credentials` or `~/.aws/config`. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
 
-If you don't really want to store your keys outside of the project root directory, there are other two other options. 
+If you don't really want to store your keys outside the project root directory, there are other two other options. 
+
+#### AWS Environment Variables
 
 First, [Boto can use environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
+
+#### Project Configuration File
 
 Alternatively (recommended), you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
 
@@ -301,7 +311,10 @@ Note that your particular version and build number may be different than what is
 
 T.B.A.
 
+### Configure AWS
+
+Refer to the [Amazon Web Services Configuration](#amazon-web-services) above.
+
 ## Running the Production System
 
 T.B.A.
-
