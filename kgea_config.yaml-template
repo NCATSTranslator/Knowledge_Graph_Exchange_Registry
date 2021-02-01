@@ -1,0 +1,6 @@
+credentials_file: ''          # if not specified, by default it should be in your home folder under `~/.aws/credentials`
+# the credentials file can be overriden using these local keys
+credentials:
+  aws_access_key: ''          # the 20 character AWS access key
+  aws_secret_access_key: ''   # the 40 character AWS secret key
+bucket: 'kgea-bucket'         # the name of the S3 bucket that will host your kgea files

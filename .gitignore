@@ -133,3 +133,4 @@ dmypy.json
 .DS_Store
 ._.DS_Store
 .aws
+kgea_config.yaml
