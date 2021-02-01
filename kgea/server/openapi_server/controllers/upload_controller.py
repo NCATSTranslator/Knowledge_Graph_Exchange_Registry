@@ -139,11 +139,7 @@ def register_file_set(body):  # noqa: E501
     def create_smartapi(submitter, kg_name):
         spec = {}
 
-<<<<<<< HEAD
-         def convert_to_yaml(spec):
-=======
         def convert_to_yaml(spec):
->>>>>>> 8f1f0a6d6583fc764f51d1afd86518f1259522ea
             yaml_file = lambda spec: spec
             return yaml_file(spec)
 
