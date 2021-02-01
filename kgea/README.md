@@ -15,7 +15,7 @@ After a brief overview of the Archive design (more extensive details provided in
     - [Configuration](#configuration)
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
-        - [`Amazon Web Services`](#amazon-web-services)
+        - [Amazon Web Services](#amazon-web-services)
         - [Non-Python Project Dependencies](#non-python-project-dependencies)
             - [OpenAPI 3 Code Generation](#openapi-3-code-generation)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
@@ -129,15 +129,17 @@ Note that pipenv, like pip, can install packages from various sources: local, py
 
 ### Amazon Web Services
 
-The KGE Archive uses Amazon S3 for storing knowledge graphs and their metadata – when a user registers a KGE Archive, it reserves a location on S3, which can then be used to take files from uploads. To make this work, it is necessary to configure an access key, a secret key, and the name of the bucket for KGE files. There are three ways to do this: using a dotfile, using envrionment variables, or, using this project's configuration template.
+The KGE Archive uses AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which can then be used to receive the (meta-)data files from the upload. To make this work, it is necessary to configure an AWS access key with a secret key, plus the name of the bucket for KGE files. 
+
+There are three standard AWS ways to do this: using a dotfile, using environment variables, or, using this project's configuration template.
 
 By default, KGE will look for the access key ID and the secret key inside of `~/.aws/credentials` or `~/.aws/config`. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
 
-If you don't want to store your keys outside of the project, there are other two options. You may use envrionmental variables, and can read about this approach [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
+If you don't really want to store your keys outside of the project root directory, there are other two other options. 
 
-Or, you can use the configuration template. This is a YAML file provided as a template in the root folder as `kgea_config.yaml-template`. To apply this file, copy it into the `openapi_server` directory and fill out the information. When that is done, rename it to `kgea_config.yaml`. Now when you run the KGEA, it will use the access keys from this file to connect to S3. 
+First, [Boto can use environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
 
-(Note: `bucket` is a mandatory piece of configuration.)
+Alternatively (recommended), you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
 
 ```yaml
 bucket: 'kgea-bucket'               # REQUIRED: the name of the S3 bucket that will host your kgea files
@@ -153,8 +155,9 @@ credentials:
   aws_access_key_id: '...'          # the 20 character AWS access key id
   aws_secret_access_key: '....'     # the 40 character AWS secret key
 ```
+To apply this file, copy it, renamed to `kgea_config.yaml` into the `kgea/server/openapi_server` subdirectory.  Fill out the required information (Note: `bucket` is a mandatory piece of configuration).  Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
 
-WARNING: `kgea_config.yaml` is in .gitignore, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
+WARNING: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
 
 ### Non-Python Project Dependencies 
 
