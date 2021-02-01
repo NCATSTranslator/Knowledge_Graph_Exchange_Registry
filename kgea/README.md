@@ -265,13 +265,23 @@ The set an 'A' DNS record to resolve to a suitable hostname prefix on an availab
 
 ### HTTPS and SSL
 
-If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access can be handled by the NGINX instance running on the core Translator server.
+For client user authentication (AWS Cognito) to properly work, the Archive needs to be hosted behind HTTPS / SSL.
 
-If an independent Archive deployment is being implemented, then the Archive web application will generally need to configured with HTTPS, especially, if the AWS Cognito client user authentication is to properly work. 
+If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by the NGINX instance running on the core Translator server.
 
-Here we first deploy NGINX as the web server,  to manage access the backend Archive (Python Flask) web application.
+### NGINX Installation and Configuration
 
-After the Archive web application is installed, such **https** SSL can be installed using the free public services and [CertBot tool](https://certbot.eff.org/) linked with [Lets Encrypt](https://letsencrypt.org/). 
+If an independent Archive deployment is being implemented, then the Archive web application access will generally need to proxied through a locally installed copy of NGINX.  To deploy NGINX in this manner, it is once again most convenient to run it as a Docker container, assuming that the NGINX configuration is left externally accessible. 
+
+First, execute a [**docker pull nginx** from DockerHub](https://hub.docker.com/_/nginx).
+
+Next, copy the `nginx.conf-template` file (located under the `nginx` subdirectory) into `nginx.conf` (in the same directory), then customized as needed or desired (e.g. with the server name, etc). 
+
+Afterwards, **https** SSL certification can be overlaid onto `nginx.conf` file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/). 
+
+Once this is done, the Archive project's **docker-compose.yml** file can be used to configure, build and run the container.
+
+As an aside, we mention here that that there is an ["enterprise" NGINX AWS AMI](https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-plus-amazon-web-services/) available by software subscription which could potentially be used to robustly wrap an instance of the Archive.
 
 ### Validate Login Callbacks, etc.
 

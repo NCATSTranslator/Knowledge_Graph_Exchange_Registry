@@ -1,8 +1,19 @@
-version: '3'
+version: '3.9'
 
 services:
-  kge_server:
-    build: ./kgea/server
+
+  nginx:
+    build:
+      context: ./nginx
+    #ports:
+    #- "80:80"
+    #- "443:443"
+    networks:
+    - default
+
+  kge:
+    build:
+      context: ./kgea/server
     #environment:
     #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
     ports:
@@ -10,7 +21,7 @@ services:
 #    depends_on:
 #      - "kgx"
     networks:
-        - default
+    - default
 
 #  kgx:
 #    image: python:3.9

@@ -1,0 +1,8 @@
+server {
+    listen: 80;
+    location / {
+        # 'kge' is the docker-compose.yaml name of
+        # the KGE Archive dockerized web service
+        proxy_pass http://kge:8080/;
+    }
+}
