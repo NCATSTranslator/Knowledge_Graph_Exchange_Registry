@@ -1,5 +1,5 @@
 user  nginx;
-worker_processes  1;
+worker_processes  2;
 
 error_log  /var/log/nginx/error.log warn;
 pid        /var/run/nginx.pid;
@@ -27,14 +27,16 @@ http {
     #gzip  on;
 
     include /etc/nginx/conf.d/*.conf;
+
+    server {
+        listen: 80;
+        server_name kge.starinformatics.ca;
+        access_log  /var/log/nginx/kge.access.log;
+        location / {
+            # 'kge' is the docker-compose.yaml service name of
+            # the KGE Archive dockerized web service container
+            proxy_pass http://kge:8080/;
+        }
+    }
 }
 
-# server {
-#    listen: 80;
-#    location / {
-#        # 'kge' is the docker-compose.yaml name of
-#        # the KGE Archive dockerized web service
-#        proxy_pass http://kge:8080/;
-#    }
-#}
-#

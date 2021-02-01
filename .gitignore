@@ -131,5 +131,6 @@ dmypy.json
 # PyCharm IDEA metadata
 .idea/
 
-# NGINX site config file is not persisted
+# NGINX site config file and log files are not persisted
 nginx/nginx.conf
+nginx/logs/*.log
