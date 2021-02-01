@@ -18,6 +18,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
     - [Operating System](#operating-system)
     - [Cloud Deployment](#cloud-deployment)
         - [Docker Storage Considerations on the Cloud](#docker-storage-considerations-on-the-cloud)
+        - [Configuration for Amazon Web Services](#configuration-for-amazon-web-services)
     - [Installing Docker Compose](#installing-docker-compose)
         - [Testing Docker Compose](#testing-docker-compose)
     - [Site Configuration](#site-configuration)
@@ -239,6 +240,10 @@ In effect, it is generally useful to host the entire portal and its associated d
     
 Now, you can proceed to install Docker and Docker Compose.
 
+### Configuration for Amazon Web Services
+
+T.B.A.
+
 ## Installing Docker Compose
 
 You will then also need to [install Docker Compose](https://docs.docker.com/compose/install/) alongside Docker in your target Linux operating environment.
@@ -267,28 +272,40 @@ If the server is proxied through a suitable **https** (Translator) hostname, the
 
 ### NGINX Installation and Configuration
 
-To deploy NGINX in this manner, it is once again most convenient to run it as a Docker container, assuming that the NGINX configuration is left externally accessible. 
-
-First, execute a [**docker pull nginx** from DockerHub](https://hub.docker.com/_/nginx).
-
-Next, copy the `nginx.conf-template` file (located under the `nginx` subdirectory) into `nginx.conf` (in the same directory), then customized as needed or desired (e.g. with the server name, etc). 
-
-Afterwards, **https** SSL certification can be overlaid onto `nginx.conf` file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/). 
-
-Once this is done, the Archive project's **docker-compose.yml** file can be used to configure, build and run the container. From within the Archive project code folder, type
+NGINX can be operated directly as a program in the operating system or in a Docker container. For now, we choose the direct installation option for simplicity of SSL/HTTPS management. On Ubuntu, typing:
 
 ```shell
-docker-compose up
+sudo apt install nginx
 ```
 
-To power down the server, type:
+installs the software.
+
+Next, a copy of the `kge_nginx.conf-template` file (located under the `config` subdirectory) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
+Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modified this proxy insofar necessary).
+
+Finally, a symlink is made to this 'sites-enabled' file into the `/etc/nginx/sites-enabled` subdirectory:
 
 ```shell
-docker-compose down
+cd /etc/nginx/sites-enabled
+ln -s ../sites-available/kge_nginx.conf
 ```
-#### Side notes
 
-As an aside, we mention here that there is an ["enterprise" NGINX AWS AMI](https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-plus-amazon-web-services/) available by software subscription which could potentially be used to robustly wrap an instance of the Archive.
+Afterwards, **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/). 
+
+It is a good idea to validate the `nginx.conf` configurations first by running the nginx command in 'test' mode:
+
+```shell
+nginx -t
+```
+
+The NGINX server needs to be (re-)started for the changes to be applied. The NGINX server daemon is generally controlled by the following:
+
+```shell
+sudo systemctl <cmd> nginx
+```
+
+where <cmd> can be 'status', 'start', 'stop' and 'restart'.
+
 
 ### Set Login Callbacks
 

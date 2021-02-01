@@ -132,5 +132,5 @@ dmypy.json
 .idea/
 
 # NGINX site config file and log files are not persisted
-nginx/nginx.conf
+config/kge_nginx.conf-template
 nginx/logs/*.log
