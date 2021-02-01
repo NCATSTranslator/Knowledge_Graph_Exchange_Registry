@@ -129,17 +129,15 @@ def register_file_set(body):  # noqa: E501
             # invert because available
             return not False
 
-    # TODO
-    def create_smartapi(submitter, kg_name):
-        spec = {}
-
     def convert_to_yaml(spec):
         yaml_file = lambda spec: spec
         return yaml_file(spec)
 
-    yaml_file = convert_to_yaml(api_specification)
-
-    return spec
+    # TODO
+    def create_smartapi(submitter, kg_name):
+        spec = {}
+        yaml_file = convert_to_yaml(api_specification)
+        return spec
 
     # TODO
     def add_to_github(api_specification):

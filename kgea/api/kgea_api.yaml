@@ -37,8 +37,14 @@ tags:
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
 paths:
-  /upload_form:
+  /upload_form/{kg_name}:
     get:
+      parameters:
+      - name: kg_name
+        in: path
+        required: true
+        schema:
+          type: string
       tags:
         - upload
       summary: Get web form for specifying KGE File Set upload
@@ -53,6 +59,17 @@ paths:
                 type: string
   /register_form:
     get:
+      parameters:
+      - name: kg_name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: submitter
+        in: query
+        required: false
+        schema:
+          type: string
       tags:
         - upload
       summary: Get web form for specifying KGE File Set upload
