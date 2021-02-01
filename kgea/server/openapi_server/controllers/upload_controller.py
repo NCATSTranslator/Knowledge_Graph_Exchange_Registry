@@ -19,7 +19,7 @@ except ImportError:
     from yaml import Loader, Dumper
 
 kgea_config = dict({})
-with open('kgea_config.yaml') as kgea_config_yaml:
+with open('kgea_config.yaml', "r") as kgea_config_yaml:
     kgea_config = load(kgea_config_yaml, Loader=Loader)
     print(kgea_config)
 
