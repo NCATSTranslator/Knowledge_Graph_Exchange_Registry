@@ -23,10 +23,10 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
         - [Testing Docker Compose](#testing-docker-compose)
     - [Site Configuration](#site-configuration)
         - [Domain and Hostname](#domain-and-hostname)
-        - [HTTPS and SSL](#https-and-ssl)
-        - [NGINX Installation and Configuration](#nginx-installation-and-configuration)
-            - [Side notes](#side-notes)
-        - [Set Login Callback](#set-login-callback)
+        - [Securing the Site](#securing-the-site)
+            - [NGINX Installation and Configuration](#nginx-installation-and-configuration)
+            - [Configuring NGINX for HTTPS](#configuring-nginx-for-https)
+    - [Client User Authentication](#client-user-authentication)
     - [Running the Production System](#running-the-production-system)
 
 # Development Deployment
@@ -264,13 +264,13 @@ Note that your particular version and build number may be different than what is
 
 The set an 'A' DNS record to resolve to a suitable hostname prefix on an available domain to the (AWS EC2) web server's real public or have Translator proxy a hostname to the (private?) hostname or IP of the machine running on the private subnet.
 
-### HTTPS and SSL
+### Securing the Site
 
-For client user authentication (AWS Cognito) to properly work, the Archive needs to be hosted behind HTTPS / SSL.
+The KGE Archive has client user authentication (using AWS Cognito). For this to properly work, the Archive needs to be hosted behind HTTPS / SSL.
 
 If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by the NGINX instance running on the core Translator server. If an independent Archive deployment is being implemented, then the Archive web application access will generally need to proxied through a locally installed copy of NGINX (next section).
 
-### NGINX Installation and Configuration
+#### NGINX Installation and Configuration
 
 NGINX can be operated directly as a program in the operating system or in a Docker container. For now, we choose the direct installation option for simplicity of SSL/HTTPS management. On Ubuntu, typing:
 
@@ -290,8 +290,6 @@ cd /etc/nginx/sites-enabled
 ln -s ../sites-available/kge_nginx.conf
 ```
 
-Afterwards, **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/). 
-
 It is a good idea to validate the `nginx.conf` configurations first by running the nginx command in 'test' mode:
 
 ```shell
@@ -306,8 +304,15 @@ sudo systemctl <cmd> nginx
 
 where <cmd> can be 'status', 'start', 'stop' and 'restart'.
 
+#### Configuring NGINX for HTTPS
 
-### Set Login Callbacks
+Afterwards, **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/).  After installing the CertBot tool as recommended on their site, following the prompts of the following command, will configure SSL/https:
+
+```shell
+sudo certbot --nginx
+```
+
+## Client User Authentication
 
 The [Archive system leverages AWS Cognito for its client user authentication](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). The  HHTPS schema-prefixed hostname needs to be specified as the login URL's callback endpoint, through the Archive software site configuration.
 
