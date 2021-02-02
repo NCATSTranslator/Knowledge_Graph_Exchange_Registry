@@ -39,7 +39,7 @@ def get_upload_form(kg_name):  # noqa: E501
     return get_kge_upload_form(kg_name)
 
 
-def register_file_set(submitter, kg_name):  # noqa: E501
+def register_file_set(body):  # noqa: E501
     """Register web form details specifying a KGE File Set location
 
      # noqa: E501
@@ -51,7 +51,7 @@ def register_file_set(submitter, kg_name):  # noqa: E501
 
     :rtype: str
     """
-    return register_kge_file_set(submitter, kg_name)
+    return register_kge_file_set(body)
 
 
 def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
