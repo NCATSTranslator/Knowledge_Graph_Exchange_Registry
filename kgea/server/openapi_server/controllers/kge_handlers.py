@@ -407,7 +407,7 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
     # def api_registered(kg_name):
     #     return True
     #
-      
+    
     # def location_available(bucket_name, object_key):
     #     """
     #     Guarantee that we can write to the location of the object without overriding everything

@@ -1,0 +1,13 @@
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name localhost;
+    access_log  /var/log/nginx/kge.access.log;
+    location / {
+        # 'kge' is the docker-compose.yaml service name of
+        # the KGE Archive dockerized web service container
+        proxy_pass http://localhost:8080/;
+    }
+}
+

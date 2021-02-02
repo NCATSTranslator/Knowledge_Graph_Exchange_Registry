@@ -130,7 +130,11 @@ dmypy.json
 
 # PyCharm IDEA metadata
 .idea/
+
+# Mac OSX ignored
 .DS_Store
 ._.DS_Store
+
+# Project configuration ignored
 .aws
 kgea_config.yaml

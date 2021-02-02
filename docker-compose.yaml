@@ -1,28 +1,31 @@
-version: '3'
+version: '3.9'
 
 services:
+
   kge:
-    build: ./kgea/server
+    build:
+      context: ./kgea/server
+      dockerfile: Dockerfile
     #environment:
     #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
     ports:
-      - "8080:8080"
-#    depends_on:
-#      - "kgx"
+    - "8080:8080"
+    # depends_on:
+    # - "kgx"
     networks:
-        - default
+    - default
 
-#  kgx:
-#    image: python:3.9
-#    environment:
-#      - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
-#    ports:
-#      - "8090:8080"
-#    volumes:
-#      - $HOME/data:/data
-#      - $HOME/logs:/logs
-#    networks:
-#        - default
+  #  kgx:
+  #    image: python:3.9
+  #    environment:
+  #      - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
+  #    ports:
+  #      - "8090:8080"
+  #    volumes:
+  #      - $HOME/data:/data
+  #      - $HOME/logs:/logs
+  #    networks:
+  #        - default
 
 networks:
     default:
