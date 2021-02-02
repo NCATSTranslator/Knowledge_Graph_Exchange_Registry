@@ -134,3 +134,7 @@ dmypy.json
 # NGINX site config file and log files are not persisted
 config/kge_nginx.conf-template
 nginx/logs/*.log
+
+# Project configuration ignored
+.aws
+kgea_config.yaml
