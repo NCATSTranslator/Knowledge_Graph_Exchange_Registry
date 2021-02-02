@@ -5,5 +5,5 @@ credentials_mode: 'default'         # the part of the credentials to use. Allows
 # these local keys are used to specify access key and secret key for the project
 # otherwise, the credentials file can be overridden using these local keys
 credentials:
-  aws_access_key_id: '...'          # the 20 character AWS access key id
-  aws_secret_access_key: '....'     # the 40 character AWS secret ke
+  aws_access_key_id: '...'         # the 20 character AWS access key id
+  aws_secret_access_key: '...'     # the 40 character AWS secret key
