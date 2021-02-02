@@ -152,18 +152,18 @@ First, [Boto can use environment variables](https://boto3.amazonaws.com/v1/docum
 Alternatively, you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
 
 ```yaml
-bucket: 'kgea-bucket'               # REQUIRED: the name of the S3 bucket that will host your kgea files
+bucket: 'kgea-bucket'           # REQUIRED: the name of the S3 bucket that will host your kgea files
 
 # Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
 
-credentials_file: ''                # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
-credentials_mode: 'default'         # the part of the credentials to use. Allows for multiple setups, e.g. [dev], [production], [default]
+credentials_file: ''            # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
+credentials_mode: 'default'     # the part of the credentials to use. Allows for multiple setups, e.g. [dev], [production], [default]
 
 # these local keys are used to specify access key and secret key for the project
-# otherwise, the credentials file can be overriden using these local keys
+# otherwise, the credentials file can be overridden using these local keys
 credentials:
-  aws_access_key_id: '...'          # the 20 character AWS access key id
-  aws_secret_access_key: '....'     # the 40 character AWS secret key
+  aws_access_key_id: '...'      # the 20 character AWS access key id
+  aws_secret_access_key: '....' # the 40 character AWS secret key
 ```
 To apply this file, copy it, renamed to `kgea_config.yaml` into the `kgea/server/openapi_server` subdirectory.  Fill out the required information (Note: `bucket` is a mandatory piece of configuration).  Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
 
