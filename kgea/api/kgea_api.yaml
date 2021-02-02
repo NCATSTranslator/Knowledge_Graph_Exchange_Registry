@@ -53,8 +53,15 @@ paths:
               schema:
                 description: HTML landing page
                 type: string
-  /upload:
+
+  /upload_form/{kg_name}:
     get:
+      parameters:
+      - name: kg_name
+        in: path
+        required: true
+        schema:
+          type: string
       tags:
         - upload
       summary: Get web form for specifying KGE File Set upload
@@ -67,7 +74,89 @@ paths:
               schema:
                 description: KGE File Set upload HTML web form
                 type: string
+  /register_form:
+    get:
+      parameters:
+      - name: kg_name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: submitter
+        in: query
+        required: false
+        schema:
+          type: string
+      tags:
+        - upload
+      summary: Get web form for specifying KGE File Set upload
+      operationId: getRegisterForm
+      responses:
+        '200':
+          description: Returns a web form for uploading a KGE File Set
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string             
+  /register:
     post:
+      tags:
+        - upload
+      summary: Register web form details specifying a KGE File Set location
+      operationId: registerFileSet
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                submitter:
+                  type: string
+                kg_name:
+                  type: string
+              required:
+                - submitter
+                - kg_name
+      responses:
+        '201':
+          description: Upload successfully completed.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow
+            (not just unrecognized).
+          content:
+            application/json:
+              schema:
+                type: string
+        '500':
+          description: >-
+            Internal server error.
+          content:
+            application/json:
+              schema:
+                type: string
+        '501':
+          description: >-
+            Not implemented.
+          content:
+            application/json:
+              schema:
+                type: string
+  /upload/{kg_name}:
+    post:
+      parameters:
+        - name: kg_name
+          in: path
+          required: true
+          schema:
+            type: string
       tags:
         - upload
       summary: Upload web form details specifying a KGE File Set upload process
@@ -81,26 +170,17 @@ paths:
               type: object
               description: "$ref: '#/components/schemas/KgeFileSet'"
               properties:
-                formData:
-                  description: Stub implementation of KGE File Set upload web form.
-                  type: object
-                  properties:
-                    body:
-                      type: string
-                    submitter:
-                      type: string
-                    kg_name:
-                      type: string
-                    data_file_name:
-                      type: string
-                    metadata_file_name:
-                      type: string
-                  required:
-                    - submitter
-                    - kg_name
-                    - data_file_name
+                data_file_content:
+                  type: string
+                  format: binary
+                data_file_metadata:
+                  type: string
+                  format: binary
               required:
-                - formData
+                - data_file_content
+            encoding: # The same level as schema
+              data_file_content: # Property name (see above)
+                contentType: text/csv, text/tab-separated-values
       responses:
         '201':
           description: Upload successfully completed.

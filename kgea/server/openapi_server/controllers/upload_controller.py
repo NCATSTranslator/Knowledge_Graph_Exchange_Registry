@@ -1,31 +1,56 @@
-import connexion
-import six
+from .kge_handlers import (
+    get_kge_register_form,
+    get_kge_upload_form,
+    kge_register_file_set,
+    upload_kge_file_set,
+)
 
-#from openapi_server.models.upload_form_data import UploadFormData  # noqa: E501
-from openapi_server import util
-from .kge_handlers import get_kge_upload_form, upload_kge_file_set
 
-def get_upload_form():  # noqa: E501
+def get_register_form(kg_name=None, submitter=None):  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
 
+    :param kg_name: 
+    :type kg_name: str
+    :param submitter: 
+    :type submitter: str
 
     :rtype: str
     """
-    return get_kge_upload_form()
+    return get_kge_register_form(kg_name, submitter)
 
 
-def upload_file_set(form_data):  # noqa: E501
+def get_upload_form(kg_name):  # noqa: E501
+    """Get web form for specifying KGE File Set upload
+
+     # noqa: E501
+
+    :param kg_name: 
+    :type kg_name: str
+
+    :rtype: str
+    """
+    
+    return get_kge_upload_form(kg_name)
+
+
+def register_file_set(body):  # noqa: E501
+    return kge_register_file_set(body)
+
+
+def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
      # noqa: E501
 
-    :param form_data: 
-    :type form_data: dict | bytes
+    :param kg_name: 
+    :type kg_name: str
+    :param data_file_content: 
+    :type data_file_content: str
+    :param data_file_metadata: 
+    :type data_file_metadata: str
 
     :rtype: str
     """
-    #if connexion.request.is_json:
-    #    form_data = UploadFormData.from_dict(connexion.request.get_json())  # noqa: E501
-    return upload_kge_file_set(form_data)
+    return upload_kge_file_set(kg_name, data_file_content, data_file_metadata)

@@ -9,6 +9,12 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
     - [Configuration](#configuration)
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
+        - [Amazon Web Services Configuration](#amazon-web-services)
+            - [AWS Configuration Files](#aws-configuration-files)
+            - [AWS Environment Variables](#aws-environment-variables)
+            - [Project Configuration File (Recommended)](#project-configuration-file-recommended)
+        - [Non-Python Project Dependencies](#non-python-project-dependencies)
+            - [OpenAPI 3 Code Generation](#openapi-3-code-generation)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
     - [Basic Operation of the Server](#basic-operation-of-the-server)
     - [Running the Application within a Docker Container](#running-the-application-within-a-docker-container)
@@ -28,6 +34,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
             - [Configuring NGINX for HTTPS](#configuring-nginx-for-https)
         - [WSGI Deployment](#wsgi-deployment)
     - [Client User Authentication](#client-user-authentication)
+    - [Configure AWS](#configure-aws)
     - [Running the Production System](#running-the-production-system)
 
 # Development Deployment
@@ -98,6 +105,91 @@ pipenv install <some-new-python-package>
 ```
 
 Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
+
+### Amazon Web Services Configuration
+
+The KGE Archive uses AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which can then be used to receive the (meta-)data files from the upload. 
+
+Access to these resources requires configuration of AWS credentials consisting of an access key id and a secret key. These AWS credentials need to be associated with an IAM user with a suitable S3 access policy in place (see [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
+
+There are three options to configure AWS credentials for the KGE Archive system: in AWS configuration files, using environment variables, or, using this project's configuration template.
+
+#### AWS Configuration Files
+
+On Linux, the `awscli` can be installed to facilitate administration (plus _ad hoc_ access to AWS services). Type:
+
+```shell
+sudo install awscli
+```
+
+after which time, aws credentials can be specified and stored on the system using the command:
+
+```shell
+aws configure
+```
+
+This command will record the requested parameters inside of `~/.aws/credentials` or `~/.aws/config` which, by default, KGE will take as its AWS credentials and other defaults. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
+
+If you don't really want to store your keys outside the project root directory, there are other two other options. 
+
+#### AWS Environment Variables
+
+[Boto can use AWS environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
+
+#### Project Configuration File
+
+(Experimental) Alternatively, you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
+
+```yaml
+bucket: 'kgea-bucket'           # REQUIRED: the name of the S3 bucket that will host your kgea files
+
+# Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
+
+credentials_file: ''            # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
+credentials_mode: 'default'     # the part of the credentials to use. Allows for multiple setups, e.g. [dev], [production], [default]
+
+# these local keys are used to specify access key and secret key for the project
+# otherwise, the credentials file can be overridden using these local keys
+credentials:
+  aws_access_key_id: '...'      # the 20 character AWS access key id
+  aws_secret_access_key: '....' # the 40 character AWS secret key
+```
+To apply this file, copy it, renamed to `kgea_config.yaml` into the `kgea/server/openapi_server` subdirectory.  Fill out the required information (Note: `bucket` is a mandatory piece of configuration).  Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
+
+WARNING: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
+
+### Non-Python Project Dependencies 
+
+#### OpenAPI 3 Code Generation
+
+AS noted previously, this project once deployed, exposes an OpenAPI 3 web service defined by the [KGE Archive Web Services OpenAPI 3 specification](./api/kgea_api.yaml).  Thus, this project uses the [OpenAPI Tools openapi-generator-cli](https://github.com/OpenAPITools/openapi-generator) code generator program to generate its web service implementation.
+
+Although the project itself is coded in Python, updating the Python code for the web services requires re-running the code generator, after any revisions to the API specification. This code generator is a Java software program. Thus, such a Java binary (release 8 or better) needs to be installed and available on the OS PATH (might not be on minimal operating systems). For a Debian Linux (e.g. Ubuntu), it may suffice to execute the following installation:
+
+```shell
+sudo apt install default-jre
+```
+
+If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, the script has a few other dependencies:
+
+1. [Maven dependency management tool](https://maven.apache.org/) (release 3.3.4 or better)
+2.  `jq` program 
+   
+Again, assuming a Debian Linux OS (e.g. Ubuntu) build environment, it may suffice to execute the following installations:
+
+```shell
+sudo apt install maven
+sudo apt install jq
+```
+
+Running the `openapi-generator-cli.sh` the first time downloads the required JAR file to the same directory as the script, thus when the script is rerun again, it performs all the expected operations. For example:
+
+```shell
+scripts/openapi-generator-cli.sh
+#... lots of output showing the script execution
+scripts/openapi-generator-cli.sh version
+5.0.0
+```
 
 ## Project Python Package Dependencies
 
@@ -334,6 +426,10 @@ While lightweight and easy to use, Flask’s built-in server is not suitable for
 
 The [Archive system leverages AWS Cognito for its client user authentication](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). The  HHTPS schema-prefixed hostname needs to be specified as the login URL's callback endpoint, through the Archive software site configuration.
 
+### Configure AWS
+
+Refer to the [Amazon Web Services Configuration](#amazon-web-services) above.
+
 ## Running the Production System
 
-Once again, basic instructions for running the server in a Docker container are provided in the [server README file](./server/README.md) obtained from API code generation.
+T.B.A.

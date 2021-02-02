@@ -34,9 +34,73 @@ tags:
   name: content
 - name: translator
 paths:
-  /upload:
+  /register:
+    post:
+      operationId: register_file_set
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object'
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              properties:
+                submitter:
+                  type: string
+                kg_name:
+                  type: string
+              required:
+              - kg_name
+              - submitter
+              type: object
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Upload successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. The request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow (not
+            just unrecognized).
+        "500":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Internal server error.
+        "501":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Not implemented.
+      summary: Register web form details specifying a KGE File Set location
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /register_form:
     get:
-      operationId: get_upload_form
+      operationId: get_register_form
+      parameters:
+      - explode: true
+        in: query
+        name: kg_name
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: submitter
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -49,21 +113,37 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /upload/{kg_name}:
     post:
       operationId: upload_file_set
+      parameters:
+      - explode: false
+        in: path
+        name: kg_name
+        required: true
+        schema:
+          type: string
+        style: simple
       requestBody:
-        $ref: '#/components/requestBodies/inline_object'
+        $ref: '#/components/requestBodies/inline_object_1'
         content:
           multipart/form-data:
+            encoding:
+              data_file_content:
+                contentType: text/csv, text/tab-separated-values
+                style: form
             schema:
               description: '$ref: ''#/components/schemas/KgeFileSet'''
               properties:
-                formData:
-                  $ref: '#/components/schemas/_upload_formData'
+                data_file_content:
+                  format: binary
+                  type: string
+                data_file_metadata:
+                  format: binary
+                  type: string
               required:
-              - formData
+              - data_file_content
               type: object
-              x-body-name: formData
         description: KGE File Set metadata and data files submitted
         required: true
       responses:
@@ -94,6 +174,29 @@ paths:
                 type: string
           description: Not implemented.
       summary: Upload web form details specifying a KGE File Set upload process
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+  /upload_form/{kg_name}:
+    get:
+      operationId: get_upload_form
+      parameters:
+      - explode: false
+        in: path
+        name: kg_name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string
+          description: Returns a web form for uploading a KGE File Set
+      summary: Get web form for specifying KGE File Set upload
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
@@ -179,9 +282,15 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.content_controller
 components:
   requestBodies:
-    inline_object:
+    inline_object_1:
       content:
         multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/inline_object_1'
+      required: true
+    inline_object:
+      content:
+        application/x-www-form-urlencoded:
           schema:
             $ref: '#/components/schemas/inline_object'
       required: true
@@ -219,28 +328,25 @@ components:
       - type
       - value
       type: object
-    _upload_formData:
-      description: Stub implementation of KGE File Set upload web form.
+    inline_object:
       properties:
         submitter:
           type: string
         kg_name:
           type: string
-        data_file_name:
-          type: string
-        metadata_file_name:
-          type: string
       required:
-      - data_file_name
       - kg_name
       - submitter
       type: object
-    inline_object:
+    inline_object_1:
       description: '$ref: ''#/components/schemas/KgeFileSet'''
       properties:
-        formData:
-          $ref: '#/components/schemas/_upload_formData'
+        data_file_content:
+          format: binary
+          type: string
+        data_file_metadata:
+          format: binary
+          type: string
       required:
-      - formData
+      - data_file_content
       type: object
-      x-body-name: formData

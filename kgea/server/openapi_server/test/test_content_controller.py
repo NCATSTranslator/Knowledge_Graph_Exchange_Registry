@@ -12,8 +12,8 @@ from openapi_server.test import BaseTestCase
 class TestContentController(BaseTestCase):
     """ContentController integration test stubs"""
 
-    def test_kg_name_knowledge_map_get(self):
-        """Test case for kg_name_knowledge_map_get
+    def test_knowledge_map(self):
+        """Test case for knowledge_map
 
         Get supported relationships by source and target
         """
