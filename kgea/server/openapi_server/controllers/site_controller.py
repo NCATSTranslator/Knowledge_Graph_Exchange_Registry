@@ -3,7 +3,7 @@ import six
 
 from openapi_server import util
 
-from .kge_handlers import get_kge_home
+from openapi_server.kge_handlers import get_kge_home
 
 
 def get_home():  # noqa: E501

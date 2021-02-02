@@ -2,8 +2,7 @@ import connexion
 import six
 
 from openapi_server import util
-
-from .kge_handlers import (
+from openapi_server.kge_handlers import (
     get_kge_register_form,
     get_kge_upload_form,
     register_kge_file_set,

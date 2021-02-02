@@ -22,44 +22,7 @@ from botocore.exceptions import ClientError
 # Application Configuration
 #############################################################
 
-kgea_config = dict({})
-s3_client = None
-
-with open(os.path.dirname(os.path.dirname(__file__)) + '/' + 'kgea_config.yaml', "r") as kgea_config_yaml:
-    kgea_config = load(kgea_config_yaml, Loader=Loader)
-    
-    if 'credentials' in kgea_config and 'aws_access_key_id' in kgea_config['credentials'] and 'aws_secret_access_key' in \
-            kgea_config['credentials']:
-        print('using local credentials')
-        if kgea_config['credentials']['aws_access_key_id'] and kgea_config['credentials']['aws_secret_access_key']:
-            s3_client = boto3.client(
-                's3',
-                aws_access_key_id=kgea_config['credentials']['aws_access_key_id'],
-                aws_secret_access_key=kgea_config['credentials']['aws_secret_access_key']
-            )
-        else:
-            print(
-                "you need both `aws_access_key_id` and `aws_secret_access_key` if you are using `credentials` from `kgea_config.yaml`")
-            if 'credentials_file' in kgea_config and kgea_config['credentials_file']:
-                print('using credentials in file', kgea_config)
-                credentials_mode = "default"
-                if 'credentials_mode' in kgea_config:
-                    credentials_mode = kgea_config['credentials_mode']
-                with open(Path(kgea_config['credentials_file']), "r") as aws_config:
-                    config = configparser.ConfigParser()
-                    config.read_file(aws_config)
-                    s3_client = boto3.client(
-                        's3',
-                        aws_access_key_id=config[credentials_mode]['aws_access_key_id'],
-                        aws_secret_access_key=config[credentials_mode]['aws_secret_access_key']
-                    )
-            else:
-                print('will look for configuration in `~/.aws` folder')
-                # will look for configuration
-                s3_client = boto3.client('s3')
-    
-    primary_bucket = kgea_config['bucket']
-    print('files will be saved within the bucket', '"%s"'.format(primary_bucket))
+from kgea_config import s3_client, resources
 
 #############################################################
 # Site Controller Handler
@@ -114,7 +77,7 @@ def kge_access(kg_name):  # noqa: E501
         
         # Generate a presigned URL for the S3 object
         # TODO: https://stackoverflow.com/a/52642792
-        s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
+        # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
         try:
             response = s3_client.generate_presigned_url('get_object',
                                                         Params={'Bucket': bucket,
@@ -128,7 +91,7 @@ def kge_access(kg_name):  # noqa: E501
         return response
     
     def kg_files_in_location(bucket_name, object_location):
-        s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
+        # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
         
         # TODO: Warning! Doesn't scale very well, looks somewhat unsafe. What other options do we have to query the bucket?
         bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
@@ -143,9 +106,9 @@ def kge_access(kg_name):  # noqa: E501
     # - Send Back URL with Dictionary
     # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # TODO: convert into redirect approach with cross-origin scripting?
-    kg_files = kg_files_in_location(bucket_name='star-ncats-translator', object_location=object_location)
+    kg_files = kg_files_in_location(bucket_name=resources['bucket'], object_location=object_location)
     kg_listing = dict(
-        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url('star-ncats-translator', kg_file)], kg_files))
+        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_files))
     return kg_listing
 
 
@@ -184,7 +147,7 @@ def kge_knowledge_map(kg_name):  # noqa: E501
         
         # Generate a presigned URL for the S3 object
         # TODO: https://stackoverflow.com/a/52642792
-        s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
+        # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
         try:
             response = s3_client.generate_presigned_url('get_object',
                                                         Params={'Bucket': bucket,
@@ -198,7 +161,7 @@ def kge_knowledge_map(kg_name):  # noqa: E501
         return response
     
     def kg_files_in_location(bucket_name, object_location):
-        s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
+        #s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
         
         # TODO: Warning! Doesn't scale very well, looks somewhat unsafe. What other options do we have to query the bucket?
         bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
@@ -213,9 +176,9 @@ def kge_knowledge_map(kg_name):  # noqa: E501
     # - Send Back URL with Dictionary
     # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # TODO: convert into redirect approach with cross-origin scripting?
-    kg_files = kg_files_in_location(bucket_name='star-ncats-translator', object_location=object_location)
+    kg_files = kg_files_in_location(bucket_name=resources['bucket'], object_location=object_location)
     kg_listing = dict(
-        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url('star-ncats-translator', kg_file)], kg_files))
+        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_files))
     return kg_listing
 
 
@@ -299,7 +262,7 @@ def get_kge_upload_form(kg_name):  # noqa: E501
     <body>
         <h1>Upload Files</h1>
 
-        <form action="/upload/{kg_name}" method="post" enctype="multipart/form-data">
+        <form action="/upload/{{kg_name}}" method="post" enctype="multipart/form-data">
             API Files: <input type="file" name="data_file_content"><br>
             API Metadata: <input type="file" name="data_file_metadata"><br>
             <input type="submit" value="Upload">
@@ -309,7 +272,7 @@ def get_kge_upload_form(kg_name):  # noqa: E501
 
     </html>
     """
-    return jinja2.Template(page)
+    return jinja2.Template(page).render(kg_name=kg_name)
 
 
 def register_kge_file_set(body):  # noqa: E501
@@ -405,13 +368,15 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
         object_key = object_location + content_type + '/' + data_file.filename
         
         # Upload the file
-        s3_client = boto3.client('s3', config=Config(
+        """ s3_client = boto3.client('s3', config=Config(
             # Don't need to set the region -
             # externally defined `aws configure`
             # default value should be used?
             # region_name='ca-central-1',
             signature_version='s3v4')
                                  )
+        """
+
         try:
             with data_file.stream as f:
                 s3_client.upload_fileobj(f, bucket_name, object_key)
@@ -464,7 +429,7 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
         
         # Generate a presigned URL for the S3 object
         # https://stackoverflow.com/a/52642792
-        s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
+        # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
         try:
             response = s3_client.generate_presigned_url('get_object',
                                                         Params={'Bucket': bucket,
