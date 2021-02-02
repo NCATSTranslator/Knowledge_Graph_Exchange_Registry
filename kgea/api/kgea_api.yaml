@@ -295,23 +295,23 @@ paths:
                 type: string
 components:
   schemas:
-    KgeFileSet:
-      description: >-
-        Stub implementation of KGE File Set upload web form.
-      type: object
-      properties:
-        submitter:
-          type: string
-        kg_name:
-          type: string
-        data_file_name:
-          type: string
-        metadata_file_name:
-          type: string
-      required:
-        - submitter
-        - kg_name
-        - data_file_name
+#    KgeFileSet:
+#      description: >-
+#        Stub implementation of KGE File Set upload web form.
+#      type: object
+#      properties:
+#        submitter:
+#          type: string
+#        kg_name:
+#          type: string
+#        data_file_name:
+#          type: string
+#        metadata_file_name:
+#          type: string
+#      required:
+#        - submitter
+#        - kg_name
+#        - data_file_name
 
     Attribute:
       type: object

@@ -62,6 +62,24 @@ with open(os.path.dirname(os.path.dirname(__file__)) + '/' + 'kgea_config.yaml',
     print('files will be saved within the bucket', '"%s"'.format(primary_bucket))
 
 #############################################################
+# Site Controller Handler
+# Insert import and return call into provider_controller.py:
+# from .kge_handlers import get_kge_home
+#############################################################
+
+
+def get_kge_home():  # noqa: E501
+    """Get default landing page
+
+     # noqa: E501
+
+
+    :rtype: str
+    """
+    return 'do some magic!'
+
+
+#############################################################
 # Provider Controller Handler
 # Insert import and return call into provider_controller.py:
 # from .kge_handlers import kge_access
@@ -294,7 +312,7 @@ def get_kge_upload_form(kg_name):  # noqa: E501
     return jinja2.Template(page)
 
 
-def kge_register_file_set(body):  # noqa: E501
+def register_kge_file_set(body):  # noqa: E501
     submitter = body['submitter']
     kg_name = body['kg_name']
     

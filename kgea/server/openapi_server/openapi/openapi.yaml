@@ -26,6 +26,8 @@ servers:
 - description: Localhost URL for server, to be proxied to the real internet
   url: http://localhost:8080/kge-archive
 tags:
+- description: site navigation paths
+  name: site
 - description: KGE file set upload form
   name: upload
 - description: Provider metadata for KGE file set
@@ -34,6 +36,21 @@ tags:
   name: content
 - name: translator
 paths:
+  /:
+    get:
+      operationId: get_home
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: HTML landing page
+                type: string
+          description: Returns the default landing page for the site.
+      summary: Get default landing page
+      tags:
+      - site
+      x-openapi-router-controller: openapi_server.controllers.site_controller
   /register:
     post:
       operationId: register_file_set
@@ -295,22 +312,6 @@ components:
             $ref: '#/components/schemas/inline_object'
       required: true
   schemas:
-    KgeFileSet:
-      description: Stub implementation of KGE File Set upload web form.
-      properties:
-        submitter:
-          type: string
-        kg_name:
-          type: string
-        data_file_name:
-          type: string
-        metadata_file_name:
-          type: string
-      required:
-      - data_file_name
-      - kg_name
-      - submitter
-      type: object
     Attribute:
       additionalProperties: false
       description: Generic metadata attribute.
