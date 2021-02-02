@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  kge_server:
+  kge:
     build: ./kgea/server
     #environment:
     #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
