@@ -232,7 +232,13 @@ def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noq
         object_key = object_location + content_type + '/' + data_file.filename
         
         # Upload the file
-        s3_client = boto3.client('s3', config=Config(region_name='ca-central-1', signature_version='s3v4'))
+        s3_client = boto3.client('s3', config=Config(
+                                        # Don't need to set the region -
+                                        # externally defined `aws configure`
+                                        # default value should be used?
+                                        # region_name='ca-central-1',
+                                        signature_version='s3v4')
+                                 )
         try:
             with data_file.stream as f:
                 s3_client.upload_fileobj(f, bucket_name, object_key)
