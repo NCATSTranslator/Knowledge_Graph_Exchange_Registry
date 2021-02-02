@@ -133,23 +133,37 @@ Note that pipenv, like pip, can install packages from various sources: local, py
 
 ### Amazon Web Services Configuration
 
-The KGE Archive uses AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which can then be used to receive the (meta-)data files from the upload. To make this work, it is necessary to configure an AWS access key with a secret key, plus the name of the bucket for KGE files. 
+The KGE Archive uses AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which can then be used to receive the (meta-)data files from the upload. 
 
-There are three standard AWS options to do this: in the AWS configuration files, using environment variables, or, using this project's configuration template.
+Access to these resources requires configuration of AWS credentials consisting of an access key id and a secret key. These AWS credentials need to be associated with an IAM user with a suitable S3 access policy in place (see [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
+
+There are three options to configure AWS credentials for the KGE Archive system: in AWS configuration files, using environment variables, or, using this project's configuration template.
 
 #### AWS Configuration Files
 
-By default, KGE will look for the access key ID and the secret key inside of `~/.aws/credentials` or `~/.aws/config`. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
+On Linux, the `awscli` can be installed to facilitate administration (plus _ad hoc_ access to AWS services). Type:
+
+```shell
+sudo install awscli
+```
+
+after which time, aws credentials can be specified and stored on the system using the command:
+
+```shell
+aws configure
+```
+
+This command will record the requested parameters inside of `~/.aws/credentials` or `~/.aws/config` which, by default, KGE will take as its AWS credentials and other defaults. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
 
 If you don't really want to store your keys outside the project root directory, there are other two other options. 
 
 #### AWS Environment Variables
 
-First, [Boto can use environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
+[Boto can use AWS environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
 
-#### Project Configuration File (Recommended)
+#### Project Configuration File
 
-Alternatively, you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
+(Experimental) Alternatively, you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
 
 ```yaml
 bucket: 'kgea-bucket'           # REQUIRED: the name of the S3 bucket that will host your kgea files
