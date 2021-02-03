@@ -22,7 +22,7 @@ from botocore.exceptions import ClientError
 # Application Configuration
 #############################################################
 
-from kgea_config import s3_client, resources
+from .kgea_config import s3_client, resources
 
 #############################################################
 # Site Controller Handler
@@ -352,6 +352,7 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
 
     :rtype: str
     """
+    print(kg_name, data_file_content, data_file_metadata)
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data',
         KG_NAME=kg_name
@@ -413,9 +414,9 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
     #         return not False
     
     # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
-    maybeUploadContent = upload_file(data_file_content, bucket_name=primary_bucket, object_location=object_location,
+    maybeUploadContent = upload_file(data_file_content, bucket_name=resources['bucket'], object_location=object_location,
                                      content_type="content")
-    maybeUploadMetaData = None or upload_file(data_file_metadata, bucket_name=primary_bucket,
+    maybeUploadMetaData = None or data_file_metadata and upload_file(data_file_metadata, bucket_name=resources['bucket'],
                                               object_location=object_location, content_type="metadata")
     
     def create_presigned_url(bucket, object_name, expiration=3600):
@@ -446,16 +447,17 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
         response = {"content": dict({}), "metadata": dict({})}
         
         content_name = Path(maybeUploadContent).stem
-        content_url = create_presigned_url(bucket=primary_bucket, object_name=maybeUploadContent)
-        if response["content"][content_name] is None:
+        content_url = create_presigned_url(bucket=resources['bucket'], object_name=maybeUploadContent)
+
+        if content_name in response["content"]:
             abort(400)
         else:
             response["content"][content_name] = content_url
         
         if maybeUploadMetaData:
             metadata_name = Path(maybeUploadMetaData).stem
-            metadata_url = create_presigned_url(bucket=primary_bucket, object_name=maybeUploadMetaData)
-            if response["metadata"][metadata_name] is not None:
+            metadata_url = create_presigned_url(bucket=resources['bucket'], object_name=maybeUploadMetaData)
+            if metadata_name not in response["metadata"]:
                 response["metadata"][metadata_name] = metadata_url
             # don't care if not there since optional
         

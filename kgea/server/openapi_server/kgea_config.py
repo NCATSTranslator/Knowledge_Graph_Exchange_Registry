@@ -8,7 +8,7 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-from os.path import expanduser
+from os.path import expanduser, abspath
 from pathlib import Path
 
 home = expanduser("~")
@@ -43,7 +43,7 @@ def validate_session_configuration():
         print("boto3 s3 client has different configuration information from ~/.aws/credentials!")
         print(e)
         return False
-    except AttributeError as e:
+    except KeyError as e:
         print("~/.aws/credentials does not have all the necessary keys")
         print(e)
         return False
@@ -75,14 +75,14 @@ def validate_client_configuration():
         print("boto3 s3 client has different configuration information from ~/.aws/config!")
         print(e)
         return False
-    except AttributeError as e:
+    except KeyError as e:
         print("~/.aws/config does not have all the necessary keys")
         print(e)
         return False
     finally:
         return True
  
- 
+
 s3_client = None
 try:
     assert(validate_session_configuration())
@@ -94,12 +94,18 @@ except Exception as e:
 
 
 resources = None
-try:
-    with open(Path('kgea_config.yaml'), 'r') as resource_config_file:
+try: 
+    with open(abspath('kgea_config.yaml'), 'r') as resource_config_file:
         resource_config = yaml.load(resource_config_file, Loader=Loader)
 
         try:
             resource_config['bucket']
+
+            if s3_client is not None:
+                # TODO: detect the bucket here
+                # if not detected, raise an error
+                pass
+
         except AttributeError as e:
             print("The resource_config doesn't have all its necessary attributes")
             print(e)
