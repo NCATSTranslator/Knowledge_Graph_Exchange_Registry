@@ -1,9 +1,4 @@
-import connexion
-import six
-
-from openapi_server import util
-
-from .kge_handlers import get_kge_home
+from ..kgea_handlers import get_kge_home
 
 
 def get_home():  # noqa: E501

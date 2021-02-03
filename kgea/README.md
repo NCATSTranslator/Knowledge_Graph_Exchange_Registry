@@ -12,7 +12,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
         - [Amazon Web Services Configuration](#amazon-web-services)
             - [AWS Configuration Files](#aws-configuration-files)
             - [AWS Environment Variables](#aws-environment-variables)
-            - [Project Configuration File (Recommended)](#project-configuration-file-recommended)
+        - [Project Configuration File](#project-configuration-file-recommended)
         - [Non-Python Project Dependencies](#non-python-project-dependencies)
             - [OpenAPI 3 Code Generation](#openapi-3-code-generation)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
@@ -128,35 +128,23 @@ after which time, aws credentials can be specified and stored on the system usin
 aws configure
 ```
 
-This command will record the requested parameters inside of `~/.aws/credentials` or `~/.aws/config` which, by default, KGE will take as its AWS credentials and other defaults. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
+This command will record the requested parameters inside of `~/.aws/credentials` or `~/.aws/config` which, by default, KGE will take as its AWS credentials. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
 
-If you don't really want to store your keys outside the project root directory, there are other two other options. 
 
 #### AWS Environment Variables
 
-[Boto can use AWS environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
+If you don't really want to store your keys outside the project root directory, [Boto can use AWS environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
 
-#### Project Configuration File
+### Project Configuration File
 
-(Experimental) Alternatively, you can use a project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
+You must also use the project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
 
 ```yaml
-bucket: 'kgea-bucket'           # REQUIRED: the name of the S3 bucket that will host your kgea files
-
-# Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
-
-credentials_file: ''            # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
-credentials_mode: 'default'     # the part of the credentials to use. Allows for multiple setups, e.g. [dev], [production], [default]
-
-# these local keys are used to specify access key and secret key for the project
-# otherwise, the credentials file can be overridden using these local keys
-credentials:
-  aws_access_key_id: '...'      # the 20 character AWS access key id
-  aws_secret_access_key: '....' # the 40 character AWS secret key
+bucket: 'kgea-bucket'   # REQUIRED: the name of the S3 bucket that will host your kgea files
 ```
-To apply this file, copy it, renamed to `kgea_config.yaml` into the `kgea/server/openapi_server` subdirectory.  Fill out the required information (Note: `bucket` is a mandatory piece of configuration).  Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
+To apply this file: copy it into the `kgea/server/` subdirectory, and rename it to `kgea_config.yaml`.  Fill out the required information. Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
 
-WARNING: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
+NOTE: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
 
 ### Non-Python Project Dependencies 
 
