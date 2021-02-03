@@ -128,6 +128,35 @@ paths:
       - site
       x-openapi-router-controller: openapi_server.controllers.site_controller
   /register:
+    get:
+      operationId: get_registration_form
+      parameters:
+      - explode: true
+        in: query
+        name: kg_name
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: submitter
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: KGE File Set upload HTML web form
+                type: string
+          description: Returns a web form for uploading a KGE File Set
+      summary: Get web form for specifying KGE File Set upload
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
     post:
       operationId: register_file_set
       requestBody:
@@ -173,36 +202,6 @@ paths:
                 type: string
           description: Not implemented.
       summary: Register web form details specifying a KGE File Set location
-      tags:
-      - upload
-      x-openapi-router-controller: openapi_server.controllers.upload_controller
-  /register_form:
-    get:
-      operationId: get_register_form
-      parameters:
-      - explode: true
-        in: query
-        name: kg_name
-        required: false
-        schema:
-          type: string
-        style: form
-      - explode: true
-        in: query
-        name: submitter
-        required: false
-        schema:
-          type: string
-        style: form
-      responses:
-        "200":
-          content:
-            text/html:
-              schema:
-                description: KGE File Set upload HTML web form
-                type: string
-          description: Returns a web form for uploading a KGE File Set
-      summary: Get web form for specifying KGE File Set upload
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller

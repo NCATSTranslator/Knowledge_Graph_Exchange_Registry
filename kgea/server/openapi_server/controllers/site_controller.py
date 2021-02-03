@@ -51,6 +51,7 @@ def login():  # noqa: E501
 
      # noqa: E501
 
+
     :rtype: None
     """
     return kge_login()
@@ -60,6 +61,7 @@ def logout():  # noqa: E501
     """Process client user logout
 
      # noqa: E501
+
 
     :rtype: None
     """

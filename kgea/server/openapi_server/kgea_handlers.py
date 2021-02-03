@@ -172,7 +172,7 @@ def kge_access(kg_name):  # noqa: E501
 #
 # Insert import and return call into content_controller.py:
 #
-# from .kge_handlers import kge_knowledge_map
+# from ..kge_handlers import kge_knowledge_map
 #############################################################
 
 
@@ -244,15 +244,15 @@ def kge_knowledge_map(kg_name):  # noqa: E501
 #
 # Insert imports and return calls into upload_controller.py:
 #
-# from .kge_handlers import (
-#     get_kge_register_form,
+# from ..kge_handlers import (
+#     get_kge_registration_form,
 #     get_kge_upload_form,
 #     register_kge_file_set,
 #     upload_kge_file_set,
 # )
 #############################################################
 
-def get_kge_register_form(kg_name=None, submitter=None):  # noqa: E501
+def get_kge_registration_form(kg_name=None, submitter=None):  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
