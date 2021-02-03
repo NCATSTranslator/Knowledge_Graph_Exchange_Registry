@@ -106,7 +106,7 @@ try:
                 # if not detected, raise an error
                 pass
 
-        except AttributeError as e:
+        except KeyError as e:
             print("The resource_config doesn't have all its necessary attributes")
             print(e)
 
