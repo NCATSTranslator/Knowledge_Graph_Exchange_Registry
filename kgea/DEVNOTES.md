@@ -109,3 +109,5 @@ def access(kg_name):  # noqa: E501
 where `kge_access` is a handler method defined in the project developer defined Python module `kge_handlers`, assumed to be sitting alongside the generated api code in `provider_controller.py` (under the `openapi_server/controllers` package in the code generated `server` subdirectory of the KGE Archive project).
 
 This code delegation needs to be repaired every time the code generator is run on the `kgea_api.yaml` specification.
+
+In addition, `boto3 >= 1.17.0` may need be added back into the **openapi_server** `requirements.txt` file.
