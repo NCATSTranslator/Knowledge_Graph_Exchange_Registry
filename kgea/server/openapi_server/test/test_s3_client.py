@@ -3,10 +3,9 @@
 from __future__ import absolute_import
 import unittest
 
-from flask import json
-from six import BytesIO
+from ..test import BaseTestCase
 
-
+import boto3
 
 class S3Client(BaseTestCase):
     """SiteController integration test stubs"""

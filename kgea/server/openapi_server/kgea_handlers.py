@@ -7,15 +7,13 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-import configparser
-
 from flask import abort, redirect, send_file, make_response
 
 import jinja2
 from string import Template
 
 import boto3
-from botocore.client import Config
+
 from botocore.exceptions import ClientError
 
 #############################################################
