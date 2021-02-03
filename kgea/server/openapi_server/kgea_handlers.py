@@ -24,10 +24,53 @@ from botocore.exceptions import ClientError
 from .kgea_config import s3_client, resources
 
 #############################################################
-# Site Controller Handler
-# Insert import and return call into provider_controller.py:
-# from .kge_handlers import get_kge_home
+# Site Controller Handlers
+#
+# Insert imports and return calls into site_controller.py:
+#
+# from ..kge_handlers import (
+#     kge_client_authentication,
+#     kge_login,
+#     kge_logout,
+#     get_kge_landing_page,
+#     get_kge_home
+# )
 #############################################################
+
+
+def kge_client_authentication(code):  # noqa: E501
+    """Process client authentication
+
+     # noqa: E501
+
+    :param code:
+    :type code: str
+
+    :rtype: str
+    """
+    return 'do some magic!'
+
+
+def kge_login():  # noqa: E501
+    """Process client user login
+
+     # noqa: E501
+
+    :rtype: None
+    """
+    return 'do some magic!'
+
+
+def kge_logout():  # noqa: E501
+    """Process client user logout
+
+     # noqa: E501
+
+    :rtype: None
+    """
+    return 'do some magic!'
+
+# TODO: Login/logout redirections? using flask.redirect(location, code=302, Response=None)
 
 
 def get_kge_home():  # noqa: E501
@@ -35,16 +78,29 @@ def get_kge_home():  # noqa: E501
 
      # noqa: E501
 
-
     :rtype: str
     """
     return render_template('home.html')
 
 
+def get_kge_landing_page(session=None):  # noqa: E501
+    """Get default public landing page (when the site visitor is not authenticated)
+
+     # noqa: E501
+
+    :param session:
+    :type session: str
+
+    :rtype: str
+    """
+    return 'do some magic!'
+
 #############################################################
 # Provider Controller Handler
+#
 # Insert import and return call into provider_controller.py:
-# from .kge_handlers import kge_access
+#
+# from ..kge_handlers import kge_access
 #############################################################
 
 
@@ -113,7 +169,9 @@ def kge_access(kg_name):  # noqa: E501
 
 #############################################################
 # Content Controller Handler
+#
 # Insert import and return call into content_controller.py:
+#
 # from .kge_handlers import kge_knowledge_map
 #############################################################
 
@@ -183,11 +241,13 @@ def kge_knowledge_map(kg_name):  # noqa: E501
 
 #############################################################
 # Upload Controller Handlers
+#
 # Insert imports and return calls into upload_controller.py:
+#
 # from .kge_handlers import (
 #     get_kge_register_form,
 #     get_kge_upload_form,
-#     kge_register_file_set,
+#     register_kge_file_set,
 #     upload_kge_file_set,
 # )
 #############################################################

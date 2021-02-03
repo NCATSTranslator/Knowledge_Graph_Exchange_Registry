@@ -30,7 +30,7 @@ externalDocs:
   url: "https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 tags:
   - name: site
-    description: site navigation paths
+    description: site navigation, including user authentication and sessions
   - name: upload
     description: KGE file set upload form
   - name: provider
@@ -41,19 +41,95 @@ tags:
 paths:
   /:
     get:
+      parameters:
+      # session parameter, if present,
+      # will trigger a redirection to the /home page
+      - name: session
+        in: query
+        schema:
+          type: string
       tags:
         - site
-      summary: Get default landing page
-      operationId: getHome
+      summary: Get default public landing page (when the site visitor is not authenticated)
+      operationId: getLandingPage
       responses:
         '200':
-          description: Returns the default landing page for the site.
+          description: Returns the default public landing page for the site.
           content:
             text/html:
               schema:
                 description: HTML landing page
                 type: string
-
+  /login:
+    get:
+      tags:
+        - site
+      summary: Process client user login
+      operationId: login
+      responses:
+        '302':
+          description: >-
+            Returns redirect to hosted Oauth2 client registration
+            and login process
+  /oauth2callback:
+    get:
+      parameters:
+      - name: code
+        in: query
+        required: true
+        schema:
+          type: string
+      # Don't think that 'state' is available in the hosted
+      # AWS Cognito Oauth2 login process being used here
+      # - name: state
+      #  in: query
+      #  required: true
+      #  schema:
+      #    type: string
+      tags:
+        - site
+      summary: Process client authentication
+      operationId: clientAuthentication
+      responses:
+        '200':
+          description: >-
+            Confirms login status (need to redirect?)
+          content:
+            text/html:
+              schema:
+                description: >-
+                  Redirection to authenticated /home page with a valid session?
+                type: string
+  /logout:
+    get:
+      tags:
+        - site
+      summary: Process client user logout
+      operationId: logout
+      responses:
+        '302':
+          description: >-
+            Returns redirect to hosted Oauth2 client logout process
+  /home:
+    get:
+      parameters:
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
+      tags:
+        - site
+      summary: Get main home page for logged in user
+      operationId: getHome
+      responses:
+        '200':
+          description: Returns the main home page for the site.
+          content:
+            text/html:
+              schema:
+                description: HTML home page
+                type: string
   /upload_form/{kg_name}:
     get:
       parameters:
