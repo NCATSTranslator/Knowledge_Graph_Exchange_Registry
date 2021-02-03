@@ -6,3 +6,8 @@ h1 {
   color: navy;
   margin-left: 20px;
 }
+
+img.banner {
+  max-width: 100%;
+  height: auto;
+}
