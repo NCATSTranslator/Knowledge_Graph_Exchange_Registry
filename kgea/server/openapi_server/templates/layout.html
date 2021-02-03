@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
     {% block head %}
-    <!-- link rel="stylesheet" href="styles.css" -->
+    <link rel="stylesheet" href="css/kgea_styles.css">
     <title>Translator KGE Archive</title>
     {% endblock %}
 </head>
 <body>
-    <div id="content">{% block content %}{% endblock %}</div>
-    <div id="footer">
+    <p><div id="content">{% block content %}{% endblock %}</div>
+    <p><div id="footer">
         {% block footer %}
-        &copy; Copyright 2021 by <a href="https://ncats.nih.gov/translator">you</a>.
+        &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
         {% endblock %}
     </div>
 </body>
