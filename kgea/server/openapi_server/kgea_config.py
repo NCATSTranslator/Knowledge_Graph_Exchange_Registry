@@ -9,7 +9,6 @@ except ImportError:
     from yaml import Loader, Dumper
 
 from os.path import expanduser, abspath
-from pathlib import Path
 
 home = expanduser("~")
 AWS_CONFIG_ROOT = home+"/.aws/"
@@ -27,24 +26,22 @@ def validate_session_configuration():
                 assert(client_credentials.access_key == credentials_config['default']['aws_access_key_id'])
             except AssertionError:
                 raise AssertionError("the boto3 client does not have correct aws_access_key_id")
-                return False
 
             try:
                 assert(client_credentials.secret_key == credentials_config['default']['aws_secret_access_key'])
             except AssertionError:
                 raise AssertionError("the boto3 client does not have correct aws_secret_access_key")
-                return False
 
     except FileNotFoundError as e:
-        print("~/.aws/credentials isn't found! try running `aws configure` after installing `aws-cli`")
+        print("ERROR: ~/.aws/credentials isn't found! try running `aws configure` after installing `aws-cli`")
         print(e)
         return False        
     except AssertionError as e:
-        print("boto3 s3 client has different configuration information from ~/.aws/credentials!")
+        print("ERROR: boto3 s3 client has different configuration information from ~/.aws/credentials!")
         print(e)
         return False
     except KeyError as e:
-        print("~/.aws/credentials does not have all the necessary keys")
+        print("ERROR: ~/.aws/credentials does not have all the necessary keys")
         print(e)
         return False
 
@@ -68,15 +65,15 @@ def validate_client_configuration():
                 return False
 
     except FileNotFoundError as e:
-        print("~/.aws/config isn't found! try running `aws configure` after installing `aws-cli`")
+        print("ERROR: ~/.aws/config isn't found! try running `aws configure` after installing `aws-cli`")
         print(e)
         return False
     except AssertionError as e:
-        print("boto3 s3 client has different configuration information from ~/.aws/config!")
+        print("ERROR: boto3 s3 client has different configuration information from ~/.aws/config!")
         print(e)
         return False
     except KeyError as e:
-        print("~/.aws/config does not have all the necessary keys")
+        print("ERROR: ~/.aws/config does not have all the necessary keys")
         print(e)
         return False
     finally:

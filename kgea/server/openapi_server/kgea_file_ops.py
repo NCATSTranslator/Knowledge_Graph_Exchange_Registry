@@ -9,29 +9,35 @@ Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biol
 """
 
 from .kgea_config import s3_client
+import boto3
+from botocore.exceptions import ClientError
+from os.path import expanduser, abspath
 
-def upload_file(data_file, bucket_name, object_location, content_type, override=False):
-    """Upload a file to an S3 bucket
+import random, string
+from string import Template
+from datetime import datetime
 
-    :param file_name: File to upload
-    :param bucket: Bucket to upload to
-    :param object_name: S3 object name. If not specified then file_name is used
-    :return: True if file was uploaded, else False
-    """
-    object_key = object_location + content_type + '/' + data_file.filename
-    
-    # Upload the file
-    try:
-        with data_file.stream as f:
-            s3_client.upload_fileobj(f, bucket_name, object_key)
-    except ClientError as e:
-        # TODO: replace with logger
-        print(e)
-        return None
-    return object_key
+import yaml
 
-def test_upload_file():
-    pass
+"""
+Test Parameters + Decorator
+"""
+TEST_BUCKET=None
+TEST_KG_NAME=None
+def prepare_test(func):
+    def wrapper():
+        TEST_BUCKET = 'test_bucket'
+        TEST_KG_NAME = 'test_kg'
+        func()
+    return wrapper
+
+def object_location(kg_name, datetime=datetime.day, content=None):
+    object_location = Template('$DIRECTORY_NAME/$KG_NAME/$TIMESTAMP/').substitute(
+        DIRECTORY_NAME='kge-data',
+        KG_NAME=kg_name,
+        TIMESTAMP=datetime
+    )
+    return object_location
 
 # TODO: clarify expiration time
 def create_presigned_url(bucket, object_name, expiration=3600):
@@ -46,32 +52,33 @@ def create_presigned_url(bucket, object_name, expiration=3600):
     # Generate a presigned URL for the S3 object
     # https://stackoverflow.com/a/52642792
     try:
-        response = s3_client.generate_presigned_url('get_object',
-                                                    Params={'Bucket': bucket,
-                                                            'Key': object_name},
-                                                    ExpiresIn=expiration)
+        response = s3_client.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': object_name}, ExpiresIn=expiration)
     except ClientError as e:
         print(e)
-        return None
+        raise ClientError(e)
     
     # The response contains the presigned URL
     return response
 
+@prepare_test
 def test_create_presigned_url():
     pass
 
 def kg_files_in_location(bucket_name, object_location):
-    # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
-    
-    # TODO: Warning! Doesn't scale very well, looks somewhat unsafe. What other options do we have to query the bucket?
     bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
                         e in p['Contents']]
     object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
-    
     return object_matches
 
-def test_kg_files_in_location():
-    pass
+@prepare_test
+def test_kg_files_in_location(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+    try:
+        kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=object_location(test_kg))
+        assert(len(kg_file_list) > 0)
+    except AssertionError as e:
+        print(e)
+        return False
+    return True
 
 def location_available(bucket_name, object_key):
     """
@@ -94,22 +101,104 @@ def location_available(bucket_name, object_key):
         # invert because available
         return not False
 
-def test_location_available():
-    pass
+@prepare_test
+def test_location_available(test_bucket=TEST_BUCKET):
+
+    # https://www.askpython.com/python/examples/generate-random-strings-in-python
+    def random_alpha_string(length=8):
+        random_string = ''
+        for _ in range(length):
+            # Considering only upper and lowercase letters
+            random_integer = random.randint(97, 97 + 26 - 1)
+            flip_bit = random.randint(0, 1)
+            # Convert to lowercase if the flip bit is on
+            random_integer = random_integer - 32 if flip_bit == 1 else random_integer
+            # Keep appending random characters using chr(x)
+            random_string += (chr(random_integer))
+        return random_string
+
+    try:
+        # of length 8 by default
+        randomLocationName = random_alpha_string()
+        isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=object_location(randomLocationName))
+        assert(not isRandomLocationAvailable)
+    except AssertionError as e:
+        print("ERROR: found a non-existing location")
+        print(e)
+        return False
+
+    """
+    TODO: Test in the positive:
+    * make dir
+    * test for existence
+    * close/delete dir
+     try:
+        randomLocationName = random_alpha_string()
+        isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=object_location(randomLocationName))
+        assert(isRandomLocationAvailable)
+    except AssertionError as e:
+        print("ERROR: created location was not found")
+        print(e)
+        return False
+    """
+    return True
+
+def upload_file(data_file, bucket_name, object_location, override=False):
+    """Upload a file to an S3 bucket
+
+    :param file_name: File to upload
+    :param bucket: Bucket to upload to
+    :param object_name: S3 object name. If not specified then file_name is used
+    :return: True if file was uploaded, else False
+    """
+    object_key = object_location + data_file.filename
+    
+    # Upload the file
+    try:
+        with data_file.stream as f:
+            s3_client.upload_fileobj(f, bucket_name, object_key)
+    except ClientError as error_message:
+        return None, error_message
+    return object_key, ''
+
+@prepare_test
+def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+    try:
+        with open(abspath('test/data'+'geneToProtein.csv'), 'r') as test_file:
+            object_key, error_message = upload_file(test_file, test_bucket, object_location(test_kg))
+            if object_key is not None:
+                # see if this key successfully points to a resource in the bucket
+                assert(object_key in kg_files_in_location(test_bucket, object_location(test_kg)))
+            elif object_key is None:
+                raise ClientError(error_message)
+    except FileNotFoundError as e:
+        print("ERROR: Test is malformed!")
+        print(e)
+        return False
+    except ClientError as e:
+        print('ERROR: The upload to S3 has failed!')
+        print(e)
+        return False
+    except AssertionError as e:
+        print('ERROR: The resulting path was not found inside of the knowledge graph folder!')
+        print(e)
+        return False
+    return True
 
 # TODO
 def convert_to_yaml(spec):
-    yaml_file = lambda spec: spec
+    yaml_file = lambda spec: yaml.write(spec)
     return yaml_file(spec)
 
+@prepare_test
 def test_convert_to_yaml():
     pass
 
 # TODO
-def create_smartapi(submitter, kg_name):
+def create_smartapi(submitter):
     spec = {}
-    yaml_file = convert_to_yaml(api_specification)
-    return spec
+    yaml_file = convert_to_yaml(spec)
+    return yaml_file
 
 def test_create_smartapi():
     pass
@@ -120,6 +209,7 @@ def add_to_github(api_specification):
     repo = ''
     return repo
 
+@prepare_test
 def test_add_to_github():
     pass
 
@@ -127,5 +217,6 @@ def test_add_to_github():
 def api_registered(kg_name):
     return True
 
+@prepare_test
 def test_api_registered():
     pass
