@@ -138,3 +138,4 @@ dmypy.json
 # Project configuration ignored
 .aws
 kgea_config.yaml
+translator_banner.jpg
