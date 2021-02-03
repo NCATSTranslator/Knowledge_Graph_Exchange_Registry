@@ -82,8 +82,6 @@ def get_kge_home(session):  # noqa: E501
         return render_template('home.html')
     else:
         return "Not logged in!"
-    
-
 
 
 def get_kge_landing_page(session=None):  # noqa: E501

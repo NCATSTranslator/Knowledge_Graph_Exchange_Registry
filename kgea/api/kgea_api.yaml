@@ -165,20 +165,22 @@ paths:
           type: string
       tags:
         - upload
-      summary: Get web form for specifying KGE File Set upload
+      summary: Prompt user for core parameters of the KGE File Set upload
       operationId: getRegistrationForm
       responses:
         '200':
-          description: Returns a web form for uploading a KGE File Set
-          content:
-            text/html:
-              schema:
-                description: KGE File Set upload HTML web form
-                type: string             
+          description: >-
+            Returns a web form for prompting the use for the
+            core parameters of the KGE File Set upload process.
+          text/html:
+            schema:
+              description: >-
+                HTML web form to request KGE File Set upload parameters
+              type: string
     post:
       tags:
         - upload
-      summary: Register web form details specifying a KGE File Set location
+      summary: Register core parameters for the KGE File Set upload
       operationId: registerFileSet
       requestBody:
         required: true
