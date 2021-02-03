@@ -9,12 +9,13 @@ except ImportError:
 
 import configparser
 
-from flask import abort, redirect, send_file, make_response
+from flask import abort, redirect, send_file, make_response, render_template
 
 import jinja2
 from string import Template
 
 import boto3
+
 from botocore.client import Config
 from botocore.exceptions import ClientError
 
@@ -76,7 +77,7 @@ def get_kge_home():  # noqa: E501
 
     :rtype: str
     """
-    return 'do some magic!'
+    return render_template('home.html')
 
 
 #############################################################
