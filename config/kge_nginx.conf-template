@@ -11,10 +11,10 @@ server {
         proxy_pass http://localhost:8080/;
     }
 
-    # specify a default location for css files
-    location ~ \.(css) {
+    # specify a default location for static files like css and images files
+    location /static {
         # set this to wherever you wish
-        root /var/www/html/static/css;
+        root /var/www/html/static;
     }
 }
 
