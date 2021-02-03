@@ -364,7 +364,9 @@ sudo apt install nginx
 installs the software.
 
 Next, a copy of the `kge_nginx.conf-template` file (located under the `config` subdirectory) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
-Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modified this proxy insofar necessary).
+Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modified this proxy insofar necessary).  
+
+The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. Static files in the project `config/static` subdirectory (like styles.css, local media files, etc.) should be copied into the designated location (and may also be customized as needed).
 
 Finally, a symlink is made to this 'sites-enabled' file into the `/etc/nginx/sites-enabled` subdirectory:
 
