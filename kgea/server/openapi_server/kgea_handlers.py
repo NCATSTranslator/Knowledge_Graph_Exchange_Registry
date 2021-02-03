@@ -71,14 +71,19 @@ def kge_logout():  # noqa: E501
 # TODO: Login/logout redirections? using flask.redirect(location, code=302, Response=None)
 
 
-def get_kge_home():  # noqa: E501
+def get_kge_home(session):  # noqa: E501
     """Get default landing page
 
      # noqa: E501
 
     :rtype: str
     """
-    return render_template('home.html')
+    if session:
+        return render_template('home.html')
+    else:
+        return "Not logged in!"
+    
+
 
 
 def get_kge_landing_page(session=None):  # noqa: E501
