@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>Upload a KGE File Set:</h1>
+<form name="formData"
+      method="post"
+      action="/kge-archive/upload"
+      enctype="multipart/form-data"
+>
+    <input name="body" type="hidden">
+    <p>Your Name: <input type="text" name="submitter"></p>
+    <p>Dataset Name: <input type="text" name="kg_name"></p>
+    <p>Data File: <input type="text" name="data_file_name"></p>
+    <p>Metadata File: <input type="text" name="metadata_file_name"></p>
+    <p><input type="submit" value="Upload"></p>
+</form>
+{% endblock %}

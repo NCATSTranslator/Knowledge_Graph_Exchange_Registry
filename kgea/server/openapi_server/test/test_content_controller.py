@@ -3,10 +3,7 @@
 from __future__ import absolute_import
 import unittest
 
-from flask import json
-from six import BytesIO
-
-from openapi_server.test import BaseTestCase
+from ..test import BaseTestCase
 
 
 class TestContentController(BaseTestCase):
@@ -21,7 +18,7 @@ class TestContentController(BaseTestCase):
             'Accept': 'application/json',
         }
         response = self.client.open(
-            '/kge-archive/{kg_name}/knowledge_map'.format(kg_name='kg_name_example'),
+            '/kge-archive/{kg_name}/knowledge_map'.format(kg_name='your_gene_info'),
             method='GET',
             headers=headers)
         self.assert200(response,

@@ -8,7 +8,7 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 
-from .kgea_config import s3_client
+from kgea_config import s3_client
 import boto3
 from botocore.exceptions import ClientError
 from os.path import expanduser, abspath
@@ -18,6 +18,8 @@ from string import Template
 from datetime import datetime
 
 import yaml
+
+import webbrowser
 
 """
 Test Parameters + Decorator
@@ -31,54 +33,19 @@ def prepare_test(func):
         func()
     return wrapper
 
+
+
+
+
 def object_location(kg_name, datetime=datetime.day, content=None):
-    object_location = Template('$DIRECTORY_NAME/$KG_NAME/$TIMESTAMP/').substitute(
+    object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data',
-        KG_NAME=kg_name,
-        TIMESTAMP=datetime
+        KG_NAME=kg_name
     )
     return object_location
 
-# TODO: clarify expiration time
-def create_presigned_url(bucket, object_name, expiration=3600):
-    """Generate a presigned URL to share an S3 object
-
-    :param bucket: string
-    :param object_name: string
-    :param expiration: Time in seconds for the presigned URL to remain valid
-    :return: Presigned URL as string. If error, returns None.
-    """
-    
-    # Generate a presigned URL for the S3 object
-    # https://stackoverflow.com/a/52642792
-    try:
-        response = s3_client.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': object_name}, ExpiresIn=expiration)
-    except ClientError as e:
-        print(e)
-        raise ClientError(e)
-    
-    # The response contains the presigned URL
-    return response
-
-@prepare_test
-def test_create_presigned_url():
+def create_location(kg_name):
     pass
-
-def kg_files_in_location(bucket_name, object_location):
-    bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
-                        e in p['Contents']]
-    object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
-    return object_matches
-
-@prepare_test
-def test_kg_files_in_location(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
-    try:
-        kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=object_location(test_kg))
-        assert(len(kg_file_list) > 0)
-    except AssertionError as e:
-        print(e)
-        return False
-    return True
 
 def location_available(bucket_name, object_key):
     """
@@ -143,6 +110,54 @@ def test_location_available(test_bucket=TEST_BUCKET):
     """
     return True
 
+def kg_files_in_location(bucket_name, object_location):
+    bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
+                        e in p['Contents']]
+    object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
+    return object_matches
+
+@prepare_test
+def test_kg_files_in_location(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+    try:
+        kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=object_location(test_kg))
+        assert(len(kg_file_list) > 0)
+    except AssertionError as e:
+        print(e)
+        return False
+    return True
+
+# TODO: clarify expiration time
+def create_presigned_url(bucket, object_key, expiration=3600):
+    """Generate a presigned URL to share an S3 object
+
+    :param bucket: string
+    :param object_key: string
+    :param expiration: Time in seconds for the presigned URL to remain valid
+    :return: Presigned URL as string. If error, returns None.
+    """
+    
+    # Generate a presigned URL for the S3 object
+    # https://stackoverflow.com/a/52642792
+    try:
+        response = s3_client.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': object_key}, ExpiresIn=expiration)
+    except ClientError as e:
+        raise ClientError(e)
+    
+    # The response contains the presigned URL
+    return response
+
+@prepare_test
+def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
+    try:
+        create_presigned_url(bucket=test_bucket, object_key=object_location(TEST_KG_NAME))
+    except AssertionError as e:
+        print('ERROR:', e)
+        return False
+    except ClientError as e:
+        print('ERROR:', e)
+        return False
+    return True
+
 def upload_file(data_file, bucket_name, object_location, override=False):
     """Upload a file to an S3 bucket
 
@@ -185,11 +200,26 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+def download_file(bucket, object_key):
+    download_url = create_presigned_url(bucket=bucket, object_key=object_key)
+    return webbrowser.open_new_tab(download_url)
+
+@prepare_test
+def test_download_file(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
+    try:
+        assert(download_file(bucket=test_bucket, object_key=object_location(test_kg_name)))
+    except AssertionError as e:
+        print('ERROR: Browser has failed to open URL')
+        print(e)
+        return False
+    return True
+
 # TODO
 def convert_to_yaml(spec):
     yaml_file = lambda spec: yaml.write(spec)
     return yaml_file(spec)
 
+# TODO
 @prepare_test
 def test_convert_to_yaml():
     pass
@@ -200,8 +230,10 @@ def create_smartapi(submitter):
     yaml_file = convert_to_yaml(spec)
     return yaml_file
 
+# TODO
+@prepare_test
 def test_create_smartapi():
-    pass
+    return True
 
 # TODO
 def add_to_github(api_specification):
@@ -209,14 +241,32 @@ def add_to_github(api_specification):
     repo = ''
     return repo
 
+# TODO
 @prepare_test
 def test_add_to_github():
-    pass
+    return True
 
 # TODO
 def api_registered(kg_name):
     return True
 
+# TODO
 @prepare_test
 def test_api_registered():
-    pass
+    return True
+
+"""
+Unit Tests
+* Run each test function as an assertion if we are debugging the project
+"""
+DEBUG = True
+if DEBUG:
+    assert(test_location_available())
+    assert(test_kg_files_in_location())
+    assert(test_create_presigned_url())
+    assert(test_upload_file())
+    assert(test_download_file())
+
+    assert(test_convert_to_yaml())
+    assert(test_add_to_github())
+    assert(test_api_registered())

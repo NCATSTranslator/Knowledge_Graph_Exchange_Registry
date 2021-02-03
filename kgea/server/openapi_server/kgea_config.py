@@ -54,15 +54,14 @@ def validate_client_configuration():
             config = configparser.ConfigParser()
             config.read_file(config_file)
 
-            if config['default']['region'] != 'us-east-1':
-                print("NOTE: we recommend using us-east-1 as your region", "(currently %s)" % config['default']['region'])
-                # this is a warning, no need to return false
+            # if config['default']['region'] != 'us-east-1':
+            #     print("NOTE: we recommend using us-east-1 as your region", "(currently %s)" % config['default']['region'])
+            #     # this is a warning, no need to return false
 
             try:
                 assert(client_credentials.region_name == config['default']['region'])
             except AssertionError:
                 raise AssertionError("the boto3 client does not have the same region as `~/.aws/config")
-                return False
 
     except FileNotFoundError as e:
         print("ERROR: ~/.aws/config isn't found! try running `aws configure` after installing `aws-cli`")
