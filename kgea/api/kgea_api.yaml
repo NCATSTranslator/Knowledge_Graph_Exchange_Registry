@@ -74,7 +74,7 @@ paths:
               schema:
                 description: KGE File Set upload HTML web form
                 type: string
-  /register_form:
+  /register:
     get:
       parameters:
       - name: kg_name
@@ -90,7 +90,7 @@ paths:
       tags:
         - upload
       summary: Get web form for specifying KGE File Set upload
-      operationId: getRegisterForm
+      operationId: getRegistrationForm
       responses:
         '200':
           description: Returns a web form for uploading a KGE File Set
@@ -99,7 +99,6 @@ paths:
               schema:
                 description: KGE File Set upload HTML web form
                 type: string             
-  /register:
     post:
       tags:
         - upload
