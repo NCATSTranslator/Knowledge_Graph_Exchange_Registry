@@ -12,8 +12,7 @@ import jinja2
 from string import Template
 import re
 
-import boto3
-from botocore.exceptions import ClientError
+from werkzeug import FileStorage
 
 #############################################################
 # Application Configuration
@@ -239,7 +238,7 @@ def kge_knowledge_map(kg_name, session):  # noqa: E501
 #############################################################
 
 
-def get_kge_registration_form(session, kg_name=None, submitter=None):  # noqa: E501
+def get_kge_registration_form(session, kg_name: str = None, submitter: str = None):  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
@@ -358,8 +357,12 @@ def register_kge_file_set(session, body):  # noqa: E501
         # TODO: more graceful front end failure signal
         abort(201)
 
-# TODO: can Flask data type 'FileStorage' be applied directly to data_file_content, and data_file_metadata
-def upload_kge_file_set(kg_name, session, data_file_content, data_file_metadata=None):  # noqa: E501
+def upload_kge_file_set(
+        kg_name,
+        session,
+        data_file_content: FileStorage,
+        data_file_metadata: FileStorage = None
+):  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
      # noqa: E501
