@@ -332,18 +332,30 @@ Unit Tests
 """
 DEBUG = True
 if DEBUG:
-    assert(test_is_location_available())
+    assert(test_kg_files_in_location()) 
+    print("test_kg_files_in_location passed")
 
     assert(test_is_location_available())
+    print("test_is_location_available passed")
+
     assert(test_is_not_location_available())
+    print("test_is_not_location_available passed")
 
     assert(test_create_presigned_url())
-    assert(test_upload_file())
-    assert(test_upload_file_timestamp())
-    assert(test_download_file())
+    print("test_create_presigned_url passed")
 
+    assert(test_upload_file())
+    print("test_upload_file passed")
+
+    assert(test_upload_file_timestamp())
+    print("test_upload_file_timestamp passed")
+
+    assert(test_download_file())
+    print("test_download_file passed")
+
+    print("TODO: Smart API Registry functions and tests")
     assert(test_convert_to_yaml())
     assert(test_add_to_github())
-    assert(test_api_registered())
+    assert(test_api_registered()) 
     
     print("all file ops tests passed")
