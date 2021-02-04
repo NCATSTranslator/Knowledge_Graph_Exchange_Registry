@@ -180,6 +180,7 @@ def create_presigned_url(bucket, object_key, expiration=3600):
 @prepare_test
 def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
     try:
+        # TODO: write tests
         create_presigned_url(bucket=test_bucket, object_key=object_location(TEST_KG_NAME))
     except AssertionError as e:
         print('ERROR:', e)
@@ -189,7 +190,7 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME
         return False
     return True
 
-def upload_file(data_file, bucket_name, object_location, override=False):
+def upload_file(data_file, file_name, bucket_name, object_location, override=False):
     """Upload a file to an S3 bucket
 
     :param file_name: File to upload (can be read in binary mode)
@@ -197,11 +198,10 @@ def upload_file(data_file, bucket_name, object_location, override=False):
     :param object_name: S3 object name. If not specified then file_name is used
     :return: True if file was uploaded, else False
     """
-
     object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
         ROOT = object_location,
-        FILENAME = Path(splitext(data_file.name)[0]).stem,
-        EXTENSION = splitext(data_file.name)[1]
+        FILENAME = Path(file_name).stem,
+        EXTENSION = splitext(file_name)[1]
     )
 
     # Upload the file
@@ -216,7 +216,7 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         # NOTE: file must be read in binary mode!
         with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
-            object_key = upload_file(test_file, test_bucket, object_location(test_kg))
+            object_key = upload_file(test_file, test_file.name, test_bucket, object_location(test_kg))
             assert(object_key in kg_files_in_location(test_bucket, object_location(test_kg)))
     except FileNotFoundError as e:
         print("ERROR: Test is malformed!")
@@ -241,7 +241,7 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         test_location, time_created = withTimestamp(object_location)(test_kg)
         # NOTE: file must be read in binary mode!
         with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
-            object_key = upload_file(test_file, test_bucket, test_location)
+            object_key = upload_file(test_file, test_file.name, test_bucket, test_location)
             assert(object_key in kg_files_in_location(test_bucket, test_location))
             assert(time_created in object_key)
     except FileNotFoundError as e:
@@ -270,10 +270,11 @@ def download_file(bucket, object_key, openFile=False):
 def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
     try:
         with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
-            object_key = upload_file(test_file, test_bucket, object_location(test_kg_name))
+            object_key = upload_file(test_file, test_file.name, test_bucket, object_location(test_kg_name))
             url = download_file(bucket=test_bucket, object_key=object_location(test_kg_name)+'somedata.csv', openFile=False)  # openFile=False to affirm we won't trigger a browser action
             response = requests.get(url)
             assert(response.status_code is 200)
+            # TODO: test for equal content from download response
     except FileNotFoundError as e:
         print("ERROR: Test is malformed!")
         print(e)
@@ -330,7 +331,7 @@ def test_api_registered():
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-DEBUG = True
+DEBUG = True 
 if DEBUG:
     assert(test_kg_files_in_location()) 
     print("test_kg_files_in_location passed")

@@ -12,6 +12,6 @@ setuptools >= 21.0.0
 # KGE specific
 boto3 >= 1.17.0
 botocore
-yaml
+pyyaml
 flask
 
