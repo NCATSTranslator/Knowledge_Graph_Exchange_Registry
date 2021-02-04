@@ -56,8 +56,10 @@ def get_kge_home(session=None):  # noqa: E501
 
     :rtype: str
     """
+    # validate the session key
+    
     if session:
-        return render_template('home.html')
+        return render_template('home.html',session=session)
     else:
         return render_template('login.html')
 
@@ -341,16 +343,22 @@ def register_kge_file_set(session, body):  # noqa: E501
     
     if location_available:
         if api_specification and url:
+            # TODO: repair return
+            #  1. Store url and api_specification (if needed) in the session
+            #  2. replace with /upload form returned
+            #
             return dict({
                 "url": url,
                 "api": api_specification
             })
         else:
+            # TODO: more graceful front end failure signal
             abort(400)
     else:
+        # TODO: more graceful front end failure signal
         abort(201)
 
-
+# TODO: can Flask data type 'FileStorage' be applied directly to data_file_content, and data_file_metadata
 def upload_kge_file_set(kg_name, session, data_file_content, data_file_metadata=None):  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
@@ -361,9 +369,9 @@ def upload_kge_file_set(kg_name, session, data_file_content, data_file_metadata=
     :param session:
     :type session: str
     :param data_file_content:
-    :type data_file_content: str
+    :type data_file_content: FileStorage
     :param data_file_metadata:
-    :type data_file_metadata: str
+    :type data_file_metadata: FileStorage
 
     :rtype: str
     """

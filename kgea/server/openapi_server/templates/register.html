@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>Upload a KGE File Set:</h1>
+<form name="formData"
+      method="post"
+      action="/register?session={{session}}"
+      enctype="multipart/form-data"
+>
+    <input name="body" type="hidden">
+    <p>Your Name: <input type="text" name="submitter"></p>
+    <p>Dataset Name: <input type="text" name="kg_name"></p>
+    <p><input type="submit" value="Submit"></p>
+</form>
+{% endblock %}

@@ -149,16 +149,16 @@ paths:
         required: true
         schema:
           type: string
-      - name: kg_name
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: submitter
-        in: query
-        required: false
-        schema:
-          type: string
+#      - name: kg_name
+#        in: query
+#        required: false
+#        schema:
+#          type: string
+#      - name: submitter
+#        in: query
+#        required: false
+#        schema:
+#          type: string
       tags:
         - upload
       summary: Prompt user for core parameters of the KGE File Set upload

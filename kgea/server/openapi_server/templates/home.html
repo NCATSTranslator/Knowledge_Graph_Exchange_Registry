@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
 <h1>KGE Archive Dashboard</h1>
-    <form action="https://kge.starinformatics.ca/register">
+    <form action="https://kge.starinformatics.ca/register?session={{session}}">
         <input type="submit" value="Upload KGE File Set" />
     </form>
 {% endblock %}
