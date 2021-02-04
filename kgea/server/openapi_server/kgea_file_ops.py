@@ -142,6 +142,7 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
 def kg_files_in_location(bucket_name, object_location):
     bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
                         e in p['Contents']]
+    print(bucket_listings, object_location)
     object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
     return object_matches
 
@@ -331,7 +332,7 @@ def test_api_registered():
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-DEBUG = True 
+DEBUG = False
 if DEBUG:
     assert(test_kg_files_in_location()) 
     print("test_kg_files_in_location passed")
