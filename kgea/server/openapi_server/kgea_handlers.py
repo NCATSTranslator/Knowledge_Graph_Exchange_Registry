@@ -115,7 +115,7 @@ def get_kge_landing_page(session=None):  # noqa: E501
 # from ..kge_handlers import kge_access
 #############################################################
 
-
+# TODO: get file out from timestamped folders 
 def kge_access(kg_name):  # noqa: E501
     """Get KGE File Sets
 
@@ -127,12 +127,7 @@ def kge_access(kg_name):  # noqa: E501
     :rtype: Dict[str, Attribute]
     """
     
-    # TODO: replace with function
-    object_location = Template('$DIRECTORY_NAME/$KG_NAME/$CONTENT_TYPE/').substitute(
-        DIRECTORY_NAME='kge-data',
-        KG_NAME=kg_name,
-        CONTENT_TYPE='content'
-    )
+    files_location = object_location(kg_name)
 
     # Listings Approach
     # - Introspect on Bucket
@@ -153,7 +148,7 @@ def kge_access(kg_name):  # noqa: E501
 # from ..kge_handlers import kge_knowledge_map
 #############################################################
 
-
+# TODO: get file out of root folder
 def kge_knowledge_map(kg_name):  # noqa: E501
     """Get supported relationships by source and target
 
@@ -165,12 +160,7 @@ def kge_knowledge_map(kg_name):  # noqa: E501
     :rtype: Dict[str, Dict[str, List[str]]]
     """
 
-    # TODO: replace with function
-    object_location = Template('$DIRECTORY_NAME/$KG_NAME/$CONTENT_TYPE/').substitute(
-        DIRECTORY_NAME='kge-data',
-        KG_NAME=kg_name,
-        CONTENT_TYPE='metadata'
-    )
+    files_location = object_location(kg_name)
     
     # Listings Approach
     # - Introspect on Bucket
@@ -283,11 +273,7 @@ def register_kge_file_set(body):  # noqa: E501
     submitter = body['submitter']
     kg_name = body['kg_name']
     
-    # TODO: replace with function
-    object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
-        DIRECTORY_NAME='kge-data',
-        KG_NAME=kg_name
-    )
+    register_location = object_location(kg_name)
     
     api_specification = create_smartapi(submitter, kg_name)
     url = add_to_github(api_specification)
@@ -318,23 +304,19 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
 
     :rtype: str
     """
-    # TODO: replace with function
-    object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
-        DIRECTORY_NAME='kge-data',
-        KG_NAME=kg_name
-    )
+
+    contentLocation, _ = withTimestamp(object_location)(kg_name)
+    metadataLocation = object_location(kg_name)
 
     # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
-    maybeUploadContent = upload_file(data_file_content, bucket_name=resources['bucket'], object_location=object_location,
-                                     content_type="content")
-    maybeUploadMetaData = None or data_file_metadata and upload_file(data_file_metadata, bucket_name=resources['bucket'],
-                                              object_location=object_location, content_type="metadata")
+    maybeUploadContent = upload_file(data_file_content, file_name=data_file_content.filename, bucket_name=resources['bucket'], object_location=contentLocation)
+    maybeUploadMetaData = None or data_file_metadata and upload_file(data_file_metadata, file_name=data_file_metadata.filename, bucket_name=resources['bucket'], object_location=metadataLocation)
     
     if maybeUploadContent or maybeUploadMetaData:
         response = {"content": dict({}), "metadata": dict({})}
         
-        content_name = Path(maybeUploadContent).stem
-        content_url = create_presigned_url(bucket=resources['bucket'], object_name=maybeUploadContent)
+        content_name = maybeUploadContent
+        content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadContent)
 
         if content_name in response["content"]:
             abort(400)
@@ -343,7 +325,7 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
         
         if maybeUploadMetaData:
             metadata_name = Path(maybeUploadMetaData).stem
-            metadata_url = create_presigned_url(bucket=resources['bucket'], object_name=maybeUploadMetaData)
+            metadata_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadMetaData)
             if metadata_name not in response["metadata"]:
                 response["metadata"][metadata_name] = metadata_url
             # don't care if not there since optional
