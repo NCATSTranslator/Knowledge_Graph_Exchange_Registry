@@ -15,10 +15,9 @@ import jinja2
 # Application Configuration
 #############################################################
 
-from .kgea_config import s3_client, resources
+from .kgea_config import resources
 from .kgea_file_ops import (
-    upload_file, 
-    download_file, 
+    upload_file,
     create_presigned_url, 
     location_available, 
     kg_files_in_location, 
@@ -103,16 +102,16 @@ def kge_login():  # noqa: E501
     state = str(uuid4())
     
     # TODO: maybe store 'state' in a temporary global dictionary for awhile?
-
+    
     login_url = \
-        resources.oauth2.host + \
+        resources['oauth2']['host'] + \
         '/login?response_type=code' + \
         '&state=' + state + \
         '&client_id=' + \
-        resources.oauth2.client_id + \
+        resources['oauth2']['client_id'] + \
         '&redirect_uri=' + \
-        resources.oauth2.site_uri + \
-        resources.oauth2.login_callback
+        resources['oauth2']['site_uri'] + \
+        resources['oauth2']['login_callback']
     
     return redirect(login_url, code=302, Response=None)
 
@@ -129,11 +128,11 @@ def kge_logout(session=None):  # noqa: E501
     if session:
         # ...then redirect to signal logout at the Oauth2 host
         logout_url = \
-            resources.oauth2.host + \
+            resources['oauth2']['host'] + \
             '/logout?client_id=' + \
-            resources.oauth2.client_id + \
+            resources['oauth2']['client_id'] + \
             '&logout_uri=' + \
-            resources.oauth2.site_uri
+            resources['oauth2']['site_uri']
     
         return redirect(logout_url, code=302, Response=None)
     else:
