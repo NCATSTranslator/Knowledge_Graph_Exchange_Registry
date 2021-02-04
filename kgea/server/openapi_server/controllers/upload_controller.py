@@ -7,7 +7,7 @@ from ..kgea_handlers import (
 
 
 def get_registration_form(kg_name=None, submitter=None):  # noqa: E501
-    """Get web form for specifying KGE File Set upload
+    """Prompt user for core parameters of the KGE File Set upload
 
      # noqa: E501
 
@@ -34,8 +34,8 @@ def get_upload_form(kg_name):  # noqa: E501
     return get_kge_upload_form(kg_name)
 
 
-def register_file_set(body):  # noqa: E501
-    """Register web form details specifying a KGE File Set location
+def register_file_set(submitter, kg_name):  # noqa: E501
+    """Register core parameters for the KGE File Set upload
 
      # noqa: E501
 
@@ -46,8 +46,7 @@ def register_file_set(body):  # noqa: E501
 
     :rtype: str
     """
-    # return register_kge_file_set(submitter, kg_name)
-    return register_kge_file_set(body)
+    return register_kge_file_set(submitter, kg_name)
 
 
 def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501

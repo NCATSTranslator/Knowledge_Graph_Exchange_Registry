@@ -1,19 +1,15 @@
 from pathlib import Path
+from uuid import uuid4
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
 
-from flask import abort, render_template
-
+from flask import abort, render_template, redirect
 
 import jinja2
-from string import Template
 
-import boto3
-
-from botocore.exceptions import ClientError
 
 #############################################################
 # Application Configuration
@@ -39,50 +35,18 @@ from .kgea_file_ops import (
 #
 # from ..kge_handlers import (
 #     kge_client_authentication,
-#     kge_login,
-#     kge_logout,
-#     get_kge_landing_page,
 #     get_kge_home
+#     kge_login,
+#     kge_logout
 # )
 #############################################################
 
-
-def kge_client_authentication(code):  # noqa: E501
-    """Process client authentication
-
-     # noqa: E501
-
-    :param code:
-    :type code: str
-
-    :rtype: str
-    """
-    return 'do some magic!'
+# This is the home page path,
+# should match the API path spec
+HOME = '/home'
 
 
-def kge_login():  # noqa: E501
-    """Process client user login
-
-     # noqa: E501
-
-    :rtype: None
-    """
-    return 'do some magic!'
-
-
-def kge_logout():  # noqa: E501
-    """Process client user logout
-
-     # noqa: E501
-
-    :rtype: None
-    """
-    return 'do some magic!'
-
-# TODO: Login/logout redirections? using flask.redirect(location, code=302, Response=None)
-
-
-def get_kge_home(session):  # noqa: E501
+def get_kge_home(session=None):  # noqa: E501
     """Get default landing page
 
      # noqa: E501
@@ -92,20 +56,90 @@ def get_kge_home(session):  # noqa: E501
     if session:
         return render_template('home.html')
     else:
-        return "Not logged in!"
+        return render_template('login.html')
 
 
-def get_kge_landing_page(session=None):  # noqa: E501
-    """Get default public landing page (when the site visitor is not authenticated)
+def kge_client_authentication(code, state):  # noqa: E501
+    """Process client authentication
 
      # noqa: E501
 
-    :param session:
-    :type session: str
+    :param code:
+    :type code: str
+
+    :param state:
+    :type state: str
 
     :rtype: str
     """
-    return 'do some magic!'
+    if code:
+        # Establish session here if there is a valid access code & state variable?
+        # TODO: maybe delete the 'state' from the temporary global dictionary mentioned in /login?
+        
+        # Fake it for the first iteration
+        session_id = uuid4()
+        
+        # Store the session here
+        
+        # then redirect to an authenticated home page
+        authenticated_url = HOME+'?session='+str(session_id)
+        return redirect(authenticated_url, code=302, Response=None)
+    
+    else:
+        # redirect to home page for login
+        redirect(HOME, code=302, Response=None)
+
+
+def kge_login():  # noqa: E501
+    """Process client user login
+
+     # noqa: E501
+
+    :rtype: None
+    """
+    
+    # Have to figure out how best to use
+    # this anonymous Oauth2 'state' variable
+    state = str(uuid4())
+    
+    # TODO: maybe store 'state' in a temporary global dictionary for awhile?
+
+    login_url = \
+        resources.oauth2.host + \
+        '/login?response_type=code' + \
+        '&state=' + state + \
+        '&client_id=' + \
+        resources.oauth2.client_id + \
+        '&redirect_uri=' + \
+        resources.oauth2.site_uri + \
+        resources.oauth2.login_callback
+    
+    return redirect(login_url, code=302, Response=None)
+
+
+def kge_logout(session=None):  # noqa: E501
+    """Process client user logout
+
+     # noqa: E501
+
+    :rtype: None
+    """
+    
+    # invalidate session here?
+    if session:
+        # ...then redirect to signal logout at the Oauth2 host
+        logout_url = \
+            resources.oauth2.host + \
+            '/logout?client_id=' + \
+            resources.oauth2.client_id + \
+            '&logout_uri=' + \
+            resources.oauth2.site_uri
+    
+        return redirect(logout_url, code=302, Response=None)
+    else:
+        # redirect to unauthenticated home page, for login
+        redirect(HOME, code=302, Response=None)
+
 
 #############################################################
 # Provider Controller Handler
@@ -186,6 +220,7 @@ def kge_knowledge_map(kg_name):  # noqa: E501
 #     upload_kge_file_set,
 # )
 #############################################################
+
 
 def get_kge_registration_form(kg_name=None, submitter=None):  # noqa: E501
     """Get web form for specifying KGE File Set upload

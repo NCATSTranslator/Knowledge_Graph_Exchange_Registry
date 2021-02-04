@@ -47,6 +47,7 @@ def validate_session_configuration():
 
     return True
 
+
 def validate_client_configuration():
     try:
         with open(AWS_CONFIG_ROOT+'config', 'r') as config_file:
@@ -92,6 +93,7 @@ except Exception as e:
 resources = None
 try: 
     with open(abspath('kgea_config.yaml'), 'r') as resource_config_file:
+        
         resource_config = yaml.load(resource_config_file, Loader=Loader)
 
         try:
@@ -107,6 +109,7 @@ try:
             print(e)
 
         resources = dict(resource_config)
+
 except Exception as e:
     print('ERROR: resource configuration file failed to load')
     print(e)

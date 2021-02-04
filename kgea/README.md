@@ -130,6 +130,7 @@ aws configure
 
 This command will record the requested parameters inside of `~/.aws/credentials` or `~/.aws/config` which, by default, KGE will take as its AWS credentials. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
 
+Note that the Docker option of launching the application, currently assumes that $HOME/.aws exists, whose contents can be bound into the container as a volume binding, for use by the web application.
 
 #### AWS Environment Variables
 
