@@ -5,16 +5,18 @@ server {
     server_name localhost;
     access_log  /var/log/nginx/kge.access.log;
 
+    root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/openapi_server/templates;
+
     location / {
         # 'kge' is the docker-compose.yaml service name of
         # the KGE Archive dockerized web service container
         proxy_pass http://localhost:8080/;
     }
 
-    # specify a default location for static files like css and images files
-    location /static {
-        # set this to wherever you wish
-        root /var/www/html/static;
+    location /css/ {
+    }
+
+    location /images/ {
     }
 }
 

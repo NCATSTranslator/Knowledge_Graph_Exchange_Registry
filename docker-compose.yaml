@@ -5,13 +5,15 @@ services:
   kge:
     build:
       context: ./kgea/server
-      dockerfile: Dockerfile
+      dockerfile: KGEA_Dockerfile
     #environment:
     #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
     ports:
     - "8080:8080"
     # depends_on:
     # - "kgx"
+    volumes:
+    - $HOME/.aws:/root/.aws
     networks:
     - default
 

@@ -36,9 +36,9 @@ tags:
   name: content
 - name: translator
 paths:
-  /:
+  /home:
     get:
-      operationId: get_landing_page
+      operationId: get_home
       parameters:
       - explode: true
         in: query
@@ -52,33 +52,11 @@ paths:
           content:
             text/html:
               schema:
-                description: HTML landing page
-                type: string
-          description: Returns the default public landing page for the site.
-      summary: Get default public landing page (when the site visitor is not authenticated)
-      tags:
-      - site
-      x-openapi-router-controller: openapi_server.controllers.site_controller
-  /home:
-    get:
-      operationId: get_home
-      parameters:
-      - explode: true
-        in: query
-        name: session
-        required: true
-        schema:
-          type: string
-        style: form
-      responses:
-        "200":
-          content:
-            text/html:
-              schema:
                 description: HTML home page
                 type: string
-          description: Returns the main home page for the site.
-      summary: Get main home page for logged in user
+          description: Authenticated users see the KGE dashboard; Non-authenticated
+            users see the login page.
+      summary: Display home landing page
       tags:
       - site
       x-openapi-router-controller: openapi_server.controllers.site_controller
@@ -87,7 +65,7 @@ paths:
       operationId: login
       responses:
         "302":
-          description: Returns redirect to hosted Oauth2 client registration and login
+          description: Redirects to a hosted Oauth2 client registration and login
             process
       summary: Process client user login
       tags:
@@ -96,6 +74,14 @@ paths:
   /logout:
     get:
       operationId: logout
+      parameters:
+      - explode: true
+        in: query
+        name: session
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "302":
           description: Returns redirect to hosted Oauth2 client logout process
@@ -114,13 +100,20 @@ paths:
         schema:
           type: string
         style: form
+      - explode: true
+        in: query
+        name: state
+        required: true
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
             text/html:
               schema:
-                description: Redirection to authenticated /home page with a valid
-                  session?
+                description: If authenticated, redirects to home page, with a valid
+                  session
                 type: string
           description: Confirms login status (need to redirect?)
       summary: Process client authentication
@@ -131,6 +124,13 @@ paths:
     get:
       operationId: get_registration_form
       parameters:
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       - explode: true
         in: query
         name: kg_name
@@ -150,15 +150,24 @@ paths:
           content:
             text/html:
               schema:
-                description: KGE File Set upload HTML web form
+                description: HTML web form to request KGE File Set upload parameters
                 type: string
-          description: Returns a web form for uploading a KGE File Set
-      summary: Get web form for specifying KGE File Set upload
+          description: Returns a web form for prompting the use for the core parameters
+            of the KGE File Set upload process.
+      summary: Prompt user for core parameters of the KGE File Set upload
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
     post:
       operationId: register_file_set
+      parameters:
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       requestBody:
         $ref: '#/components/requestBodies/inline_object'
         content:
@@ -201,7 +210,7 @@ paths:
               schema:
                 type: string
           description: Not implemented.
-      summary: Register web form details specifying a KGE File Set location
+      summary: Register core parameters for the KGE File Set upload
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
@@ -216,6 +225,13 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       requestBody:
         $ref: '#/components/requestBodies/inline_object_1'
         content:
@@ -280,6 +296,13 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -296,7 +319,8 @@ paths:
     get:
       operationId: access
       parameters:
-      - description: Name label of KGE File Set whose files are being accessed
+      - description: Name label of KGE File Set, the knowledge graph for which data
+          files are being accessed
         explode: false
         in: path
         name: kg_name
@@ -304,6 +328,13 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -331,8 +362,8 @@ paths:
     get:
       operationId: knowledge_map
       parameters:
-      - description: Name label of KGE File Set whose knowledge graph content metadata
-          is being reported
+      - description: Name label of KGE File Set, the knowledge graph for which content
+          metadata is being accessed
         explode: false
         in: path
         name: kg_name
@@ -340,6 +371,13 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:

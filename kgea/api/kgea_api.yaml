@@ -39,38 +39,39 @@ tags:
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
 paths:
-  /:
+  /home:
     get:
       parameters:
-      # session parameter, if present,
-      # will trigger a redirection to the /home page
       - name: session
         in: query
+        required: false
         schema:
           type: string
       tags:
-        - site
-      summary: Get default public landing page (when the site visitor is not authenticated)
-      operationId: getLandingPage
+      - site
+      summary: Display home landing page
+      operationId: getHome
       responses:
         '200':
-          description: Returns the default public landing page for the site.
+          description: >-
+            Authenticated users see the KGE dashboard;
+            Non-authenticated users see the login page.
           content:
             text/html:
               schema:
-                description: HTML landing page
+                description: HTML home page
                 type: string
   /login:
     get:
       tags:
-        - site
+      - site
       summary: Process client user login
       operationId: login
       responses:
         '302':
           description: >-
-            Returns redirect to hosted Oauth2 client registration
-            and login process
+            Redirects to a hosted Oauth2 client
+            registration and login process
   /oauth2callback:
     get:
       parameters:
@@ -79,15 +80,13 @@ paths:
         required: true
         schema:
           type: string
-      # Don't think that 'state' is available in the hosted
-      # AWS Cognito Oauth2 login process being used here
-      # - name: state
-      #  in: query
-      #  required: true
-      #  schema:
-      #    type: string
+      - name: state
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
-        - site
+      - site
       summary: Process client authentication
       operationId: clientAuthentication
       responses:
@@ -98,43 +97,35 @@ paths:
             text/html:
               schema:
                 description: >-
-                  Redirection to authenticated /home page with a valid session?
+                  If authenticated, redirects to
+                  home page, with a valid session
                 type: string
   /logout:
     get:
+      parameters:
+      - name: session
+        in: query
+        required: false
+        schema:
+          type: string
       tags:
-        - site
+      - site
       summary: Process client user logout
       operationId: logout
       responses:
         '302':
           description: >-
             Returns redirect to hosted Oauth2 client logout process
-  /home:
-    get:
-      parameters:
-      - name: session
-        in: query
-        required: true
-        schema:
-          type: string
-      tags:
-        - site
-      summary: Get main home page for logged in user
-      operationId: getHome
-      responses:
-        '200':
-          description: Returns the main home page for the site.
-          content:
-            text/html:
-              schema:
-                description: HTML home page
-                type: string
   /upload_form/{kg_name}:
     get:
       parameters:
       - name: kg_name
         in: path
+        required: true
+        schema:
+          type: string
+      - name: session
+        in: query
         required: true
         schema:
           type: string
@@ -153,6 +144,11 @@ paths:
   /register:
     get:
       parameters:
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       - name: kg_name
         in: query
         required: false
@@ -172,12 +168,19 @@ paths:
           description: >-
             Returns a web form for prompting the use for the
             core parameters of the KGE File Set upload process.
-          text/html:
-            schema:
-              description: >-
-                HTML web form to request KGE File Set upload parameters
-              type: string
+          content:
+            text/html:
+              schema:
+                description: >-
+                  HTML web form to request KGE File Set upload parameters
+                type: string
     post:
+      parameters:
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - upload
       summary: Register core parameters for the KGE File Set upload
@@ -229,11 +232,16 @@ paths:
   /upload/{kg_name}:
     post:
       parameters:
-        - name: kg_name
-          in: path
-          required: true
-          schema:
-            type: string
+      - name: kg_name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - upload
       summary: Upload web form details specifying a KGE File Set upload process
@@ -290,18 +298,24 @@ paths:
                 type: string
   /{kg_name}/access:
     get:
+      parameters:
+      - name: kg_name
+        in: path
+        description: >-
+          Name label of KGE File Set, the knowledge graph
+          for which data files are being accessed
+        required: true
+        schema:
+          type: string
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - provider
       summary: Get KGE File Sets
       operationId: access
-      parameters:
-        - name: kg_name
-          in: path
-          description: >-
-            Name label of KGE File Set whose files are being accessed
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: >-
@@ -328,18 +342,23 @@ paths:
                 type: string
   /{kg_name}/knowledge_map:
     get:
+      parameters:
+      - name: kg_name
+        in: path
+        description: >-
+          Name label of KGE File Set, the knowledge graph
+          for which content metadata is being accessed
+        required: true
+        schema:
+          type: string
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - content
       summary: Get supported relationships by source and target
-      parameters:
-        - name: kg_name
-          in: path
-          description: >-
-            Name label of KGE File Set whose knowledge graph
-            content metadata is being reported
-          required: true
-          schema:
-            type: string
       operationId: knowledgeMap
       responses:
         '200':
@@ -372,24 +391,6 @@ paths:
                 type: string
 components:
   schemas:
-#    KgeFileSet:
-#      description: >-
-#        Stub implementation of KGE File Set upload web form.
-#      type: object
-#      properties:
-#        submitter:
-#          type: string
-#        kg_name:
-#          type: string
-#        data_file_name:
-#          type: string
-#        metadata_file_name:
-#          type: string
-#      required:
-#        - submitter
-#        - kg_name
-#        - data_file_name
-
     Attribute:
       type: object
       description: Generic metadata attribute.

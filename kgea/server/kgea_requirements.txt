@@ -8,3 +8,9 @@ werkzeug == 0.16.1; python_version=="3.5" or python_version=="3.4"
 swagger-ui-bundle >= 0.0.2
 python_dateutil >= 2.6.0
 setuptools >= 21.0.0
+
+# KGE specific
+boto3 >= 1.17.0
+botocore
+pyyaml
+flask
