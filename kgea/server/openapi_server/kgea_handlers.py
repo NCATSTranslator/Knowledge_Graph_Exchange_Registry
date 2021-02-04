@@ -7,12 +7,11 @@ except ImportError:
 
 from flask import abort, render_template
 
-
 import jinja2
 from string import Template
+import re
 
 import boto3
-
 from botocore.exceptions import ClientError
 
 #############################################################
@@ -138,8 +137,11 @@ def kge_access(kg_name):  # noqa: E501
         bucket_name=resources['bucket'], 
         object_location=files_location
     )
-    kg_listing = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_files))
-    return kg_listing
+    pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
+    kg_listing = [ content_location for content_location in kg_files if re.match(pattern, content_location) ]
+    kg_urls = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
+    # print('access urls', kg_urls, kg_listing)
+    return kg_urls
 
 
 #############################################################
@@ -174,12 +176,13 @@ def kge_knowledge_map(kg_name):  # noqa: E501
         bucket_name=resources['bucket'], 
         object_location=files_location
     )
-    print(kg_files)
-    kg_listing = dict(
-        map(lambda kg_file: [ Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file) ], kg_files)
+    pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
+        FILES_LOCATION=files_location
     )
-
-    return kg_listing
+    kg_listing = [ content_location for content_location in kg_files if re.match(pattern, content_location) ]
+    kg_urls = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
+    # print('knowledge_map urls', kg_urls)
+    return kg_urls
 
 
 #############################################################
