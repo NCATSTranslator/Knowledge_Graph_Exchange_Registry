@@ -409,7 +409,6 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
 
     :rtype: str
     """
-    print(kg_name, data_file_content, data_file_metadata)
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data',
         KG_NAME=kg_name
