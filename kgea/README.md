@@ -1,6 +1,6 @@
 # Getting Started
 
-The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an online host to share knowledge graphs formatted as KGX standard compliant formatted files that are indexed for access, complete with their metadata, in the Translator SmartAPI Registry.  This document mainly focuses on the practical activities for local development and production system deployment. 
+The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an online host to share knowledge graphs formatted as KGX standard compliant formatted files that are indexed for access, complete with their metadata, in the Translator SmartAPI Registry.  This document mainly focuses on the practical activities for local development and production system deployment. For details on the more esoteric development details (e.g. of OpenAPI 3 code generation), see the complementary [Road Map](KGE_ARCHIVE_ROADMAP.md) and [Development Notes](DEVNOTES.md) documents.
 
 ## Table of Contents
 
@@ -13,8 +13,6 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
             - [AWS Configuration Files](#aws-configuration-files)
             - [AWS Environment Variables](#aws-environment-variables)
         - [Project Configuration File](#project-configuration-file-recommended)
-        - [Non-Python Project Dependencies](#non-python-project-dependencies)
-            - [OpenAPI 3 Code Generation](#openapi-3-code-generation)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
     - [Basic Operation of the Server](#basic-operation-of-the-server)
     - [Running the Application within a Docker Container](#running-the-application-within-a-docker-container)
@@ -146,39 +144,6 @@ bucket: 'kgea-bucket'   # REQUIRED: the name of the S3 bucket that will host you
 To apply this file, make a copy of the template in the `kgea/server/` subdirectory, and rename it to `kgea_config.yaml`.  Fill out the required information. Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
 
 NOTE: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
-
-### Non-Python Project Dependencies 
-
-#### OpenAPI 3 Code Generation
-
-AS noted previously, this project once deployed, exposes an OpenAPI 3 web service defined by the [KGE Archive Web Services OpenAPI 3 specification](./api/kgea_api.yaml).  Thus, this project uses the [OpenAPI Tools openapi-generator-cli](https://github.com/OpenAPITools/openapi-generator) code generator program to generate its web service implementation.
-
-Although the project itself is coded in Python, updating the Python code for the web services requires re-running the code generator, after any revisions to the API specification. This code generator is a Java software program. Thus, such a Java binary (release 8 or better) needs to be installed and available on the OS PATH (might not be on minimal operating systems). For a Debian Linux (e.g. Ubuntu), it may suffice to execute the following installation:
-
-```shell
-sudo apt install default-jre
-```
-
-If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, the script has a few other dependencies:
-
-1. [Maven dependency management tool](https://maven.apache.org/) (release 3.3.4 or better)
-2.  `jq` program 
-   
-Again, assuming a Debian Linux OS (e.g. Ubuntu) build environment, it may suffice to execute the following installations:
-
-```shell
-sudo apt install maven
-sudo apt install jq
-```
-
-Running the `openapi-generator-cli.sh` the first time downloads the required JAR file to the same directory as the script, thus when the script is rerun again, it performs all the expected operations. For example:
-
-```shell
-scripts/openapi-generator-cli.sh
-#... lots of output showing the script execution
-scripts/openapi-generator-cli.sh version
-5.0.0
-```
 
 ## Project Python Package Dependencies
 
