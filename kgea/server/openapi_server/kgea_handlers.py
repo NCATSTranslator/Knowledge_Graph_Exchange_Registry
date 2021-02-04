@@ -307,7 +307,6 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
 
     contentLocation, _ = withTimestamp(object_location)(kg_name)
     metadataLocation = object_location(kg_name)
-    print(contentLocation, metadataLocation, data_file_content.filename)
 
     # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
     maybeUploadContent = upload_file(data_file_content, file_name=data_file_content.filename, bucket_name=resources['bucket'], object_location=contentLocation)
@@ -317,7 +316,6 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
         response = {"content": dict({}), "metadata": dict({})}
         
         content_name = maybeUploadContent
-        print('maybeuloadcontent', maybeUploadContent)
         content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadContent)
 
         if content_name in response["content"]:
