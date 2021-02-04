@@ -34,7 +34,7 @@ from .kgea_file_ops import (
 #
 # from ..kge_handlers import (
 #     kge_client_authentication,
-#     get_kge_home
+#     get_kge_home,
 #     kge_login,
 #     kge_logout
 # )
@@ -149,7 +149,7 @@ def kge_logout(session=None):  # noqa: E501
 #############################################################
 
 # TODO: get file out from timestamped folders 
-def kge_access(kg_name):  # noqa: E501
+def kge_access(kg_name, session):  # noqa: E501
     """Get KGE File Sets
 
      # noqa: E501
@@ -182,7 +182,7 @@ def kge_access(kg_name):  # noqa: E501
 #############################################################
 
 # TODO: get file out of root folder
-def kge_knowledge_map(kg_name):  # noqa: E501
+def kge_knowledge_map(kg_name, session):  # noqa: E501
     """Get supported relationships by source and target
 
      # noqa: E501
@@ -221,7 +221,7 @@ def kge_knowledge_map(kg_name):  # noqa: E501
 #############################################################
 
 
-def get_kge_registration_form(kg_name=None, submitter=None):  # noqa: E501
+def get_kge_registration_form(session, kg_name=None, submitter=None):  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
@@ -265,7 +265,7 @@ def get_kge_registration_form(kg_name=None, submitter=None):  # noqa: E501
     return jinja2.Template(page).render(kg_name=kg_name_text, submitter=submitter_text)
 
 
-def get_kge_upload_form(kg_name):  # noqa: E501
+def get_kge_upload_form(kg_name, session):  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
@@ -303,7 +303,18 @@ def get_kge_upload_form(kg_name):  # noqa: E501
     return jinja2.Template(page).render(kg_name=kg_name)
 
 
-def register_kge_file_set(body):  # noqa: E501
+def register_kge_file_set(session, body):  # noqa: E501
+    """Register core parameters for the KGE File Set upload
+
+     # noqa: E501
+
+    :param session:
+    :type session: str
+    :param body:
+    :type body: dict
+
+    :rtype: str
+    """
     submitter = body['submitter']
     kg_name = body['kg_name']
     
@@ -324,13 +335,15 @@ def register_kge_file_set(body):  # noqa: E501
         abort(201)
 
 
-def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
+def upload_kge_file_set(kg_name, session, data_file_content, data_file_metadata=None):  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
      # noqa: E501
 
     :param kg_name:
     :type kg_name: str
+    :param session:
+    :type session: str
     :param data_file_content:
     :type data_file_content: str
     :param data_file_metadata:

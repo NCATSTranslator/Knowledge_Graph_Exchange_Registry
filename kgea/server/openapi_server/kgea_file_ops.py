@@ -297,7 +297,7 @@ def test_convert_to_yaml():
 
 
 # TODO
-def create_smartapi(submitter):
+def create_smartapi(submitter, kg_name):
     spec = {}
     yaml_file = convert_to_yaml(spec)
     return yaml_file

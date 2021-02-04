@@ -124,6 +124,11 @@ paths:
         required: true
         schema:
           type: string
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - upload
       summary: Get web form for specifying KGE File Set upload
@@ -139,6 +144,11 @@ paths:
   /register:
     get:
       parameters:
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       - name: kg_name
         in: query
         required: false
@@ -165,6 +175,12 @@ paths:
                   HTML web form to request KGE File Set upload parameters
                 type: string
     post:
+      parameters:
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - upload
       summary: Register core parameters for the KGE File Set upload
@@ -216,11 +232,16 @@ paths:
   /upload/{kg_name}:
     post:
       parameters:
-        - name: kg_name
-          in: path
-          required: true
-          schema:
-            type: string
+      - name: kg_name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - upload
       summary: Upload web form details specifying a KGE File Set upload process
@@ -277,18 +298,24 @@ paths:
                 type: string
   /{kg_name}/access:
     get:
+      parameters:
+      - name: kg_name
+        in: path
+        description: >-
+          Name label of KGE File Set, the knowledge graph
+          for which data files are being accessed
+        required: true
+        schema:
+          type: string
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - provider
       summary: Get KGE File Sets
       operationId: access
-      parameters:
-        - name: kg_name
-          in: path
-          description: >-
-            Name label of KGE File Set whose files are being accessed
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: >-
@@ -315,18 +342,23 @@ paths:
                 type: string
   /{kg_name}/knowledge_map:
     get:
+      parameters:
+      - name: kg_name
+        in: path
+        description: >-
+          Name label of KGE File Set, the knowledge graph
+          for which content metadata is being accessed
+        required: true
+        schema:
+          type: string
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
       tags:
         - content
       summary: Get supported relationships by source and target
-      parameters:
-        - name: kg_name
-          in: path
-          description: >-
-            Name label of KGE File Set whose knowledge graph
-            content metadata is being reported
-          required: true
-          schema:
-            type: string
       operationId: knowledgeMap
       responses:
         '200':
@@ -359,24 +391,6 @@ paths:
                 type: string
 components:
   schemas:
-#    KgeFileSet:
-#      description: >-
-#        Stub implementation of KGE File Set upload web form.
-#      type: object
-#      properties:
-#        submitter:
-#          type: string
-#        kg_name:
-#          type: string
-#        data_file_name:
-#          type: string
-#        metadata_file_name:
-#          type: string
-#      required:
-#        - submitter
-#        - kg_name
-#        - data_file_name
-
     Attribute:
       type: object
       description: Generic metadata attribute.

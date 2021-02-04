@@ -126,6 +126,13 @@ paths:
       parameters:
       - explode: true
         in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
         name: kg_name
         required: false
         schema:
@@ -153,6 +160,14 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.upload_controller
     post:
       operationId: register_file_set
+      parameters:
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       requestBody:
         $ref: '#/components/requestBodies/inline_object'
         content:
@@ -210,6 +225,13 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       requestBody:
         $ref: '#/components/requestBodies/inline_object_1'
         content:
@@ -274,6 +296,13 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -290,7 +319,8 @@ paths:
     get:
       operationId: access
       parameters:
-      - description: Name label of KGE File Set whose files are being accessed
+      - description: Name label of KGE File Set, the knowledge graph for which data
+          files are being accessed
         explode: false
         in: path
         name: kg_name
@@ -298,6 +328,13 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -325,8 +362,8 @@ paths:
     get:
       operationId: knowledge_map
       parameters:
-      - description: Name label of KGE File Set whose knowledge graph content metadata
-          is being reported
+      - description: Name label of KGE File Set, the knowledge graph for which content
+          metadata is being accessed
         explode: false
         in: path
         name: kg_name
@@ -334,6 +371,13 @@ paths:
         schema:
           type: string
         style: simple
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
