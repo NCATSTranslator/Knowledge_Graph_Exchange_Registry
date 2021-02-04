@@ -331,7 +331,7 @@ def test_api_registered():
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-DEBUG = True 
+DEBUG = False
 if DEBUG:
     assert(test_kg_files_in_location()) 
     print("test_kg_files_in_location passed")

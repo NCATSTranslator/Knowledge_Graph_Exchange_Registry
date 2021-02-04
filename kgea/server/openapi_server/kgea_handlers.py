@@ -9,7 +9,11 @@ except ImportError:
 from flask import abort, render_template, redirect
 
 import jinja2
+from string import Template
+import re
 
+import boto3
+from botocore.exceptions import ClientError
 
 #############################################################
 # Application Configuration
@@ -161,16 +165,21 @@ def kge_access(kg_name, session):  # noqa: E501
     """
     
     files_location = object_location(kg_name)
-
     # Listings Approach
     # - Introspect on Bucket
     # - Create URL per Item Listing
     # - Send Back URL with Dictionary
     # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # TODO: convert into redirect approach with cross-origin scripting?
-    kg_files = kg_files_in_location(bucket_name=resources['bucket'], object_location=object_location)
-    kg_listing = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_files))
-    return kg_listing
+    kg_files = kg_files_in_location(
+        bucket_name=resources['bucket'], 
+        object_location=files_location
+    )
+    pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
+    kg_listing = [ content_location for content_location in kg_files if re.match(pattern, content_location) ]
+    kg_urls = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
+    # print('access urls', kg_urls, kg_listing)
+    return kg_urls
 
 
 #############################################################
@@ -201,10 +210,17 @@ def kge_knowledge_map(kg_name, session):  # noqa: E501
     # - Send Back URL with Dictionary
     # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # TODO: convert into redirect approach with cross-origin scripting?
-    kg_files = kg_files_in_location(bucket_name=resources['bucket'], object_location=object_location)
-    kg_listing = dict(
-        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_files))
-    return kg_listing
+    kg_files = kg_files_in_location(
+        bucket_name=resources['bucket'], 
+        object_location=files_location
+    )
+    pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
+        FILES_LOCATION=files_location
+    )
+    kg_listing = [ content_location for content_location in kg_files if re.match(pattern, content_location) ]
+    kg_urls = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
+    # print('knowledge_map urls', kg_urls)
+    return kg_urls
 
 
 #############################################################
@@ -362,19 +378,17 @@ def upload_kge_file_set(kg_name, session, data_file_content, data_file_metadata=
     if maybeUploadContent or maybeUploadMetaData:
         response = {"content": dict({}), "metadata": dict({})}
         
-        content_name = maybeUploadContent
         content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadContent)
 
-        if content_name in response["content"]:
+        if maybeUploadContent in response["content"]:
             abort(400)
         else:
-            response["content"][content_name] = content_url
+            response["content"][maybeUploadContent] = content_url
         
         if maybeUploadMetaData:
-            metadata_name = Path(maybeUploadMetaData).stem
             metadata_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadMetaData)
-            if metadata_name not in response["metadata"]:
-                response["metadata"][metadata_name] = metadata_url
+            if maybeUploadMetaData not in response["metadata"]:
+                response["metadata"][maybeUploadMetaData] = metadata_url
             # don't care if not there since optional
         
         return response
