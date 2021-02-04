@@ -111,3 +111,7 @@ where `kge_access` is a handler method defined in the project developer defined 
 This code delegation needs to be repaired every time the code generator is run on the `kgea_api.yaml` specification.
 
 In addition, `boto3 >= 1.17.0` may need be added back into the **openapi_server** `requirements.txt` file.
+
+Another curious transformation is that given the vagaries of multipart/form-data in the Connexion library, the following method parameters are reformatted:
+
+In the `openapi_server/controller/upload_controller.py` file, change the `register_file_set(submitter, kg_name)` method signature to `register_file_set(body)`, then set `return register_kge_file_set(body)` as the return statement.
