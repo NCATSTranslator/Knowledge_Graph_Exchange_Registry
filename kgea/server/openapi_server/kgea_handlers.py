@@ -20,6 +20,17 @@ from botocore.exceptions import ClientError
 #############################################################
 
 from .kgea_config import s3_client, resources
+from .kgea_file_ops import (
+    upload_file, 
+    download_file, 
+    create_presigned_url, 
+    location_available, 
+    kg_files_in_location, 
+    add_to_github, 
+    create_smartapi, 
+    object_location,
+    withTimestamp
+)
 
 #############################################################
 # Site Controller Handlers
@@ -113,46 +124,13 @@ def kge_access(kg_name):  # noqa: E501
     :rtype: Dict[str, Attribute]
     """
     
+    # TODO: replace with function
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/$CONTENT_TYPE/').substitute(
         DIRECTORY_NAME='kge-data',
         KG_NAME=kg_name,
         CONTENT_TYPE='content'
     )
-    
-    def create_presigned_url(bucket, object_name, expiration=3600):
-        """Generate a presigned URL to share an S3 object
 
-        :param bucket: string
-        :param object_name: string
-        :param expiration: Time in seconds for the presigned URL to remain valid
-        :return: Presigned URL as string. If error, returns None.
-        """
-        
-        # Generate a presigned URL for the S3 object
-        # TODO: https://stackoverflow.com/a/52642792
-        # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
-        try:
-            response = s3_client.generate_presigned_url('get_object',
-                                                        Params={'Bucket': bucket,
-                                                                'Key': object_name},
-                                                        ExpiresIn=expiration)
-        except ClientError as e:
-            print(e)
-            return None
-        
-        # The response contains the presigned URL
-        return response
-    
-    def kg_files_in_location(bucket_name, object_location):
-        # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
-        
-        # TODO: Warning! Doesn't scale very well, looks somewhat unsafe. What other options do we have to query the bucket?
-        bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
-                           e in p['Contents']]
-        object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
-        
-        return object_matches
-    
     # Listings Approach
     # - Introspect on Bucket
     # - Create URL per Item Listing
@@ -160,8 +138,7 @@ def kge_access(kg_name):  # noqa: E501
     # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # TODO: convert into redirect approach with cross-origin scripting?
     kg_files = kg_files_in_location(bucket_name=resources['bucket'], object_location=object_location)
-    kg_listing = dict(
-        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_files))
+    kg_listing = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_files))
     return kg_listing
 
 
@@ -184,46 +161,13 @@ def kge_knowledge_map(kg_name):  # noqa: E501
 
     :rtype: Dict[str, Dict[str, List[str]]]
     """
-    
+
+    # TODO: replace with function
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/$CONTENT_TYPE/').substitute(
         DIRECTORY_NAME='kge-data',
         KG_NAME=kg_name,
         CONTENT_TYPE='metadata'
     )
-    
-    def create_presigned_url(bucket, object_name, expiration=3600):
-        """Generate a presigned URL to share an S3 object
-
-        :param bucket: string
-        :param object_name: string
-        :param expiration: Time in seconds for the presigned URL to remain valid
-        :return: Presigned URL as string. If error, returns None.
-        """
-        
-        # Generate a presigned URL for the S3 object
-        # TODO: https://stackoverflow.com/a/52642792
-        # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
-        try:
-            response = s3_client.generate_presigned_url('get_object',
-                                                        Params={'Bucket': bucket,
-                                                                'Key': object_name},
-                                                        ExpiresIn=expiration)
-        except ClientError as e:
-            print(e)
-            return None
-        
-        # The response contains the presigned URL
-        return response
-    
-    def kg_files_in_location(bucket_name, object_location):
-        #s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
-        
-        # TODO: Warning! Doesn't scale very well, looks somewhat unsafe. What other options do we have to query the bucket?
-        bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
-                           e in p['Contents']]
-        object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
-        
-        return object_matches
     
     # Listings Approach
     # - Introspect on Bucket
@@ -336,49 +280,11 @@ def register_kge_file_set(body):  # noqa: E501
     submitter = body['submitter']
     kg_name = body['kg_name']
     
+    # TODO: replace with function
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data',
         KG_NAME=kg_name
     )
-    
-    def location_available(bucket_name, object_key):
-        """
-        Guarantee that we can write to the location of the object without overriding everything
-
-        :param bucket: The bucket
-        :param object: The object in the bucket
-        :return: True if the object is not in the bucket, False if it is already in the bucket
-        """
-        s3 = boto3.resource('s3')
-        bucket = s3.Bucket(bucket_name)
-        key = object_key
-        objs = list(bucket.objects.filter(Prefix=key))
-        if any([w.key == key for w in objs]):
-            # exists
-            # invert because unavailable
-            return not True
-        else:
-            # doesn't exist
-            # invert because available
-            return not False
-    
-    # TODO
-    def create_smartapi(submitter, kg_name):
-        spec = {}
-        
-        def convert_to_yaml(spec):
-            yaml_file = lambda spec: spec
-            return yaml_file(spec)
-        
-        yaml_file = convert_to_yaml(api_specification)
-        
-        return spec
-    
-    # TODO
-    def add_to_github(api_specification):
-        # using https://github.com/NCATS-Tangerine/translator-api-registry
-        repo = ''
-        return repo
     
     api_specification = create_smartapi(submitter, kg_name)
     url = add_to_github(api_specification)
@@ -409,95 +315,17 @@ def upload_kge_file_set(kg_name, data_file_content, data_file_metadata=None):  #
 
     :rtype: str
     """
+    # TODO: replace with function
     object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data',
         KG_NAME=kg_name
     )
-    
-    def upload_file(data_file, bucket_name, object_location, content_type, override=False):
-        """Upload a file to an S3 bucket
 
-        :param file_name: File to upload
-        :param bucket: Bucket to upload to
-        :param object_name: S3 object name. If not specified then file_name is used
-        :return: True if file was uploaded, else False
-        """
-        object_key = object_location + content_type + '/' + data_file.filename
-        
-        # Upload the file
-        """ s3_client = boto3.client('s3', config=Config(
-            # Don't need to set the region -
-            # externally defined `aws configure`
-            # default value should be used?
-            # region_name='ca-central-1',
-            signature_version='s3v4')
-                                 )
-        """
-
-        try:
-            with data_file.stream as f:
-                s3_client.upload_fileobj(f, bucket_name, object_key)
-        except ClientError as e:
-            # TODO: replace with logger
-            print(e)
-            return None
-        return object_key
-    
-    # # TODO
-    # def api_registered(kg_name):
-    #     return True
-    #
-    
-    # def location_available(bucket_name, object_key):
-    #     """
-    #     Guarantee that we can write to the location of the object without overriding everything
-    #
-    #     :param bucket: The bucket
-    #     :param object: The object in the bucket
-    #     :return: True if the object is not in the bucket, False if it is already in the bucket
-    #     """
-    #     s3 = boto3.resource('s3')
-    #     bucket = s3.Bucket(bucket_name)
-    #     key = object_key
-    #     objs = list(bucket.objects.filter(Prefix=key))
-    #     if any([w.key == key for w in objs]):
-    #         # exists
-    #         # invert because unavailable
-    #         return not True
-    #     else:
-    #         # doesn't exist
-    #         # invert because available
-    #         return not False
-    
     # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
     maybeUploadContent = upload_file(data_file_content, bucket_name=resources['bucket'], object_location=object_location,
                                      content_type="content")
     maybeUploadMetaData = None or data_file_metadata and upload_file(data_file_metadata, bucket_name=resources['bucket'],
                                               object_location=object_location, content_type="metadata")
-    
-    def create_presigned_url(bucket, object_name, expiration=3600):
-        """Generate a presigned URL to share an S3 object
-
-        :param bucket: string
-        :param object_name: string
-        :param expiration: Time in seconds for the presigned URL to remain valid
-        :return: Presigned URL as string. If error, returns None.
-        """
-        
-        # Generate a presigned URL for the S3 object
-        # https://stackoverflow.com/a/52642792
-        # s3_client = boto3.client('s3', config=Config(signature_version='s3v4'))
-        try:
-            response = s3_client.generate_presigned_url('get_object',
-                                                        Params={'Bucket': bucket,
-                                                                'Key': object_name},
-                                                        ExpiresIn=expiration)
-        except ClientError as e:
-            print(e)
-            return None
-        
-        # The response contains the presigned URL
-        return response
     
     if maybeUploadContent or maybeUploadMetaData:
         response = {"content": dict({}), "metadata": dict({})}

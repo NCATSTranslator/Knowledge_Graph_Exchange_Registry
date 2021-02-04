@@ -8,7 +8,7 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 
-from kgea_config import s3_client
+from .kgea_config import s3_client
 
 import boto3
 from botocore.exceptions import ClientError
@@ -274,6 +274,10 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
             url = download_file(bucket=test_bucket, object_key=object_location(test_kg_name)+'somedata.csv', openFile=False)  # openFile=False to affirm we won't trigger a browser action
             response = requests.get(url)
             assert(response.status_code is 200)
+    except FileNotFoundError as e:
+        print("ERROR: Test is malformed!")
+        print(e)
+        return False
     except AssertionError as e:
         print('ERROR: URL is not returning a downloadable resource (response code is not 200)')
         print(e)
