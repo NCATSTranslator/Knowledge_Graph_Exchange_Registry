@@ -2,9 +2,10 @@ oauth2:
   host:      ''
   client_id: ''
   site_uri:  ''
-  callback:  '/oauth2callback'
-  logout:    '/logout'
+  login_callback:  '/oauth2callback'
+
 bucket: 'kgea-bucket'               # REQUIRED: the name of the S3 bucket that will host your kgea files
+
 # Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
 credentials_file: ''                # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
 credentials_mode: 'default'         # the part of the credentials to use. Allows for multiple setups, e.g. [dev], [production], [default]

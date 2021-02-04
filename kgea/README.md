@@ -138,12 +138,12 @@ If you don't really want to store your keys outside the project root directory, 
 
 ### Project Configuration File
 
-You must also use the project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template`, whose contents are noted here: 
+You must also use the project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template` in the `kgea/server/`, whose contents are noted here: 
 
 ```yaml
 bucket: 'kgea-bucket'   # REQUIRED: the name of the S3 bucket that will host your kgea files
 ```
-To apply this file: copy it into the `kgea/server/` subdirectory, and rename it to `kgea_config.yaml`.  Fill out the required information. Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
+To apply this file, make a copy of the template in the `kgea/server/` subdirectory, and rename it to `kgea_config.yaml`.  Fill out the required information. Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
 
 NOTE: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
 
