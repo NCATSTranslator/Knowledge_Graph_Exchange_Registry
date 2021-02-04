@@ -1,1 +1,1 @@
-Image files can be placed here, e.g. banner.jpg
+A placeholder `banner.jpg` file may be placed here to be visible to the site. 
