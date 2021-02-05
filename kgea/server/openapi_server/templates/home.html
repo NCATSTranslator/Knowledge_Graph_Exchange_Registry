@@ -2,13 +2,13 @@
 {% block content %}
 <h1>KGE Archive</h1>
 <p>What do you want to do?</p>
-<form action="/register?session=0819e7d2-7567-4a90-8517-1282027353fb" action="post">
+<form action="/register?session={{session}}" action="post">
     <input type="submit" value="Upload KGE File Set" />
 </form>
-<form action="/register?session=0819e7d2-7567-4a90-8517-1282027353fb" action="post">
+<form action="/register?session={{session}}" action="post">
     <input type="submit" value="Download KGE File Set" />
 </form>
-<form action="/register?session=0819e7d2-7567-4a90-8517-1282027353fb" action="post">
+<form action="/register?session={{session}}" action="post">
     <input type="submit" value="Download KGE Metadata" />
 </form>
 {% endblock %}
