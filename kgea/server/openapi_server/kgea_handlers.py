@@ -352,7 +352,7 @@ def register_kge_file_set(session_id: str, body: dict) -> Response:  # noqa: E50
     :rtype: Response
     """
 
-    print("register_kge_file_set("+session_id+", "+body+")")
+    print("register_kge_file_set("+session_id+", "+str(body)+")")
     
     if not valid_session(session_id):
         # redirect to unauthenticated home page
