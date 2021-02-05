@@ -12,7 +12,7 @@ import jinja2
 from string import Template
 import re
 
-from werkzeug import FileStorage
+# from werkzeug import FileStorage
 
 #############################################################
 # Application Configuration
@@ -325,7 +325,7 @@ def register_kge_file_set(session, body):  # noqa: E501
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            return redirect('upload', kg_name=kg_name, submitter=submitter)
+            return redirect('/upload', kg_name=kg_name, submitter=submitter)
         else:
             # TODO: more graceful front end failure signal
             redirect(HOME, code=400, Response=None)
@@ -336,8 +336,8 @@ def register_kge_file_set(session, body):  # noqa: E501
 def upload_kge_file_set(
         kg_name,
         session,
-        data_file_content: FileStorage,
-        data_file_metadata: FileStorage = None
+        data_file_content,#: FileStorage,
+        data_file_metadata = None#: FileStorage
 ):  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
