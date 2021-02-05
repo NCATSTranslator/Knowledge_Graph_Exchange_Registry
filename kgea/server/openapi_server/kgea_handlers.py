@@ -258,7 +258,7 @@ def get_kge_registration_form(session, kg_name: str = None, submitter: str = Non
     if submitter is None:
         submitter_text = ''
 
-    return render_template('register.html')
+    return render_template('register.html', session=session)
 
 
 def get_kge_upload_form(kg_name, session):  # noqa: E501
@@ -304,7 +304,7 @@ def register_kge_file_set(session, body):  # noqa: E501
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            return redirect('/upload', kg_name=kg_name, submitter=submitter)
+            return redirect(Template('/upload?session={{session}}').substitute(session=session), kg_name=kg_name, submitter=submitter)
         else:
             # TODO: more graceful front end failure signal
             redirect(HOME, code=400, Response=None)
