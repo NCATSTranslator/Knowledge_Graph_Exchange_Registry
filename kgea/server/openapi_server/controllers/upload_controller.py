@@ -1,6 +1,6 @@
 from ..kgea_handlers import (
     get_kge_registration_form,
-    get_kge_upload_form,
+    get_kge_file_upload_form,
     register_kge_file_set,
     upload_kge_file_set
 )
@@ -23,19 +23,21 @@ def get_registration_form(session, kg_name=None, submitter=None):  # noqa: E501
     return get_kge_registration_form(session, kg_name, submitter)
 
 
-def get_upload_form(kg_name, session):  # noqa: E501
+def get_file_upload_form(session, submitter, kg_name):  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
 
-    :param kg_name: 
-    :type kg_name: str
-    :param session: 
+    :param session:
     :type session: str
+    :param submitter:
+    :type submitter: str
+    :param kg_name:
+    :type kg_name: str
 
     :rtype: str
     """
-    return get_kge_upload_form(kg_name, session)
+    return get_kge_file_upload_form(session, submitter, kg_name)
 
 
 def register_file_set(session, body):  # noqa: E501
