@@ -267,11 +267,11 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
     kg_urls = dict(
         map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
     # logger.info('knowledge_map urls: %s', kg_urls)
-    import requests, json
-    metadata_key = kg_listing[0]
-    url = create_presigned_url(resources['bucket'], metadata_key)
-    metadata = json.loads(requests.get(url).text)
-    return Response(metadata)
+    # import requests, json
+    # metadata_key = kg_listing[0]
+    # url = create_presigned_url(resources['bucket'], metadata_key)
+    # metadata = json.loads(requests.get(url).text)
+    return Response(kg_urls)
 
 
 #############################################################
