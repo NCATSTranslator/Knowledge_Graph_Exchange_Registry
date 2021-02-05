@@ -3,7 +3,7 @@
 <h1>Register your File Set</h1>
 <form name="formData"
       method="post"
-      action="/register?session={{session}}"
+      action="/register"
       enctype="application/x-www-form-urlencoded"
 >
     <br>
@@ -12,11 +12,12 @@
     A short name that identifies and describes your knowledge graph. <em>Do not use whitespace or special characters</em>.<br>
     For examples of good names, see the <a href="https://smart-api.info/registry">SmartAPI Registry</a>.<br>
     </p>
-    <input type="text" name="kg_name">
+    <input type="text" name="kg_name"/>
     <h4>Your Name</h4>
     <p>Or, the name of the researcher or institution that contributed the dataset.</p>
-    <input type="text" name="submitter">
+    <input type="text" name="submitter"/>
     <br><br>
     <p><input type="submit" value="Register"></p>
+    <input type="hidden" name="session" value="{{session}}"/>
 </form>
 {% endblock %}
