@@ -51,6 +51,7 @@ def register_file_set( body
     :rtype: str
     """
     return register_kge_file_set(
+        body
         # session, submitter, kg_name, **kwargs
     )
 
