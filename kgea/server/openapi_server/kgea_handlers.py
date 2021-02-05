@@ -398,13 +398,7 @@ def register_kge_file_set(body
     #     abort(201)
 
 
-def upload_kge_file_set(
-        body
-        # kg_name: str,
-        # session_id: str,
-        # data_file_content,
-        # data_file_metadata=None
-) -> Response:  # noqa: E501
+def upload_kge_file_set(kg_name, session_id, data_file_content, data_file_metadata) -> Response:  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
      # noqa: E501
@@ -415,13 +409,13 @@ def upload_kge_file_set(
     :rtype: Response
     """
 
-    saved_args = locals()
-    logger.critical("upload_kge_file_set: ", saved_args)
-    
-    session_id = body['session']
-    kg_name = body['kg_name']
-    data_file_content = body['data_file_content']
-    data_file_metadata = body['data_file_metadata']
+    # saved_args = locals()
+    # logger.critical("upload_kge_file_set: ", saved_args)
+    #
+    # session_id = body['session']
+    # kg_name = 'test' # body['kg_name']
+    # data_file_content = body['data_file_content']
+    # data_file_metadata = body['data_file_metadata']
     
     if not valid_session(session_id):
         # redirect to unauthenticated home page
@@ -437,7 +431,7 @@ def upload_kge_file_set(
                                                                      file_name=data_file_metadata.filename,
                                                                      bucket_name=resources['bucket'],
                                                                      object_location=metadataLocation)
-     if maybeUploadContent or maybeUploadMetaData:
+    if maybeUploadContent or maybeUploadMetaData:
         response = {"content": dict({}), "metadata": dict({})}
         
         content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadContent)
