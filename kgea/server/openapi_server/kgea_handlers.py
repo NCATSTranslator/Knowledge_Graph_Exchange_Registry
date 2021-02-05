@@ -312,7 +312,7 @@ def get_kge_registration_form(
     if submitter is None:
         submitter_text = ''
 
-    return render_template('register.html', session=session)
+    return render_template('register.html', session=session_id)
 
 
 def get_kge_upload_form(kg_name: str, session_id: str) -> Response:  # noqa: E501
@@ -336,7 +336,7 @@ def get_kge_upload_form(kg_name: str, session_id: str) -> Response:  # noqa: E50
     # TODO guard against invalid kg_name (check availability in bucket)
     # TODO redirect to register_form with given optional param as the entered kg_name
     
-    return render_template('upload.html', kg_name=kg_name, submitter='unknown', session=session)
+    return render_template('upload.html', kg_name=kg_name, submitter='unknown', session=session_id)
 
 
 def register_kge_file_set(session_id: str, body: dict) -> Response:  # noqa: E501
@@ -370,7 +370,7 @@ def register_kge_file_set(session_id: str, body: dict) -> Response:  # noqa: E50
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            return redirect(Template('/upload?session={{session}}').substitute(session=session), kg_name=kg_name, submitter=submitter)
+            return redirect(Template('/upload?session={{session}}').substitute(session=session_id), kg_name=kg_name, submitter=submitter)
         else:
             # TODO: more graceful front end failure signal
             redirect(HOME, code=400, Response=None)
@@ -383,7 +383,7 @@ def upload_kge_file_set(
         kg_name: str,
         session_id: str,
         data_file_content,
-        data_file_metadata = None
+        data_file_metadata=None
 ) -> Response:  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
