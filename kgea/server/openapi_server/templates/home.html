@@ -2,10 +2,12 @@
 {% block content %}
 <h1>KGE Archive</h1>
 <p>What do you want to do?</p>
+
+<h2>Archive a Knowledge Graph</h2>
 <form action="/register" method="get">
     <!-- https://stackoverflow.com/a/9882750/1991892 -->
     <input type="hidden" name="session" value="{{session}}" /> 
-    <input type="submit" value="Register KGE File Set" />
+    <input type="submit" value="Register KGE File Set" /><br>
     <small>This is the first step required for uploading.</small>
 </form>
 <form action="/access" method="get" onsubmit="this.action = + '/' + this.kg_name.value + this.action">

@@ -11,7 +11,7 @@ from flask import abort, render_template, redirect
 from string import Template
 import re
 
-from werkzeug import Response
+from werkzeug import FileStorage, Response
 
 #############################################################
 # Application Configuration
@@ -370,7 +370,7 @@ def register_kge_file_set(session_id: str, body: dict) -> Response:  # noqa: E50
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            return redirect(Template('/upload?session={{session}}').substitute(session=session), kg_name=kg_name, submitter=submitter)
+            return redirect(Template('/upload/$KG_NAME/?session={{session}}').substitute(session=session, kg_name=kg_name), kg_name=kg_name, submitter=submitter)
         else:
             # TODO: more graceful front end failure signal
             redirect(HOME, code=400, Response=None)
@@ -382,8 +382,8 @@ def register_kge_file_set(session_id: str, body: dict) -> Response:  # noqa: E50
 def upload_kge_file_set(
         kg_name: str,
         session_id: str,
-        data_file_content,
-        data_file_metadata = None
+        data_file_content: FileStorage,
+        data_file_metadata: FileStorage = None
 ) -> Response:  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
