@@ -15,4 +15,3 @@ botocore
 pyyaml
 flask
 Flask-Session
-Flask-Ext

@@ -1,5 +1,5 @@
 from flask import session
-from flask.ext.session import Session
+from flask_session import Session
 
 from uuid import uuid4
 
