@@ -437,7 +437,7 @@ def upload_kge_file_set(
                                                                      file_name=data_file_metadata.filename,
                                                                      bucket_name=resources['bucket'],
                                                                      object_location=metadataLocation)
-     if maybeUploadContent or maybeUploadMetaData:
+    if maybeUploadContent or maybeUploadMetaData:
         response = {"content": dict({}), "metadata": dict({})}
         
         content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadContent)
