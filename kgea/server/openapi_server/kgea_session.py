@@ -9,6 +9,7 @@ from .kgea_config import resources
 SESSION_TYPE = 'filesystem'
 SESSION_COOKIE_DOMAIN = resources['oauth2']['site_uri']
 SESSION_COOKIE_NAME = 'KGE-Archive'
+App.config.from_object(__name__)
 Session(App)
 
 
