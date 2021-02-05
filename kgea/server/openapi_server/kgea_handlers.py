@@ -58,7 +58,7 @@ def get_kge_home(session=None):  # noqa: E501
     # validate the session key
     
     if session:
-        return render_template('home.html',session=session)
+        return render_template('home.html', session=session)
     else:
         return render_template('login.html')
 
@@ -257,29 +257,8 @@ def get_kge_registration_form(session, kg_name: str = None, submitter: str = Non
         kg_name_text = ''
     if submitter is None:
         submitter_text = ''
-    
-    page = """
-    <!DOCTYPE html>
-    <html>
 
-    <head>
-        <title>Register Files for Knowledge Graph</title>
-    </head>
-
-    <body>
-        <h1>Register Files for Knowledge Graph</h1>
-
-        <form action="/register" method="post" enctype="application/x-www-form-urlencoded">
-            KnowledgeGraph Name: <input type="text" name="kg_name" value="{{kg_name}}"><br>
-            Submitter: <input type="text" name="submitter" value="{{submitter}}"><br>
-            <input type="submit" value="Register">
-        </form>
-
-    </body>
-
-    </html>
-    """
-    return jinja2.Template(page).render(kg_name=kg_name_text, submitter=submitter_text)
+    return render_template('register.html')
 
 
 def get_kge_upload_form(kg_name, session):  # noqa: E501
