@@ -11,13 +11,15 @@
 <form action="/access"onsubmit="this.action = + '/' + this.kg_name.value + this.action">
     <!-- https://stackoverflow.com/a/9882750/1991892 -->
     <input type="hidden" name="session" value="{{session}}" />
-    <input type="text" name="kg_name">Knowledge Graph Name</input>
+    <label for="kg_name">Knowledge Graph</label>
+    <input type="text" name="kg_name"/>
     <input type="submit" value="Download KGE File Set" />
 </form>
 <form action="/knowledge_map" onsubmit="this.action = + '/' + this.kg_name.value + this.action">
     <!-- https://stackoverflow.com/a/9882750/1991892 -->
     <input type="hidden" name="session" value="{{session}}" /> 
-    <input type="text" name="kg_name">Knowledge Graph Name</input>
+    <label for="kg_name">Knowledge Graph</label>
+    <input type="text" name="kg_name"/>
     <input type="submit" value="Download KGE Metadata" />
 </form>
 {% endblock %}
