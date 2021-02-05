@@ -397,10 +397,11 @@ def register_kge_file_set(body
 
 
 def upload_kge_file_set(
-        kg_name: str,
-        session_id: str,
-        data_file_content,
-        data_file_metadata=None
+        body
+        # kg_name: str,
+        # session_id: str,
+        # data_file_content,
+        # data_file_metadata=None
 ) -> Response:  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
@@ -417,8 +418,13 @@ def upload_kge_file_set(
 
     :rtype: Response
     """
+    session_id = body['session']
+    kg_name = body['kg_name']
+    data_file_content = body['data_file_content']
+    data_file_metadata = body['data_file_metadata']
+    
     saved_args = locals()
-    print("upload_kge_file_set", saved_args)
+    logger.critical("upload_kge_file_set", saved_args)
     
     if not valid_session(session_id):
         # redirect to unauthenticated home page
