@@ -2,13 +2,19 @@
 {% block content %}
 <h1>KGE Archive</h1>
 <p>What do you want to do?</p>
-<form action="/register?session={{session}}" action="post">
+<form action="/register" action="post">
+    <!-- https://stackoverflow.com/a/9882750/1991892 -->
+    <input type="hidden" name="session" value="{{session}}" /> 
     <input type="submit" value="Upload KGE File Set" />
 </form>
-<form action="/register?session={{session}}" action="post">
+<form action="/access" action="post">
+    <!-- https://stackoverflow.com/a/9882750/1991892 -->
+    <input type="hidden" name="session" value="{{session}}" /> 
     <input type="submit" value="Download KGE File Set" />
 </form>
-<form action="/register?session={{session}}" action="post">
+<form action="/knowledge_map" action="post">
+    <!-- https://stackoverflow.com/a/9882750/1991892 -->
+    <input type="hidden" name="session" value="{{session}}" /> 
     <input type="submit" value="Download KGE Metadata" />
 </form>
 {% endblock %}
