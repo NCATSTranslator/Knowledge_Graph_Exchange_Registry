@@ -240,6 +240,8 @@ paths:
               properties:
                 session:
                   type: string
+                kg_name:
+                  type: string
                 data_file_content:
                   type: string
                   format: binary

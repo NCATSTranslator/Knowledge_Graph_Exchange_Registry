@@ -418,13 +418,14 @@ def upload_kge_file_set(
 
     :rtype: Response
     """
+
+    saved_args = locals()
+    logger.critical("upload_kge_file_set", saved_args)
+    
     session_id = body['session']
     kg_name = body['kg_name']
     data_file_content = body['data_file_content']
     data_file_metadata = body['data_file_metadata']
-    
-    saved_args = locals()
-    logger.critical("upload_kge_file_set", saved_args)
     
     if not valid_session(session_id):
         # redirect to unauthenticated home page

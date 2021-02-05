@@ -247,6 +247,8 @@ paths:
               properties:
                 session:
                   type: string
+                kg_name:
+                  type: string
                 data_file_content:
                   format: binary
                   type: string
@@ -434,6 +436,8 @@ components:
       description: Uploading form posting of (meta-)data files.
       properties:
         session:
+          type: string
+        kg_name:
           type: string
         data_file_content:
           format: binary
