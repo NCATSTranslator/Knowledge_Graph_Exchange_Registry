@@ -18,3 +18,12 @@ img.banner {
   margin-right: auto;
   width: 50%;
 }
+
+.textbox {
+  border: 1px #DDA0DD;
+}
+
+.menu_bar {
+  position: relative;
+  right: 30px;
+}

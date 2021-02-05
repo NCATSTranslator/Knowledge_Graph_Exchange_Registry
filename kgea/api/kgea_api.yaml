@@ -250,6 +250,7 @@ paths:
                   format: binary
               required:
                 - session
+                - kg_name
                 - data_file_content
             encoding: # The same level as schema
               data_file_content: # Property name (see above)

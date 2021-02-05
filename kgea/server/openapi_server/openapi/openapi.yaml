@@ -257,6 +257,7 @@ paths:
                   type: string
               required:
               - data_file_content
+              - kg_name
               - session
               type: object
         description: KGE File Set metadata and data files submitted
@@ -447,5 +448,6 @@ components:
           type: string
       required:
       - data_file_content
+      - kg_name
       - session
       type: object

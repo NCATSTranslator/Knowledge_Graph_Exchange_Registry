@@ -286,7 +286,8 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
 #     upload_kge_file_set,
 # )
 #
-# rewrite 'register_kge_file_set' arguments 'submitter' and 'kg_name' => 'body'
+# rewrite 'register_file_set' arguments
+# session, submitter and kg_name => 'body'
 #############################################################
 
 
@@ -353,9 +354,7 @@ def get_kge_file_upload_form(
     return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
 
 
-def register_kge_file_set(body
-                          # session_id, submitter, kg_name, **kwargs
-                          ) -> Response:  # noqa: E501
+def register_kge_file_set(body) -> Response:  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
@@ -365,7 +364,7 @@ def register_kge_file_set(body
 
     :rtype: Response
     """
-    logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
+    # logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
     
     session_id = body['session']
     submitter = body['submitter']
@@ -398,14 +397,25 @@ def register_kge_file_set(body
     #     abort(201)
 
 
-def upload_kge_file_set(kg_name, session_id, data_file_content, data_file_metadata) -> Response:  # noqa: E501
-
+def upload_kge_file_set(
+        session,
+        kg_name,
+        data_file_content,
+        data_file_metadata
+) -> Response:  # noqa: E501
+    
     """Upload web form details specifying a KGE File Set upload process
 
      # noqa: E501
 
-    :param body:
-    :type body: dict
+    :param session:
+    :type session: str
+    :param kg_name:
+    :type kg_name: str
+    :param data_file_content:
+    :type data_file_content: str
+    :param data_file_metadata:
+    :type data_file_metadata: str
 
     :rtype: Response
     """
@@ -417,6 +427,9 @@ def upload_kge_file_set(kg_name, session_id, data_file_content, data_file_metada
     # kg_name = 'test' # body['kg_name']
     # data_file_content = body['data_file_content']
     # data_file_metadata = body['data_file_metadata']
+    
+    saved_args = locals()
+    print("upload_kge_file_set", saved_args)
     
     if not valid_session(session_id):
         # redirect to unauthenticated home page

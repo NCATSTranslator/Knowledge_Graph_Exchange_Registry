@@ -9,16 +9,17 @@
     {% endblock %}
 </head>
 <body>
-    <center>
-        <p><div id="content">
-            <img class="banner" src="images/banner.jpg" alt="Translator Banner">
-            {% block content %}{% endblock %}
-        </div>
-        <p><div id="footer">
-            {% block footer %}
-            &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
-            {% endblock %}
-        </div>
-    </center>
+<div class="center">
+    <p><img class="banner" src="images/banner.jpg" alt="Translator Banner"></p>
+    <div>{% block menu %}{% endblock %}</div>
+    <p><div id="content">
+        {% block content %}{% endblock %}
+    </div>
+    <p><div id="footer">
+        {% block footer %}
+        &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
+        {% endblock %}
+    </div>
+</div>
 </body>
 </html>
