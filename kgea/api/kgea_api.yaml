@@ -116,31 +116,6 @@ paths:
         '302':
           description: >-
             Returns redirect to hosted Oauth2 client logout process
-  /upload_form/{kg_name}:
-    get:
-      parameters:
-      - name: kg_name
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: session
-        in: query
-        required: true
-        schema:
-          type: string
-      tags:
-        - upload
-      summary: Get web form for specifying KGE File Set upload
-      operationId: getUploadForm
-      responses:
-        '200':
-          description: Returns a web form for uploading a KGE File Set
-          content:
-            text/html:
-              schema:
-                description: KGE File Set upload HTML web form
-                type: string
   /register:
     get:
       parameters:
@@ -216,17 +191,42 @@ paths:
             application/json:
               schema:
                 type: string
-  /upload/{kg_name}:
-    post:
+  /upload:
+    get:
       parameters:
+      - name: session
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: submitter
+        in: query
+        required: true
+        schema:
+          type: string
       - name: kg_name
-        in: path
+        in: query
         required: true
         schema:
           type: string
       tags:
         - upload
-      summary: Upload web form details specifying a KGE File Set upload process
+      summary: Get web form for the KGE File Set upload process
+      operationId: getFileUploadForm
+      responses:
+        '200':
+          description: >-
+            Returns a web form for the KGE File Set upload process
+          content:
+            text/html:
+              schema:
+                description: >-
+                  HTML web form for KGE File Set upload
+                type: string
+    post:
+      tags:
+        - upload
+      summary: Upload processing of KGE File Set
       operationId: uploadFileSet
       requestBody:
         description: KGE File Set metadata and data files submitted
@@ -235,7 +235,8 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              description: "$ref: '#/components/schemas/KgeFileSet'"
+              description: >-
+                Uploading form posting of (meta-)data files.
               properties:
                 session:
                   type: string

@@ -195,17 +195,45 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
-  /upload/{kg_name}:
-    post:
-      operationId: upload_file_set
+  /upload:
+    get:
+      operationId: get_file_upload_form
       parameters:
-      - explode: false
-        in: path
+      - explode: true
+        in: query
+        name: session
+        required: true
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: submitter
+        required: true
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
         name: kg_name
         required: true
         schema:
           type: string
-        style: simple
+        style: form
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: HTML web form for KGE File Set upload
+                type: string
+          description: Returns a web form for the KGE File Set upload process
+      summary: Get web form for the KGE File Set upload process
+      tags:
+      - upload
+      x-openapi-router-controller: openapi_server.controllers.upload_controller
+    post:
+      operationId: upload_file_set
       requestBody:
         $ref: '#/components/requestBodies/inline_object_1'
         content:
@@ -215,7 +243,7 @@ paths:
                 contentType: text/csv, text/tab-separated-values
                 style: form
             schema:
-              description: '$ref: ''#/components/schemas/KgeFileSet'''
+              description: Uploading form posting of (meta-)data files.
               properties:
                 session:
                   type: string
@@ -258,37 +286,7 @@ paths:
               schema:
                 type: string
           description: Not implemented.
-      summary: Upload web form details specifying a KGE File Set upload process
-      tags:
-      - upload
-      x-openapi-router-controller: openapi_server.controllers.upload_controller
-  /upload_form/{kg_name}:
-    get:
-      operationId: get_upload_form
-      parameters:
-      - explode: false
-        in: path
-        name: kg_name
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: true
-        in: query
-        name: session
-        required: true
-        schema:
-          type: string
-        style: form
-      responses:
-        "200":
-          content:
-            text/html:
-              schema:
-                description: KGE File Set upload HTML web form
-                type: string
-          description: Returns a web form for uploading a KGE File Set
-      summary: Get web form for specifying KGE File Set upload
+      summary: Upload processing of KGE File Set
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
@@ -433,7 +431,7 @@ components:
       - submitter
       type: object
     inline_object_1:
-      description: '$ref: ''#/components/schemas/KgeFileSet'''
+      description: Uploading form posting of (meta-)data files.
       properties:
         session:
           type: string

@@ -20,11 +20,11 @@ from werkzeug import Response
 from .kgea_config import resources
 from .kgea_file_ops import (
     upload_file,
-    create_presigned_url, 
-    location_available, 
-    kg_files_in_location, 
-    add_to_github, 
-    create_smartapi, 
+    create_presigned_url,
+    location_available,
+    kg_files_in_location,
+    add_to_github,
+    create_smartapi,
     object_location,
     withTimestamp
 )
@@ -96,7 +96,7 @@ def kge_client_authentication(code: str, state: str) -> Response:  # noqa: E501
     # Establish session here if there
     # is a valid access code & state variable?
     if state in _state_cache:
-
+        
         # state 'secrets' are only got for one request
         _state_cache.remove(state)
         
@@ -114,7 +114,7 @@ def kge_client_authentication(code: str, state: str) -> Response:  # noqa: E501
                 session_id = create_session()
                 
                 # then redirect to an authenticated home page
-                authenticated_url = HOME+'?session='+session_id
+                authenticated_url = HOME + '?session=' + session_id
                 return redirect(authenticated_url, code=302, Response=None)
     
     # If authentication conditions are not met
@@ -169,7 +169,7 @@ def kge_logout(session_id: str = None) -> Response:  # noqa: E501
             resources['oauth2']['client_id'] + \
             '&logout_uri=' + \
             resources['oauth2']['site_uri']
-    
+        
         return redirect(logout_url, code=302, Response=None)
     else:
         # redirect to unauthenticated home page, for login
@@ -210,12 +210,13 @@ def kge_access(kg_name: str, session_id: str) -> Response:  # noqa: E501
     # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # TODO: convert into redirect approach with cross-origin scripting?
     kg_files = kg_files_in_location(
-        bucket_name=resources['bucket'], 
+        bucket_name=resources['bucket'],
         object_location=files_location
     )
     pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
-    kg_listing = [ content_location for content_location in kg_files if re.match(pattern, content_location) ]
-    kg_urls = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
+    kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+    kg_urls = dict(
+        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
     # logger.info('access urls %s, KGs: %s', kg_urls, kg_listing)
     
     return Response(kg_urls)
@@ -242,11 +243,11 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
     
     :rtype: Response( Dict[str, Dict[str, List[str]]] )
     """
-
+    
     if not valid_session(session_id):
         # redirect to unauthenticated home page
         return redirect(HOME, code=302, Response=None)
-
+    
     files_location = object_location(kg_name)
     
     # Listings Approach
@@ -256,14 +257,15 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
     # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # TODO: convert into redirect approach with cross-origin scripting?
     kg_files = kg_files_in_location(
-        bucket_name=resources['bucket'], 
+        bucket_name=resources['bucket'],
         object_location=files_location
     )
     pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
         FILES_LOCATION=files_location
     )
     kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-    kg_urls = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
+    kg_urls = dict(
+        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
     # logger.info('knowledge_map urls: %s', kg_urls)
     
     return Response(kg_urls)
@@ -275,8 +277,8 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
 # Insert imports and return calls into upload_controller.py:
 #
 # from ..kge_handlers import (
+#     get_kge_file_upload_form,
 #     get_kge_registration_form,
-#     get_kge_upload_form,
 #     register_kge_file_set,
 #     upload_kge_file_set,
 # )
@@ -303,48 +305,54 @@ def get_kge_registration_form(
 
     :rtype: Response
     """
-
+    
     if not valid_session(session_id):
         # redirect to unauthenticated home page
         return redirect(HOME, code=302, Response=None)
-
+    
     kg_name_text = kg_name
     submitter_text = submitter
     if kg_name is None:
         kg_name_text = ''
     if submitter is None:
         submitter_text = ''
-
+    
     return render_template('register.html', session=session_id)
 
 
-def get_kge_upload_form(kg_name: str, session_id: str) -> Response:  # noqa: E501
+def get_kge_file_upload_form(
+        session_id: str,
+        submitter: str,
+        kg_name: str
+) -> Response:  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
 
-    :param kg_name:
-    :type kg_name: str
     :param session_id:
     :type session_id: str
+    :param submitter:
+    :type submitter: str
+    :param kg_name:
+    :type kg_name: str
     
     :rtype: Response
     """
-
+    
     if not valid_session(session_id):
         # redirect to unauthenticated home page
         return redirect(HOME, code=302, Response=None)
-
+    
     # TODO guard against absent kg_name
     # TODO guard against invalid kg_name (check availability in bucket)
     # TODO redirect to register_form with given optional param as the entered kg_name
     
-    return render_template('upload.html', kg_name=kg_name, submitter='unknown', session=session_id)
+    return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
 
 
-def register_kge_file_set( body
-        # session_id, submitter, kg_name, **kwargs
-    ) -> Response:  # noqa: E501
+def register_kge_file_set(body
+                          # session_id, submitter, kg_name, **kwargs
+                          ) -> Response:  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
@@ -358,26 +366,28 @@ def register_kge_file_set( body
     session_id = body['session']
     submitter = body['submitter']
     kg_name = body['kg_name']
-
-    logger.critical("register_kge_file_set(locals: "+str(locals())+")")
-
+    
+    logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
+    
     if not valid_session(session_id):
         # redirect to unauthenticated home page
         return redirect(HOME, code=302, Response=None)
-
+    
     register_location = object_location(kg_name)
     
     api_specification = create_smartapi(submitter, kg_name)
     url = add_to_github(api_specification)
     
-    if True: #location_available(bucket_name, object_key):
-        if True: # api_specification and url:
+    if True:  # location_available(bucket_name, object_key):
+        if True:  # api_specification and url:
             # TODO: repair return
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            # return redirect(Template('/upload/$KG_NAME/?session={{session}}').substitute(session=session_id, kg_name=kg_name), kg_name=kg_name, submitter=submitter)
-            return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
+            return redirect(
+                Template('/upload_form?session=$session&submitter=$submitter&kg_name=$kg_name').
+                    substitute(session=session_id, kg_name=kg_name, submitter=submitter)
+            )
     #     else:
     #         # TODO: more graceful front end failure signal
     #         redirect(HOME, code=400, Response=None)
@@ -409,23 +419,27 @@ def upload_kge_file_set(
     """
     saved_args = locals()
     print("upload_kge_file_set", saved_args)
-
+    
     if not valid_session(session_id):
         # redirect to unauthenticated home page
         return redirect(HOME, code=302, Response=None)
-
+    
     contentLocation, _ = withTimestamp(object_location)(kg_name)
     metadataLocation = object_location(kg_name)
-
+    
     # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
-    maybeUploadContent = upload_file(data_file_content, file_name=data_file_content.filename, bucket_name=resources['bucket'], object_location=contentLocation)
-    maybeUploadMetaData = None or data_file_metadata and upload_file(data_file_metadata, file_name=data_file_metadata.filename, bucket_name=resources['bucket'], object_location=metadataLocation)
+    maybeUploadContent = upload_file(data_file_content, file_name=data_file_content.filename,
+                                     bucket_name=resources['bucket'], object_location=contentLocation)
+    maybeUploadMetaData = None or data_file_metadata and upload_file(data_file_metadata,
+                                                                     file_name=data_file_metadata.filename,
+                                                                     bucket_name=resources['bucket'],
+                                                                     object_location=metadataLocation)
     
     if maybeUploadContent or maybeUploadMetaData:
         response = {"content": dict({}), "metadata": dict({})}
         
         content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadContent)
-
+        
         if maybeUploadContent in response["content"]:
             abort(400)
         else:
