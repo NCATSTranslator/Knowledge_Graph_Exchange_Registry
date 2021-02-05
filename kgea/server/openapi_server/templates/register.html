@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
-{% extends "logout.html" %}
+{% block menu %}
+{% include "logout.html" %}
+{% endblock %}
 {% block content %}
 <h1>Register your File Set</h1>
 <form name="formData"
