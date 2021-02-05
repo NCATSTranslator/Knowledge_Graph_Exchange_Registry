@@ -2,13 +2,12 @@
 {% block content %}
 <h1>Upload a File Set</h1>
 <script>
-    this.submitfile(evt) {
+    this.submitfile = function(evt) {
         console.log(evt)
     }
 </script>
 <form name="formData"
       method="post"
-      action="/upload"
       enctype="multipart/form-data"
       onsubmit="this.submitfile"
 >
