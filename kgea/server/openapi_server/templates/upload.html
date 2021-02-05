@@ -3,7 +3,7 @@
 <h1>Upload a File Set</h1>
 <form name="formData"
       method="post"
-      action="/upload/{{kg_name}}?session={{session}}"
+      action="/upload/{{kg_name}}"
       enctype="multipart/form-data"
 >
     <!-- input name="body" type="hidden" -->
@@ -12,11 +12,12 @@
     <br>
     <h4>Content Files</h4>
     <p>Multiple files should be gzipped before upload. This will be changed in further releases.</p>
-    <input type="file" name="data_file_content" multiple>
+    <input type="file" name="data_file_content" multiple/>
     <h4>Metadata</h4>
     <p>Must be valid KGX metadata generated from your dataset. Read more <a href="https://github.com/biolink/kgx">here</a>.</p>
-    <input type="file" name="data_file_metadata">
+    <input type="file" name="data_file_metadata"/>
     <br>    <br>
-    <p><input type="submit" value="Upload Files"></p>
+    <p><input type="submit" value="Upload Files"/></p>
+    <input type="hidden" name="session" value="{{session}}"/>
 </form>
 {% endblock %}
