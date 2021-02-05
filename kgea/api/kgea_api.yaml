@@ -175,12 +175,6 @@ paths:
                   HTML web form to request KGE File Set upload parameters
                 type: string
     post:
-      parameters:
-      - name: session
-        in: query
-        required: true
-        schema:
-          type: string
       tags:
         - upload
       summary: Register core parameters for the KGE File Set upload
@@ -192,11 +186,14 @@ paths:
             schema:
               type: object
               properties:
+                session:
+                  type: string
                 submitter:
                   type: string
                 kg_name:
                   type: string
               required:
+                - session
                 - submitter
                 - kg_name
       responses:
@@ -237,11 +234,6 @@ paths:
         required: true
         schema:
           type: string
-      - name: session
-        in: query
-        required: true
-        schema:
-          type: string
       tags:
         - upload
       summary: Upload web form details specifying a KGE File Set upload process
@@ -255,6 +247,8 @@ paths:
               type: object
               description: "$ref: '#/components/schemas/KgeFileSet'"
               properties:
+                session:
+                  type: string
                 data_file_content:
                   type: string
                   format: binary
@@ -262,6 +256,7 @@ paths:
                   type: string
                   format: binary
               required:
+                - session
                 - data_file_content
             encoding: # The same level as schema
               data_file_content: # Property name (see above)

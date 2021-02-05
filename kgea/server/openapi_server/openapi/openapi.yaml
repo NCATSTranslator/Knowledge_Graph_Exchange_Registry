@@ -146,26 +146,21 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.upload_controller
     post:
       operationId: register_file_set
-      parameters:
-      - explode: true
-        in: query
-        name: session
-        required: true
-        schema:
-          type: string
-        style: form
       requestBody:
         $ref: '#/components/requestBodies/inline_object'
         content:
           application/x-www-form-urlencoded:
             schema:
               properties:
+                session:
+                  type: string
                 submitter:
                   type: string
                 kg_name:
                   type: string
               required:
               - kg_name
+              - session
               - submitter
               type: object
         required: true
@@ -211,13 +206,6 @@ paths:
         schema:
           type: string
         style: simple
-      - explode: true
-        in: query
-        name: session
-        required: true
-        schema:
-          type: string
-        style: form
       requestBody:
         $ref: '#/components/requestBodies/inline_object_1'
         content:
@@ -229,6 +217,8 @@ paths:
             schema:
               description: '$ref: ''#/components/schemas/KgeFileSet'''
               properties:
+                session:
+                  type: string
                 data_file_content:
                   format: binary
                   type: string
@@ -237,6 +227,7 @@ paths:
                   type: string
               required:
               - data_file_content
+              - session
               type: object
         description: KGE File Set metadata and data files submitted
         required: true
@@ -430,17 +421,22 @@ components:
       type: object
     inline_object:
       properties:
+        session:
+          type: string
         submitter:
           type: string
         kg_name:
           type: string
       required:
       - kg_name
+      - session
       - submitter
       type: object
     inline_object_1:
       description: '$ref: ''#/components/schemas/KgeFileSet'''
       properties:
+        session:
+          type: string
         data_file_content:
           format: binary
           type: string
@@ -449,4 +445,5 @@ components:
           type: string
       required:
       - data_file_content
+      - session
       type: object

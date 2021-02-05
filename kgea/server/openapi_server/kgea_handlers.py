@@ -279,6 +279,8 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
 #     register_kge_file_set,
 #     upload_kge_file_set,
 # )
+#
+# rewrite 'register_kge_file_set' arguments 'submitter' and 'kg_name' => 'body'
 #############################################################
 
 
