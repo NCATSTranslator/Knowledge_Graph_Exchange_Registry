@@ -2,18 +2,23 @@
 <html lang="en">
 <head>
     {% block head %}
+    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1/new.min.css">
     <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
     <title>Translator KGE Archive</title>
     {% endblock %}
 </head>
 <body>
-    <img class="banner" src="images/banner.jpg" alt="Translator Banner">
-    <p><div id="content">{% block content %}{% endblock %}</div>
-    <p><div id="footer">
-        {% block footer %}
-        &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
-        {% endblock %}
-    </div>
+    <center>
+        <p><div id="content">
+            <img class="banner" src="images/banner.jpg" alt="Translator Banner">
+            {% block content %}{% endblock %}
+        </div>
+        <p><div id="footer">
+            {% block footer %}
+            &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
+            {% endblock %}
+        </div>
+    </center>
 </body>
 </html>
