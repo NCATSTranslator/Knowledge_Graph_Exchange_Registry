@@ -399,11 +399,11 @@ def register_kge_file_set(body
 
 
 def upload_kge_file_set(
-        body
-        # kg_name: str,
-        # session_id: str,
-        # data_file_content,
-        # data_file_metadata=None
+        # body
+        kg_name: str,
+        session_id: str,
+        data_file_content,
+        data_file_metadata=None
 ) -> Response:  # noqa: E501
     """Upload web form details specifying a KGE File Set upload process
 
