@@ -341,28 +341,26 @@ def get_kge_upload_form(kg_name: str, session_id: str) -> Response:  # noqa: E50
     return render_template('upload.html', kg_name=kg_name, submitter='unknown', session=session_id)
 
 
-def register_kge_file_set(session_id: str, body: dict) -> Response:  # noqa: E501
+def register_kge_file_set(body: dict) -> Response:  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
 
-    :param session_id:
-    :type session_id: str
     :param body:
     :type body: dict
 
     :rtype: Response
     """
-
-    print("register_kge_file_set("+session_id+", "+str(body)+")")
+    print("register_kge_file_set(body: "+str(body)+")")
     
+    session_id = body['session']
+    submitter = body['submitter']
+    kg_name = body['kg_name']
+
     if not valid_session(session_id):
         # redirect to unauthenticated home page
         return redirect(HOME, code=302, Response=None)
 
-    submitter = body['submitter']
-    kg_name = body['kg_name']
-    
     register_location = object_location(kg_name)
     
     api_specification = create_smartapi(submitter, kg_name)
