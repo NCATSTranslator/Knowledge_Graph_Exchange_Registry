@@ -8,7 +8,7 @@
     <input type="submit" value="Register KGE File Set" />
     <small>This is the first step required for uploading.</small>
 </form>
-<form action="/access"onsubmit="this.action = + '/' + this.kg_name.value + this.action">
+<form action="/access" onsubmit="this.action = + '/' + this.kg_name.value + this.action">
     <!-- https://stackoverflow.com/a/9882750/1991892 -->
     <input type="hidden" name="session" value="{{session}}" />
     <label for="kg_name">Knowledge Graph</label>
