@@ -11,7 +11,7 @@ from flask import abort, render_template, redirect
 from string import Template
 import re
 
-from werkzeug import FileStorage, Response
+from werkzeug import Response
 
 #############################################################
 # Application Configuration
