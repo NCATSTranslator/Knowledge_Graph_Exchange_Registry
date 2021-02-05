@@ -2,19 +2,24 @@
 {% block content %}
 <h1>KGE Archive</h1>
 <p>What do you want to do?</p>
-<form action="/register" action="get">
+<form action="/register" method="get">
     <!-- https://stackoverflow.com/a/9882750/1991892 -->
     <input type="hidden" name="session" value="{{session}}" /> 
-    <input type="submit" value="Upload KGE File Set" />
+    <input type="submit" value="Register KGE File Set" />
+    <small>This is the first step required for uploading.</small>
 </form>
-<form action="/access" action="post">
+<form action="/access" method="get" onsubmit="this.action = + '/' + this.kg_name.value + this.action">
     <!-- https://stackoverflow.com/a/9882750/1991892 -->
-    <input type="hidden" name="session" value="{{session}}" /> 
+    <input type="hidden" name="session" value="{{session}}" />
+    <label for="kg_name">Knowledge Graph</label>
+    <input type="text" name="kg_name"/>
     <input type="submit" value="Download KGE File Set" />
 </form>
-<form action="/knowledge_map" action="post">
+<form action="/knowledge_map" method="get" onsubmit="this.action = + '/' + this.kg_name.value + this.action">
     <!-- https://stackoverflow.com/a/9882750/1991892 -->
     <input type="hidden" name="session" value="{{session}}" /> 
+    <label for="kg_name">Knowledge Graph</label>
+    <input type="text" name="kg_name"/>
     <input type="submit" value="Download KGE Metadata" />
 </form>
 {% endblock %}
