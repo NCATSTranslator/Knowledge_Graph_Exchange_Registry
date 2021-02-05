@@ -410,14 +410,8 @@ def upload_kge_file_set(
 
      # noqa: E501
 
-    :param kg_name:
-    :type kg_name: str
-    :param session_id:
-    :type session_id: str
-    :param data_file_content:
-    :type data_file_content: FileStorage
-    :param data_file_metadata:
-    :type data_file_metadata: FileStorage
+    :param body:
+    :type body: dict
 
     :rtype: Response
     """
