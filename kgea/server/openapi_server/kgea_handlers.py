@@ -261,7 +261,7 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
     pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
         FILES_LOCATION=files_location
     )
-    kg_listing = [ content_location for content_location in kg_files if re.match(pattern, content_location) ]
+    kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
     kg_urls = dict(map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
     # logger.info('knowledge_map urls: %s', kg_urls)
     

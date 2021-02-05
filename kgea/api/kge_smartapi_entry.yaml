@@ -12,19 +12,19 @@ info:
     url: https://en.wikipedia.org/wiki/MIT_License
   termsOfService: https://ncats.nih.gov/translator
   contact:
-    name: $nameOfSomebody
+    name: {{nameOfSomebody}}
     x-role: responsible curator
-    email: $email4somebody
-    x-id: https://github.com/$gitId4somebody
+    email: {{email4somebody}}
+    x-id: https://github.com/{{gitId4somebody}}
   x-translator:
         component: KP # could sometimes be ARA or SRI Service or ???
         team:
-        - $nameOfTeam
+        - {{nameOfTeam}}
 servers:
   # $kg_name should be set to the
   # registered Knowledge Graph name in the KGE Archive
-  - url: translator.ncats.io/kge-archive/$kg_name
-    description: Production Server
+  - url: "_https://kge.starinformatics.ca/{{kgname}}"
+    description: "Production Server"
 externalDocs:
   description: >-
     Documentation for the NCATS Biomedical Translator
@@ -36,13 +36,11 @@ tags:
     description: Provider metadata for KGX-formatted data files
     externalDocs:
       description: Documentation relating to KGX-formatted data file access
-      url: https://translator.ncats.io/kge-archive/overview.html#provider
   - name: content
     description: Content metadata for KGX-formatted data files
     externalDocs:
       description: >-
         Documentation of Knowledge Graph Exchange content metadata
-      url: https://translator.ncats.io/kge-archive/overview.html#content
 paths:
   /access:
     get:
