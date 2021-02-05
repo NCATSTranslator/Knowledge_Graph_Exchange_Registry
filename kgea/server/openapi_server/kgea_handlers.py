@@ -370,19 +370,20 @@ def register_kge_file_set( body
     api_specification = create_smartapi(submitter, kg_name)
     url = add_to_github(api_specification)
     
-    if location_available:
-        if api_specification and url:
+    if True: #location_available(bucket_name, object_key):
+        if True: # api_specification and url:
             # TODO: repair return
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            return redirect(Template('/upload/$KG_NAME/?session={{session}}').substitute(session=session_id, kg_name=kg_name), kg_name=kg_name, submitter=submitter)
-        else:
-            # TODO: more graceful front end failure signal
-            redirect(HOME, code=400, Response=None)
-    else:
-        # TODO: more graceful front end failure signal
-        abort(201)
+            # return redirect(Template('/upload/$KG_NAME/?session={{session}}').substitute(session=session_id, kg_name=kg_name), kg_name=kg_name, submitter=submitter)
+            return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
+    #     else:
+    #         # TODO: more graceful front end failure signal
+    #         redirect(HOME, code=400, Response=None)
+    # else:
+    #     # TODO: more graceful front end failure signal
+    #     abort(201)
 
 
 def upload_kge_file_set(
