@@ -40,7 +40,7 @@ def get_file_upload_form(session, submitter, kg_name):  # noqa: E501
     return get_kge_file_upload_form(session, submitter, kg_name)
 
 
-def register_file_set(session, body):  # noqa: E501
+def register_file_set(body):  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
