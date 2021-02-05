@@ -297,28 +297,7 @@ def get_kge_upload_form(kg_name, session):  # noqa: E501
     # TODO guard against invalid kg_name (check availability in bucket)
     # TODO redirect to register_form with given optional param as the entered kg_name
     
-    page = """
-    <!DOCTYPE html>
-    <html>
-
-    <head>
-        <title>Upload New File</title>
-    </head>
-
-    <body>
-        <h1>Upload Files</h1>
-
-        <form action="/upload/{{kg_name}}" method="post" enctype="multipart/form-data">
-            API Files: <input type="file" name="data_file_content"><br>
-            API Metadata: <input type="file" name="data_file_metadata"><br>
-            <input type="submit" value="Upload">
-        </form>
-
-    </body>
-
-    </html>
-    """
-    return jinja2.Template(page).render(kg_name=kg_name)
+    return render_template('upload.html', kg_name=kg_name, submitter='unknown', session=session)
 
 
 def register_kge_file_set(session, body):  # noqa: E501
@@ -347,13 +326,10 @@ def register_kge_file_set(session, body):  # noqa: E501
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            return dict({
-                "url": url,
-                "api": api_specification
-            })
+            return redirect('upload', kg_name=kg_name, submitter=submitter)
         else:
             # TODO: more graceful front end failure signal
-            abort(400)
+            redirect(HOME, code=400, Response=None)
     else:
         # TODO: more graceful front end failure signal
         abort(201)
@@ -375,6 +351,8 @@ def upload_kge_file_set(kg_name, session, data_file_content, data_file_metadata=
 
     :rtype: str
     """
+    saved_args = locals()
+    print("upload_kge_file_set", saved_args)
 
     contentLocation, _ = withTimestamp(object_location)(kg_name)
     metadataLocation = object_location(kg_name)
