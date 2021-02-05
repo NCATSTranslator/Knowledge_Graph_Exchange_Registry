@@ -1,7 +1,14 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>KGE Archive Dashboard</h1>
-    <form action="https://kge.starinformatics.ca/register?session={{session}}">
-        <input type="submit" value="Upload KGE File Set" />
-    </form>
+<h1>KGE Archive</h1>
+<p>What do you want to do?</p>
+<form action="/register?session={{session}}" action="post">
+    <input type="submit" value="Upload KGE File Set" />
+</form>
+<form action="/register?session={{session}}" action="post">
+    <input type="submit" value="Download KGE File Set" />
+</form>
+<form action="/register?session={{session}}" action="post">
+    <input type="submit" value="Download KGE Metadata" />
+</form>
 {% endblock %}

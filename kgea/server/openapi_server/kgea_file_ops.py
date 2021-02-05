@@ -287,7 +287,7 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
 
 # TODO
 def convert_to_yaml(spec):
-    yaml_file = lambda spec: yaml.write(spec)
+    yaml_file = lambda spec: spec 
     return yaml_file(spec)
 
 # TODO

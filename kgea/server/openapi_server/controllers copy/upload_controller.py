@@ -50,7 +50,6 @@ def register_file_set(session, body):  # noqa: E501
 
     :rtype: str
     """
-    print(session, body)
     return register_kge_file_set(session, body)
 
 
@@ -70,4 +69,6 @@ def upload_file_set(kg_name, session, data_file_content, data_file_metadata=None
 
     :rtype: str
     """
+    saved_args = locals()
+    print("upload_file_set", saved_args)
     return upload_kge_file_set(kg_name, session, data_file_content, data_file_metadata)

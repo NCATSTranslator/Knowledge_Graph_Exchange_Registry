@@ -8,7 +8,6 @@ except ImportError:
 
 from flask import abort, render_template, redirect
 
-import jinja2
 from string import Template
 import re
 
@@ -312,29 +311,8 @@ def get_kge_registration_form(
         kg_name_text = ''
     if submitter is None:
         submitter_text = ''
-    
-    page = """
-    <!DOCTYPE html>
-    <html>
 
-    <head>
-        <title>Register Files for Knowledge Graph</title>
-    </head>
-
-    <body>
-        <h1>Register Files for Knowledge Graph</h1>
-
-        <form action="/register" method="post" enctype="application/x-www-form-urlencoded">
-            KnowledgeGraph Name: <input type="text" name="kg_name" value="{{kg_name}}"><br>
-            Submitter: <input type="text" name="submitter" value="{{submitter}}"><br>
-            <input type="submit" value="Register">
-        </form>
-
-    </body>
-
-    </html>
-    """
-    return jinja2.Template(page).render(kg_name=kg_name_text, submitter=submitter_text)
+    return render_template('register.html', session=session)
 
 
 def get_kge_upload_form(kg_name: str, session_id: str) -> Response:  # noqa: E501
@@ -358,28 +336,7 @@ def get_kge_upload_form(kg_name: str, session_id: str) -> Response:  # noqa: E50
     # TODO guard against invalid kg_name (check availability in bucket)
     # TODO redirect to register_form with given optional param as the entered kg_name
     
-    page = """
-    <!DOCTYPE html>
-    <html>
-
-    <head>
-        <title>Upload New File</title>
-    </head>
-
-    <body>
-        <h1>Upload Files</h1>
-
-        <form action="/upload/{{kg_name}}" method="post" enctype="multipart/form-data">
-            API Files: <input type="file" name="data_file_content"><br>
-            API Metadata: <input type="file" name="data_file_metadata"><br>
-            <input type="submit" value="Upload">
-        </form>
-
-    </body>
-
-    </html>
-    """
-    return jinja2.Template(page).render(kg_name=kg_name)
+    return render_template('upload.html', kg_name=kg_name, submitter='unknown', session=session)
 
 
 def register_kge_file_set(session_id: str, body: dict) -> Response:  # noqa: E501
@@ -413,17 +370,10 @@ def register_kge_file_set(session_id: str, body: dict) -> Response:  # noqa: E50
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            return Response(
-                dict(
-                    {
-                        "url": url,
-                        "api": api_specification
-                    }
-                )
-            )
+            return redirect(Template('/upload?session={{session}}').substitute(session=session), kg_name=kg_name, submitter=submitter)
         else:
             # TODO: more graceful front end failure signal
-            abort(400)
+            redirect(HOME, code=400, Response=None)
     else:
         # TODO: more graceful front end failure signal
         abort(201)
@@ -450,6 +400,8 @@ def upload_kge_file_set(
 
     :rtype: Response
     """
+    saved_args = locals()
+    print("upload_kge_file_set", saved_args)
 
     if not valid_session(session_id):
         # redirect to unauthenticated home page
