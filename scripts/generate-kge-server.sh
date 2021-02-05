@@ -65,7 +65,7 @@ $CODE_GEN_CLI generate \
    -g python-flask \
    -i $SPECIFICATION \
    -o $OUTPUT \
-   --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,projectVersion=$VERSION
+   --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,projectVersion=$VERSION,featureCORS=true
 
 #
 # After code generation, the package.json has been overwritten again,
