@@ -365,12 +365,11 @@ def register_kge_file_set(body
 
     :rtype: Response
     """
+    logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
     
     session_id = body['session']
     submitter = body['submitter']
     kg_name = body['kg_name']
-    
-    logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
     
     if not valid_session(session_id):
         # redirect to unauthenticated home page
@@ -417,7 +416,7 @@ def upload_kge_file_set(
     """
 
     saved_args = locals()
-    logger.critical("upload_kge_file_set", saved_args)
+    logger.critical("upload_kge_file_set: ", saved_args)
     
     session_id = body['session']
     kg_name = body['kg_name']
@@ -438,8 +437,7 @@ def upload_kge_file_set(
                                                                      file_name=data_file_metadata.filename,
                                                                      bucket_name=resources['bucket'],
                                                                      object_location=metadataLocation)
-    
-    if maybeUploadContent or maybeUploadMetaData:
+     if maybeUploadContent or maybeUploadMetaData:
         response = {"content": dict({}), "metadata": dict({})}
         
         content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadContent)
