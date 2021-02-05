@@ -48,8 +48,7 @@ def register_file_set(session=None, submitter=None, kg_name=None, **kwargs):  # 
 
     :rtype: str
     """
-    print("register_file_set: "+str(locals()))
-    return register_kge_file_set(session, submitter, kg_name)
+    return register_kge_file_set(session, submitter, kg_name, kwargs)
 
 
 def upload_file_set(kg_name=None, session=None, data_file_content=None, data_file_metadata=None):  # noqa: E501
