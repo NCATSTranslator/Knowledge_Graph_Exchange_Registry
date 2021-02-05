@@ -385,7 +385,7 @@ def register_kge_file_set(body
             #  2. replace with /upload form returned
             #
             return redirect(
-                Template('/upload_form?session=$session&submitter=$submitter&kg_name=$kg_name').
+                Template('/upload?session=$session&submitter=$submitter&kg_name=$kg_name').
                     substitute(session=session_id, kg_name=kg_name, submitter=submitter)
             )
     #     else:
