@@ -32,6 +32,7 @@ from .kgea_file_ops import (
 import logging
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 from .kgea_session import (
     create_session,
@@ -356,7 +357,7 @@ def register_kge_file_set(session_id, submitter, kg_name, **kwargs) -> Response:
     # submitter = body['submitter']
     # kg_name = body['kg_name']
 
-    print("register_kge_file_set(locals: "+str(locals())+")")
+    logger.info("register_kge_file_set(locals: "+str(locals())+")")
 
     if not valid_session(session_id):
         # redirect to unauthenticated home page
