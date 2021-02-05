@@ -34,7 +34,9 @@ def get_upload_form(kg_name, session):  # noqa: E501
     return get_kge_upload_form(kg_name, session)
 
 
-def register_file_set(session=None, submitter=None, kg_name=None, **kwargs):  # noqa: E501
+def register_file_set( body
+        # session=None, submitter=None, kg_name=None, **kwargs
+    ):  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
@@ -48,7 +50,9 @@ def register_file_set(session=None, submitter=None, kg_name=None, **kwargs):  # 
 
     :rtype: str
     """
-    return register_kge_file_set(session, submitter, kg_name, **kwargs)
+    return register_kge_file_set(
+        # session, submitter, kg_name, **kwargs
+    )
 
 
 def upload_file_set(kg_name=None, session=None, data_file_content=None, data_file_metadata=None):  # noqa: E501
