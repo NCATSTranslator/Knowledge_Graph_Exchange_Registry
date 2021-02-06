@@ -8,10 +8,13 @@
     <title>Translator KGE Archive</title>
     {% endblock %}
 </head>
-<body>
-<div class="center">
-    <p><img class="banner" src="images/banner.jpg" alt="Translator Banner"></p>
-    <div>{% block menu %}{% endblock %}</div>
+<body class="center">
+    <div>
+        <p><img class="banner" src="images/banner.jpg" alt="Translator Banner"></p>
+    </div>
+    <p><div>
+        <p>{% block menu %}{% endblock %}
+    </div>
     <p><div id="content">
         {% block content %}{% endblock %}
     </div>
@@ -20,6 +23,5 @@
         &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
         {% endblock %}
     </div>
-</div>
 </body>
 </html>
