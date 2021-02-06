@@ -49,7 +49,7 @@ def register_file_set(body):  # noqa: E501
     return register_kge_file_set(body)
 
 
-def upload_file_set(session, kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
+def upload_file_set(session=None, kg_name=None, data_file_content=None, data_file_metadata=None):  # noqa: E501
     """Upload processing of KGE File Set
 
      # noqa: E501

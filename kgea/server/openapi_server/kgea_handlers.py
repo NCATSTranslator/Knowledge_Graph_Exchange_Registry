@@ -398,7 +398,7 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
 
 
 def upload_kge_file_set(
-        session,
+        session_id,
         kg_name,
         data_file_content,
         data_file_metadata

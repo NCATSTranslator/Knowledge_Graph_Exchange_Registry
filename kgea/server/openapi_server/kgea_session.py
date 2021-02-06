@@ -32,6 +32,8 @@ def valid_session(session_id: str) -> bool:
     :param session_id:
     :return: True if valid
     """
+    if not session_id:
+        return False
     return _session.get(session_id, False)
 
 
