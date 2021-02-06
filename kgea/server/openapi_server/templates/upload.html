@@ -6,13 +6,13 @@
 <h1>Upload a File Set</h1>
 <script>
     this.submitfile = function(evt) {
-        console.log(evt)
+        console.log(evt, "kg_name: {{kg_name}}")
     }
 </script>
 <form name="formData"
       method="post"
       enctype="multipart/form-data"
-      onsubmit="this.submitfile"
+      onsubmit="this.submitfile()"
 >
     <!-- input name="body" type="hidden" -->
 
@@ -26,8 +26,5 @@
     <input class="textbox" type="file" name="data_file_metadata"/>
     <br>    <br>
     <p><input type="submit" value="Upload Files"/></p>
-
-    <input type="hidden" name="session" value="{{session}}"/>
-    <input type="hidden" name="kg_name" value="{{kg_name}}"/>
 </form>
 {% endblock %}

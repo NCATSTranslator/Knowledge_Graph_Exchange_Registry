@@ -22,8 +22,3 @@ img.banner {
 .textbox {
   border: 1px #DDA0DD;
 }
-
-.menu_bar {
-  position: relative;
-  right: 30px;
-}

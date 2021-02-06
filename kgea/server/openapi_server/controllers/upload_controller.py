@@ -41,21 +41,23 @@ def register_file_set(body):  # noqa: E501
 
      # noqa: E501
 
-    :param body:
-    :type body: dict
+    :param session: 
+    :type session: str
+    :param submitter: 
+    :type submitter: str
+    :param kg_name: 
+    :type kg_name: str
 
     :rtype: str
     """
     return register_kge_file_set(body)
 
 
-def upload_file_set(session=None, kg_name=None, data_file_content=None, data_file_metadata=None):  # noqa: E501
+def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
     """Upload processing of KGE File Set
 
      # noqa: E501
 
-    :param session: 
-    :type session: str
     :param kg_name: 
     :type kg_name: str
     :param data_file_content: 
@@ -65,4 +67,4 @@ def upload_file_set(session=None, kg_name=None, data_file_content=None, data_fil
 
     :rtype: str
     """
-    return upload_kge_file_set(session, kg_name, data_file_content, data_file_metadata)
+    return upload_kge_file_set(kg_name, data_file_content, data_file_metadata)

@@ -398,7 +398,6 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
 
 
 def upload_kge_file_set(
-        session_id,
         kg_name,
         data_file_content,
         data_file_metadata
@@ -408,14 +407,12 @@ def upload_kge_file_set(
 
      # noqa: E501
 
-    :param session:
-    :type session: str
     :param kg_name:
     :type kg_name: str
     :param data_file_content:
-    :type data_file_content: str
+    :type data_file_content: FileStorage
     :param data_file_metadata:
-    :type data_file_metadata: str
+    :type data_file_metadata: FileStorage
 
     :rtype: Response
     """
@@ -431,10 +428,10 @@ def upload_kge_file_set(
     saved_args = locals()
     print("upload_kge_file_set", saved_args)
     
-    if not valid_session(session_id):
-        # redirect to unauthenticated home page
-        return redirect(HOME, code=302, Response=None)
-    
+    # if not valid_session(session_id):
+    #     # redirect to unauthenticated home page
+    #     return redirect(HOME, code=302, Response=None)
+
     contentLocation, _ = withTimestamp(object_location)(kg_name)
     metadataLocation = object_location(kg_name)
     
