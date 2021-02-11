@@ -140,3 +140,7 @@ dmypy.json
 kgea_config.yaml
 styles.css
 banner.jpg
+
+# OpenAPI codegen Java JAR...
+kgea/server/.openapi-generator/
+*.jar
