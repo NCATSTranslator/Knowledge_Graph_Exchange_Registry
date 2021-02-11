@@ -39,6 +39,30 @@ tags:
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
 paths:
+  /:
+    get:
+      parameters:
+      - name: session
+        in: query
+        required: false
+        schema:
+          type: string
+      tags:
+      - site
+      summary: Display landing page.
+      operationId: landingPage
+      responses:
+        '200':
+          description: >-
+            Non-authenticated users see the login button.
+          content:
+            text/html:
+              schema:
+                description: HTML landing page
+                type: string
+        '302':
+          description: >-
+            Authenticated uses get redirected to /home.
   /home:
     get:
       parameters:

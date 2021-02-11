@@ -55,7 +55,27 @@ from .kgea_session import (
 
 # This is the home page path,
 # should match the API path spec
+LANDING = '/'
 HOME = '/home'
+
+
+def kge_landing_page(session_id=None):  # noqa: E501
+    """Display landing page.
+
+     # noqa: E501
+
+    :param session_id:
+    :type session_id: str
+
+    :rtype: str
+    """
+    # validate the session key
+    if valid_session(session_id):
+        # then redirect to an authenticated home page
+        authenticated_url = HOME + '?session=' + session_id
+        return redirect(authenticated_url, code=302, Response=None)
+    else:
+        return render_template('login.html')
 
 
 def get_kge_home(session_id: str = None) -> Response:  # noqa: E501
@@ -72,7 +92,9 @@ def get_kge_home(session_id: str = None) -> Response:  # noqa: E501
     if valid_session(session_id):
         return render_template('home.html', session=session_id)
     else:
-        return render_template('login.html')
+        # If session is not set, then just
+        # redirect back to unauthenticated landing page
+        return redirect(LANDING, code=302, Response=None)
 
 
 # hack: short term dictionary
@@ -117,9 +139,9 @@ def kge_client_authentication(code: str, state: str) -> Response:  # noqa: E501
                 authenticated_url = HOME + '?session=' + session_id
                 return redirect(authenticated_url, code=302, Response=None)
     
-    # If authentication conditions are not met
-    # just redirect back to unauthenticated home page
-    redirect(HOME, code=302, Response=None)
+    # If authentication conditions are not met, then
+    # simply redirect back to public landing page
+    redirect(LANDING, code=302, Response=None)
 
 
 def kge_login() -> Response:  # noqa: E501
@@ -172,8 +194,8 @@ def kge_logout(session_id: str = None) -> Response:  # noqa: E501
         
         return redirect(logout_url, code=302, Response=None)
     else:
-        # redirect to unauthenticated home page, for login
-        redirect(HOME, code=302, Response=None)
+        # redirect to unauthenticated landing page for login
+        return redirect(LANDING, code=302, Response=None)
 
 
 #############################################################
@@ -199,8 +221,9 @@ def kge_access(kg_name: str, session_id: str) -> Response:  # noqa: E501
     """
     
     if not valid_session(session_id):
-        # redirect to unauthenticated home page
-        return redirect(HOME, code=302, Response=None)
+        # If session is not met, then just
+        # redirect back to public landing page
+        return redirect(LANDING, code=302, Response=None)
     
     files_location = object_location(kg_name)
     # Listings Approach
@@ -245,8 +268,9 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
     """
     
     if not valid_session(session_id):
-        # redirect to unauthenticated home page
-        return redirect(HOME, code=302, Response=None)
+        # If session is not met, then just
+        # redirect back to public landing page
+        return redirect(LANDING, code=302, Response=None)
     
     files_location = object_location(kg_name)
     
@@ -311,8 +335,9 @@ def get_kge_registration_form(
     """
     
     if not valid_session(session_id):
-        # redirect to unauthenticated home page
-        return redirect(HOME, code=302, Response=None)
+        # If session is not met, then just
+        # redirect back to public landing page
+        return redirect(LANDING, code=302, Response=None)
     
     kg_name_text = kg_name
     submitter_text = submitter
@@ -344,8 +369,9 @@ def get_kge_file_upload_form(
     """
     
     if not valid_session(session_id):
-        # redirect to unauthenticated home page
-        return redirect(HOME, code=302, Response=None)
+        # If session is not met, then just
+        # redirect back to public landing page
+        return redirect(LANDING, code=302, Response=None)
     
     # TODO guard against absent kg_name
     # TODO guard against invalid kg_name (check availability in bucket)
@@ -371,8 +397,9 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     kg_name = body['kg_name']
     
     if not valid_session(session_id):
-        # redirect to unauthenticated home page
-        return redirect(HOME, code=302, Response=None)
+        # If session is not met, then just
+        # redirect back to public landing page
+        return redirect(LANDING, code=302, Response=None)
     
     register_location = object_location(kg_name)
     
@@ -429,10 +456,6 @@ def upload_kge_file_set(
     
     # We don't really need the session id here
     # since it is not really being propagated in the call?
-    
-    # if not valid_session(session_id):
-    #     # redirect to unauthenticated home page
-    #     return redirect(HOME, code=302, Response=None)
 
     contentLocation, _ = withTimestamp(object_location)(kg_name)
     metadataLocation = object_location(kg_name)

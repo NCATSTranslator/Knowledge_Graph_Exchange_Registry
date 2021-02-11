@@ -1,9 +1,23 @@
 from ..kgea_handlers import (
+    kge_landing_page,
     kge_client_authentication,
     get_kge_home,
     kge_login,
     kge_logout
 )
+
+
+def landing_page(session=None):  # noqa: E501
+    """Display landing page.
+
+     # noqa: E501
+
+    :param session:
+    :type session: str
+
+    :rtype: str
+    """
+    return kge_landing_page(session)
 
 
 def client_authentication(code, state):  # noqa: E501

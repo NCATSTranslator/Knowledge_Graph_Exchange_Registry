@@ -36,6 +36,31 @@ tags:
   name: content
 - name: translator
 paths:
+  /:
+    get:
+      operationId: landing_page
+      parameters:
+      - explode: true
+        in: query
+        name: session
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                description: HTML landing page
+                type: string
+          description: Non-authenticated users see the login button.
+        "302":
+          description: Authenticated uses get redirected to /home.
+      summary: Display landing page.
+      tags:
+      - site
+      x-openapi-router-controller: openapi_server.controllers.site_controller
   /home:
     get:
       operationId: get_home
