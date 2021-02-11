@@ -142,5 +142,5 @@ styles.css
 banner.jpg
 
 # OpenAPI codegen Java JAR...
-kgea/server/.openapi-generator/
+.openapi-generator/
 *.jar
