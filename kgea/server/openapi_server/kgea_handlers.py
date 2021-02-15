@@ -421,9 +421,6 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
 
     register_location = object_location(kg_name)
     
-    api_specification = create_smartapi(submitter, kg_name)
-    url = add_to_github(api_specification)
-    
     if True:  # location_available(bucket_name, object_key):
         if True:  # api_specification and url:
             # TODO: repair return
@@ -439,7 +436,7 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     #         redirect(HOME, code=400, Response=None)
     # else:
     #     # TODO: more graceful front end failure signal
-    #     abort(201)
+    #     return abort(201)
 
 
 def upload_kge_file(body) -> Response:  # noqa: E501
@@ -454,8 +451,8 @@ def upload_kge_file(body) -> Response:  # noqa: E501
     :rtype: Response
     """
 
-    saved_args = locals()
-    logger.critical("entering upload_kge_file: locals(", str(saved_args), "), body(:)", str(body), ")")
+    # saved_args = locals()
+    # logger.info("entering upload_kge_file(): locals("+str(saved_args)+")")
 
     session_id = body['session']
 
@@ -494,17 +491,24 @@ def upload_kge_file(body) -> Response:  # noqa: E501
 
             response = {"content": dict({})}
 
-            content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybe_upload_content)
+            content_url = create_presigned_url(
+                bucket=resources['bucket'],
+                object_key=maybe_upload_content
+            )
 
             if maybe_upload_content in response["content"]:
-                abort(400, description="upload_kge_file(): Duplication in content?")
+                return abort(400, description="upload_kge_file(): Duplication in content?")
             else:
                 response["content"][maybe_upload_content] = content_url
+
+            # If we get this far, time to register the dataset in SmartAPI
+            api_specification = create_smartapi(submitter, kg_name)
+            url = add_to_github(api_specification)
 
             return Response(response)
 
         else:
-            abort(400, description="upload_kge_file(): content upload failed?")
+            return abort(400, description="upload_kge_file(): content upload failed?")
 
     elif data_type == 'metadata':
 
@@ -527,7 +531,7 @@ def upload_kge_file(body) -> Response:  # noqa: E501
             return Response(response)
 
         else:
-            abort(400, description="upload_kge_file(): metadata upload failed?")
+            return abort(400, description="upload_kge_file(): metadata upload failed?")
 
     else:
-        abort(400, description="upload_kge_file(): unknown upload file type?")
+        return abort(400, description="upload_kge_file(): unknown upload file type?")
