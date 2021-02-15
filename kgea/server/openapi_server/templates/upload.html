@@ -29,8 +29,6 @@
     <p>Multiple files should be gzipped before upload. This may be changed in further releases.</p>
 
     <form name="contentform"
-      method="post"
-      enctype="multipart/form-data"
       onsubmit="UploadFile(this,'content')"
     >
         <!-- input name="body" type="hidden" -->
@@ -42,8 +40,6 @@
     <p>Must be valid KGX metadata generated from your dataset. Read more <a href="https://github.com/biolink/kgx">here</a>.</p>
 
     <form name="metadataForm"
-      method="post"
-      enctype="multipart/form-data"
       onsubmit="UploadFile(this,'metadata')"
     >
     <input class="textbox" type="file" name="metadata"/>
