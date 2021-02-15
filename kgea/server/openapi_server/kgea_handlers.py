@@ -462,14 +462,14 @@ def upload_kge_file(body) -> Response:  # noqa: E501
     """
 
     saved_args = locals()
-    logger.critical("upload_kge_file: ", saved_args)
+    logger.critical("entering upload_kge_file: locals(", str(saved_args), "), body(:)", str(body),")")
  
     # kg_name = 'test' # body['kg_name']
     # data_file_content = body['data_file_content']
     # data_file_metadata = body['data_file_metadata']
     
     saved_args = locals()
-    print("upload_kge_file_set", saved_args)
+    print("Printing upload_kge_file_set() saved_args: ", saved_args)
 
     session_id = body['session']
 
