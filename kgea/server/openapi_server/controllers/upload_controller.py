@@ -1,9 +1,7 @@
-from ..kgea_handlers import (
-    get_kge_file_upload_form,
-    get_kge_registration_form,
-    register_kge_file_set,
-    upload_kge_file_set,
-)
+import connexion
+import six
+
+from openapi_server import util
 
 
 def get_file_upload_form(session, submitter, kg_name):  # noqa: E501
@@ -20,7 +18,7 @@ def get_file_upload_form(session, submitter, kg_name):  # noqa: E501
 
     :rtype: str
     """
-    return get_kge_file_upload_form(session, submitter, kg_name)
+    return 'do some magic!'
 
 
 def get_registration_form(session):  # noqa: E501
@@ -33,10 +31,10 @@ def get_registration_form(session):  # noqa: E501
 
     :rtype: str
     """
-    return get_kge_registration_form(session)
+    return 'do some magic!'
 
 
-def register_file_set(body):  # noqa: E501
+def register_file_set(session, submitter, kg_name):  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
@@ -50,21 +48,21 @@ def register_file_set(body):  # noqa: E501
 
     :rtype: str
     """
-    return register_kge_file_set(body)
+    return 'do some magic!'
 
 
-def upload_file_set(kg_name, data_file_content, data_file_metadata=None):  # noqa: E501
+def upload_file(data_type, session_id, data_file):  # noqa: E501
     """Upload processing of KGE File Set
 
      # noqa: E501
 
-    :param kg_name: 
-    :type kg_name: str
-    :param data_file_content: 
-    :type data_file_content: str
-    :param data_file_metadata: 
-    :type data_file_metadata: str
+    :param data_type: 
+    :type data_type: str
+    :param session_id: 
+    :type session_id: str
+    :param data_file: 
+    :type data_file: str
 
     :rtype: str
     """
-    return upload_kge_file_set(kg_name, data_file_content, data_file_metadata)
+    return 'do some magic!'

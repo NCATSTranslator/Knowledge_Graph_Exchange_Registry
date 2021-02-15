@@ -3,28 +3,50 @@
 {% include "logout.html" %}
 {% endblock %}
 {% block content %}
-<h1>Upload a File Set</h1>
-<script>
-    this.submitfile = function(evt) {
-        console.log(evt, "kg_name: {{kg_name}}")
-    }
-</script>
-<form name="formData"
-      method="post"
-      enctype="multipart/form-data"
-      onsubmit="this.submitfile()"
->
-    <!-- input name="body" type="hidden" -->
+    <h1>Upload KGE (Meta)Data Files</h1>
+    <script>
+        async function UploadFile(source, target)
+        {
+            let formData = new FormData();
+            let filename = source.files[0];
+
+            formData.append("data_file", filename);
+
+            try {
+               let r = await fetch('/upload/'+target+'/'+{{session}}, {method: "POST", body: formData});
+               console.log('HTTP response code:',r.status);
+            } catch(e) {
+               console.log('File upload error:', e);
+            }
+
+        }
+    </script>
 
     <h3>Uploading to "{{kg_name}}" submitted by {{submitter}}</h3>
+
     <br>
     <h4>Content Files</h4>
-    <p>Multiple files should be gzipped before upload. This will be changed in further releases.</p>
-    <input class="textbox" type="file" name="data_file_content" multiple/>
+    <p>Multiple files should be gzipped before upload. This may be changed in further releases.</p>
+
+    <form name="contentform"
+      method="post"
+      enctype="multipart/form-data"
+      onsubmit="UploadFile(this,'content')"
+    >
+        <!-- input name="body" type="hidden" -->
+        <input class="textbox" type="file" name="content"/>
+        <p><input type="submit" value="Upload KGX Files"/></p>
+    </form>
+
     <h4>Metadata</h4>
     <p>Must be valid KGX metadata generated from your dataset. Read more <a href="https://github.com/biolink/kgx">here</a>.</p>
-    <input class="textbox" type="file" name="data_file_metadata"/>
-    <br>    <br>
-    <p><input type="submit" value="Upload Files"/></p>
+
+    <form name="metadataForm"
+      method="post"
+      enctype="multipart/form-data"
+      onsubmit="UploadFile(this,'metadata')"
+    >
+    <input class="textbox" type="file" name="metadata"/>
+    <p><input type="submit" value="Upload Metadata"/></p>
 </form>
 {% endblock %}

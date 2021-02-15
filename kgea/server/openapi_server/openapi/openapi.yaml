@@ -257,13 +257,20 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
-  /upload/{kg_name}:
+  /upload/{data_type}/{session_id}:
     post:
-      operationId: upload_file_set
+      operationId: upload_file
       parameters:
       - explode: false
         in: path
-        name: kg_name
+        name: data_type
+        required: true
+        schema:
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: session_id
         required: true
         schema:
           type: string
@@ -273,22 +280,19 @@ paths:
         content:
           multipart/form-data:
             encoding:
-              data_file_content:
-                contentType: text/csv, text/tab-separated-values
+              data_file:
+                contentType: text/csv, text/tab-separated-values, text/json
                 style: form
             schema:
               description: Uploading form posting of (meta-)data files.
               properties:
-                data_file_content:
-                  format: binary
-                  type: string
-                data_file_metadata:
+                data_file:
                   format: binary
                   type: string
               required:
-              - data_file_content
+              - data_file
               type: object
-        description: KGE File Set metadata and data files submitted
+        description: KGE File Set metadata or data file submitted
         required: true
       responses:
         "201":
@@ -464,12 +468,9 @@ components:
     inline_object_1:
       description: Uploading form posting of (meta-)data files.
       properties:
-        data_file_content:
-          format: binary
-          type: string
-        data_file_metadata:
+        data_file:
           format: binary
           type: string
       required:
-      - data_file_content
+      - data_file
       type: object

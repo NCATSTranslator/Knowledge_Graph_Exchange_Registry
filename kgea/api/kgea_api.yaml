@@ -247,10 +247,15 @@ paths:
                 description: >-
                   HTML web form for KGE File Set upload
                 type: string
-  /upload/{kg_name}:
+  /upload/{data_type}/{session_id}:
     post:
       parameters:
-      - name: kg_name
+      - name: data_type
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: session_id
         in: path
         required: true
         schema:
@@ -258,9 +263,9 @@ paths:
       tags:
         - upload
       summary: Upload processing of KGE File Set
-      operationId: uploadFileSet
+      operationId: uploadFile
       requestBody:
-        description: KGE File Set metadata and data files submitted
+        description: KGE File Set metadata or data file submitted
         required: true
         content:
           multipart/form-data:
@@ -269,17 +274,14 @@ paths:
               description: >-
                 Uploading form posting of (meta-)data files.
               properties:
-                data_file_content:
-                  type: string
-                  format: binary
-                data_file_metadata:
+                data_file:
                   type: string
                   format: binary
               required:
-                - data_file_content
+                - data_file
             encoding: # The same level as schema
-              data_file_content: # Property name (see above)
-                contentType: text/csv, text/tab-separated-values
+              data_file: # Property name (see above)
+                contentType: text/csv, text/tab-separated-values, text/json
       responses:
         '201':
           description: Upload successfully completed.
