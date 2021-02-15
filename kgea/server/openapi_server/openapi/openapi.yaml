@@ -257,24 +257,8 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
-  /upload/{data_type}/{session_id}:
     post:
       operationId: upload_file
-      parameters:
-      - explode: false
-        in: path
-        name: data_type
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: false
-        in: path
-        name: session_id
-        required: true
-        schema:
-          type: string
-        style: simple
       requestBody:
         $ref: '#/components/requestBodies/inline_object_1'
         content:
@@ -286,11 +270,17 @@ paths:
             schema:
               description: Uploading form posting of (meta-)data files.
               properties:
+                data_type:
+                  type: string
+                session:
+                  type: string
                 data_file:
                   format: binary
                   type: string
               required:
               - data_file
+              - data_type
+              - session
               type: object
         description: KGE File Set metadata or data file submitted
         required: true
@@ -321,7 +311,7 @@ paths:
               schema:
                 type: string
           description: Not implemented.
-      summary: Upload processing of KGE File Set
+      summary: Upload processing of KGE File Set file
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
@@ -468,9 +458,15 @@ components:
     inline_object_1:
       description: Uploading form posting of (meta-)data files.
       properties:
+        data_type:
+          type: string
+        session:
+          type: string
         data_file:
           format: binary
           type: string
       required:
       - data_file
+      - data_type
+      - session
       type: object

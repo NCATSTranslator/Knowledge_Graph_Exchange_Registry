@@ -12,10 +12,12 @@
             let formData = new FormData();
             let filename = source.files[0];
 
+            formData.append("data_type", target);
+            formData.append("session", {{session}});
             formData.append("data_file", filename);
 
             try {
-               let r = await fetch('/upload/'+target+'/'+{{session}}, {method: "POST", body: formData});
+               let r = await fetch('/upload', {method: "POST", body: formData});
                console.log('HTTP response code:',r.status);
             } catch(e) {
                console.log('File upload error:', e);
