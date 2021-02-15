@@ -21,7 +21,7 @@ def create_session() -> str:
     :return: str session key
     """
     session_id = str(uuid4())
-    _session[session_id] = {1}
+    _session[session_id] = {"active": True}  # non-empty session
     return session_id
 
 
@@ -47,7 +47,7 @@ def get_session(session_id: str) -> dict:
     """
     session = valid_session(session_id)
     if not session:
-        return {}
+        return dict()
     return session
 
 

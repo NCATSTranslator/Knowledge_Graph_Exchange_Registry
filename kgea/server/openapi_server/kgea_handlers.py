@@ -332,6 +332,7 @@ def _kge_metadata(
     else:
         session['submitter'] = ''
 
+    return session
 
 def get_kge_registration_form(
         session_id: str,
@@ -357,7 +358,7 @@ def get_kge_registration_form(
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
 
-    _kge_metadata(session_id, kg_name, submitter)
+    session = _kge_metadata(session_id, kg_name, submitter)
     
     return render_template(
         'register.html',
@@ -413,14 +414,17 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     session_id = body['session']
     
     if not valid_session(session_id):
-        # If session is not met, then just
+        # If session is not active, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
 
     submitter = body['submitter']
     kg_name = body['kg_name']
 
-    _kge_metadata(session_id, kg_name, submitter)
+    session = _kge_metadata(session_id, kg_name, submitter)
+
+    kg_name = session['kg_name'],
+    submitter = session['submitter']
 
     register_location = object_location(kg_name)
     
@@ -475,6 +479,11 @@ def upload_kge_file(
     saved_args = locals()
     print("upload_kge_file_set", saved_args)
 
+    if not valid_session(session_id):
+        # If session is not active, then just
+        # redirect back to public landing page
+        return redirect(LANDING, code=302, Response=None)
+
     session = get_session(session_id)
 
     kg_name = session['kg_name']
@@ -518,11 +527,11 @@ def upload_kge_file(
         response = {"metadata": dict({})}
 
         maybe_upload_meta_data = None or data_file and \
-                              upload_file(data_file,
-                                     file_name=data_file.filename,
-                                     bucket_name=resources['bucket'],
-                                     object_location=metadata_location
-                              )
+                                  upload_file(data_file,
+                                         file_name=data_file.filename,
+                                         bucket_name=resources['bucket'],
+                                         object_location=metadata_location
+                                  )
 
         if maybe_upload_meta_data:
 
