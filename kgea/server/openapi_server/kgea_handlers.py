@@ -459,10 +459,10 @@ def upload_kge_file(
 
      # noqa: E501
 
-    :param data_type:
-    :type data_type: str
     :param session_id:
     :type session_id: str
+    :param data_type:
+    :type data_type: str
     :param data_file:
     :type data_file: FileStorage
 
