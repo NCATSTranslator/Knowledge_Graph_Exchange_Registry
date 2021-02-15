@@ -37,6 +37,7 @@ logger.setLevel(logging.INFO)
 from .kgea_session import (
     create_session,
     valid_session,
+    get_session,
     delete_session
 )
 
@@ -75,6 +76,7 @@ def kge_landing_page(session_id=None):  # noqa: E501
         authenticated_url = HOME + '?session=' + session_id
         return redirect(authenticated_url, code=302, Response=None)
     else:
+        # If session is not active, then render login page
         return render_template('login.html')
 
 
@@ -92,7 +94,7 @@ def get_kge_home(session_id: str = None) -> Response:  # noqa: E501
     if valid_session(session_id):
         return render_template('home.html', session=session_id)
     else:
-        # If session is not set, then just
+        # If session is not active, then just
         # redirect back to unauthenticated landing page
         return redirect(LANDING, code=302, Response=None)
 
@@ -221,7 +223,7 @@ def kge_access(kg_name: str, session_id: str) -> Response:  # noqa: E501
     """
     
     if not valid_session(session_id):
-        # If session is not met, then just
+        # If session is not active, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
     
@@ -268,7 +270,7 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
     """
     
     if not valid_session(session_id):
-        # If session is not met, then just
+        # If session is not active, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
     
@@ -314,6 +316,20 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
 # session, submitter and kg_name => 'body'
 #############################################################
 
+def _kge_metadata(
+        session: dict,
+        kg_name: str = None,
+        submitter: str = None
+):
+    if kg_name is not None:
+        session['kg_name'] = kg_name
+    else:
+        session['kg_name'] = ''
+    if submitter is not None:
+        session['submitter'] = submitter
+    else:
+        session['submitter'] = ''
+
 
 def get_kge_registration_form(
         session_id: str,
@@ -335,18 +351,20 @@ def get_kge_registration_form(
     """
     
     if not valid_session(session_id):
-        # If session is not met, then just
+        # If session is not active, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
+
+    session = get_session(session_id)
+
+    _kge_metadata(session, kg_name, submitter)
     
-    kg_name_text = kg_name
-    submitter_text = submitter
-    if kg_name is None:
-        kg_name_text = ''
-    if submitter is None:
-        submitter_text = ''
-    
-    return render_template('register.html', session=session_id)
+    return render_template(
+        'register.html',
+        session=session_id,
+        kg_name=session['kg_name'],
+        submitter=session['submitter']
+    )
 
 
 def get_kge_file_upload_form(
@@ -369,7 +387,7 @@ def get_kge_file_upload_form(
     """
     
     if not valid_session(session_id):
-        # If session is not met, then just
+        # If session is not active, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
     
@@ -393,14 +411,19 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     # logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
     
     session_id = body['session']
-    submitter = body['submitter']
-    kg_name = body['kg_name']
     
     if not valid_session(session_id):
         # If session is not met, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
-    
+
+    session = get_session(session_id)
+
+    submitter = body['submitter']
+    kg_name = body['kg_name']
+
+    _kge_metadata(session, kg_name, submitter)
+
     register_location = object_location(kg_name)
     
     api_specification = create_smartapi(submitter, kg_name)

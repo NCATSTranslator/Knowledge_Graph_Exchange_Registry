@@ -37,6 +37,30 @@ def valid_session(session_id: str) -> bool:
     return _session.get(session_id, False)
 
 
-def delete_session(session_id: str):
-    if _session.get(session_id, False):
+def get_session(session_id: str) -> dict:
+    """
+    Get a session context (dictionary) if available.
+    Allows direct updating of the dictionary.
+
+    :param session_id:
+    :return: session dictionary if valid; empty dictionary otherwise
+    """
+    session = valid_session(session_id)
+    if not session:
+        return {}
+    return session
+
+
+def delete_session(session_id: str) -> bool:
+    """
+    Delete an active session if it exists.
+
+    :param session_id:
+    :return: True if active session detected and deleted, returns False otherwise
+    """
+    session = _session.get(session_id, False)
+    if session:
         _session.pop(session_id)
+        return True
+    else:
+        return False
