@@ -450,8 +450,8 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
 
 
 def upload_kge_file(
-        data_type,
         session_id,
+        data_type,
         data_file,
 ) -> Response:  # noqa: E501
     

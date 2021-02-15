@@ -262,17 +262,17 @@ paths:
               description: >-
                 Uploading form posting of (meta-)data files.
               properties:
-                data_type:
-                  type: string
                 session:
+                  type: string
+                data_type:
                   type: string
                 data_file:
                   type: string
                   format: binary
               required:
-                - data_type
-                - session
-                - data_file
+              - session
+              - data_type
+              - data_file
             encoding: # The same level as schema
               data_file: # Property name (see above)
                 contentType: text/csv, text/tab-separated-values, text/json

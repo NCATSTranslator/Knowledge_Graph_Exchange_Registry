@@ -270,9 +270,9 @@ paths:
             schema:
               description: Uploading form posting of (meta-)data files.
               properties:
-                data_type:
-                  type: string
                 session:
+                  type: string
+                data_type:
                   type: string
                 data_file:
                   format: binary
@@ -458,9 +458,9 @@ components:
     inline_object_1:
       description: Uploading form posting of (meta-)data files.
       properties:
-        data_type:
-          type: string
         session:
+          type: string
+        data_type:
           type: string
         data_file:
           format: binary

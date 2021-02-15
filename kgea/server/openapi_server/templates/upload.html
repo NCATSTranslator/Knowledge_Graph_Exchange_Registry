@@ -3,15 +3,15 @@
     <script>
         async function UploadFile(source)
         {
-            console.log('UploadFile(',str(source),", ",source.name,')');
+            console.log('UploadFile(',"{{session}}, ",source.name,')');
 
             let formData = new FormData();
 
             formData.append("session", "{{session}}");
             formData.append("data_type", source.name);
 
-            let filename = source.files[0];
-            formData.append("data_file", filename);
+            let datafile = source.files[0];
+            formData.append("data_file", datafile);
 
             try {
                let r = await fetch('/upload', {method: "POST", body: formData});
