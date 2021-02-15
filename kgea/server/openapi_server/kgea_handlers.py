@@ -423,7 +423,7 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
 
     session = _kge_metadata(session_id, kg_name, submitter)
 
-    kg_name = session['kg_name'],
+    kg_name = session['kg_name']
     submitter = session['submitter']
 
     register_location = object_location(kg_name)
