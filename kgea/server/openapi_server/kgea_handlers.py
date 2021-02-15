@@ -317,10 +317,12 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
 #############################################################
 
 def _kge_metadata(
-        session: dict,
+        session_id: str,
         kg_name: str = None,
         submitter: str = None
 ):
+    session = get_session(session_id)
+
     if kg_name is not None:
         session['kg_name'] = kg_name
     else:
@@ -355,9 +357,7 @@ def get_kge_registration_form(
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
 
-    session = get_session(session_id)
-
-    _kge_metadata(session, kg_name, submitter)
+    _kge_metadata(session_id, kg_name, submitter)
     
     return render_template(
         'register.html',
@@ -417,12 +417,10 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
 
-    session = get_session(session_id)
-
     submitter = body['submitter']
     kg_name = body['kg_name']
 
-    _kge_metadata(session, kg_name, submitter)
+    _kge_metadata(session_id, kg_name, submitter)
 
     register_location = object_location(kg_name)
     
@@ -447,28 +445,28 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     #     abort(201)
 
 
-def upload_kge_file_set(
-        kg_name,
-        data_file_content,
-        data_file_metadata
+def upload_kge_file(
+        data_type,
+        session_id,
+        data_file,
 ) -> Response:  # noqa: E501
     
-    """Upload web form details specifying a KGE File Set upload process
+    """KGE File Set upload process
 
      # noqa: E501
 
-    :param kg_name:
-    :type kg_name: str
-    :param data_file_content:
-    :type data_file_content: FileStorage
-    :param data_file_metadata:
-    :type data_file_metadata: FileStorage
+    :param data_type:
+    :type data_type: str
+    :param session_id:
+    :type session_id: str
+    :param data_file:
+    :type data_file: FileStorage
 
     :rtype: Response
     """
 
     saved_args = locals()
-    logger.critical("upload_kge_file_set: ", saved_args)
+    logger.critical("upload_kge_file: ", saved_args)
  
     # kg_name = 'test' # body['kg_name']
     # data_file_content = body['data_file_content']
@@ -476,36 +474,67 @@ def upload_kge_file_set(
     
     saved_args = locals()
     print("upload_kge_file_set", saved_args)
-    
+
+    session = get_session(session_id)
+
+    kg_name = session['kg_name']
+    submitter = session['submitter']
+
     # We don't really need the session id here
     # since it is not really being propagated in the call?
 
-    contentLocation, _ = withTimestamp(object_location)(kg_name)
-    metadataLocation = object_location(kg_name)
-    
+    content_location, _ = withTimestamp(object_location)(kg_name)
+    metadata_location = object_location(kg_name)
+
+    maybe_upload_content = None
+    maybe_upload_meta_data = None
+
     # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
-    maybeUploadContent = upload_file(data_file_content, file_name=data_file_content.filename,
-                                     bucket_name=resources['bucket'], object_location=contentLocation)
-    maybeUploadMetaData = None or data_file_metadata and upload_file(data_file_metadata,
-                                                                     file_name=data_file_metadata.filename,
-                                                                     bucket_name=resources['bucket'],
-                                                                     object_location=metadataLocation)
-    if maybeUploadContent or maybeUploadMetaData:
-        response = {"content": dict({}), "metadata": dict({})}
-        
-        content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadContent)
-        
-        if maybeUploadContent in response["content"]:
-            abort(400)
+    if data_type == 'content':
+        maybe_upload_content = upload_file(
+                                data_file,
+                                file_name=data_file.filename,
+                                bucket_name=resources['bucket'],
+                                object_location=content_location
+                              )
+        if maybe_upload_content:
+
+            response = {"content": dict({})}
+
+            content_url = create_presigned_url(bucket=resources['bucket'], object_key=maybe_upload_content)
+
+            if maybe_upload_content in response["content"]:
+                abort(400, description="upload_kge_file(): Duplication in content?")
+            else:
+                response["content"][maybe_upload_content] = content_url
+
+            return Response(response)
+
         else:
-            response["content"][maybeUploadContent] = content_url
-        
-        if maybeUploadMetaData:
-            metadata_url = create_presigned_url(bucket=resources['bucket'], object_key=maybeUploadMetaData)
-            if maybeUploadMetaData not in response["metadata"]:
-                response["metadata"][maybeUploadMetaData] = metadata_url
+            abort(400, description="upload_kge_file(): content upload failed?")
+
+    elif data_type == 'metadata':
+
+        response = {"metadata": dict({})}
+
+        maybe_upload_meta_data = None or data_file and \
+                              upload_file(data_file,
+                                     file_name=data_file.filename,
+                                     bucket_name=resources['bucket'],
+                                     object_location=metadata_location
+                              )
+
+        if maybe_upload_meta_data:
+
+            metadata_url = create_presigned_url(bucket=resources['bucket'], object_key=maybe_upload_meta_data)
+            if maybe_upload_meta_data not in response["metadata"]:
+                response["metadata"][maybe_upload_meta_data] = metadata_url
             # don't care if not there since optional
-        
-        return Response(response)
+
+            return Response(response)
+
+        else:
+            abort(400, description="upload_kge_file(): metadata upload failed?")
+
     else:
-        abort(400)
+        abort(400, description="upload_kge_file(): unknown upload file type?")
