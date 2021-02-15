@@ -312,8 +312,8 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
 #     upload_kge_file,
 # )
 #
-# rewrite 'register_file_set' arguments
-# session, submitter and kg_name => 'body'
+# rewrite 'register_file_set' and 'upload_files' arguments to a
+# single 'body' argument (dissected inside the respective handlers)
 #############################################################
 
 def _kge_metadata(
@@ -449,22 +449,14 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     #     abort(201)
 
 
-def upload_kge_file(
-        session_id,
-        data_type,
-        data_file,
-) -> Response:  # noqa: E501
+def upload_kge_file(body) -> Response:  # noqa: E501
     
     """KGE File Set upload process
 
      # noqa: E501
 
-    :param session_id:
-    :type session_id: str
-    :param data_type:
-    :type data_type: str
-    :param data_file:
-    :type data_file: FileStorage
+    :param body:
+    :type body: dict
 
     :rtype: Response
     """
@@ -479,6 +471,8 @@ def upload_kge_file(
     saved_args = locals()
     print("upload_kge_file_set", saved_args)
 
+    session_id = body['session']
+
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
@@ -489,8 +483,8 @@ def upload_kge_file(
     kg_name = session['kg_name']
     submitter = session['submitter']
 
-    # We don't really need the session id here
-    # since it is not really being propagated in the call?
+    data_type = body['data_type']
+    data_file = body['data_file']
 
     content_location, _ = withTimestamp(object_location)(kg_name)
     metadata_location = object_location(kg_name)
