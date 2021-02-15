@@ -7,15 +7,16 @@
     <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
     <title>Translator KGE Archive</title>
     {% endblock %}
+    {% block scripts %}{% endblock %}
 </head>
 <body>
     <center>
         <p><div id="header">
-            <p><img class="banner" src="images/banner.jpg" alt="Translator Banner"></p>
-            <p>{% block menu %}{% endblock %}</p>
+            <p><img class="banner" src="images/banner.jpg" alt="Translator Banner">
+            <p>{% block menu %}{% endblock %}
         </div>
         <p><div id="content">
-            <p>{% block content %}{% endblock %}</p>
+            <p>{% block content %}{% endblock %}
         </div>
         <p><div id="footer">
             {% block footer %}

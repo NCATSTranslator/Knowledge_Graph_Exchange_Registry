@@ -1,19 +1,16 @@
 {% extends "layout.html" %}
-{% block menu %}
-{% include "logout.html" %}
-{% endblock %}
-{% block content %}
-    <h1>Upload KGE (Meta)Data Files</h1>
+{% block scripts %}
     <script>
-        async function UploadFile(source, target)
+        async function UploadFile(source)
         {
-            console.log('UploadFile(',str(source),", ",target,')');
+            console.log('UploadFile(',str(source),", ",source.name,')');
 
             let formData = new FormData();
-            let filename = source.files[0];
 
-            formData.append("data_type", target);
-            formData.append("session", {{session}});
+            formData.append("session", "{{session}}");
+            formData.append("data_type", source.name);
+
+            let filename = source.files[0];
             formData.append("data_file", filename);
 
             try {
@@ -25,17 +22,24 @@
 
         }
     </script>
+{% endblock %}
+{% block menu %}
+{% include "logout.html" %}
+{% endblock %}
+{% block content %}
+    <h1>Upload KGE (Meta)Data Files</h1>
+
 
     <h3>Uploading of KGE File Set for "{{kg_name}}", submitted by {{submitter}}</h3>
 
     <br>
     <h4>Select Content File for Upload:</h4>
-    <p>Single file selection (for now) before upload. This may be changed in further releases.</p>
-    <input class="textbox" type="file" name="content" onchange="UploadFile(this,'content')"/>
+    <p>Single file selection (for now) before upload. This may be changed in further releases.
+    <input class="textbox" type="file" name="content" onchange="UploadFile(this)"/>
 
     <br>
     <h4>Select Metadata File for Upload:</h4>
-    <p>Must be valid KGX metadata generated from your dataset. Read more <a href="https://github.com/biolink/kgx">here</a>.</p>
-    <input class="textbox" type="file" name="metadata" onchange="UploadFile(this,'metadata')"/>
+    <p>Must be valid KGX metadata generated from your dataset. Read more <a href="https://github.com/biolink/kgx">here</a>.
+    <input class="textbox" type="file" name="metadata" onchange="UploadFile(this)"/>
 
 {% endblock %}
