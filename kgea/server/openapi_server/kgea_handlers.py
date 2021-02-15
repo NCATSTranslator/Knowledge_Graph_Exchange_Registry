@@ -309,7 +309,7 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
 #     get_kge_file_upload_form,
 #     get_kge_registration_form,
 #     register_kge_file_set,
-#     upload_kge_file_set,
+#     upload_kge_file,
 # )
 #
 # rewrite 'register_file_set' arguments
