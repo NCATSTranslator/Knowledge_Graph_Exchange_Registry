@@ -1,6 +1,8 @@
 from pathlib import Path
 from uuid import uuid4
 
+import connexion
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -334,21 +336,14 @@ def _kge_metadata(
 
     return session
 
-def get_kge_registration_form(
-        session_id: str,
-        kg_name: str = None,
-        submitter: str = None
-) -> Response:  # noqa: E501
-    """Get web form for specifying KGE File Set upload
+
+def get_kge_registration_form(session_id: str) -> Response:  # noqa: E501
+    """Get web form for specifying KGE File Set name and submitter
 
      # noqa: E501
      
     :param session_id:
     :type session_id: str
-    :param kg_name:
-    :type kg_name: str
-    :param submitter:
-    :type submitter: str
 
     :rtype: Response
     """
@@ -358,13 +353,11 @@ def get_kge_registration_form(
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
 
-    session = _kge_metadata(session_id, kg_name, submitter)
-    
+    #  TODO: if user is authenticated, why do we need to ask them for a submitter  name?
+
     return render_template(
         'register.html',
-        session=session_id,
-        kg_name=session['kg_name'],
-        submitter=session['submitter']
+        session=session_id
     )
 
 
@@ -462,14 +455,7 @@ def upload_kge_file(body) -> Response:  # noqa: E501
     """
 
     saved_args = locals()
-    logger.critical("entering upload_kge_file: locals(", str(saved_args), "), body(:)", str(body),")")
- 
-    # kg_name = 'test' # body['kg_name']
-    # data_file_content = body['data_file_content']
-    # data_file_metadata = body['data_file_metadata']
-    
-    saved_args = locals()
-    print("Printing upload_kge_file_set() saved_args: ", saved_args)
+    logger.critical("entering upload_kge_file: locals(", str(saved_args), "), body(:)", str(body), ")")
 
     session_id = body['session']
 
@@ -484,7 +470,11 @@ def upload_kge_file(body) -> Response:  # noqa: E501
     submitter = session['submitter']
 
     data_type = body['data_type']
-    data_file = body['data_file']
+
+    # TODO: connexion does not propagate the file here in the body
+    # See https://github.com/zalando/connexion/issues/535 for resolution
+    # data_file = body['data_file']
+    data_file = connexion.request.files['data_file']
 
     content_location, _ = withTimestamp(object_location)(kg_name)
     metadata_location = object_location(kg_name)
