@@ -3,7 +3,7 @@
     <script>
         async function UploadFile(source)
         {
-            console.log('UploadFile(',"{{session}}, ",source.name,')');
+            console.log('UploadFile(',"{{session}}, type: '",source.name,"', file: ", source.files[0], ')');
 
             let formData = new FormData();
 
