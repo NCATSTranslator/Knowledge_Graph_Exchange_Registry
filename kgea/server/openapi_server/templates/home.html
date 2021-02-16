@@ -19,7 +19,8 @@
             formData.append("session", "{{session}}");
 
             try {
-                // TODO: What happens to the data returned here? Should this fetch rather be a redirection?
+                // TODO: What happens to the data returned here?
+                // TODO: Should this fetch rather be a redirect in a separate tab or window?
                let r = await fetch(url, {method: "GET", body: formData});
                console.log('HTTP response code:',r.status);
 
