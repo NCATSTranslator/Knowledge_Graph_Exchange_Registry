@@ -15,17 +15,20 @@
 
             console.log("Downloading  URL: '"+url+"'");
 
-            return;
-
             let formData = new FormData();
             formData.append("session", "{{session}}");
 
             try {
+                // TODO: What happens to the data returned here? Should this fetch rather be a redirection?
                let r = await fetch(url, {method: "GET", body: formData});
                console.log('HTTP response code:',r.status);
+
             } catch(e) {
                console.log('File download error:', e);
             }
+
+            // block further propagation of the submit event here?
+            return false;
         }
     </script>
 {% endblock %}
