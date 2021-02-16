@@ -1,32 +1,54 @@
 {% extends "layout.html" %}
+{% block scripts %}
+    <script>
+        async function DownloadFile(source)
+        {
+            console.log("DownloadFile(session_id: '{{session}}', action: '"+source.action+
+                "', KG Name: '"+this.kg_name.value+"')"
+            );
+
+            let url = '/' + this.kg_name.value + this.action;
+
+            let formData = new FormData();
+            formData.append("session", "{{session}}");
+
+            try {
+               let r = await fetch(url, {method: "GET", body: formData});
+               console.log('HTTP response code:',r.status);
+            } catch(e) {
+               console.log('File upload error:', e);
+            }
+        }
+    </script>
+{% endblock %}
 {% block menu %}
 {% include "logout.html" %}
 {% endblock %}
 {% block content %}
-<h1>KGE Archive</h1>
-<p>What do you want to do?</p>
+    <h1>KGE Archive</h1>
+    <p>What do you want to do?</p>
 
-<h3>Archive a Knowledge Graph</h3>
-<form action="/register" method="get">
-    <!-- https://stackoverflow.com/a/9882750/1991892 -->
-    <input type="hidden" name="session" value="{{session}}" /> 
-    <input type="submit" value="Register KGE File Set" /><br>
-    <small>This is the first step required for uploading.</small>
-</form>
+    <h3>Upload a Knowledge Graph</h3>
+    <form action="/register" method="get">
+        <!-- https://stackoverflow.com/a/9882750/1991892 -->
+        <input type="hidden" name="session" value="{{session}}" />
+        <input type="submit" value="Register KGE File Set" /><br>
+        <small>This is the first step required for uploading.</small>
+    </form>
 
-<h3>Access a Knowledge Graph</h3>
-<form action="/access" method="get" onsubmit="this.action = + '/' + this.kg_name.value + this.action">
-    <!-- https://stackoverflow.com/a/9882750/1991892 -->
-    <input type="hidden" name="session" value="{{session}}" />
-    <label for="kg_name">Knowledge Graph</label><br>
-    <input type="text" name="kg_name"/>
-    <input type="submit" value="Download KGE File Set" />
-</form>
-<form action="/knowledge_map" method="get" onsubmit="this.action = + '/' + this.kg_name.value + this.action">
-    <!-- https://stackoverflow.com/a/9882750/1991892 -->
-    <input type="hidden" name="session" value="{{session}}" /> 
-    <label for="kg_name">Knowledge Graph</label><br>
-    <input type="text" name="kg_name"/>
-    <input type="submit" value="Download KGE Metadata" />
-</form>
+    <h3>Access a Knowledge Graph</h3>
+
+    <form action="/knowledge_map" method="get" onsubmit="DownloadFile(this)">
+        <!-- https://stackoverflow.com/a/9882750/1991892 -->
+        <label for="kg_name">Knowledge Graph Metadata File</label><br>
+        <input type="text" name="kg_name"/>
+        <input type="submit" value="Download KGE Metadata" />
+    </form>
+
+    <form action="/access" method="get" onsubmit="DownloadFile(this)">
+        <!-- https://stackoverflow.com/a/9882750/1991892 -->
+        <label for="kg_name">Knowledge Graph Content Files</label><br>
+        <input type="text" name="kg_name"/>
+        <input type="submit" value="Download KGE File Set" />
+    </form>
 {% endblock %}

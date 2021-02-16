@@ -25,11 +25,14 @@ import yaml
 import webbrowser
 import requests
 
+
 def create_location(bucket, kg_name):
     return s3_client.put_object(Bucket=bucket, Key=object_location(kg_name))
-     
+
+
 def delete_location(bucket, kg_name):
     return s3_client.delete(Bucket=bucket, Key=object_location(kg_name))
+
 
 # https://www.askpython.com/python/examples/generate-random-strings-in-python
 def _random_alpha_string(length=8):
@@ -44,17 +47,21 @@ def _random_alpha_string(length=8):
         random_string += (chr(random_integer))
     return random_string
 
+
 """
 Test Parameters + Decorator
 """
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
+
+
 def prepare_test(func):
     def wrapper():
         TEST_BUCKET = 'kgea-test-bucket'
         TEST_KG_NAME = 'test_kg'
         return func()
     return wrapper
+
 
 def prepare_test_random_object_location(func):
 
@@ -73,20 +80,24 @@ def prepare_test_random_object_location(func):
 
     return wrapper
 
+
 def object_location(kg_name):
     """
-    NOTE: Must be kept deterministic. No datetimes or randomness in this method; they may be appended afterwards.
+    NOTE: Must be kept deterministic. No datetimes or
+    randomness in this method; they may be appended afterwards.
     """
-    object_location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
+    location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data',
         KG_NAME=kg_name
     )
-    return object_location
+    return location
 
-def withTimestamp(func, datetime=datetime.now().strftime('%Y%j%H%M%s')):
+
+def with_timestamp(func, datetime=datetime.now().strftime('%Y%j%H%M%s')):
     def wrapper(kg_name):
         return func(kg_name+'/'+datetime), datetime
     return wrapper
+
 
 def location_available(bucket_name, object_key):
     """
@@ -109,6 +120,7 @@ def location_available(bucket_name, object_key):
         # invert because available
         return True
 
+
 @prepare_test
 def test_is_location_available(test_object_location=object_location(_random_alpha_string()), test_bucket=TEST_BUCKET):
     try:
@@ -119,6 +131,7 @@ def test_is_location_available(test_object_location=object_location(_random_alph
         print(e)
         return False
     return True
+
 
 @prepare_test
 @prepare_test_random_object_location   # note: use this decorator only if the child function satisfies `test_object_location` in its arguments 
@@ -139,11 +152,13 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
         return False
     return True
 
+
 def kg_files_in_location(bucket_name, object_location):
     bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
                         e in p['Contents']]
     object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
     return object_matches
+
 
 @prepare_test
 @prepare_test_random_object_location   # note: use this decorator only if the child function satisfies `test_object_location` in its arguments 
@@ -154,7 +169,6 @@ def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
     except AssertionError as e:
         raise AssertionError(e)
     return True
-
 
 
 # TODO: clarify expiration time
@@ -177,6 +191,7 @@ def create_presigned_url(bucket, object_key, expiration=3600):
     # The response contains the presigned URL
     return response
 
+
 @prepare_test
 def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
     try:
@@ -189,6 +204,7 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME
         print('ERROR:', e)
         return False
     return True
+
 
 def upload_file(data_file, file_name, bucket_name, object_location, override=False):
     """Upload a file to an S3 bucket
@@ -211,6 +227,7 @@ def upload_file(data_file, file_name, bucket_name, object_location, override=Fal
         raise ClientError(error_message)
     return object_key
 
+
 @prepare_test
 def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
@@ -232,13 +249,14 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+
 @prepare_test
 def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     """
-    Use the "withTimestamp" wrapper to modify the object location
+    Use the "with_timestamp" wrapper to modify the object location
     """
     try:
-        test_location, time_created = withTimestamp(object_location)(test_kg)
+        test_location, time_created = with_timestamp(object_location)(test_kg)
         # NOTE: file must be read in binary mode!
         with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, test_location)
@@ -257,6 +275,7 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         print(e)
         return False
     return True
+
 
 def download_file(bucket, object_key, openFile=False):
     download_url = create_presigned_url(bucket=bucket, object_key=object_key)
@@ -285,10 +304,12 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
         return False
     return True
 
+
 # TODO
 def convert_to_yaml(spec):
     yaml_file = lambda spec: spec 
     return yaml_file(spec)
+
 
 # TODO
 @prepare_test
@@ -302,16 +323,19 @@ def create_smartapi(submitter, kg_name):
     yaml_file = convert_to_yaml(spec)
     return yaml_file
 
+
 # TODO
 @prepare_test
 def test_create_smartapi():
     return True
+
 
 # TODO
 def add_to_github(api_specification):
     # using https://github.com/NCATS-Tangerine/translator-api-registry
     repo = ''
     return repo
+
 
 # TODO
 @prepare_test

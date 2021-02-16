@@ -28,7 +28,7 @@ from .kgea_file_ops import (
     add_to_github,
     create_smartapi,
     object_location,
-    withTimestamp
+    with_timestamp
 )
 
 import logging
@@ -473,7 +473,7 @@ def upload_kge_file(body) -> Response:  # noqa: E501
     # data_file = body['data_file']
     data_file = connexion.request.files['data_file']
 
-    content_location, _ = withTimestamp(object_location)(kg_name)
+    content_location, _ = with_timestamp(object_location)(kg_name)
     metadata_location = object_location(kg_name)
 
     maybe_upload_content = None
