@@ -3,7 +3,7 @@
     <script>
         async function DownloadFile(source)
         {
-            let kg_name = document.getElementByName('kg_name').value;
+            let kg_name = document.getElementById('kg_name').value;
 
             console.log(
                 "DownloadFile(session_id: '{{session}}', "+
@@ -14,9 +14,6 @@
             let url = '/' + kg_name + '/' + source.id;
 
             console.log("Downloading  URL: '"+url+"'");
-
-            // block further propagation of the submit event here?
-            return false;
 
             let formData = new FormData();
             formData.append("session", "{{session}}");
@@ -53,9 +50,10 @@
 
     <h3>Access a Knowledge Graph</h3>
 
-    <p></p><label for="kg_name">Graph name: </label><br>
-    <input type="text" name="kg_name"/>
+    <p></p><label for="kg_name"><b>Graph Name: </b></label><br>
+    <input id="kg_name" type="text"/>
 
+    <p>
     <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">
         <input type="submit" value="Download Metadata" />
     </form>
