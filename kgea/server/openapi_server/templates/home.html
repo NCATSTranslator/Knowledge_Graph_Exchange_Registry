@@ -11,7 +11,7 @@
                 "KG Name: '"+kg_name+"')"
             );
 
-            let url = '/' + kg_name + '/' + source.id;
+            let url = '/' + kg_name + '/' + source.id + "?session={{session}}";
 
             console.log("Downloading  URL: '"+url+"'");
 
@@ -21,7 +21,7 @@
             try {
                 // TODO: What happens to the data returned here?
                 // TODO: Should this fetch rather be a redirect in a separate tab or window?
-               let r = await fetch(url, {method: "GET", body: formData});
+               let r = await fetch(url, {method: "GET"});
                console.log('HTTP response code:',r.status);
 
             } catch(e) {
