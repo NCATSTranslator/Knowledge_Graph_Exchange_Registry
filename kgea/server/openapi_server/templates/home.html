@@ -3,11 +3,19 @@
     <script>
         async function DownloadFile(source)
         {
-            console.log("DownloadFile(session_id: '{{session}}', action: '"+source.action+
-                "', KG Name: '"+this.kg_name.value+"')"
+            let kg_name = document.getElementById(source.id).value;
+
+            console.log(
+                "DownloadFile(session_id: '{{session}}', "+
+                "action: '"+source.action+"', "+
+                "KG Name: '"+kg_name+"')"
             );
 
-            let url = '/' + this.kg_name.value + this.action;
+            let url = '/' + kg_name + '/' + source.action;
+
+            console.log("Downloading  URL: '"+url+"'");
+
+            return;
 
             let formData = new FormData();
             formData.append("session", "{{session}}");
@@ -16,7 +24,7 @@
                let r = await fetch(url, {method: "GET", body: formData});
                console.log('HTTP response code:',r.status);
             } catch(e) {
-               console.log('File upload error:', e);
+               console.log('File download error:', e);
             }
         }
     </script>
@@ -38,17 +46,14 @@
 
     <h3>Access a Knowledge Graph</h3>
 
-    <form action="/knowledge_map" method="get" onsubmit="DownloadFile(this)">
-        <!-- https://stackoverflow.com/a/9882750/1991892 -->
-        <label for="kg_name">Knowledge Graph Metadata File</label><br>
-        <input type="text" name="kg_name"/>
-        <input type="submit" value="Download KGE Metadata" />
+    <p></p><label for="kg_name">Name of Knowledge Graph to Download: </label>
+    <input type="text" name="kg_name"/>
+
+    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">
+        <input type="submit" value="Download Metadata" />
     </form>
 
-    <form action="/access" method="get" onsubmit="DownloadFile(this)">
-        <!-- https://stackoverflow.com/a/9882750/1991892 -->
-        <label for="kg_name">Knowledge Graph Content Files</label><br>
-        <input type="text" name="kg_name"/>
-        <input type="submit" value="Download KGE File Set" />
+    <form id="access" method="get" onsubmit="DownloadFile(this)">
+        <input type="submit" value="Download Data File(s)" />
     </form>
 {% endblock %}
