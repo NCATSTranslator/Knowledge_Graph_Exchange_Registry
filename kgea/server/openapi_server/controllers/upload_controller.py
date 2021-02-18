@@ -18,7 +18,7 @@ def get_file_upload_form(session, submitter, kg_name):  # noqa: E501
     :param kg_name: 
     :type kg_name: str
 
-    :rtype: str
+    :rtype: Response
     """
     return get_kge_file_upload_form(session, submitter, kg_name)
 
@@ -31,7 +31,7 @@ def get_registration_form(session):  # noqa: E501
     :param session: 
     :type session: str
 
-    :rtype: str
+    :rtype: Response
     """
     return get_kge_registration_form(session)
 
