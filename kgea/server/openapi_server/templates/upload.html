@@ -17,6 +17,7 @@
                     formData.append("content_url", content_url);
                 } else  {
                     console.log("KGX content file url is undefined?");
+                    return;
                 }
             } else if (source.id === 'metadata') {
                 let uploaded_file = document.getElementById('metadata_file').files[0];
@@ -25,6 +26,7 @@
                     formData.append("uploaded_file", uploaded_file);
                 } else  {
                     console.log("KGX metadata file is undefined?");
+                    return;
                 }
             } else if (source.id === 'content_from_local_file') {
                 let uploaded_file = document.getElementById('content_file').files[0];
@@ -33,6 +35,7 @@
                     formData.append("uploaded_file", uploaded_file);
                 } else  {
                     console.log("KGX data file is undefined?");
+                    return;
                 }
             }
 
@@ -65,7 +68,7 @@
     <p>Must be valid KGX metadata generated from your dataset.
         Read more <a href="https://github.com/biolink/kgx">here</a>.
 
-    <label for="metadata_file"><b>Select Metadata File: </b></label>
+    <br><label for="metadata_file"><b>Select Metadata File: </b></label>
     <input id="metadata_file" class="textbox" type="file"/>
     <button id="metadata" onclick="UploadFile(this)">Upload</button>
 
@@ -77,7 +80,7 @@
 
     <p>Select single file for upload (multiple file upload net currently supported).
 
-    <label for="content_file"><b>Select Data File:</b></label>
+    <br><label for="content_file"><b>Select Data File:</b></label>
     <input id="content_file"  class="textbox" type="file"/>
     <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
 
@@ -87,7 +90,7 @@
 
     <p>Specify a URL designating a KGX file for transfer to the archive.
 
-    <label for="content_url"><b>URL to File:</b></label>
+    <br><label for="content_url"><b>URL to File:</b></label>
     <input id="content_url" type="text"/>
     <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
 
