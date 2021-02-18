@@ -52,46 +52,54 @@
 {% include "logout.html" %}
 {% endblock %}
 {% block content %}
-    <h1>Upload KGE (Meta)Data Files</h1>
+<h3>Knowledge Graph "{{kg_name}}", Submitted by {{submitter}}</h3>
 
-    <h2>Knowledge Graph "{{kg_name}}"</h2>
-    <h3>Submitted by {{submitter}}</h3>
+<table>
+    <tr>
+        <td>
+            <center>
+                <h3>Select KGX Metadata File for upload:</h3>
+            </center>
+        </td>
+        <td>
+            <center>
+                <h3>Select KGX data file for upload:</h3>
+            </center>
+        </td>
+    <tr>
+        <td>
+            <center>
+                <h4>Upload local KGX metadata file from your computer:</h4>
 
-    <br>
+                <p>Must be valid KGX metadata generated from your dataset.
+                    Read more <a href="https://github.com/biolink/kgx">here</a>.
 
-    <h2>Select KGX Metadata File for upload:</h2>
+                <br><label for="metadata_file"><b>Select Metadata File: </b></label>
+                <input id="metadata_file" class="textbox" type="file"/>
+                <button id="metadata" onclick="UploadFile(this)">Upload</button>
+            </center>
+        </td>
+        <td>
+            <center>
+                <h4>Upload local KGX data file from your computer:</h4>
 
-    <br>
+                <p>Select single file for upload (multiple file upload net currently supported).
 
-    <h4>Upload local KGX metadata file from your computer:</h4>
+                <br><label for="content_file"><b>Select Data File:</b></label>
+                <input id="content_file"  class="textbox" type="file"/>
+                <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
 
-    <p>Must be valid KGX metadata generated from your dataset.
-        Read more <a href="https://github.com/biolink/kgx">here</a>.
+                <br>
 
-    <br><label for="metadata_file"><b>Select Metadata File: </b></label>
-    <input id="metadata_file" class="textbox" type="file"/>
-    <button id="metadata" onclick="UploadFile(this)">Upload</button>
+                <h4>(Alternative) Transfer KGX file from URL endpoint:</h4>
 
-    <h2>Select source of KGX data file for upload:</h2>
+                <p>Specify a URL designating a KGX file for transfer to the archive.
 
-    <br>
-
-    <h4>Upload local KGX data file from your computer:</h4>
-
-    <p>Select single file for upload (multiple file upload net currently supported).
-
-    <br><label for="content_file"><b>Select Data File:</b></label>
-    <input id="content_file"  class="textbox" type="file"/>
-    <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
-
-    <br>
-
-    <h4>(Alternative) Transfer KGX file from URL endpoint:</h4>
-
-    <p>Specify a URL designating a KGX file for transfer to the archive.
-
-    <br><label for="content_url"><b>URL to File:</b></label>
-    <input id="content_url" type="text"/>
-    <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
-
+                <br><label for="content_url"><b>URL to File:</b></label>
+                <input id="content_url" type="text"/>
+                <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
+            </center>
+        </td>
+    </tr>
+</table>
 {% endblock %}
