@@ -39,26 +39,32 @@
 {% block content %}
     <h1>KGE Archive</h1>
     <p>What do you want to do?</p>
+    <table width="50%">
+        <tr>
+            <td>
+                <h3>Upload a Knowledge Graph</h3>
+                <form action="/register" method="get">
+                    <!-- https://stackoverflow.com/a/9882750/1991892 -->
+                    <input type="hidden" name="session" value="{{session}}" />
+                    <input type="submit" value="Register KGE File Set" /><br>
+                    <small>This is the first step required for uploading.</small>
+                </form>
+            </td>
+            <td>
+                <h3>Access a Knowledge Graph</h3>
 
-    <h3>Upload a Knowledge Graph</h3>
-    <form action="/register" method="get">
-        <!-- https://stackoverflow.com/a/9882750/1991892 -->
-        <input type="hidden" name="session" value="{{session}}" />
-        <input type="submit" value="Register KGE File Set" /><br>
-        <small>This is the first step required for uploading.</small>
-    </form>
+                <p><label for="kg_name"><b>Graph Name: </b></label><br>
+                <input id="kg_name" type="text"/>
 
-    <h3>Access a Knowledge Graph</h3>
+                <p>
+                <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">
+                    <input type="submit" value="Download Metadata" />
+                </form>
 
-    <p><label for="kg_name"><b>Graph Name: </b></label><br>
-    <input id="kg_name" type="text"/>
-
-    <p>
-    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">
-        <input type="submit" value="Download Metadata" />
-    </form>
-
-    <form id="access" method="get" onsubmit="DownloadFile(this)">
-        <input type="submit" value="Download Data File(s)" />
-    </form>
+                <form id="access" method="get" onsubmit="DownloadFile(this)">
+                    <input type="submit" value="Download Data File(s)" />
+                </form>
+            </td>
+        </tr>
+    </table>
 {% endblock %}
