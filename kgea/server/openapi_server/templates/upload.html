@@ -36,12 +36,12 @@
                 }
             }
 
-            //{#try {#}
-            //{#   let r = await fetch('/upload', {method: "POST", body: formData});#}
-            //{#   console.log('HTTP response code:',r.status);#}
-            //{#} catch(e) {#}
-            //{#   console.log('File upload error:', e);#}
-            //{#}#}
+            try {
+                let r = await fetch('/upload', {method: "POST", body: formData});
+                console.log('HTTP response code:', r.status);
+            } catch(e) {
+               console.log('File upload error:', e);
+            }
         }
     </script>
 {% endblock %}
