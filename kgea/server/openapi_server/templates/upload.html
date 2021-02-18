@@ -2,6 +2,7 @@
 {% block scripts %}
     <script>
         async function UploadFile(source) {
+
             console.log("UploadFile(session: {{session}}, upload_mode: '" + source.id + "')");
 
             let formData = new FormData();
@@ -25,12 +26,12 @@
                 return false;
             }
 
-            try {
-               let r = await fetch('/upload', {method: "POST", body: formData});
-               console.log('HTTP response code:',r.status);
-            } catch(e) {
-               console.log('File upload error:', e);
-            }
+            {#try {#}
+            {#   let r = await fetch('/upload', {method: "POST", body: formData});#}
+            {#   console.log('HTTP response code:',r.status);#}
+            {#} catch(e) {#}
+            {#   console.log('File upload error:', e);#}
+            {#}#}
 
             // suppress propagation of html form 'submit'
             return false;
@@ -43,11 +44,16 @@
 {% block content %}
     <h1>Upload KGE (Meta)Data Files</h1>
 
-    <h3>Uploading of KGE File Set for "{{kg_name}}", submitted by {{submitter}}</h3>
+    <h2>Knowledge Graph "{{kg_name}}"</h2>
+    <h3>Submitted by {{submitter}}</h3>
 
     <br>
-    <h4>Select Metadata File for Upload:</h4>
-    <p>Must be valid KGX metadata generated from your dataset. Read more <a href="https://github.com/biolink/kgx">here</a>.
+    <h2>Select KGX Metadata File for upload:</h2>
+    <br>
+    <h4>Upload local KGX metadata file from your computer:</h4>
+
+    <p>Must be valid KGX metadata generated from your dataset.
+        Read more <a href="https://github.com/biolink/kgx">here</a>.
 
     <form id="metadata" onsubmit="UploadFile(this)">
         <label for="metadata_file"><b>Select Metadata File: </b></label>
@@ -55,9 +61,12 @@
         <input type="submit"  value="Upload"/>
     </form>
 
+    <h2>Select KGX data file for upload:</h2>
     <br>
-    <h4>Upload local KGX file from your computer:</h4>
+
+    <h4>Upload local KGX data file from your computer:</h4>
     <p>Single file selection (for now) for upload (this may be changed in further releases).
+
     <form id="content_from_local_file" onsubmit="UploadFile(this)">
         <label for="content_file"><b>Select Data File:</b></label>
         <input id="content_file"  class="textbox" type="file"/>
@@ -65,11 +74,13 @@
     </form>
 
     <br>
-    <h4>Transfer file from URL:</h4>
-    <p>(Alternative) Specify a URL pointing to a KGX file to transfer to the archive:
+    <h4>(Alternative) Transfer KGX file from URL endpoint:</h4>
+    <p>Specify a URL pointing to a KGX file to transfer to the archive:
+
     <form  id="content_from_url" onsubmit="UploadFile(this)">
         <label for="content_url"><b>URL to File:</b></label>
         <input id="content_url" type="text"/>
         <input type="submit"  value="Initiate Transfer"/>
     </form>
+
 {% endblock %}
