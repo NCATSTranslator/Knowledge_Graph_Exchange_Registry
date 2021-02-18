@@ -3,15 +3,22 @@
     <script>
         async function UploadFile(source)
         {
-            console.log('UploadFile(',"{{session}}, type: '",source.name,"', file: ", source.files[0], ')');
+            console.log("UploadFile(session: {{session}}, upload_mode: '" + source.id + "')");
 
             let formData = new FormData();
-
             formData.append("session", "{{session}}");
-            formData.append("data_type", source.name);
+            formData.append("upload_mode", source.id);
 
-            let datafile = source.files[0];
-            formData.append("data_file", datafile);
+            if(source.id == 'content_from_url')  {
+                // Transfer file from REST URL endpoint
+                let content_url = document.getElementById('content_url').value;
+                console.log("Content URL: '" + content_url + "')");
+                formData.append("content_url", content_url);
+            } else {
+                let datafile = source.files[0];
+                console.log("File being uploaded: '" + datafile.filename + "')");
+                formData.append("content_file", datafile);
+            }
 
             try {
                let r = await fetch('/upload', {method: "POST", body: formData});
@@ -31,13 +38,30 @@
     <h3>Uploading of KGE File Set for "{{kg_name}}", submitted by {{submitter}}</h3>
 
     <br>
-    <h4>Select Content File for Upload:</h4>
-    <p>Single file selection (for now) before upload. This may be changed in further releases.
-    <input class="textbox" type="file" name="content" onchange="UploadFile(this)"/>
-
-    <br>
     <h4>Select Metadata File for Upload:</h4>
     <p>Must be valid KGX metadata generated from your dataset. Read more <a href="https://github.com/biolink/kgx">here</a>.
-    <input class="textbox" type="file" name="metadata" onchange="UploadFile(this)"/>
 
+    <form id="metadata" onsubmit="UploadFile(this)">
+        <label for="metadata_file"><b>Select Metadata File: </b></label>
+        <input id="metadata_file" class="textbox" type="file" onchange="UploadFile(this)"/>
+        <input type="submit"  value="Upload"/>
+    </form>
+
+    <br>
+    <h4>Upload local KGX file from your computer:</h4>
+
+    <p>Single file selection (for now) for upload (this may be changed in further releases).
+    <form id="content_from_file" onsubmit="UploadFile(this)">
+        <label for="content_file"><b>Select Data File:</b></label>
+        <input id="content_file"  class="textbox" type="file" onchange="UploadFile(this)"/>
+        <input type="submit"  value="Upload"/>
+    </form>
+
+    <h4>Transfer file from URL:</h4>
+    <p>(Alternative) Specify a URL pointing to a KGX file to transfer to the archive:
+    <form  id="content_from_url" onsubmit="UploadFile(this)">
+        <label for="content_url"><b>URL to File:</b></label>
+        <input id="content_url" type="text" onchange="UploadFile(this)"/>
+        <input type="submit"  value="Initiate Transfer"/>
+    </form>
 {% endblock %}

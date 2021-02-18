@@ -260,21 +260,31 @@ paths:
             schema:
               type: object
               description: >-
-                Uploading form posting of (meta-)data files.
+                Uploading form posting of (meta-)data files. The 'upload_mode'
+                string argument specifies the file type and/or mode as one of
+                'metadata', 'content_file' or 'content_from_url'. If
+                'metadata_file' or 'content_file' are indicated, then the
+                'data_file' parameter should be set to the file to be
+                uploaded. If 'upload_mode' is set to 'content_from_url'
+                then the 'content_url' parameter is taken as a REST endpoint
+                of the file to be transferred into the Archive (authentication
+                not yet supported - URL should provide unauthenticated access)
               properties:
                 session:
                   type: string
-                data_type:
+                upload_mode:
                   type: string
-                data_file:
+                content_url:
+                  type: string
+                  format: binary
+                content_file:
                   type: string
                   format: binary
               required:
               - session
-              - data_type
-              - data_file
-            encoding: # The same level as schema
-              data_file: # Property name (see above)
+              - upload_mode
+            encoding:
+              content_file: # Property name (see above)
                 contentType: text/csv, text/tab-separated-values, text/json
       responses:
         '201':
