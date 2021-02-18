@@ -475,7 +475,7 @@ def upload_kge_file(body) -> Response:  # noqa: E501
         # TODO: implement file from URL
         url = upload_mode = body['content_url']
         logger.info("upload_kge_file(): content_url == '" + url + "')")
-        return abort(400, description="upload_kge_file(): content-from-url is not yet implemented?")
+        return abort(503, description="upload_kge_file(): content-from-url is not yet implemented?")
 
     else:  # process direct metadata or content file upload
 
