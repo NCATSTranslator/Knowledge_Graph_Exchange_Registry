@@ -16,11 +16,11 @@
                 formData.append("content_url", content_url);
             } else if (source.id === 'metadata') {
                 let uploaded_file = document.getElementById('metadata_file').files[0];
-                console.log("KGX metadata file being uploaded: '" + uploaded_file.filename + "')");
+                console.log("KGX metadata file being uploaded: '" + String(uploaded_file) + "')");
                 formData.append("uploaded_file", uploaded_file);
             } else if (source.id === 'content_from_local_file') {
                 let uploaded_file = document.getElementById('content_file').files[0];
-                console.log("KGX data file being uploaded: '" + uploaded_file.filename + "')");
+                console.log("KGX data file being uploaded: '" + String(uploaded_file) + "')");
                 formData.append("uploaded_file", uploaded_file);
             }
 
