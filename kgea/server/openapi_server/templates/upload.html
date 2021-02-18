@@ -21,7 +21,7 @@
             } else if (source.id === 'metadata') {
                 let uploaded_file = document.getElementById('metadata_file').files[0];
                 if(uploaded_file) {
-                    console.log("KGX metadata file being uploaded: '" + uploaded_file.prototype.name + "'");
+                    console.log("KGX metadata file being uploaded: '" + uploaded_file.name + "'");
                     formData.append("uploaded_file", uploaded_file);
                 } else  {
                     console.log("KGX metadata file is undefined?");
@@ -29,7 +29,7 @@
             } else if (source.id === 'content_from_local_file') {
                 let uploaded_file = document.getElementById('content_file').files[0];
                 if(uploaded_file) {
-                    console.log("KGX data file being uploaded: '" + uploaded_file.prototype.name + "'");
+                    console.log("KGX data file being uploaded: '" + uploaded_file.name + "'");
                     formData.append("uploaded_file", uploaded_file);
                 } else  {
                     console.log("KGX data file is undefined?");
