@@ -91,7 +91,7 @@ def get_kge_home(session_id: str = None) -> Response:  # noqa: E501
 
     :rtype: Response
     """
-    
+
     # validate the session key
     if valid_session(session_id):
         return render_template('home.html', session=session_id)
@@ -118,31 +118,31 @@ def kge_client_authentication(code: str, state: str) -> Response:  # noqa: E501
 
     :rtype: Response
     """
-    
+
     # Establish session here if there
     # is a valid access code & state variable?
     if state in _state_cache:
-        
+
         # state 'secrets' are only got for one request
         _state_cache.remove(state)
-        
+
         # now, check the returned code for authorization
         if code:
-            
+
             # TODO: check AWS authorization token
-            
+
             # Let everything through for the initial iteration
             # Need to tie into AWS Cognito validation
             authenticated = True
-            
+
             if authenticated:
                 # create and persist Session here
                 session_id = create_session()
-                
+
                 # then redirect to an authenticated home page
                 authenticated_url = HOME + '?session=' + session_id
                 return redirect(authenticated_url, code=302, Response=None)
-    
+
     # If authentication conditions are not met, then
     # simply redirect back to public landing page
     redirect(LANDING, code=302, Response=None)
@@ -155,10 +155,10 @@ def kge_login() -> Response:  # noqa: E501
 
     :rtype: Response
     """
-    
+
     state = str(uuid4())
     _state_cache.append(state)
-    
+
     login_url = \
         resources['oauth2']['host'] + \
         '/login?response_type=code' + \
@@ -168,7 +168,7 @@ def kge_login() -> Response:  # noqa: E501
         '&redirect_uri=' + \
         resources['oauth2']['site_uri'] + \
         resources['oauth2']['login_callback']
-    
+
     return redirect(login_url, code=302, Response=None)
 
 
@@ -182,12 +182,12 @@ def kge_logout(session_id: str = None) -> Response:  # noqa: E501
     
     :rtype: Response
     """
-    
+
     # invalidate session here?
     if valid_session(session_id):
-        
+
         delete_session(session_id)
-        
+
         # ...then redirect to signal logout at the Oauth2 host
         logout_url = \
             resources['oauth2']['host'] + \
@@ -195,7 +195,7 @@ def kge_logout(session_id: str = None) -> Response:  # noqa: E501
             resources['oauth2']['client_id'] + \
             '&logout_uri=' + \
             resources['oauth2']['site_uri']
-        
+
         return redirect(logout_url, code=302, Response=None)
     else:
         # redirect to unauthenticated landing page for login
@@ -223,12 +223,12 @@ def kge_access(kg_name: str, session_id: str) -> Response:  # noqa: E501
     
     :rtype: Response( Dict[str, Attribute] )
     """
-    
+
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
-    
+
     files_location = object_location(kg_name)
     # Listings Approach
     # - Introspect on Bucket
@@ -245,7 +245,7 @@ def kge_access(kg_name: str, session_id: str) -> Response:  # noqa: E501
     kg_urls = dict(
         map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
     # logger.info('access urls %s, KGs: %s', kg_urls, kg_listing)
-    
+
     return Response(kg_urls)
 
 
@@ -270,14 +270,14 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
     
     :rtype: Response( Dict[str, Dict[str, List[str]]] )
     """
-    
+
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
-    
+
     files_location = object_location(kg_name)
-    
+
     # Listings Approach
     # - Introspect on Bucket
     # - Create URL per Item Listing
@@ -347,7 +347,7 @@ def get_kge_registration_form(session_id: str) -> Response:  # noqa: E501
 
     :rtype: Response
     """
-    
+
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
@@ -379,16 +379,16 @@ def get_kge_file_upload_form(
     
     :rtype: Response
     """
-    
+
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
-    
+
     # TODO guard against absent kg_name
     # TODO guard against invalid kg_name (check availability in bucket)
     # TODO redirect to register_form with given optional param as the entered kg_name
-    
+
     return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
 
 
@@ -403,9 +403,9 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     :rtype: Response
     """
     # logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
-    
+
     session_id = body['session']
-    
+
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
@@ -420,7 +420,7 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     submitter = session['submitter']
 
     register_location = object_location(kg_name)
-    
+
     if True:  # location_available(bucket_name, object_key):
         if True:  # api_specification and url:
             # TODO: repair return
@@ -440,7 +440,7 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
 
 
 def upload_kge_file(body) -> Response:  # noqa: E501
-    
+
     """KGE File Set upload process
 
      # noqa: E501
@@ -451,8 +451,8 @@ def upload_kge_file(body) -> Response:  # noqa: E501
     :rtype: Response
     """
 
-    # saved_args = locals()
-    # logger.info("entering upload_kge_file(): locals("+str(saved_args)+")")
+    saved_args = locals()
+    logger.info("entering upload_kge_file(): locals(" + str(saved_args) + ")")
 
     session_id = body['session']
 
@@ -461,77 +461,94 @@ def upload_kge_file(body) -> Response:  # noqa: E501
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
 
-    session = get_session(session_id)
+    upload_mode = body['upload_mode']
+    if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
+        # Invalid upload mode
+        return abort(400, description="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 
+    session = get_session(session_id)
     kg_name = session['kg_name']
     submitter = session['submitter']
 
-    data_type = body['data_type']
+    if upload_mode == 'content_from_url':
 
-    # TODO: connexion does not propagate the file here in the body
-    # See https://github.com/zalando/connexion/issues/535 for resolution
-    # data_file = body['data_file']
-    data_file = connexion.request.files['data_file']
+        # TODO: implement file from URL
+        url = upload_mode = body['content_url']
+        logger.info("upload_kge_file(): content_url == '" + url + "')")
+        return abort(400, description="upload_kge_file(): content-from-url is not yet implemented?")
 
-    content_location, _ = with_timestamp(object_location)(kg_name)
-    metadata_location = object_location(kg_name)
+    else:  # process direct metadata or content file upload
 
-    maybe_upload_content = None
-    maybe_upload_meta_data = None
+        # Retrieve the POSTed metadata or content file from connexion
+        # See https://github.com/zalando/connexion/issues/535 for resolution
+        uploaded_file = connexion.request.files['uploaded_file']
 
-    # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
-    if data_type == 'content':
-        maybe_upload_content = upload_file(
-                                data_file,
-                                file_name=data_file.filename,
-                                bucket_name=resources['bucket'],
-                                object_location=content_location
-                              )
-        if maybe_upload_content:
+        content_location, _ = with_timestamp(object_location)(kg_name)
+        metadata_location = object_location(kg_name)
 
-            response = {"content": dict({})}
+        maybe_upload_content = None
+        maybe_upload_meta_data = None
 
-            content_url = create_presigned_url(
-                bucket=resources['bucket'],
-                object_key=maybe_upload_content
+        # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
+        if upload_mode == 'content_from_local_file':
+
+            maybe_upload_content = upload_file(
+                uploaded_file,
+                file_name=uploaded_file.filename,
+                bucket_name=resources['bucket'],
+                object_location=content_location
             )
 
-            if maybe_upload_content in response["content"]:
-                return abort(400, description="upload_kge_file(): Duplication in content?")
+            if maybe_upload_content:
+
+                response = {"content": dict({})}
+
+                content_url = create_presigned_url(
+                    bucket=resources['bucket'],
+                    object_key=maybe_upload_content
+                )
+
+                if maybe_upload_content in response["content"]:
+                    return abort(400, description="upload_kge_file(): Duplication in content?")
+                else:
+                    response["content"][maybe_upload_content] = content_url
+
+                # If we get this far, time to register the dataset in SmartAPI
+                api_specification = create_smartapi(submitter, kg_name)
+                translator_registry_url = add_to_github(api_specification)
+
+                return Response(response)
+
             else:
-                response["content"][maybe_upload_content] = content_url
+                return abort(400, description="upload_kge_file(): content upload failed?")
 
-            # If we get this far, time to register the dataset in SmartAPI
-            api_specification = create_smartapi(submitter, kg_name)
-            url = add_to_github(api_specification)
+        elif upload_mode == 'metadata':
 
-            return Response(response)
+            response = {"metadata": dict({})}
+
+            maybe_upload_meta_data = \
+                None or uploaded_file and \
+                upload_file(uploaded_file,
+                            file_name=uploaded_file.filename,
+                            bucket_name=resources['bucket'],
+                            object_location=metadata_location
+                            )
+
+            if maybe_upload_meta_data:
+
+                metadata_url = create_presigned_url(
+                    bucket=resources['bucket'],
+                    object_key=maybe_upload_meta_data
+                )
+
+                if maybe_upload_meta_data not in response["metadata"]:
+                    response["metadata"][maybe_upload_meta_data] = metadata_url
+                # don't care if not there since optional
+
+                return Response(response)
+
+            else:
+                return abort(400, description="upload_kge_file(): metadata upload failed?")
 
         else:
-            return abort(400, description="upload_kge_file(): content upload failed?")
-
-    elif data_type == 'metadata':
-
-        response = {"metadata": dict({})}
-
-        maybe_upload_meta_data = None or data_file and \
-                                  upload_file(data_file,
-                                         file_name=data_file.filename,
-                                         bucket_name=resources['bucket'],
-                                         object_location=metadata_location
-                                  )
-
-        if maybe_upload_meta_data:
-
-            metadata_url = create_presigned_url(bucket=resources['bucket'], object_key=maybe_upload_meta_data)
-            if maybe_upload_meta_data not in response["metadata"]:
-                response["metadata"][maybe_upload_meta_data] = metadata_url
-            # don't care if not there since optional
-
-            return Response(response)
-
-        else:
-            return abort(400, description="upload_kge_file(): metadata upload failed?")
-
-    else:
-        return abort(400, description="upload_kge_file(): unknown upload file type?")
+            return abort(400, description="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")

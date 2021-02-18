@@ -270,12 +270,13 @@ paths:
             schema:
               description: Uploading form posting of (meta-)data files. The 'upload_mode'
                 string argument specifies the file type and/or mode as one of 'metadata',
-                'content_file' or 'content_from_url'. If 'metadata_file' or 'content_file'
-                are indicated, then the 'data_file' parameter should be set to the
-                file to be uploaded. If 'upload_mode' is set to 'content_from_url'
-                then the 'content_url' parameter is taken as a REST endpoint of the
-                file to be transferred into the Archive (authentication not yet supported
-                - URL should provide unauthenticated access)
+                'content_from_local_file' or 'content_from_url'. If 'metadata' or
+                'content_from_local_file' are indicated, then the 'uploaded_file'
+                parameter should be set to the file to be uploaded. If 'upload_mode'
+                is set to 'content_from_url' then the 'content_url' parameter is taken
+                as a REST endpoint of the file to be transferred into the Archive
+                (authentication not yet supported - URL should provide unauthenticated
+                access)
               properties:
                 session:
                   type: string
@@ -467,9 +468,9 @@ components:
     inline_object_1:
       description: Uploading form posting of (meta-)data files. The 'upload_mode'
         string argument specifies the file type and/or mode as one of 'metadata',
-        'content_file' or 'content_from_url'. If 'metadata_file' or 'content_file'
-        are indicated, then the 'data_file' parameter should be set to the file to
-        be uploaded. If 'upload_mode' is set to 'content_from_url' then the 'content_url'
+        'content_from_local_file' or 'content_from_url'. If 'metadata' or 'content_from_local_file'
+        are indicated, then the 'uploaded_file' parameter should be set to the file
+        to be uploaded. If 'upload_mode' is set to 'content_from_url' then the 'content_url'
         parameter is taken as a REST endpoint of the file to be transferred into the
         Archive (authentication not yet supported - URL should provide unauthenticated
         access)
