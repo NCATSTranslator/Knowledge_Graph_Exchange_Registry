@@ -52,24 +52,25 @@
 {% include "logout.html" %}
 {% endblock %}
 {% block content %}
-<h3>Knowledge Graph "{{kg_name}}", Submitted by {{submitter}}</h3>
+<h3>Knowledge Graph "{{kg_name}}"</h3>
+<h4>Submitted by {{submitter}}</h4>
 
 <table>
     <tr>
         <td>
             <center>
-                <h3>Select KGX Metadata File for upload:</h3>
+                <h4>Select KGX Metadata File for upload:</h4>
             </center>
         </td>
         <td>
             <center>
-                <h3>Select KGX data file for upload:</h3>
+                <h4>Select KGX data file for upload:</h4>
             </center>
         </td>
     <tr>
         <td>
             <center>
-                <h4>Upload local KGX metadata file from your computer:</h4>
+                <h4>Upload metadata file from computer:</h4>
 
                 <p>Must be valid KGX metadata generated from your dataset.
                     Read more <a href="https://github.com/biolink/kgx">here</a>.
@@ -81,19 +82,22 @@
         </td>
         <td>
             <center>
-                <h4>Upload local KGX data file from your computer:</h4>
+                <h4>Upload data file from computer:</h4>
 
                 <p>Select single file for upload (multiple file upload net currently supported).
 
                 <br><label for="content_file"><b>Select Data File:</b></label>
                 <input id="content_file"  class="textbox" type="file"/>
                 <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
+            </center>
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+        <td>
+            <center>
 
-                <br>
-
-                <h4>(Alternative) Transfer KGX file from URL endpoint:</h4>
-
-                <p>Specify a URL designating a KGX file for transfer to the archive.
+                <h4>Transfer file from URL:</h4>
 
                 <br><label for="content_url"><b>URL to File:</b></label>
                 <input id="content_url" type="text"/>
