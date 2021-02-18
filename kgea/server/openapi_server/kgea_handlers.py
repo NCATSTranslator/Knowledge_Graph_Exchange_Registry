@@ -419,6 +419,9 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     kg_name = session['kg_name']
     submitter = session['submitter']
 
+    if not (kg_name and submitter):
+        return abort(400, description="register_kge_file_set(): either kg_name or submitter are empty?")
+
     register_location = object_location(kg_name)
 
     if True:  # location_available(bucket_name, object_key):
