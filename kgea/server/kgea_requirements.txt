@@ -10,9 +10,10 @@ python_dateutil >= 2.6.0
 setuptools >= 21.0.0
 
 # KGE specific
+botocore<1.21.0,>=1.20.12
 boto3 >= 1.17.0
-botocore
 pyyaml
 flask
 Flask-Session
 flask-cors >= 3.0.10
+aiohttp

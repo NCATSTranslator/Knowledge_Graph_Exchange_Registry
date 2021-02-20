@@ -8,6 +8,9 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 
+import aiohttp
+import asyncio
+
 from .kgea_config import s3_client
 
 import boto3
@@ -130,7 +133,6 @@ def test_is_location_available(test_object_location=object_location(_random_alph
         print("ERROR: found a location that should not exist")
         print(e)
         return False
-    return True
 
 
 @prepare_test
@@ -277,9 +279,61 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     return True
 
 
-def download_file(bucket, object_key, openFile=False):
+#
+# TODO: Combine this URL streaming code with Boto3 Multi-part Upload?
+# see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.upload_part
+# see also:  https://docs.aiohttp.org/en/stable/client_reference.html
+# TODO: figure out how to rewrite this as aiohttp and asyncio?
+#
+# def download_file(url):
+#     local_filename = url.split('/')[-1]
+#     # NOTE the stream=True parameter
+#     r = requests.get(url, stream=True)
+#     with open(local_filename, 'wb') as f:
+#         for chunk in r.iter_content(chunk_size=1024):
+#             if chunk: # filter out keep-alive new chunks
+#                 f.write(chunk)
+#                 f.flush()
+#     return local_filename
+
+
+async def _get_file_from_url(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.content.read()
+
+
+TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
+
+
+@prepare_test
+def test_get_file_from_url():
+    loop = asyncio.get_event_loop()
+    tasks = [asyncio.ensure_future(_get_file_from_url(TEST_FILE_URL))]
+    loop.run_until_complete(asyncio.wait(tasks))
+    print("Results: %s" % [task.result() for task in tasks])
+    return True
+
+
+def transfer_file_from_url(url, bucket, object_key, open_file=False):
+    """
+    Direct transfer of file from URL directly to S3
+    """
+    loop = asyncio.get_event_loop()
+    tasks = [asyncio.ensure_future(_get_file_from_url(url))]
+    loop.run_until_complete(asyncio.wait(tasks))
+
+    # print("Results: %s" % [task.result() for task in tasks])
+
+
+@prepare_test
+def test_transfer_file_from_url(test_url=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
+    pass
+
+
+def download_file(bucket, object_key, open_file=False):
     download_url = create_presigned_url(bucket=bucket, object_key=object_key)
-    if openFile:
+    if open_file:
         return download_url, webbrowser.open_new_tab(download_url)
     return download_url
     
@@ -290,9 +344,13 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
     try:
         with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, object_location(test_kg_name))
-            url = download_file(bucket=test_bucket, object_key=object_location(test_kg_name)+'somedata.csv', openFile=False)  # openFile=False to affirm we won't trigger a browser action
+            url = download_file(
+                bucket=test_bucket,
+                object_key=object_location(test_kg_name)+'somedata.csv',
+                open_file=False
+            )  # open_file=False to affirm we won't trigger a browser action
             response = requests.get(url)
-            assert(response.status_code is 200)
+            assert(response.status_code == 200)
             # TODO: test for equal content from download response
     except FileNotFoundError as e:
         print("ERROR: Test is malformed!")
@@ -342,9 +400,11 @@ def add_to_github(api_specification):
 def test_add_to_github():
     return True
 
+
 # TODO
 def api_registered(kg_name):
     return True
+
 
 # TODO
 @prepare_test
@@ -355,7 +415,7 @@ def test_api_registered():
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-DEBUG = False
+DEBUG = True
 if DEBUG:
     assert(test_kg_files_in_location()) 
     print("test_kg_files_in_location passed")
@@ -374,6 +434,9 @@ if DEBUG:
 
     assert(test_upload_file_timestamp())
     print("test_upload_file_timestamp passed")
+
+    assert(test_get_file_from_url())
+    print("test_get_file_from_url passed")
 
     assert(test_download_file())
     print("test_download_file passed")
