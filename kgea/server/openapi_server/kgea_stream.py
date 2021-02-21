@@ -59,9 +59,15 @@ async def mpu_file_from_url(url):
                 part = await reader.next()
 
 
-async def file_from_url(url):
+async def stream_from_url(url) -> str:
     """
-    Non-multipart upload version of fetch from URL?
+    Streaming of data from URL endpoint.
+
+    :param url: URL endpoint source of data
+    :type url: str
+
+    :yield: chunk of data
+    :rtype: str
     """
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
@@ -75,15 +81,27 @@ async def file_from_url(url):
 TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
 
 
-async def data_stream_from_url(url):
-    async for data in file_from_url(url):
-        return data
+async def merge_from_url(url):
+    """
+    Merge chunks from data stream from URL.
+    Normally won't use this for large files.
+    v
+    :param url: URL endpoint source of data
+    :type url: str
+
+    :return: data aggregated from stream
+    :rtype: str
+    """
+    filedata = b''
+    async for data in stream_from_url(url):
+        filedata += data
+    return filedata
 
 
 @prepare_test
 def test_data_stream_from_url(test_url=TEST_FILE_URL):
     loop = asyncio.get_event_loop()
-    tasks = [asyncio.ensure_future(data_stream_from_url(test_url))]
+    tasks = [asyncio.ensure_future(merge_from_url(test_url))]
     loop.run_until_complete(asyncio.wait(tasks))
     print("test_data_stream_from_url results: %s" % [task.result() for task in tasks])
     return True
