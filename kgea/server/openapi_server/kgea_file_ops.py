@@ -8,25 +8,25 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 
-import aiohttp
-import asyncio
-
 from .kgea_config import s3_client
 
 import boto3
 from botocore.exceptions import ClientError
 
-from os.path import expanduser, abspath, splitext
+from os.path import abspath, splitext
 from pathlib import Path
 
-import random, string
+import random
 from string import Template
 from datetime import datetime
 
-import yaml
-
 import webbrowser
 import requests
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def create_location(bucket, kg_name):
@@ -130,13 +130,13 @@ def test_is_location_available(test_object_location=object_location(_random_alph
         isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=test_object_location)
         return isRandomLocationAvailable
     except AssertionError as e:
-        print("ERROR: found a location that should not exist")
-        print(e)
+        logger.error("location_available(): found a location that should not exist")
+        logger.error(e)
         return False
 
-
+# note: use this decorator only if the child function satisfies `test_object_location` in its arguments
 @prepare_test
-@prepare_test_random_object_location   # note: use this decorator only if the child function satisfies `test_object_location` in its arguments 
+@prepare_test_random_object_location
 def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET):
     """
     Test in the positive:
@@ -149,8 +149,8 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
         isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=test_object_location)
         assert(isRandomLocationAvailable is not True)
     except AssertionError as e:
-        print("ERROR: created location was not found")
-        print(e)
+        logger.error("ERROR: created location was not found")
+        logger.error(e)
         return False
     return True
 
@@ -162,8 +162,9 @@ def kg_files_in_location(bucket_name, object_location):
     return object_matches
 
 
+# note: use this decorator only if the child function satisfies `test_object_location` in its arguments
 @prepare_test
-@prepare_test_random_object_location   # note: use this decorator only if the child function satisfies `test_object_location` in its arguments 
+@prepare_test_random_object_location
 def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
     try:
         kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=test_object_location)
@@ -200,26 +201,27 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME
         # TODO: write tests
         create_presigned_url(bucket=test_bucket, object_key=object_location(TEST_KG_NAME))
     except AssertionError as e:
-        print('ERROR:', e)
+        logger.error(e)
         return False
     except ClientError as e:
-        print('ERROR:', e)
+        logger.error(e)
         return False
     return True
 
 
-def upload_file(data_file, file_name, bucket_name, object_location, override=False):
+def upload_file(data_file, file_name, bucket_name, root_location):
     """Upload a file to an S3 bucket
 
-    :param file_name: File to upload (can be read in binary mode)
-    :param bucket: Bucket to upload to
-    :param object_name: S3 object name. If not specified then file_name is used
+    :param data_file: File to upload (can be read in binary mode)
+    :param file_name: Filenane to use
+    :param bucket_name: Bucket to upload to
+    :param root_location: root S3 object location name.
     :return: True if file was uploaded, else False
     """
     object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
-        ROOT = object_location,
-        FILENAME = Path(file_name).stem,
-        EXTENSION = splitext(file_name)[1]
+        ROOT=root_location,
+        FILENAME=Path(file_name).stem,
+        EXTENSION=splitext(file_name)[1]
     )
 
     # Upload the file
@@ -238,16 +240,16 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
             object_key = upload_file(test_file, test_file.name, test_bucket, object_location(test_kg))
             assert(object_key in kg_files_in_location(test_bucket, object_location(test_kg)))
     except FileNotFoundError as e:
-        print("ERROR: Test is malformed!")
-        print(e)
+        logger.error("Test is malformed!")
+        logger.error(e)
         return False
     except ClientError as e:
-        print('ERROR: The upload to S3 has failed!')
-        print(e)
+        logger.error('The upload to S3 has failed!')
+        logger.error(e)
         return False
     except AssertionError as e:
-        print('ERROR: The resulting path was not found inside of the knowledge graph folder!')
-        print(e)
+        logger.error('The resulting path was not found inside of the knowledge graph folder!')
+        logger.error(e)
         return False
     return True
 
@@ -265,70 +267,21 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
             assert(object_key in kg_files_in_location(test_bucket, test_location))
             assert(time_created in object_key)
     except FileNotFoundError as e:
-        print("ERROR: Test is malformed!")
-        print(e)
+        logger.error("Test is malformed!")
+        logger.error(e)
         return False
     except ClientError as e:
-        print('ERROR: The upload to S3 has failed!')
-        print(e)
+        logger.error('ERROR: The upload to S3 has failed!')
+        logger.error(e)
         return False
     except AssertionError as e:
-        print('ERROR: The resulting path was not found inside of the knowledge graph folder, OR the timestamp isn\'t in the path!')
-        print(e)
+        logger.error(
+            'The resulting path was not found inside of the '+
+            'knowledge graph folder, OR the timestamp isn\'t in the path!'
+        )
+        logger.error(e)
         return False
     return True
-
-
-#
-# TODO: Combine this URL streaming code with Boto3 Multi-part Upload?
-# see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.upload_part
-# see also:  https://docs.aiohttp.org/en/stable/client_reference.html
-# TODO: figure out how to rewrite this as aiohttp and asyncio?
-#
-# def download_file(url):
-#     local_filename = url.split('/')[-1]
-#     # NOTE the stream=True parameter
-#     r = requests.get(url, stream=True)
-#     with open(local_filename, 'wb') as f:
-#         for chunk in r.iter_content(chunk_size=1024):
-#             if chunk: # filter out keep-alive new chunks
-#                 f.write(chunk)
-#                 f.flush()
-#     return local_filename
-
-
-async def _get_file_from_url(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.content.read()
-
-
-TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
-
-
-@prepare_test
-def test_get_file_from_url():
-    loop = asyncio.get_event_loop()
-    tasks = [asyncio.ensure_future(_get_file_from_url(TEST_FILE_URL))]
-    loop.run_until_complete(asyncio.wait(tasks))
-    print("Results: %s" % [task.result() for task in tasks])
-    return True
-
-
-def transfer_file_from_url(url, bucket, object_key, open_file=False):
-    """
-    Direct transfer of file from URL directly to S3
-    """
-    loop = asyncio.get_event_loop()
-    tasks = [asyncio.ensure_future(_get_file_from_url(url))]
-    loop.run_until_complete(asyncio.wait(tasks))
-
-    # print("Results: %s" % [task.result() for task in tasks])
-
-
-@prepare_test
-def test_transfer_file_from_url(test_url=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
-    pass
 
 
 def download_file(bucket, object_key, open_file=False):
@@ -353,12 +306,12 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
             assert(response.status_code == 200)
             # TODO: test for equal content from download response
     except FileNotFoundError as e:
-        print("ERROR: Test is malformed!")
-        print(e)
+        logger.error("Test is malformed!")
+        logger.error(e)
         return False
     except AssertionError as e:
-        print('ERROR: URL is not returning a downloadable resource (response code is not 200)')
-        print(e)
+        logger.error('URL is not returning a downloadable resource (response code is not 200)')
+        logger.error(e)
         return False
     return True
 
@@ -415,7 +368,7 @@ def test_api_registered():
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-DEBUG = True
+DEBUG = False
 if DEBUG:
     assert(test_kg_files_in_location()) 
     print("test_kg_files_in_location passed")
@@ -434,9 +387,6 @@ if DEBUG:
 
     assert(test_upload_file_timestamp())
     print("test_upload_file_timestamp passed")
-
-    assert(test_get_file_from_url())
-    print("test_get_file_from_url passed")
 
     assert(test_download_file())
     print("test_download_file passed")

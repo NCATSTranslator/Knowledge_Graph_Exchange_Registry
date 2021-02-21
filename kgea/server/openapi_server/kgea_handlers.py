@@ -30,18 +30,17 @@ from .kgea_file_ops import (
     object_location,
     with_timestamp
 )
-
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 from .kgea_session import (
     create_session,
     valid_session,
     get_session,
     delete_session
 )
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 #############################################################
 # Site Controller Handlers
