@@ -30,11 +30,11 @@ logger.setLevel(logging.INFO)
 
 
 def create_location(bucket, kg_name):
-    return s3_client.put_object(Bucket=bucket, Key=object_location(kg_name))
+    return s3_client.put_object(Bucket=bucket, Key=get_object_location(kg_name))
 
 
 def delete_location(bucket, kg_name):
-    return s3_client.delete(Bucket=bucket, Key=object_location(kg_name))
+    return s3_client.delete(Bucket=bucket, Key=get_object_location(kg_name))
 
 
 # https://www.askpython.com/python/examples/generate-random-strings-in-python
@@ -71,20 +71,20 @@ def prepare_test_random_object_location(func):
     def wrapper(object_key=_random_alpha_string()):
         s3_client.put_object(
             Bucket='kgea-test-bucket',
-            Key=object_location(object_key)
+            Key=get_object_location(object_key)
         )
-        result = func(test_object_location=object_location(object_key))
+        result = func(test_object_location=get_object_location(object_key))
         # TODO: prevent deletion for a certain period of time
         s3_client.delete_object(
             Bucket='kgea-test-bucket', 
-            Key=object_location(object_key)
+            Key=get_object_location(object_key)
         )
         return result
 
     return wrapper
 
 
-def object_location(kg_name):
+def get_object_location(kg_name):
     """
     NOTE: Must be kept deterministic. No datetimes or
     randomness in this method; they may be appended afterwards.
@@ -96,9 +96,9 @@ def object_location(kg_name):
     return location
 
 
-def with_timestamp(func, datetime=datetime.now().strftime('%Y%j%H%M%s')):
+def with_timestamp(func, date_time=datetime.now().strftime('%Y%j%H%M%s')):
     def wrapper(kg_name):
-        return func(kg_name+'/'+datetime), datetime
+        return func(kg_name +'/' + date_time), date_time
     return wrapper
 
 
@@ -125,7 +125,7 @@ def location_available(bucket_name, object_key):
 
 
 @prepare_test
-def test_is_location_available(test_object_location=object_location(_random_alpha_string()), test_bucket=TEST_BUCKET):
+def test_is_location_available(test_object_location=get_object_location(_random_alpha_string()), test_bucket=TEST_BUCKET):
     try:
         isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=test_object_location)
         return isRandomLocationAvailable
@@ -199,7 +199,7 @@ def create_presigned_url(bucket, object_key, expiration=3600):
 def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
     try:
         # TODO: write tests
-        create_presigned_url(bucket=test_bucket, object_key=object_location(TEST_KG_NAME))
+        create_presigned_url(bucket=test_bucket, object_key=get_object_location(TEST_KG_NAME))
     except AssertionError as e:
         logger.error(e)
         return False
@@ -213,7 +213,7 @@ def upload_file(data_file, file_name, bucket_name, root_location):
     """Upload a file to an S3 bucket
 
     :param data_file: File to upload (can be read in binary mode)
-    :param file_name: Filenane to use
+    :param file_name: Filename to use
     :param bucket_name: Bucket to upload to
     :param root_location: root S3 object location name.
     :return: True if file was uploaded, else False
@@ -237,8 +237,9 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         # NOTE: file must be read in binary mode!
         with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
-            object_key = upload_file(test_file, test_file.name, test_bucket, object_location(test_kg))
-            assert(object_key in kg_files_in_location(test_bucket, object_location(test_kg)))
+            content_location, _ = with_timestamp(get_object_location)(test_kg)
+            object_key = upload_file(test_file, test_file.name, test_bucket, content_location)
+            assert(object_key in kg_files_in_location(test_bucket, content_location))
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
@@ -260,7 +261,7 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     Use the "with_timestamp" wrapper to modify the object location
     """
     try:
-        test_location, time_created = with_timestamp(object_location)(test_kg)
+        test_location, time_created = with_timestamp(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
         with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, test_location)
@@ -296,10 +297,10 @@ def download_file(bucket, object_key, open_file=False):
 def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
     try:
         with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
-            object_key = upload_file(test_file, test_file.name, test_bucket, object_location(test_kg_name))
+            object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_name))
             url = download_file(
                 bucket=test_bucket,
-                object_key=object_location(test_kg_name)+'somedata.csv',
+                object_key=get_object_location(test_kg_name) + 'somedata.csv',
                 open_file=False
             )  # open_file=False to affirm we won't trigger a browser action
             response = requests.get(url)

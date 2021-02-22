@@ -1,9 +1,29 @@
+from string import Template
+from os.path import splitext
+from pathlib import Path
+from urllib.parse import urlparse
+
 import asyncio
 
 # For details of aiohttp usage, See https://docs.aiohttp.org/en/stable/client_quickstart.html#make-a-request
 import aiohttp
 
 import boto3
+from botocore.exceptions import ClientError
+
+from .kgea_file_ops import (
+    get_object_location,
+    kg_files_in_location,
+    with_timestamp
+)
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Allow for a default maximum of 5 minutes to transfer a relatively large file
+URL_TRANSFER_TIMEOUT = 300
 
 """
 Test Parameters + Decorator
@@ -107,33 +127,10 @@ def test_data_stream_from_url(test_url=TEST_FILE_URL):
     return True
 
 
-# TODO: should I wrap any exceptions within this function?
-def transfer_file_from_stream(stream, bucket, kg_name,  session_profile=None):
-    """
-    Transfer a file from a data stream source
-    """
-
-    # Start accessing the data stream
-    data, filename = stream()
-
-    if not data:
-        # TODO: is this ok or should an exception be thrown?
-        return False
-
-    session = boto3.Session(profile_name=session_profile)
-    s3res = session.resource('s3')
-
-    # perhaps I need to translate the filename
-    object_key = object_location(filename)
-
-    target_s3obj = s3res.Object(bucket, object_key)
-
-    # initiate MultiPartUpload
-    mpu = target_s3obj.initiate_multipart_upload()
+async def mpu_transfer_from_url(mpu, url):
     part_number = 0
     parts = []
-
-    while data:
+    async for data in stream_from_url(url):
         # there is more data, upload it as a part
         part_number += 1
         part = mpu.Part(part_number)
@@ -142,20 +139,76 @@ def transfer_file_from_stream(stream, bucket, kg_name,  session_profile=None):
             "PartNumber": part_number,
             "ETag": response["ETag"]
         })
+    return parts
 
-        # get the next data part
-        data, _ = stream()
 
-    # no more data, complete the upload
-    part_info = {"Parts": parts}
-    mpu_result = mpu.complete(MultipartUpload=part_info)
+# TODO: should I wrap any exceptions within this function?
+def transfer_file_from_url(url, bucket, root_location, timeout=URL_TRANSFER_TIMEOUT):
+    """Upload a file from a URL  endpoint, to a S3 bucket
 
-    return True
+    :param url: URL to file to upload (can be read in binary mode)
+    :param bucket: Bucket to which to upload the file
+    :param root_location: root S3 object location name.
+    :param timeout: URL file transfer timeout (default: 300 seconds)
+    :return: True if file was uploaded, else False
+    """
+
+    # Strive to isolate the file name in the URL path
+    url_parts = urlparse(url)
+    url_path = url_parts.path
+
+    object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
+        ROOT=root_location,
+        FILENAME=Path(url_path).stem,
+        EXTENSION=splitext(url_path)[1]
+    )
+
+    # Attempt to transfer the file from the URL
+    try:
+
+        # AWS Boto3 session should already be initialized
+        s3res = boto3.resource('s3')
+
+        target_s3obj = s3res.Object(bucket, object_key)
+
+        # initiate MultiPartUpload
+        mpu = target_s3obj.initiate_multipart_upload()
+
+        loop = asyncio.get_event_loop()
+        transfer_task = asyncio.ensure_future(mpu_transfer_from_url(mpu, url))
+        loop.run_until_complete(asyncio.wait_for(transfer_task, timeout=timeout))
+
+        # MPU Parts returned as the result
+        parts = transfer_task.result()
+
+        logging.debug(parts)
+
+        # no more data, complete the multipart upload
+        part_info = {"Parts": parts}
+        mpu_result = mpu.complete(MultipartUpload=part_info)
+
+    except ClientError as error_message:
+        raise ClientError(error_message)
+
+    return object_key
 
 
 @prepare_test
-def test_transfer_file_from_url(test_url=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
-    pass
+def test_transfer_file_from_url(test_url=TEST_FILE_URL, test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+    try:
+        content_location, _ = with_timestamp(get_object_location)(test_kg)
+        object_key = transfer_file_from_url(test_url, test_bucket, content_location)
+        assert(object_key in kg_files_in_location(test_bucket, content_location))
+    except ClientError as e:
+        logger.error('The upload to S3 has failed!')
+        logger.error(e)
+        return False
+    except AssertionError as e:
+        logger.error('The resulting S3 object_key of file transferred from url '+
+                     test_url+' was not found inside of the knowledge graph folder!')
+        logger.error(e)
+        return False
+    return True
 
 
 """
@@ -167,5 +220,5 @@ if DEBUG:
     assert(test_data_stream_from_url())
     print("test_data_stream_from_url passed")
 
-    # assert(test_transfer_file_from_url())
-    # print("test_transfer_file_from_url passed")
+    assert(test_transfer_file_from_url())
+    print("test_transfer_file_from_url passed")

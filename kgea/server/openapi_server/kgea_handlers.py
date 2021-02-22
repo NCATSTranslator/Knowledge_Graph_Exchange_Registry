@@ -27,7 +27,7 @@ from .kgea_file_ops import (
     kg_files_in_location,
     add_to_github,
     create_smartapi,
-    object_location,
+    get_object_location,
     with_timestamp
 )
 from .kgea_session import (
@@ -228,7 +228,7 @@ def kge_access(kg_name: str, session_id: str) -> Response:  # noqa: E501
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
 
-    files_location = object_location(kg_name)
+    files_location = get_object_location(kg_name)
     # Listings Approach
     # - Introspect on Bucket
     # - Create URL per Item Listing
@@ -275,7 +275,7 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
         # redirect back to public landing page
         return redirect(LANDING, code=302, Response=None)
 
-    files_location = object_location(kg_name)
+    files_location = get_object_location(kg_name)
 
     # Listings Approach
     # - Introspect on Bucket
@@ -421,7 +421,7 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     if not (kg_name and submitter):
         return abort(400, description="register_kge_file_set(): either kg_name or submitter are empty?")
 
-    register_location = object_location(kg_name)
+    register_location = get_object_location(kg_name)
 
     if True:  # location_available(bucket_name, object_key):
         if True:  # api_specification and url:
@@ -472,6 +472,8 @@ def upload_kge_file(body) -> Response:  # noqa: E501
     kg_name = session['kg_name']
     submitter = session['submitter']
 
+    content_location, _ = with_timestamp(get_object_location)(kg_name)
+
     if upload_mode == 'content_from_url':
 
         # TODO: implement file from URL
@@ -485,13 +487,12 @@ def upload_kge_file(body) -> Response:  # noqa: E501
         # See https://github.com/zalando/connexion/issues/535 for resolution
         uploaded_file = connexion.request.files['uploaded_file']
 
-        content_location, _ = with_timestamp(object_location)(kg_name)
-        metadata_location = object_location(kg_name)
+        metadata_location = get_object_location(kg_name)
 
         maybe_upload_content = None
         maybe_upload_meta_data = None
 
-        # if api_registered(kg_name) and not location_available(bucket_name, object_location) or override:
+        # if api_registered(kg_name) and not location_available(bucket_name, get_object_location) or override:
         if upload_mode == 'content_from_local_file':
 
             maybe_upload_content = upload_file(
