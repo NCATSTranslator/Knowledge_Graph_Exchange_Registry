@@ -1,6 +1,7 @@
 from string import Template
 from os.path import splitext
 from pathlib import Path
+from typing import List, Dict
 from urllib.parse import urlparse
 
 import asyncio
@@ -22,8 +23,13 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 # Allow for a default maximum of 5 minutes to transfer a relatively large file
-URL_TRANSFER_TIMEOUT = 300
+KB = 1024
+MB = KB * KB
+S3_CHUNK_SIZE = 8 * MB  # MPU threshold8 MB at a time
+
+URL_TRANSFER_TIMEOUT = 300   # default timeout, in seconds
 
 """
 Test Parameters + Decorator
@@ -40,45 +46,8 @@ def prepare_test(func):
     return wrapper
 
 
-# Stub function...  TODO: check kgea_file_ops.py for real implementation
-def object_location(filename: str) -> str:
-    return filename
-
-
-S3_CHUNK_SIZE = 1024 * 1024 * 5 # 5 MB at the time
-
-
 # TODO: Perhaps need to manage the aiohttp sessions globally in the application?
 # See https://docs.aiohttp.org/en/stable/client_quickstart.html#make-a-request
-async def mpu_file_from_url(url):
-    """
-    Multipart fetch from  URL... not sure that this is needed or makes sense here (for URL acccess)
-    """
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-
-            reader = aiohttp.MultipartReader.from_response(resp)
-            data = None
-            filename = None
-
-            part = await reader.next()
-            # Should be a non-empty BodyPartReader text instance here
-
-            # grab the filename here
-            if part:
-                filename = part.filename
-
-            while part:
-                # Should be a non-empty BodyPartReader text instance here
-
-                data = await part.read(S3_CHUNK_SIZE)
-
-                # send a data segment back
-                yield data, filename
-
-                part = await reader.next()
-
-
 async def stream_from_url(url) -> str:
     """
     Streaming of data from URL endpoint.
@@ -101,11 +70,12 @@ async def stream_from_url(url) -> str:
 TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
 
 
-async def merge_from_url(url):
+async def merge_file_from_url(url):
     """
-    Merge chunks from data stream from URL.
-    Normally won't use this for large files.
-    v
+    Merge chunks from data stream from URL. Normally won't use this for large
+    files. This function is more helpful in the local test suite rather than
+    the mainstream url uploading handler 'transfer_file_from_url'.
+
     :param url: URL endpoint source of data
     :type url: str
 
@@ -121,13 +91,21 @@ async def merge_from_url(url):
 @prepare_test
 def test_data_stream_from_url(test_url=TEST_FILE_URL):
     loop = asyncio.get_event_loop()
-    tasks = [asyncio.ensure_future(merge_from_url(test_url))]
+    tasks = [asyncio.ensure_future(merge_file_from_url(test_url))]
     loop.run_until_complete(asyncio.wait(tasks))
-    print("test_data_stream_from_url results: %s" % [task.result() for task in tasks])
+    print("Data from URL: %s" % [task.result() for task in tasks])
     return True
 
 
-async def mpu_transfer_from_url(mpu, url):
+async def _mpu_transfer_from_url(mpu, url: str) -> List[Dict]:
+    """
+    Data pipe from an aiohttp URL data stream, to AWS S3 Multi-part Upload process.
+
+    :param mpu: active Multi-Part Upload handle
+    :param url: URL from which to access the (binary) data stream.
+    :return: List of Dictionary entries of PartNumbers and ETag's for uploaded MPU Parts
+    :rtype: List[Dict]
+    """
     part_number = 0
     parts = []
     async for data in stream_from_url(url):
@@ -143,12 +121,12 @@ async def mpu_transfer_from_url(mpu, url):
 
 
 # TODO: should I wrap any exceptions within this function?
-def transfer_file_from_url(url, bucket, root_location, timeout=URL_TRANSFER_TIMEOUT):
+def transfer_file_from_url(url, bucket, object_location, timeout=URL_TRANSFER_TIMEOUT):
     """Upload a file from a URL  endpoint, to a S3 bucket
 
     :param url: URL to file to upload (can be read in binary mode)
     :param bucket: Bucket to which to upload the file
-    :param root_location: root S3 object location name.
+    :param object_location: root S3 object location name.
     :param timeout: URL file transfer timeout (default: 300 seconds)
     :return: True if file was uploaded, else False
     """
@@ -158,12 +136,13 @@ def transfer_file_from_url(url, bucket, root_location, timeout=URL_TRANSFER_TIME
     url_path = url_parts.path
 
     object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
-        ROOT=root_location,
+        ROOT=object_location,
         FILENAME=Path(url_path).stem,
         EXTENSION=splitext(url_path)[1]
     )
 
     # Attempt to transfer the file from the URL
+    mpu = None
     try:
 
         # AWS Boto3 session should already be initialized
@@ -175,7 +154,7 @@ def transfer_file_from_url(url, bucket, root_location, timeout=URL_TRANSFER_TIME
         mpu = target_s3obj.initiate_multipart_upload()
 
         loop = asyncio.get_event_loop()
-        transfer_task = asyncio.ensure_future(mpu_transfer_from_url(mpu, url))
+        transfer_task = asyncio.ensure_future(_mpu_transfer_from_url(mpu, url))
         loop.run_until_complete(asyncio.wait_for(transfer_task, timeout=timeout))
 
         # MPU Parts returned as the result
@@ -188,6 +167,11 @@ def transfer_file_from_url(url, bucket, root_location, timeout=URL_TRANSFER_TIME
         mpu_result = mpu.complete(MultipartUpload=part_info)
 
     except ClientError as error_message:
+        if mpu:
+            # clean up failed multipart uploads?
+            response = mpu.abort()
+            # TODO: should check ListParts for empty list after abort
+            print(response)
         raise ClientError(error_message)
 
     return object_key
@@ -215,7 +199,7 @@ def test_transfer_file_from_url(test_url=TEST_FILE_URL, test_bucket=TEST_BUCKET,
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-DEBUG = True
+DEBUG = False
 if DEBUG:
     assert(test_data_stream_from_url())
     print("test_data_stream_from_url passed")

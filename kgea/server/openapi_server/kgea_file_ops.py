@@ -96,7 +96,7 @@ def get_object_location(kg_name):
     return location
 
 
-def with_timestamp(func, date_time=datetime.now().strftime('%Y%j%H%M%s')):
+def with_timestamp(func, date_time=datetime.now().strftime('%Y-%m-%d')):
     def wrapper(kg_name):
         return func(kg_name +'/' + date_time), date_time
     return wrapper
@@ -209,24 +209,24 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME
     return True
 
 
-def upload_file(data_file, file_name, bucket_name, root_location):
+def upload_file(data_file, file_name, bucket, object_location):
     """Upload a file to an S3 bucket
 
     :param data_file: File to upload (can be read in binary mode)
     :param file_name: Filename to use
-    :param bucket_name: Bucket to upload to
-    :param root_location: root S3 object location name.
+    :param bucket: Bucket to upload to
+    :param object_location: root S3 object location name.
     :return: True if file was uploaded, else False
     """
     object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
-        ROOT=root_location,
+        ROOT=object_location,
         FILENAME=Path(file_name).stem,
         EXTENSION=splitext(file_name)[1]
     )
 
     # Upload the file
     try:
-        s3_client.upload_fileobj(data_file, bucket_name, object_key)
+        s3_client.upload_fileobj(data_file, bucket, object_key)
     except ClientError as error_message:
         raise ClientError(error_message)
     return object_key
@@ -352,6 +352,19 @@ def add_to_github(api_specification):
 # TODO
 @prepare_test
 def test_add_to_github():
+    return True
+
+
+# TODO
+def translator_registration(submitter, kg_name):
+    # TODO: check if the kg_name is already registered?
+    api_specification = create_smartapi(submitter, kg_name)
+    translator_registry_url = add_to_github(api_specification)
+
+
+# TODO
+@prepare_test
+def test_translator_registration():
     return True
 
 

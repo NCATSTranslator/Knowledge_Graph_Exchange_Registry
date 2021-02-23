@@ -20,6 +20,7 @@ from werkzeug import Response
 #############################################################
 
 from .kgea_config import resources
+
 from .kgea_file_ops import (
     upload_file,
     create_presigned_url,
@@ -28,8 +29,11 @@ from .kgea_file_ops import (
     add_to_github,
     create_smartapi,
     get_object_location,
-    with_timestamp
+    with_timestamp, translator_registration
 )
+
+from .kgea_stream import transfer_file_from_url
+
 from .kgea_session import (
     create_session,
     valid_session,
@@ -474,12 +478,20 @@ def upload_kge_file(body) -> Response:  # noqa: E501
 
     content_location, _ = with_timestamp(get_object_location)(kg_name)
 
-    if upload_mode == 'content_from_url':
+    uploaded_file_object_key = None
+    file_type = "Unknown"
+    response = dict()
 
-        # TODO: implement file from URL
+    if upload_mode == 'content_from_url':
         url = upload_mode = body['content_url']
         logger.info("upload_kge_file(): content_url == '" + url + "')")
-        return abort(503, description="upload_kge_file(): content-from-url is not yet implemented?")
+        uploaded_file_object_key = transfer_file_from_url(
+            url,  # file_name derived from the URL
+            bucket=resources['bucket'],
+            object_location=content_location
+        )
+
+        file_type = "content"
 
     else:  # process direct metadata or content file upload
 
@@ -487,71 +499,52 @@ def upload_kge_file(body) -> Response:  # noqa: E501
         # See https://github.com/zalando/connexion/issues/535 for resolution
         uploaded_file = connexion.request.files['uploaded_file']
 
-        metadata_location = get_object_location(kg_name)
-
-        maybe_upload_content = None
-        maybe_upload_meta_data = None
-
-        # if api_registered(kg_name) and not location_available(bucket_name, get_object_location) or override:
         if upload_mode == 'content_from_local_file':
 
-            maybe_upload_content = upload_file(
+            # KGE Content File for upload?
+
+            uploaded_file_object_key = upload_file(
                 uploaded_file,
                 file_name=uploaded_file.filename,
-                bucket_name=resources['bucket'],
+                bucket=resources['bucket'],
                 object_location=content_location
             )
 
-            if maybe_upload_content:
-
-                response = {"content": dict({})}
-
-                content_url = create_presigned_url(
-                    bucket=resources['bucket'],
-                    object_key=maybe_upload_content
-                )
-
-                if maybe_upload_content in response["content"]:
-                    return abort(400, description="upload_kge_file(): Duplication in content?")
-                else:
-                    response["content"][maybe_upload_content] = content_url
-
-                # If we get this far, time to register the dataset in SmartAPI
-                api_specification = create_smartapi(submitter, kg_name)
-                translator_registry_url = add_to_github(api_specification)
-
-                return Response(response)
-
-            else:
-                return abort(400, description="upload_kge_file(): content upload failed?")
+            file_type = "content"
 
         elif upload_mode == 'metadata':
 
-            response = {"metadata": dict({})}
+            # KGE Metadata File for upload?
 
-            maybe_upload_meta_data = \
-                None or uploaded_file and \
-                upload_file(uploaded_file,
-                            file_name=uploaded_file.filename,
-                            bucket_name=resources['bucket'],
-                            object_location=metadata_location
-                            )
+            metadata_location = get_object_location(kg_name)
 
-            if maybe_upload_meta_data:
+            uploaded_file_object_key = upload_file(
+                uploaded_file,
+                file_name=uploaded_file.filename,
+                bucket=resources['bucket'],
+                object_location=metadata_location
+            )
 
-                metadata_url = create_presigned_url(
-                    bucket=resources['bucket'],
-                    object_key=maybe_upload_meta_data
-                )
-
-                if maybe_upload_meta_data not in response["metadata"]:
-                    response["metadata"][maybe_upload_meta_data] = metadata_url
-                # don't care if not there since optional
-
-                return Response(response)
-
-            else:
-                return abort(400, description="upload_kge_file(): metadata upload failed?")
+            file_type = "metadata"
 
         else:
             return abort(400, description="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+
+    if uploaded_file_object_key:
+
+        # If we get this far, time to register the KGE dataset in SmartAPI
+        translator_registration(submitter, kg_name)
+
+        response = {file_type: dict({})}
+
+        s3_file_url = create_presigned_url(
+            bucket=resources['bucket'],
+            object_key=uploaded_file_object_key
+        )
+
+        response[file_type][uploaded_file_object_key] = s3_file_url
+
+        return Response(response)
+
+    else:
+        return abort(400, description="upload_kge_file(): "+file_type+" upload failed?")
