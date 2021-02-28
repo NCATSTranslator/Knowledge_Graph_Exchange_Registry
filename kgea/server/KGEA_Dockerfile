@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 COPY kgea_requirements.txt /usr/src/app/requirements.txt
 COPY kgea_config.yaml      /usr/src/app/kgea_config.yaml
 
-RUN apt update; apt install build-essential
+RUN apk add --no-cache build-essential
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
