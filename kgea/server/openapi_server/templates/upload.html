@@ -16,7 +16,8 @@
                     console.log("Content URL: '" + content_url + "')");
                     formData.append("content_url", content_url);
                 } else  {
-                    console.log("KGX content file url is undefined?");
+                    console.log("KGX content file URL is undefined?");
+                    window.alert("KGX content file URL is undefined");
                     return;
                 }
             } else if (source.id === 'metadata') {
@@ -26,6 +27,7 @@
                     formData.append("uploaded_file", uploaded_file);
                 } else  {
                     console.log("KGX metadata file is undefined?");
+                    window.alert("KGX metadata file is undefined");
                     return;
                 }
             } else if (source.id === 'content_from_local_file') {
@@ -35,6 +37,7 @@
                     formData.append("uploaded_file", uploaded_file);
                 } else  {
                     console.log("KGX data file is undefined?");
+                    window.alert("KGX data file is undefined");
                     return;
                 }
             }
@@ -42,8 +45,10 @@
             try {
                 let r = await fetch('/upload', {method: "POST", body: formData});
                 console.log('HTTP response code:', r.status);
+                window.alert('File successfully uploaded!');
             } catch(e) {
-               console.log('File upload error:', e);
+               console.log('File upload error: '+e);
+               window.alert('File upload error:  '+e);
             }
         }
     </script>
