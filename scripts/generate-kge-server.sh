@@ -12,6 +12,9 @@ echo
 NAME="kge-archive"
 echo "Project name: "$NAME
 
+SERVER_TARGET=python-aiohttp
+echo "Target server type: "$SERVER_TARGET
+
 DESCRIPTION="NCATS_Knowledge_Graph_Exchange_Archive_Web_Services"
 echo "Project description: "$DESCRIPTION
 echo
@@ -62,7 +65,7 @@ fi
 # Maybe can use '(g)awk' to capture?
 
 $CODE_GEN_CLI generate \
-   -g python-flask \
+   -g $SERVER_TARGET \
    -i $SPECIFICATION \
    -o $OUTPUT \
    --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,projectVersion=$VERSION,featureCORS=true

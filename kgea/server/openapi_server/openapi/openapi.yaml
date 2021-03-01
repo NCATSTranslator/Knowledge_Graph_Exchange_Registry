@@ -189,6 +189,7 @@ paths:
               - submitter
               type: object
         required: true
+        x-body-name: body
       responses:
         "201":
           content:
@@ -220,6 +221,7 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
+      x-codegen-request-body-name: body
   /upload:
     get:
       operationId: get_file_upload_form
@@ -294,6 +296,7 @@ paths:
               type: object
         description: KGE File Set metadata or data file submitted
         required: true
+        x-body-name: body
       responses:
         "201":
           content:
@@ -325,6 +328,7 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: openapi_server.controllers.upload_controller
+      x-codegen-request-body-name: body
   /{kg_name}/access:
     get:
       operationId: access

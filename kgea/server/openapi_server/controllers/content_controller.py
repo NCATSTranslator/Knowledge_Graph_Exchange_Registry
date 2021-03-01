@@ -1,16 +1,18 @@
-from ..kgea_handlers import kge_knowledge_map
+from typing import List, Dict
+from aiohttp import web
+
+from openapi_server import util
 
 
-def knowledge_map(kg_name, session):  # noqa: E501
+async def knowledge_map(request: web.Request, kg_name, session) -> web.Response:
     """Get supported relationships by source and target
 
-     # noqa: E501
+    
 
     :param kg_name: Name label of KGE File Set, the knowledge graph for which content metadata is being accessed
     :type kg_name: str
     :param session: 
     :type session: str
 
-    :rtype: Dict[str, Dict[str, List[str]]]
     """
-    return kge_knowledge_map(kg_name, session)
+    return web.Response(status=200)

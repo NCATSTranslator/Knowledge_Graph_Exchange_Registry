@@ -1,72 +1,64 @@
-from ..kgea_handlers import (
-    kge_landing_page,
-    kge_client_authentication,
-    get_kge_home,
-    kge_login,
-    kge_logout
-)
+from typing import List, Dict
+from aiohttp import web
+
+from openapi_server import util
 
 
-def landing_page(session=None):  # noqa: E501
-    """Display landing page.
-
-     # noqa: E501
-
-    :param session:
-    :type session: str
-
-    :rtype: str
-    """
-    return kge_landing_page(session)
-
-
-def client_authentication(code, state):  # noqa: E501
+async def client_authentication(request: web.Request, code, state) -> web.Response:
     """Process client authentication
 
-     # noqa: E501
+    
 
     :param code: 
     :type code: str
     :param state: 
     :type state: str
 
-    :rtype: str
     """
-    return kge_client_authentication(code, state)
+    return web.Response(status=200)
 
 
-def get_home(session=None):  # noqa: E501
+async def get_home(request: web.Request, session=None) -> web.Response:
     """Display home landing page
 
-     # noqa: E501
+    
 
     :param session: 
     :type session: str
 
-    :rtype: str
     """
-    return get_kge_home(session)
+    return web.Response(status=200)
 
 
-def login():  # noqa: E501
+async def landing_page(request: web.Request, session=None) -> web.Response:
+    """Display landing page.
+
+    
+
+    :param session: 
+    :type session: str
+
+    """
+    return web.Response(status=200)
+
+
+async def login(request: web.Request, ) -> web.Response:
     """Process client user login
 
-     # noqa: E501
+    
 
 
-    :rtype: None
     """
-    return kge_login()
+    return web.Response(status=200)
 
 
-def logout(session=None):  # noqa: E501
+async def logout(request: web.Request, session=None) -> web.Response:
     """Process client user logout
 
-     # noqa: E501
+    
 
     :param session: 
     :type session: str
 
-    :rtype: None
     """
-    return kge_logout(session)
+    return web.Response(status=200)

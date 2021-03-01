@@ -1,9 +1,8 @@
 # coding: utf-8
 
-from __future__ import absolute_import
-from datetime import date, datetime  # noqa: F401
+from datetime import date, datetime
 
-from typing import List, Dict  # noqa: F401
+from typing import List, Dict, Type
 
 from openapi_server.models.base_model_ import Model
 from openapi_server import util
@@ -15,13 +14,11 @@ class Attribute(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, type=None, value=None):  # noqa: E501
+    def __init__(self, type: str=None, value: str=None):
         """Attribute - a model defined in OpenAPI
 
-        :param type: The type of this Attribute.  # noqa: E501
-        :type type: str
-        :param value: The value of this Attribute.  # noqa: E501
-        :type value: str
+        :param type: The type of this Attribute.
+        :param value: The value of this Attribute.
         """
         self.openapi_types = {
             'type': str,
@@ -37,13 +34,11 @@ class Attribute(Model):
         self._value = value
 
     @classmethod
-    def from_dict(cls, dikt) -> 'Attribute':
+    def from_dict(cls, dikt: dict) -> 'Attribute':
         """Returns the dict as a model
 
         :param dikt: A dict.
-        :type: dict
-        :return: The Attribute of this Attribute.  # noqa: E501
-        :rtype: Attribute
+        :return: The Attribute of this Attribute.
         """
         return util.deserialize_model(dikt, cls)
 
@@ -51,7 +46,7 @@ class Attribute(Model):
     def type(self):
         """Gets the type of this Attribute.
 
-        Type of the metadata attribute, from the Translator Registry metadata dictionary.  # noqa: E501
+        Type of the metadata attribute, from the Translator Registry metadata dictionary.
 
         :return: The type of this Attribute.
         :rtype: str
@@ -62,13 +57,13 @@ class Attribute(Model):
     def type(self, type):
         """Sets the type of this Attribute.
 
-        Type of the metadata attribute, from the Translator Registry metadata dictionary.  # noqa: E501
+        Type of the metadata attribute, from the Translator Registry metadata dictionary.
 
         :param type: The type of this Attribute.
         :type type: str
         """
         if type is None:
-            raise ValueError("Invalid value for `type`, must not be `None`")  # noqa: E501
+            raise ValueError("Invalid value for `type`, must not be `None`")
 
         self._type = type
 
@@ -76,7 +71,7 @@ class Attribute(Model):
     def value(self):
         """Gets the value of this Attribute.
 
-        Value of the attribute, encoded as a string.  # noqa: E501
+        Value of the attribute, encoded as a string.
 
         :return: The value of this Attribute.
         :rtype: str
@@ -87,12 +82,12 @@ class Attribute(Model):
     def value(self, value):
         """Sets the value of this Attribute.
 
-        Value of the attribute, encoded as a string.  # noqa: E501
+        Value of the attribute, encoded as a string.
 
         :param value: The value of this Attribute.
         :type value: str
         """
         if value is None:
-            raise ValueError("Invalid value for `value`, must not be `None`")  # noqa: E501
+            raise ValueError("Invalid value for `value`, must not be `None`")
 
         self._value = value
