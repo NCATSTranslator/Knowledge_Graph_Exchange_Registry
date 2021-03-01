@@ -166,13 +166,20 @@ def transfer_file_from_url(url, bucket, object_location, timeout=URL_TRANSFER_TI
         part_info = {"Parts": parts}
         mpu_result = mpu.complete(MultipartUpload=part_info)
 
-    except ClientError as error_message:
+    except ClientError as ce_error:
         if mpu:
             # clean up failed multipart uploads?
             response = mpu.abort()
             # TODO: should check ListParts for empty list after abort
             print(response)
-        raise ClientError(error_message)
+        raise ClientError(ce_error)
+    except RuntimeError as rt_error:
+        if mpu:
+            # clean up failed multipart uploads?
+            response = mpu.abort()
+            # TODO: should check ListParts for empty list after abort
+            print(response)
+        raise ClientError(rt_error)
 
     return object_key
 
