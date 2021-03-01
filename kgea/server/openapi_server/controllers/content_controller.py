@@ -14,4 +14,4 @@ async def knowledge_map(request: web.Request, kg_name: str, session: str) -> web
     :type session: str
 
     """
-    return kge_knowledge_map(request, kg_name, session)
+    return await kge_knowledge_map(request, kg_name, session)

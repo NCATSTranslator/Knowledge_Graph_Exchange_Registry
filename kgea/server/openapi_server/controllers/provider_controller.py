@@ -14,4 +14,4 @@ async def access(request: web.Request, kg_name: str, session: str) -> web.Respon
     :type session: str
 
     """
-    return kge_access(request, kg_name, session)
+    return await kge_access(request, kg_name, session)

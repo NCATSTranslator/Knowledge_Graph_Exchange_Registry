@@ -22,7 +22,7 @@ async def get_file_upload_form(request: web.Request, session: str, submitter: st
     :type kg_name: str
 
     """
-    return get_kge_file_upload_form(request, session, submitter, kg_name)
+    return await get_kge_file_upload_form(request, session, submitter, kg_name)
 
 
 async def get_registration_form(request: web.Request, session: str) -> web.Response:
@@ -34,28 +34,25 @@ async def get_registration_form(request: web.Request, session: str) -> web.Respo
     :type session: str
 
     """
-    return get_kge_registration_form(request, session)
+    return await get_kge_registration_form(request, session)
 
 
-async def register_file_set(request: web.Request, body: dict) -> web.Response:
+async def register_file_set(request: web.Request) -> web.Response:
     """Register core parameters for the KGE File Set upload
 
     :param request:
     :type request: web.Request
-    :param body:
-    :type body: dict
 
     """
-    return register_kge_file_set(request, body)
+    # This method raises an obligatory web.HTTPFound exception
+    await register_kge_file_set(request)
 
 
-async def upload_file(request: web.Request, body: dict) -> web.Response:
+async def upload_file(request: web.Request) -> web.Response:
     """Upload processing of KGE File Set file
 
     :param request:
     :type request: web.Request
-    :param body:
-    :type body: dict
 
     """
-    return upload_kge_file(request, body)
+    return await upload_kge_file(request)

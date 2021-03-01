@@ -2,8 +2,6 @@ from pathlib import Path
 from typing import Dict
 from uuid import uuid4
 
-import connexion
-
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -67,7 +65,7 @@ HOME = '/home'
 
 
 @aiohttp_jinja2.template('login.html')
-async def kge_landing_page(request: web.Request, session_id=None) -> web.Response:  # noqa: E501
+async def kge_landing_page(request: web.Request, session_id=None):  # noqa: E501
     """Display landing page.
 
      # noqa: E501
@@ -90,7 +88,7 @@ async def kge_landing_page(request: web.Request, session_id=None) -> web.Respons
 
 
 @aiohttp_jinja2.template('home.html')
-async def get_kge_home(request: web.Request, session_id: str = None) -> web.Response:  # noqa: E501
+async def get_kge_home(request: web.Request, session_id: str = None):  # noqa: E501
     """Get default landing page
 
      # noqa: E501
@@ -116,7 +114,7 @@ async def get_kge_home(request: web.Request, session_id: str = None) -> web.Resp
 _state_cache = []
 
 
-async def kge_client_authentication(request: web.Request, code: str, state: str) -> web.Response:  # noqa: E501
+async def kge_client_authentication(request: web.Request, code: str, state: str):  # noqa: E501
     """Process client authentication
 
      # noqa: E501
@@ -127,8 +125,6 @@ async def kge_client_authentication(request: web.Request, code: str, state: str)
     :type code: str
     :param state:
     :type state: str
-
-    :rtype: web.Response
     """
 
     # Establish session here if there
@@ -160,15 +156,13 @@ async def kge_client_authentication(request: web.Request, code: str, state: str)
     raise web.HTTPFound(LANDING)
 
 
-async def kge_login(request: web.Request) -> web.Response:  # noqa: E501
+async def kge_login(request: web.Request):  # noqa: E501
     """Process client user login
 
      # noqa: E501
 
     :param request:
     :type request: web.Request
-
-    :rtype: web.Response
     """
 
     state = str(uuid4())
@@ -187,7 +181,7 @@ async def kge_login(request: web.Request) -> web.Response:  # noqa: E501
     raise web.HTTPFound(login_url)
 
 
-async def kge_logout(request: web.Request, session_id: str = None) -> web.Response:  # noqa: E501
+async def kge_logout(request: web.Request, session_id: str = None):  # noqa: E501
     """Process client user logout
 
      # noqa: E501
@@ -196,8 +190,6 @@ async def kge_logout(request: web.Request, session_id: str = None) -> web.Respon
     :type request: web.Request
     :param session_id:
     :type session_id: str
-    
-    :rtype: web.Response
     """
 
     # invalidate session here?
@@ -278,7 +270,7 @@ async def kge_access(request: web.Request, kg_name: str, session_id: str) -> web
 #############################################################
 
 # TODO: get file out of root folder
-async def knowledge_map(request: web.Request, kg_name: str, session_id: str) -> web.Response:  # noqa: E501
+async def kge_knowledge_map(request: web.Request, kg_name: str, session_id: str) -> web.Response:  # noqa: E501
     """Get supported relationships by source and target
 
      # noqa: E501
@@ -315,7 +307,9 @@ async def knowledge_map(request: web.Request, kg_name: str, session_id: str) -> 
     )
     kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
     kg_urls = dict(
-        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
+        map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing)
+    )
+
     # logger.info('knowledge_map urls: %s', kg_urls)
     # import requests, json
     # metadata_key = kg_listing[0]
@@ -338,8 +332,9 @@ async def knowledge_map(request: web.Request, kg_name: str, session_id: str) -> 
 #     upload_kge_file
 # )
 #
-# rewrite 'register_file_set' and 'upload_files' arguments to a
-# single 'body' argument (dissected inside the respective handlers)
+# Remove all parameters  other than 'request'  from
+# 'register_file_set' and 'upload_files' arguments.
+# (rather retrieved from request.post inside the respective handlers)
 #############################################################
 
 def _kge_metadata(
@@ -362,7 +357,7 @@ def _kge_metadata(
 
 
 @aiohttp_jinja2.template('register.html')
-async def get_kge_registration_form(request: web.Request, session_id: str) -> web.Response:  # noqa: E501
+async def get_kge_registration_form(request: web.Request, session_id: str):  # noqa: E501
     """Get web form for specifying KGE File Set name and submitter
 
      # noqa: E501
@@ -391,7 +386,7 @@ async def get_kge_file_upload_form(
         session_id: str,
         submitter: str,
         kg_name: str
-) -> web.Response:  # noqa: E501
+):  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
@@ -425,29 +420,28 @@ async def get_kge_file_upload_form(
     }
 
 
-async def register_kge_file_set(request: web.Request, body) -> web.Response:  # noqa: E501
+async def register_kge_file_set(request: web.Request):  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
 
     :param request:
     :type request: web.Request
-    :param body:
-    :type body: dict
 
-    :rtype: web.Response
     """
     # logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
 
-    session_id = body['session']
+    data = await request.post()
+
+    session_id = data['session']
 
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
         raise web.HTTPFound(LANDING)
 
-    submitter = body['submitter']
-    kg_name = body['kg_name']
+    submitter = data['submitter']
+    kg_name = data['kg_name']
 
     session = _kge_metadata(session_id, kg_name, submitter)
 
@@ -477,7 +471,7 @@ async def register_kge_file_set(request: web.Request, body) -> web.Response:  # 
     #     raise web.HTTPBadRequest()
 
 
-async def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # noqa: E501
+async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
 
     """KGE File Set upload process
 
@@ -485,23 +479,23 @@ async def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # 
 
     :param request:
     :type request: web.Request
-    :param body:
-    :type body: dict
 
     :rtype: web.Response
     """
 
-    saved_args = locals()
-    logger.info("entering upload_kge_file(): locals(" + str(saved_args) + ")")
+    # saved_args = locals()
+    # logger.info("entering upload_kge_file(): locals(" + str(saved_args) + ")")
 
-    session_id = body['session']
+    data = await request.post()
+
+    session_id = data['session']
 
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
         raise web.HTTPFound(LANDING)
 
-    upload_mode = body['upload_mode']
+    upload_mode = data['upload_mode']
     if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
         # Invalid upload mode
         raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
@@ -517,7 +511,7 @@ async def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # 
     response = dict()
 
     if upload_mode == 'content_from_url':
-        url = upload_mode = body['content_url']
+        url = upload_mode = data['content_url']
         logger.info("upload_kge_file(): content_url == '" + url + "')")
         uploaded_file_object_key = transfer_file_from_url(
             url,  # file_name derived from the URL
@@ -531,14 +525,14 @@ async def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # 
 
         # Retrieve the POSTed metadata or content file from connexion
         # See https://github.com/zalando/connexion/issues/535 for resolution
-        uploaded_file = connexion.request.files['uploaded_file']
+        uploaded_file = data['uploaded_file']
 
         if upload_mode == 'content_from_local_file':
 
             # KGE Content File for upload?
 
             uploaded_file_object_key = upload_file(
-                uploaded_file,
+                uploaded_file.file,
                 file_name=uploaded_file.filename,
                 bucket=resources['bucket'],
                 object_location=content_location
@@ -553,7 +547,7 @@ async def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # 
             metadata_location = get_object_location(kg_name)
 
             uploaded_file_object_key = upload_file(
-                uploaded_file,
+                uploaded_file.file,
                 file_name=uploaded_file.filename,
                 bucket=resources['bucket'],
                 object_location=metadata_location
