@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict
 from uuid import uuid4
 
 import connexion
@@ -8,14 +9,11 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-from flask import abort, render_template, redirect
-
 from string import Template
 import re
 
-from werkzeug import Response
-
 from aiohttp import web
+import aiohttp_jinja2
 
 #############################################################
 # Application Configuration
@@ -68,7 +66,8 @@ LANDING = '/'
 HOME = '/home'
 
 
-def kge_landing_page(request: web.Request, session_id=None) -> web.Response:  # noqa: E501
+@aiohttp_jinja2.template('login.html')
+async def kge_landing_page(request: web.Request, session_id=None) -> web.Response:  # noqa: E501
     """Display landing page.
 
      # noqa: E501
@@ -84,13 +83,14 @@ def kge_landing_page(request: web.Request, session_id=None) -> web.Response:  # 
     if valid_session(session_id):
         # then redirect to an authenticated home page
         authenticated_url = HOME + '?session=' + session_id
-        return redirect(authenticated_url, code=302, Response=None)
+        raise web.HTTPFound(authenticated_url)
     else:
-        # If session is not active, then render login page
-        return render_template('login.html')
+        # If session is not active, then render login page  (no Jinja parameterization)
+        return {}
 
 
-def get_kge_home(request: web.Request, session_id: str = None) -> web.Response:  # noqa: E501
+@aiohttp_jinja2.template('home.html')
+async def get_kge_home(request: web.Request, session_id: str = None) -> web.Response:  # noqa: E501
     """Get default landing page
 
      # noqa: E501
@@ -100,23 +100,23 @@ def get_kge_home(request: web.Request, session_id: str = None) -> web.Response: 
     :param session_id:
     :type session_id: str
 
-    :rtype: Response
+    :rtype: web.Response
     """
 
     # validate the session key
     if valid_session(session_id):
-        return render_template('home.html', session=session_id)
+        return {"session":  session_id}
     else:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
-        return redirect(LANDING, code=302, Response=None)
+        raise web.HTTPFound(LANDING)
 
 
 # hack: short term dictionary
 _state_cache = []
 
 
-def kge_client_authentication(request: web.Request, code: str, state: str) -> web.Response:  # noqa: E501
+async def kge_client_authentication(request: web.Request, code: str, state: str) -> web.Response:  # noqa: E501
     """Process client authentication
 
      # noqa: E501
@@ -153,16 +153,14 @@ def kge_client_authentication(request: web.Request, code: str, state: str) -> we
 
                 # then redirect to an authenticated home page
                 authenticated_url = HOME + '?session=' + session_id
-                return redirect(authenticated_url, code=302, Response=None)
+                raise web.HTTPFound(authenticated_url)
 
     # If authentication conditions are not met, then
     # simply redirect back to public landing page
-    redirect(LANDING, code=302, Response=None)
-
-    # return web.Response(status=200)
+    raise web.HTTPFound(LANDING)
 
 
-def kge_login(request: web.Request) -> web.Response:  # noqa: E501
+async def kge_login(request: web.Request) -> web.Response:  # noqa: E501
     """Process client user login
 
      # noqa: E501
@@ -186,10 +184,10 @@ def kge_login(request: web.Request) -> web.Response:  # noqa: E501
         resources['oauth2']['site_uri'] + \
         resources['oauth2']['login_callback']
 
-    return redirect(login_url, code=302, Response=None)
+    raise web.HTTPFound(login_url)
 
 
-def kge_logout(request: web.Request, session_id: str = None) -> web.Response:  # noqa: E501
+async def kge_logout(request: web.Request, session_id: str = None) -> web.Response:  # noqa: E501
     """Process client user logout
 
      # noqa: E501
@@ -215,10 +213,10 @@ def kge_logout(request: web.Request, session_id: str = None) -> web.Response:  #
             '&logout_uri=' + \
             resources['oauth2']['site_uri']
 
-        return redirect(logout_url, code=302, Response=None)
+        raise web.HTTPFound(logout_url)
     else:
         # redirect to unauthenticated landing page for login
-        return redirect(LANDING, code=302, Response=None)
+        raise web.HTTPFound(LANDING)
 
 
 #############################################################
@@ -230,7 +228,7 @@ def kge_logout(request: web.Request, session_id: str = None) -> web.Response:  #
 #############################################################
 
 # TODO: get file out from timestamped folders 
-def kge_access(request: web.Request, kg_name: str, session_id: str) -> web.Response:  # noqa: E501
+async def kge_access(request: web.Request, kg_name: str, session_id: str) -> web.Response:  # noqa: E501
     """Get KGE File Sets
 
      # noqa: E501
@@ -248,7 +246,7 @@ def kge_access(request: web.Request, kg_name: str, session_id: str) -> web.Respo
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
-        return redirect(LANDING, code=302, Response=None)
+        raise web.HTTPFound(LANDING)
 
     files_location = get_object_location(kg_name)
     # Listings Approach
@@ -267,7 +265,8 @@ def kge_access(request: web.Request, kg_name: str, session_id: str) -> web.Respo
         map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
     # logger.info('access urls %s, KGs: %s', kg_urls, kg_listing)
 
-    return Response(kg_urls)
+    # return Response(kg_urls)
+    return web.Response(text=str(kg_urls), status=200)
 
 
 #############################################################
@@ -279,7 +278,7 @@ def kge_access(request: web.Request, kg_name: str, session_id: str) -> web.Respo
 #############################################################
 
 # TODO: get file out of root folder
-def knowledge_map(request: web.Request, kg_name: str, session_id: str) -> web.Response:  # noqa: E501
+async def knowledge_map(request: web.Request, kg_name: str, session_id: str) -> web.Response:  # noqa: E501
     """Get supported relationships by source and target
 
      # noqa: E501
@@ -297,7 +296,7 @@ def knowledge_map(request: web.Request, kg_name: str, session_id: str) -> web.Re
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
-        return redirect(LANDING, code=302, Response=None)
+        raise web.HTTPFound(LANDING)
 
     files_location = get_object_location(kg_name)
 
@@ -322,7 +321,9 @@ def knowledge_map(request: web.Request, kg_name: str, session_id: str) -> web.Re
     # metadata_key = kg_listing[0]
     # url = create_presigned_url(resources['bucket'], metadata_key)
     # metadata = json.loads(requests.get(url).text)
-    return Response(kg_urls)
+
+    # return Response(kg_urls)
+    return web.Response(text=str(kg_urls), status=200)
 
 
 #############################################################
@@ -345,7 +346,7 @@ def _kge_metadata(
         session_id: str,
         kg_name: str = None,
         submitter: str = None
-)  -> web.Response:
+) -> Dict:
     session = get_session(session_id)
 
     if kg_name is not None:
@@ -360,7 +361,8 @@ def _kge_metadata(
     return session
 
 
-def get_kge_registration_form(request: web.Request, session_id: str) -> web.Response:  # noqa: E501
+@aiohttp_jinja2.template('register.html')
+async def get_kge_registration_form(request: web.Request, session_id: str) -> web.Response:  # noqa: E501
     """Get web form for specifying KGE File Set name and submitter
 
      # noqa: E501
@@ -370,23 +372,21 @@ def get_kge_registration_form(request: web.Request, session_id: str) -> web.Resp
     :param session_id:
     :type session_id: str
 
-    :rtype: Response
+    :rtype: web.Response
     """
 
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
-        return redirect(LANDING, code=302, Response=None)
+        raise web.HTTPFound(LANDING)
 
-    #  TODO: if user is authenticated, why do we need to ask them for a submitter  name?
+    #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
 
-    return render_template(
-        'register.html',
-        session=session_id
-    )
+    return {"session": session_id}
 
 
-def get_kge_file_upload_form(
+@aiohttp_jinja2.template('upload.html')
+async def get_kge_file_upload_form(
         request: web.Request,
         session_id: str,
         submitter: str,
@@ -405,22 +405,27 @@ def get_kge_file_upload_form(
     :param kg_name:
     :type kg_name: str
     
-    :rtype: Response
+    :rtype: web.Response
     """
 
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
-        return redirect(LANDING, code=302, Response=None)
+        raise web.HTTPFound(LANDING)
 
     # TODO guard against absent kg_name
     # TODO guard against invalid kg_name (check availability in bucket)
     # TODO redirect to register_form with given optional param as the entered kg_name
 
-    return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
+    # return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
+    return {
+        "kg_name": kg_name,
+        "submitter": submitter,
+        "session": session_id
+    }
 
 
-def register_kge_file_set(request: web.Request, body) -> web.Response:  # noqa: E501
+async def register_kge_file_set(request: web.Request, body) -> web.Response:  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
@@ -430,7 +435,7 @@ def register_kge_file_set(request: web.Request, body) -> web.Response:  # noqa: 
     :param body:
     :type body: dict
 
-    :rtype: Response
+    :rtype: web.Response
     """
     # logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
 
@@ -439,7 +444,7 @@ def register_kge_file_set(request: web.Request, body) -> web.Response:  # noqa: 
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
-        return redirect(LANDING, code=302, Response=None)
+        raise web.HTTPFound(LANDING)
 
     submitter = body['submitter']
     kg_name = body['kg_name']
@@ -450,7 +455,7 @@ def register_kge_file_set(request: web.Request, body) -> web.Response:  # noqa: 
     submitter = session['submitter']
 
     if not (kg_name and submitter):
-        return abort(400, description="register_kge_file_set(): either kg_name or submitter are empty?")
+        raise web.HTTPBadRequest(reason="register_kge_file_set(): either kg_name or submitter are empty?")
 
     register_location = get_object_location(kg_name)
 
@@ -460,19 +465,19 @@ def register_kge_file_set(request: web.Request, body) -> web.Response:  # noqa: 
             #  1. Store url and api_specification (if needed) in the session
             #  2. replace with /upload form returned
             #
-            return redirect(
+            raise web.HTTPFound(
                 Template('/upload?session=$session&submitter=$submitter&kg_name=$kg_name').
                     substitute(session=session_id, kg_name=kg_name, submitter=submitter)
             )
     #     else:
     #         # TODO: more graceful front end failure signal
-    #         redirect(HOME, code=400, Response=None)
+    #         raise web.HTTPFound(HOME)
     # else:
     #     # TODO: more graceful front end failure signal
-    #     return abort(201)
+    #     raise web.HTTPBadRequest()
 
 
-def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # noqa: E501
+async def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # noqa: E501
 
     """KGE File Set upload process
 
@@ -494,12 +499,12 @@ def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # noqa: 
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
-        return redirect(LANDING, code=302, Response=None)
+        raise web.HTTPFound(LANDING)
 
     upload_mode = body['upload_mode']
     if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
         # Invalid upload mode
-        return abort(400, description="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+        raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 
     session = get_session(session_id)
     kg_name = session['kg_name']
@@ -557,7 +562,7 @@ def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # noqa: 
             file_type = "metadata"
 
         else:
-            return abort(400, description="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+            raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 
     if uploaded_file_object_key:
 
@@ -573,7 +578,7 @@ def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # noqa: 
 
         response[file_type][uploaded_file_object_key] = s3_file_url
 
-        return Response(response)
+        return web.Response(text=str(response), status=200)
 
     else:
-        return abort(400, description="upload_kge_file(): "+file_type+" upload failed?")
+        raise web.HTTPBadRequest(reason="upload_kge_file(): "+file_type+" upload failed?")
