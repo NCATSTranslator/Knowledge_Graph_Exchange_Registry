@@ -15,6 +15,8 @@ import re
 
 from werkzeug import Response
 
+from aiohttp import web
+
 #############################################################
 # Application Configuration
 #############################################################
@@ -52,9 +54,10 @@ logger.setLevel(logging.INFO)
 # Insert imports and return calls into site_controller.py:
 #
 # from ..kge_handlers import (
+#     kge_landing_page,
+#     kge_login,
 #     kge_client_authentication,
 #     get_kge_home,
-#     kge_login,
 #     kge_logout
 # )
 #############################################################
@@ -65,11 +68,13 @@ LANDING = '/'
 HOME = '/home'
 
 
-def kge_landing_page(session_id=None):  # noqa: E501
+def kge_landing_page(request: web.Request, session_id=None) -> web.Response:  # noqa: E501
     """Display landing page.
 
      # noqa: E501
 
+    :param request:
+    :type request: web.Request
     :param session_id:
     :type session_id: str
 
@@ -85,10 +90,13 @@ def kge_landing_page(session_id=None):  # noqa: E501
         return render_template('login.html')
 
 
-def get_kge_home(session_id: str = None) -> Response:  # noqa: E501
+def get_kge_home(request: web.Request, session_id: str = None) -> web.Response:  # noqa: E501
     """Get default landing page
 
      # noqa: E501
+
+    :param request:
+    :type request: web.Request
     :param session_id:
     :type session_id: str
 
@@ -108,18 +116,19 @@ def get_kge_home(session_id: str = None) -> Response:  # noqa: E501
 _state_cache = []
 
 
-def kge_client_authentication(code: str, state: str) -> Response:  # noqa: E501
+def kge_client_authentication(request: web.Request, code: str, state: str) -> web.Response:  # noqa: E501
     """Process client authentication
 
      # noqa: E501
 
+    :param request:
+    :type request: web.Request
     :param code:
     :type code: str
-
     :param state:
     :type state: str
 
-    :rtype: Response
+    :rtype: web.Response
     """
 
     # Establish session here if there
@@ -150,13 +159,18 @@ def kge_client_authentication(code: str, state: str) -> Response:  # noqa: E501
     # simply redirect back to public landing page
     redirect(LANDING, code=302, Response=None)
 
+    # return web.Response(status=200)
 
-def kge_login() -> Response:  # noqa: E501
+
+def kge_login(request: web.Request) -> web.Response:  # noqa: E501
     """Process client user login
 
      # noqa: E501
 
-    :rtype: Response
+    :param request:
+    :type request: web.Request
+
+    :rtype: web.Response
     """
 
     state = str(uuid4())
@@ -175,15 +189,17 @@ def kge_login() -> Response:  # noqa: E501
     return redirect(login_url, code=302, Response=None)
 
 
-def kge_logout(session_id: str = None) -> Response:  # noqa: E501
+def kge_logout(request: web.Request, session_id: str = None) -> web.Response:  # noqa: E501
     """Process client user logout
 
      # noqa: E501
-     
+
+    :param request:
+    :type request: web.Request
     :param session_id:
     :type session_id: str
     
-    :rtype: Response
+    :rtype: web.Response
     """
 
     # invalidate session here?
@@ -214,17 +230,19 @@ def kge_logout(session_id: str = None) -> Response:  # noqa: E501
 #############################################################
 
 # TODO: get file out from timestamped folders 
-def kge_access(kg_name: str, session_id: str) -> Response:  # noqa: E501
+def kge_access(request: web.Request, kg_name: str, session_id: str) -> web.Response:  # noqa: E501
     """Get KGE File Sets
 
      # noqa: E501
 
+    :param request:
+    :type request: web.Request
     :param kg_name: Name label of KGE File Set whose files are being accessed
     :type kg_name: str
     :param session_id:
     :type session_id: str
     
-    :rtype: Response( Dict[str, Attribute] )
+    :rtype: web.Response( Dict[str, Attribute] )
     """
 
     if not valid_session(session_id):
@@ -261,17 +279,19 @@ def kge_access(kg_name: str, session_id: str) -> Response:  # noqa: E501
 #############################################################
 
 # TODO: get file out of root folder
-def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
+def knowledge_map(request: web.Request, kg_name: str, session_id: str) -> web.Response:  # noqa: E501
     """Get supported relationships by source and target
 
      # noqa: E501
 
+    :param request:
+    :type request: web.Request
     :param kg_name: Name label of KGE File Set whose knowledge graph content metadata is being reported
     :type kg_name: str
     :param session_id:
     :type session_id: str
     
-    :rtype: Response( Dict[str, Dict[str, List[str]]] )
+    :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
 
     if not valid_session(session_id):
@@ -314,7 +334,7 @@ def kge_knowledge_map(kg_name: str, session_id: str) -> Response:  # noqa: E501
 #     get_kge_file_upload_form,
 #     get_kge_registration_form,
 #     register_kge_file_set,
-#     upload_kge_file,
+#     upload_kge_file
 # )
 #
 # rewrite 'register_file_set' and 'upload_files' arguments to a
@@ -325,7 +345,7 @@ def _kge_metadata(
         session_id: str,
         kg_name: str = None,
         submitter: str = None
-):
+)  -> web.Response:
     session = get_session(session_id)
 
     if kg_name is not None:
@@ -340,11 +360,13 @@ def _kge_metadata(
     return session
 
 
-def get_kge_registration_form(session_id: str) -> Response:  # noqa: E501
+def get_kge_registration_form(request: web.Request, session_id: str) -> web.Response:  # noqa: E501
     """Get web form for specifying KGE File Set name and submitter
 
      # noqa: E501
-     
+
+    :param request:
+    :type request: web.Request
     :param session_id:
     :type session_id: str
 
@@ -365,14 +387,17 @@ def get_kge_registration_form(session_id: str) -> Response:  # noqa: E501
 
 
 def get_kge_file_upload_form(
+        request: web.Request,
         session_id: str,
         submitter: str,
         kg_name: str
-) -> Response:  # noqa: E501
+) -> web.Response:  # noqa: E501
     """Get web form for specifying KGE File Set upload
 
      # noqa: E501
 
+    :param request:
+    :type request: web.Request
     :param session_id:
     :type session_id: str
     :param submitter:
@@ -395,11 +420,13 @@ def get_kge_file_upload_form(
     return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
 
 
-def register_kge_file_set(body) -> Response:  # noqa: E501
+def register_kge_file_set(request: web.Request, body) -> web.Response:  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
 
+    :param request:
+    :type request: web.Request
     :param body:
     :type body: dict
 
@@ -445,16 +472,18 @@ def register_kge_file_set(body) -> Response:  # noqa: E501
     #     return abort(201)
 
 
-def upload_kge_file(body) -> Response:  # noqa: E501
+def upload_kge_file(request: web.Request, body: dict) -> web.Response:  # noqa: E501
 
     """KGE File Set upload process
 
      # noqa: E501
 
+    :param request:
+    :type request: web.Request
     :param body:
     :type body: dict
 
-    :rtype: Response
+    :rtype: web.Response
     """
 
     saved_args = locals()

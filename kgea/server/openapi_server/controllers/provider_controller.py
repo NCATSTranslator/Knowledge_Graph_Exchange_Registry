@@ -1,19 +1,17 @@
-from typing import List, Dict
 from aiohttp import web
 
-from openapi_server.models.attribute import Attribute
-from openapi_server import util
+from ..kgea_handlers import kge_access
 
 
-async def access(request: web.Request, kg_name, session) -> web.Response:
+async def access(request: web.Request, kg_name: str, session: str) -> web.Response:
     """Get KGE File Sets
 
-    
-
+    :param request:
+    :type request: web.Request
     :param kg_name: Name label of KGE File Set, the knowledge graph for which data files are being accessed
     :type kg_name: str
     :param session: 
     :type session: str
 
     """
-    return web.Response(status=200)
+    return kge_access(request, kg_name, session)
