@@ -39,7 +39,7 @@ tags:
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
 paths:
-  /:
+  /welcome:
     get:
       parameters:
       - name: session

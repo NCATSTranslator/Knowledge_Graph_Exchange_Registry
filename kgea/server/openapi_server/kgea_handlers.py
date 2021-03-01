@@ -60,7 +60,7 @@ logger.setLevel(logging.INFO)
 
 # This is the home page path,
 # should match the API path spec
-LANDING = '/'
+LANDING = '/welcome'
 HOME = '/home'
 
 

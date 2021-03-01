@@ -11,14 +11,14 @@ from ..kgea_handlers import (
 async def get_file_upload_form(request: web.Request, session: str, submitter: str, kg_name: str) -> web.Response:
     """Get web form for the KGE File Set upload process
 
-    
+
     :param request:
     :type request: web.Request
-    :param session: 
+    :param session:
     :type session: str
-    :param submitter: 
+    :param submitter:
     :type submitter: str
-    :param kg_name: 
+    :param kg_name:
     :type kg_name: str
 
     """
