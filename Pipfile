@@ -9,6 +9,7 @@ aiohttp-jinja2 = "~=1.2.0"
 aiohttp-cors = ">=0.7.0"
 connexion = "*"
 pyyaml = "*"
+jinja2 = "*"
 
 [dev-packages]
 
