@@ -12,12 +12,12 @@ from ..kgea_handlers import (
 async def client_authentication(request: web.Request, code, state):
     """Process client authentication
 
-
+    
     :param request:
     :type request: web.Request
-    :param code:
+    :param code: 
     :type code: str
-    :param state:
+    :param state: 
     :type state: str
 
     """
@@ -30,7 +30,7 @@ async def get_home(request: web.Request, session: str = None) -> web.Response:
 
     :param request:
     :type request: web.Request
-    :param session:
+    :param session: 
     :type session: str
 
     """
@@ -42,7 +42,7 @@ async def landing_page(request: web.Request, session=None) -> web.Response:
 
     :param request:
     :type request: web.Request
-    :param session:
+    :param session: 
     :type session: str
 
     """
@@ -65,7 +65,7 @@ async def logout(request: web.Request, session=None):
 
     :param request:
     :type request: web.Request
-    :param session:
+    :param session: 
     :type session: str
 
     """
