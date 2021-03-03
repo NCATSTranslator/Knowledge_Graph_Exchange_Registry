@@ -11,7 +11,7 @@ COPY kgea_config.yaml      /usr/src/app/kgea_config.yaml
 
 RUN apk add --no-cache build-base
 
-RUN python -m pip3 install --upgrade pip3
+RUN python -m pip install --upgrade pip
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
