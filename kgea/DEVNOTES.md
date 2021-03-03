@@ -86,17 +86,25 @@ However, the code generation process pretty well overwrites every other file it 
 This basically means that it is advisable to separate custom handlers to every api controller method in a separate file, then insert delegation calls in the api controller method, perhaps mainly in the `return` statement of the generated method. Namely:
 
 ```python
-def access(kg_name):  # noqa: E501
+from typing import List, Dict
+from aiohttp import web
+
+from openapi_server.models.attribute import Attribute
+from openapi_server import util
+
+
+async def access(request: web.Request, kg_name, session) -> web.Response:
     """Get KGE File Sets
 
-     # noqa: E501
+    
 
-    :param kg_name: Name label of KGE File Set whose files are being accessed
+    :param kg_name: Name label of KGE File Set, the knowledge graph for which data files are being accessed
     :type kg_name: str
+    :param session: 
+    :type session: str
 
-    :rtype: Dict[str, Attribute]
     """
-    return 'do some magic!'
+    return web.Response(status=200)
 ```
 
 becomes something like:
@@ -104,17 +112,18 @@ becomes something like:
 ```python
 from ..kge_handlers import kge_access
 
-def access(kg_name):  # noqa: E501
+async def access(request: web.Request, kg_name: str, session: str) -> web.Response:
     """Get KGE File Sets
 
-     # noqa: E501
-
-    :param kg_name: Name label of KGE File Set whose files are being accessed
+    :param request:
+    :type request: web.Request
+    :param kg_name: Name label of KGE File Set, the knowledge graph for which data files are being accessed
     :type kg_name: str
+    :param session: 
+    :type session: str
 
-    :rtype: Dict[str, Attribute]
     """
-    return kge_access(kg_name)
+    return await kge_access(request, kg_name, session)
 ```
 
 where `kge_access` is a handler method defined in the project developer defined Python module `kge_handlers`, assumed to be sitting alongside the generated api code in `provider_controller.py` (under the `openapi_server/controllers` package in the code generated `server` subdirectory of the KGE Archive project).
