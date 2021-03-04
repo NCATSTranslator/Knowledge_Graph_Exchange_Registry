@@ -64,8 +64,8 @@ LANDING = '/'
 HOME = '/home'
 
 
-@aiohttp_jinja2.template('login.html')
-async def kge_landing_page(request: web.Request, session_id=None):  # noqa: E501
+# @aiohttp_jinja2.template('login.html')
+def kge_landing_page(request: web.Request, session_id=None):  # noqa: E501
     """Display landing page.
 
      # noqa: E501
@@ -83,8 +83,16 @@ async def kge_landing_page(request: web.Request, session_id=None):  # noqa: E501
         authenticated_url = HOME + '?session=' + session_id
         raise web.HTTPFound(authenticated_url)
     else:
-        # If session is not active, then render login page  (no Jinja parameterization)
-        return {}
+        # If session is not active, then
+        # render login page (no Jinja parameterization)
+        # return {}
+
+        context = {}
+        response = aiohttp_jinja2.render_template('login.html',
+                                                  request,
+                                                  context)
+        return response
+
 
 
 @aiohttp_jinja2.template('home.html')

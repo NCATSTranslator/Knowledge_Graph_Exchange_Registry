@@ -46,7 +46,7 @@ async def landing_page(request: web.Request, session=None) -> web.Response:
     :type session: str
 
     """
-    return await kge_landing_page(request, session)
+    return kge_landing_page(request, session)
 
 
 async def login(request: web.Request):
