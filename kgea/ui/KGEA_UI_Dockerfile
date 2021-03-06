@@ -7,7 +7,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 COPY kgea_ui_requirements.txt /usr/src/app/requirements.txt
-COPY kgea_ui_config.yaml      /usr/src/app/kgea_config.yaml
+COPY kgea_ui_config.yaml      /usr/src/app/kgea_ui_config.yaml
 
 RUN apk add --no-cache build-base
 
