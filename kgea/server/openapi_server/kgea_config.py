@@ -92,7 +92,7 @@ except Exception as e:
 
 resources = None
 try: 
-    with open(abspath('kgea_config.yaml'), 'r') as resource_config_file:
+    with open(abspath('kgea_archive_config.yaml'), 'r') as resource_config_file:
         
         resource_config = yaml.load(resource_config_file, Loader=Loader)
 

@@ -2,14 +2,29 @@ version: '3.9'
 
 services:
 
-  kge:
+  ui:
     build:
-      context: ./kgea/server
-      dockerfile: KGEA_Dockerfile
+      context: ./kgea/ui
+      dockerfile: KGEA_UI_Dockerfile
     #environment:
     #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
     ports:
     - "8080:8080"
+    # depends_on:
+    # - "archive"
+    # volumes:
+    # - $HOME/.aws:/root/.aws
+    networks:
+    - default
+
+  archive:
+    build:
+      context: ./kgea/server
+      dockerfile: KGEA_Archive_Dockerfile
+    #environment:
+    #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
+    ports:
+    - "8090:8080"
     # depends_on:
     # - "kgx"
     volumes:

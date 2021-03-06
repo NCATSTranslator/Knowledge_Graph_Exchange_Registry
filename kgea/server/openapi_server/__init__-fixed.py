@@ -29,8 +29,4 @@ def main():
     for route in list(app.app.router.routes()):
         cors.add(route)
 
-    # Configure Jinja2 template map
-    templates_dir = os.path.join(os.path.dirname(__file__), 'templates')
-    aiohttp_jinja2.setup(app.app, loader=jinja2.FileSystemLoader(templates_dir))
-
     app.run(port=8080)

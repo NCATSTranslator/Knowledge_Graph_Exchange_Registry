@@ -12,10 +12,6 @@ def main():
     specification_dir = os.path.join(os.path.dirname(__file__), 'openapi')
     app = connexion.AioHttpApp(__name__, specification_dir=specification_dir, options=options)
 
-    # Configure Jinja2 template map
-    templates_dir = os.path.join(os.path.dirname(__file__), 'templates')
-    aiohttp_jinja2.setup(app.app, loader=jinja2.FileSystemLoader(templates_dir))
-
     app.add_api('openapi.yaml',
                 arguments={'title': 'OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGE) Archive'},
                 pythonic_params=True,

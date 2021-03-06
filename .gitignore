@@ -137,7 +137,8 @@ dmypy.json
 
 # Project & site configuration ignored
 .aws
-kgea_config.yaml
+kgea_archive_config.yaml
+kgea_ui_config.yaml
 styles.css
 banner.jpg
 
