@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 COPY kgea_ui_requirements.txt /usr/src/app/requirements.txt
 COPY kgea_ui_config.yaml      /usr/src/app/kgea_ui_config.yaml
 
-RUN apk add --no-cache build-base
+RUN apk add --no-cache build-base musl-dev python3-dev libffi-dev openssl-dev cargo
 
 RUN python -m pip install --upgrade pip
 

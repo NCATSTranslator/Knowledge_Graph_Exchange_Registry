@@ -62,19 +62,19 @@ LANDING = '/'
 HOME = '/home'
 
 
-# @aiohttp_jinja2.template('login.html')
-def kge_landing_page(request: web.Request, session_id=None) -> web.Response:  # noqa: E501
+def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
     """Display landing page.
 
      # noqa: E501
 
     :param request:
     :type request: web.Request
-    :param session_id:
-    :type session_id: str
 
     :rtype: str
     """
+    param = await request.get()
+    session_id = param['session']
+
     # validate the session key
     if valid_session(session_id):
         # then redirect to an authenticated home page
@@ -92,34 +92,36 @@ def kge_landing_page(request: web.Request, session_id=None) -> web.Response:  # 
         return response
 
 
-@aiohttp_jinja2.template('home.html')
-async def get_kge_home(request: web.Request, session_id: str = None):  # noqa: E501
+async def get_kge_home(request: web.Request):  # noqa: E501
     """Get default landing page
 
      # noqa: E501
 
     :param request:
     :type request: web.Request
-    :param session_id:
-    :type session_id: str
 
     :rtype: web.Response
     """
+    param = await request.get()
+    session_id = param['session']
 
     # validate the session key
     if valid_session(session_id):
-        return {"session":  session_id}
+        context = {"session":  session_id}
+        response = aiohttp_jinja2.render_template('home.html',
+                                                  request,
+                                                  context)
+        return response
     else:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
         raise web.HTTPFound(LANDING)
 
-
 # hack: short term dictionary
 _state_cache = []
 
 
-async def kge_client_authentication(request: web.Request, code: str, state: str):  # noqa: E501
+async def kge_client_authentication(request: web.Request):  # noqa: E501
     """Process client authentication
 
      # noqa: E501
@@ -131,6 +133,9 @@ async def kge_client_authentication(request: web.Request, code: str, state: str)
     :param state:
     :type state: str
     """
+    param = await request.get()
+    code = param['code']
+    state = param['state']
 
     # Establish session here if there
     # is a valid access code & state variable?
@@ -186,7 +191,7 @@ async def kge_login(request: web.Request):  # noqa: E501
     raise web.HTTPFound(login_url)
 
 
-async def kge_logout(request: web.Request, session_id: str = None):  # noqa: E501
+async def kge_logout(request: web.Request):  # noqa: E501
     """Process client user logout
 
      # noqa: E501
@@ -196,6 +201,8 @@ async def kge_logout(request: web.Request, session_id: str = None):  # noqa: E50
     :param session_id:
     :type session_id: str
     """
+    param = await request.get()
+    session_id = param['session']
 
     # invalidate session here?
     if valid_session(session_id):

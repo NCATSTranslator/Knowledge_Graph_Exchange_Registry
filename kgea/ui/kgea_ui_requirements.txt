@@ -10,6 +10,8 @@ aiohttp_jinja2 == 1.2.0
 jinja2 == 2.11.3
 aiohttp_cors >= 0.7.0
 
-# KGE UIspecific
+# KGE UI specific
 pyyaml
 aiohttp
+aiohttp-session
+cryptography

@@ -10,6 +10,8 @@ aiohttp-cors = ">=0.7.0"
 connexion = "*"
 pyyaml = "*"
 jinja2 = "*"
+cryptography = "*"
+aiohttp-session = "*"
 
 [dev-packages]
 

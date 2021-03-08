@@ -145,6 +145,10 @@ To apply this file, make a copy of the template in the `kgea/server/` subdirecto
 
 NOTE: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
 
+## Other Prerequisites
+
+Installation of the `cryptography` Python package requires a local copy of the rust compiler by following the [rust installation  instructions](https://cryptography.io/en/latest/installation.html#rust).
+
 ## Project Python Package Dependencies
 
 The project has several Python package dependencies, but these are actually already recorded in the Pipfile which `pipenv` manages. Therefore, installing the required Python dependencies merely requires execution of the following from within the root directory, after the `pipenv` tool itself plus all other non-Python external software (see above) are installed :
