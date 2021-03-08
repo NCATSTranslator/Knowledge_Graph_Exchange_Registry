@@ -62,7 +62,7 @@ LANDING = '/'
 HOME = '/home'
 
 
-def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
+async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
     """Display landing page.
 
      # noqa: E501
