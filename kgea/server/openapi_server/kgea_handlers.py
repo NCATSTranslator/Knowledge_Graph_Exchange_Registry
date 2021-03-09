@@ -202,11 +202,13 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
     :type request: web.Request
 
     """
-    # logger.critical("register_kge_file_set(locals: " + str(locals()) + ")")
+    logger.debug("register_kge_file_set(locals: " + str(locals()) + ")")
 
     data = await request.post()
 
     session_id = data['session']
+    
+    logger.debug("register_kge_file_set(session_id: " + session_id + ")")
 
     if not valid_session(session_id):
         # If session is not active, then just
@@ -216,15 +218,23 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
     submitter = data['submitter']
     kg_name = data['kg_name']
 
+    logger.debug("register_kge_file_set(original submitter: " + submitter +
+                 "original kg_name: " + kg_name + ")")
+
     session = _kge_metadata(session_id, kg_name, submitter)
 
     kg_name = session['kg_name']
     submitter = session['submitter']
+    
+    logger.debug("register_kge_file_set(cached submitter: " + submitter +
+                 "cached kg_name: " + kg_name + ")")
 
     if not (kg_name and submitter):
         raise web.HTTPBadRequest(reason="register_kge_file_set(): either kg_name or submitter are empty?")
 
     register_location = get_object_location(kg_name)
+    
+    logger.debug("register_kge_file_set(register_location: " + register_location + ")")
 
     if True:  # location_available(bucket_name, object_key):
         if True:  # api_specification and url:
@@ -256,13 +266,14 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
     :rtype: web.Response
     """
 
-    # saved_args = locals()
-    # logger.info("entering upload_kge_file(): locals(" + str(saved_args) + ")")
+    logger.info("upload_kge_file(locals: " + str(locals()) + ")")
 
     data = await request.post()
 
     session_id = data['session']
-
+    
+    logger.debug("upload_kge_file(session_id: " + session_id + ")")
+    
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
