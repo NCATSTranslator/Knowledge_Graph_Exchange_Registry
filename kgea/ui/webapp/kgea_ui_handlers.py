@@ -72,8 +72,7 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
 
     :rtype: str
     """
-    param = request.query()
-    session_id = param['session']
+    session_id = request.query['session']
 
     # validate the session key
     if valid_session(session_id):
@@ -102,8 +101,7 @@ async def get_kge_home(request: web.Request):  # noqa: E501
 
     :rtype: web.Response
     """
-    param = request.query()
-    session_id = param['session']
+    session_id = request.query['session']
 
     # validate the session key
     if valid_session(session_id):
@@ -133,9 +131,8 @@ async def kge_client_authentication(request: web.Request):  # noqa: E501
     :param state:
     :type state: str
     """
-    param = request.query()
-    code = param['code']
-    state = param['state']
+    code = request.query['code']
+    state = request.query['state']
 
     # Establish session here if there
     # is a valid access code & state variable?
@@ -201,8 +198,7 @@ async def kge_logout(request: web.Request):  # noqa: E501
     :param session_id:
     :type session_id: str
     """
-    param = request.query()
-    session_id = param['session']
+    session_id = request.query['session']
 
     # invalidate session here?
     if valid_session(session_id):
