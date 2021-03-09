@@ -6,17 +6,15 @@
             let kg_name = document.getElementById('kg_name').value;
 
             console.log(
-                "DownloadFile(session_id: '{{session}}', "+
-                "action: '"+source.id+"', "+
+                "DownloadFile(action: '"+source.id+"', "+
                 "KG Name: '"+kg_name+"')"
             );
 
-            let url = '/archive/' + kg_name + '/' + source.id + "?session={{session}}";
+            let url = '/archive/' + kg_name + '/' + source.id;
 
             console.log("Downloading  URL: '"+url+"'");
 
             let formData = new FormData();
-            formData.append("session", "{{session}}");
 
             try {
                 // TODO: What happens to the data returned here?
@@ -57,7 +55,6 @@
                 <center>
                     <form action="/register" method="get">
                         <!-- https://stackoverflow.com/a/9882750/1991892 -->
-                        <input type="hidden" name="session" value="{{session}}" />
                         <input type="submit" value="Register KGE File Set" /><br>
                         <small>This is the first step required for uploading.</small>
                     </form>

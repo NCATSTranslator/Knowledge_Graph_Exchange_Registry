@@ -3,10 +3,9 @@
     <script>
         async function UploadFile(source) {
 
-            console.log("UploadFile(session: {{session}}, upload_mode: '" + source.id + "')");
+            console.log("UploadFile(upload_mode: '" + source.id + "')");
 
             let formData = new FormData();
-            formData.append("session", "{{session}}");
             formData.append("upload_mode", source.id);
 
             if (source.id === 'content_from_url') {

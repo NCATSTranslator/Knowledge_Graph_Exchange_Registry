@@ -27,7 +27,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-FAKE_LOGIN = True
+FAKE_LOG_IN_AND_OUT = True
 
 #
 # Design pattern for aiohttp session aware handlers:
@@ -161,7 +161,7 @@ async def kge_login(request: web.Request):  # noqa: E501
     :type request: web.Request
     """
 
-    if FAKE_LOGIN:
+    if FAKE_LOG_IN_AND_OUT:
         # This fake logging process bypasses AWS Cognito authentication, for development testing purposes
         await new_session(request)
 
@@ -193,7 +193,10 @@ async def kge_logout(request: web.Request):  # noqa: E501
     :param request:
     :type request: web.Request
     """
-    
+    if FAKE_LOG_IN_AND_OUT:
+        # redirect to unauthenticated landing page for login
+        raise web.HTTPFound(LANDING)
+        
     try:
         session = await get_session(request)
 
