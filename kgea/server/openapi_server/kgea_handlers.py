@@ -270,9 +270,12 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
 
     logger.debug("Entering upload_kge_file(locals: " + str(locals()) + ")")
 
-    data = await request.post()
+    # assume this is multipart/form-data
+    reader = await request.multipart()
 
-    session_id = data['session']
+    field = await reader.next()
+    assert field.name == 'session'
+    session_id: str = str(await field.read(decode=True))
     
     logger.debug("upload_kge_file(session_id: " + session_id + ")")
     
@@ -281,7 +284,10 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
         # redirect back to public landing page
         raise web.HTTPFound(LANDING)
 
-    upload_mode = data['upload_mode']
+    field = await reader.next()
+    assert field.name == 'upload_mode'
+    upload_mode: str = str(await field.read(decode=True))
+    
     if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
         # Invalid upload mode
         raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
@@ -297,8 +303,12 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
     response = dict()
 
     if upload_mode == 'content_from_url':
-        url = upload_mode = data['content_url']
+        
+        field = await reader.next()
+        assert field.name == 'content_url'
+        url: str = str(await field.read(decode=True))
         logger.debug("upload_kge_file(): content_url == '" + url + "')")
+        
         uploaded_file_object_key = transfer_file_from_url(
             url,  # file_name derived from the URL
             bucket=resources['bucket'],
@@ -309,16 +319,17 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
 
     else:  # process direct metadata or content file upload
 
-        # Retrieve the POSTed metadata or content file from connexion
-        # See https://github.com/zalando/connexion/issues/535 for resolution
-        uploaded_file = data['uploaded_file']
-
+        uploaded_file = await reader.next()
+        assert field.name == 'uploaded_file'
+        
         if upload_mode == 'content_from_local_file':
 
             # KGE Content File for upload?
 
             uploaded_file_object_key = upload_file(
-                uploaded_file.file,
+                # This should work since 'uploaded_file' is
+                # either a 'MultipartReader' or a 'BodyPartReader' here?
+                uploaded_file,
                 file_name=uploaded_file.filename,
                 bucket=resources['bucket'],
                 object_location=content_location
@@ -333,7 +344,9 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
             metadata_location = get_object_location(kg_name)
 
             uploaded_file_object_key = upload_file(
-                uploaded_file.file,
+                # This should work since 'uploaded_file' is
+                # either a 'MultipartReader' or a 'BodyPartReader' here?
+                uploaded_file,
                 file_name=uploaded_file.filename,
                 bucket=resources['bucket'],
                 object_location=metadata_location
