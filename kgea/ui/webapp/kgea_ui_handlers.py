@@ -73,12 +73,10 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
     """
     try:
         await get_session(request)
-        # if no exception raised, then redirect to an authenticated home page
-        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
+        # if no exception raised, then redirect to the home page
         raise web.HTTPFound(HOME)
     
     except RuntimeError:
-
         # Exception implies that session is not active,
         # then render the login page
         response = aiohttp_jinja2.render_template('login.html', request=request, context={})
@@ -99,7 +97,6 @@ async def get_kge_home(request: web.Request) -> web.Response:  # noqa: E501
         await get_session(request)
         
         response = aiohttp_jinja2.render_template('home.html', request=request, context={})
-        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
         return response
 
     except RuntimeError:
@@ -107,7 +104,7 @@ async def get_kge_home(request: web.Request) -> web.Response:  # noqa: E501
         # redirect back to unauthenticated landing page
         raise web.HTTPFound(LANDING)
 
-# hack: short term dictionary
+# hack: short term state dictionary
 _state_cache = []
 
 
@@ -147,7 +144,7 @@ async def kge_client_authentication(request: web.Request):  # noqa: E501
                 await new_session(request)
 
                 # then redirect to an authenticated home page
-                # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
+                # TODO: how does the new session get propagated from the handler? By saving a cookie somewhere?
                 raise web.HTTPFound(HOME)
 
     # If authentication conditions are not met, then
@@ -169,7 +166,7 @@ async def kge_login(request: web.Request):  # noqa: E501
         await new_session(request)
 
         # then redirect to an authenticated home page
-        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
+        # TODO: how does the new session get propagated from the request? By saving a cookie somewhere?
         raise web.HTTPFound(HOME)
         
     state = str(uuid4())
@@ -211,7 +208,6 @@ async def kge_logout(request: web.Request):  # noqa: E501
             '&logout_uri=' + \
             resources['oauth2']['site_uri']
 
-        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
         raise web.HTTPFound(logout_url)
 
     except RuntimeError:
@@ -251,7 +247,6 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:  # no
             "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
-        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
         return response
 
     except RuntimeError:
@@ -286,7 +281,6 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:  # noq
             "submitter": submitter
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
-        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
         return response
 
     except RuntimeError:
