@@ -1,14 +1,9 @@
-from pathlib import Path
-from typing import Dict
 from uuid import uuid4
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
-
-from string import Template
-import re
 
 from aiohttp import web
 import aiohttp_jinja2
@@ -22,7 +17,6 @@ from .kgea_ui_config import resources
 from .kgea_session import (
     create_session,
     valid_session,
-    get_session,
     delete_session
 )
 
@@ -30,17 +24,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-# @aiohttp_jinja2.template("home.html")
-# class HomeHandler(web.View):
-#
-#     async def get(self):
-#         return {}
-#
-#     async def post(self):
-#         form = await self.request.post()
-#         return {"name": form['name']}
 
 #############################################################
 # Site Controller Handlers
