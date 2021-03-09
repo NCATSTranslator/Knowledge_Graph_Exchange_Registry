@@ -8,6 +8,8 @@ except ImportError:
 from aiohttp import web
 import aiohttp_jinja2
 
+from aiohttp_session import get_session, new_session
+
 #############################################################
 # Application Configuration
 #############################################################
@@ -25,7 +27,15 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-FAKE_LOGIN=True
+FAKE_LOGIN = True
+
+#
+# Design pattern for aiohttp session aware handlers:
+# async def handler(request):
+#     session = await get_session(request)
+#     last_visit = session['last_visit'] if 'last_visit' in session else None
+#     text = 'Last visited: {}'.format(last_visit)
+#     return web.Response(text=text)
 
 #############################################################
 # Site Controller Handlers
@@ -61,22 +71,17 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
 
     :rtype: str
     """
-    session_id = request.query.get('session', default='')
+    try:
+        await get_session(request)
+        # if no exception raised, then redirect to an authenticated home page
+        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
+        raise web.HTTPFound(HOME)
+    
+    except RuntimeError:
 
-    # validate the session key
-    if valid_session(session_id):
-        # then redirect to an authenticated home page
-        authenticated_url = HOME + '?session=' + session_id
-        raise web.HTTPFound(authenticated_url)
-    else:
-        # If session is not active, then
-        # render login page (no Jinja parameterization)
-        # return {}
-
-        context = {}
-        response = aiohttp_jinja2.render_template('login.html',
-                                                  request,
-                                                  context)
+        # Exception implies that session is not active,
+        # then render the login page
+        response = aiohttp_jinja2.render_template('login.html', request=request, context={})
         return response
 
 
@@ -90,16 +95,14 @@ async def get_kge_home(request: web.Request) -> web.Response:  # noqa: E501
 
     :rtype: web.Response
     """
-    session_id = request.query.get('session', default='')
-
-    # validate the session key
-    if valid_session(session_id):
-        context = {"session":  session_id}
-        response = aiohttp_jinja2.render_template('home.html',
-                                                  request,
-                                                  context)
+    try:
+        await get_session(request)
+        
+        response = aiohttp_jinja2.render_template('home.html', request=request, context={})
+        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
         return response
-    else:
+
+    except RuntimeError:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
         raise web.HTTPFound(LANDING)
@@ -141,11 +144,11 @@ async def kge_client_authentication(request: web.Request):  # noqa: E501
 
             if authenticated:
                 # create and persist Session here
-                session_id = create_session()
+                await new_session(request)
 
                 # then redirect to an authenticated home page
-                authenticated_url = HOME + '?session=' + session_id
-                raise web.HTTPFound(authenticated_url)
+                # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
+                raise web.HTTPFound(HOME)
 
     # If authentication conditions are not met, then
     # simply redirect back to public landing page
@@ -162,12 +165,12 @@ async def kge_login(request: web.Request):  # noqa: E501
     """
 
     if FAKE_LOGIN:
-        # This fake logging process bypasses AWS Cognito, for development testing purposes
-        session_id = create_session()
+        # This fake logging process bypasses AWS Cognito authentication, for development testing purposes
+        await new_session(request)
 
         # then redirect to an authenticated home page
-        authenticated_url = HOME + '?session=' + session_id
-        raise web.HTTPFound(authenticated_url)
+        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
+        raise web.HTTPFound(HOME)
         
     state = str(uuid4())
     _state_cache.append(state)
@@ -193,12 +196,12 @@ async def kge_logout(request: web.Request):  # noqa: E501
     :param request:
     :type request: web.Request
     """
-    session_id = request.query.get('session', default='')
+    
+    try:
+        session = await get_session(request)
 
-    # invalidate session here?
-    if valid_session(session_id):
-
-        delete_session(session_id)
+        # TODO: invalidate session here by removing the session cookie?
+        # delete_session(session)
 
         # ...then redirect to signal logout at the Oauth2 host
         logout_url = \
@@ -208,11 +211,13 @@ async def kge_logout(request: web.Request):  # noqa: E501
             '&logout_uri=' + \
             resources['oauth2']['site_uri']
 
+        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
         raise web.HTTPFound(logout_url)
-    else:
+
+    except RuntimeError:
         # redirect to unauthenticated landing page for login
         raise web.HTTPFound(LANDING)
-
+        
 
 #############################################################
 # Upload Controller Handlers
@@ -238,22 +243,21 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:  # no
 
     :rtype: web.Response
     """
-    session_id = request.query.get('session', default='')
+    try:
+        await get_session(request)
+        
+        #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
+        context = {
+            "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
+        }
+        response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
+        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
+        return response
 
-    if not valid_session(session_id):
+    except RuntimeError:
         # If session is not active, then just
-        # redirect back to public landing page
+        # redirect back to unauthenticated landing page
         raise web.HTTPFound(LANDING)
-
-    #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
-    context = {
-        "session": session_id,
-        "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
-    }
-    response = aiohttp_jinja2.render_template('register.html',
-                                              request,
-                                              context)
-    return response
 
 
 async def get_kge_file_upload_form(request: web.Request) -> web.Response:  # noqa: E501
@@ -266,26 +270,26 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:  # noq
 
     :rtype: web.Response
     """
-    session_id = request.query.get('session', default='')
-    submitter = request.query.get('submitter', default='')
-    kg_name = request.query.get('kg_name', default='')
+    try:
+        await get_session(request)
 
-    if not valid_session(session_id):
+        submitter = request.query.get('submitter', default='')
+        kg_name = request.query.get('kg_name', default='')
+
+        # TODO guard against absent kg_name
+        # TODO guard against invalid kg_name (check availability in bucket)
+        # TODO redirect to register_form with given optional param as the entered kg_name
+
+        # return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
+        context = {
+            "kg_name": kg_name,
+            "submitter": submitter
+        }
+        response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
+        # TODO: how does the session information get propagated from the request? By saving a cookie somewhere?
+        return response
+
+    except RuntimeError:
         # If session is not active, then just
-        # redirect back to public landing page
+        # redirect back to unauthenticated landing page
         raise web.HTTPFound(LANDING)
-
-    # TODO guard against absent kg_name
-    # TODO guard against invalid kg_name (check availability in bucket)
-    # TODO redirect to register_form with given optional param as the entered kg_name
-
-    # return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
-    context = {
-        "kg_name": kg_name,
-        "submitter": submitter,
-        "session": session_id
-    }
-    response = aiohttp_jinja2.render_template('upload.html',
-                                              request,
-                                              context)
-    return response

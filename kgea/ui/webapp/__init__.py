@@ -6,7 +6,7 @@ import logging
 import base64
 from cryptography import fernet
 # from aiohttp import web
-from aiohttp_session import setup  # , get_session, session_middleware
+import aiohttp_session  # import setup, get_session, session_middleware
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 import jinja2
@@ -23,12 +23,6 @@ from .kgea_ui_handlers import (
     get_kge_file_upload_form
 )
 
-# async def handler(request):
-#     session = await get_session(request)
-#     last_visit = session['last_visit'] if 'last_visit' in session else None
-#     text = 'Last visited: {}'.format(last_visit)
-#     return web.Response(text=text)
-
 
 async def make_app():
 
@@ -37,7 +31,7 @@ async def make_app():
     # secret_key must be 32 url-safe base64-encoded bytes
     fernet_key = fernet.Fernet.generate_key()
     secret_key = base64.urlsafe_b64decode(fernet_key)
-    setup(app, EncryptedCookieStorage(secret_key))
+    aiohttp_session.setup(app, EncryptedCookieStorage(secret_key))
 
     # Configure Jinja2 template map
     templates_dir = os.path.join(os.path.dirname(__file__), 'templates')
