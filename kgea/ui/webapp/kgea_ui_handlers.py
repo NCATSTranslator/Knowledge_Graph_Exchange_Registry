@@ -72,7 +72,7 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
 
     :rtype: str
     """
-    session_id = request.query['session']
+    session_id = request.query.get('session', default='')
 
     # validate the session key
     if valid_session(session_id):
@@ -101,7 +101,7 @@ async def get_kge_home(request: web.Request):  # noqa: E501
 
     :rtype: web.Response
     """
-    session_id = request.query['session']
+    session_id = request.query.get('session', default='')
 
     # validate the session key
     if valid_session(session_id):
@@ -198,7 +198,7 @@ async def kge_logout(request: web.Request):  # noqa: E501
     :param session_id:
     :type session_id: str
     """
-    session_id = request.query['session']
+    session_id = request.query.get('session', default='')
 
     # invalidate session here?
     if valid_session(session_id):
