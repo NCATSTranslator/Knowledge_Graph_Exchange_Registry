@@ -42,7 +42,7 @@ from .kgea_session import (
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # This is the home page path,
 # should match the API path spec
@@ -73,7 +73,8 @@ async def kge_access(request: web.Request, kg_name: str, session_id: str) -> web
     
     :rtype: web.Response( Dict[str, Attribute] )
     """
-
+    logger.debug("Entering kge_access(session_id: "+session_id+")")
+    
     if not valid_session(session_id):
         # If session is not active, then just
         # redirect back to public landing page
@@ -94,7 +95,7 @@ async def kge_access(request: web.Request, kg_name: str, session_id: str) -> web
     kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
     kg_urls = dict(
         map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
-    # logger.info('access urls %s, KGs: %s', kg_urls, kg_listing)
+    # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
 
     # return Response(kg_urls)
     return web.Response(text=str(kg_urls), status=200)
@@ -123,6 +124,7 @@ async def kge_knowledge_map(request: web.Request, kg_name: str, session_id: str)
     
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
+    logger.debug("Entering kge_knowledge_map(session_id: "+session_id+")")
 
     if not valid_session(session_id):
         # If session is not active, then just
@@ -149,7 +151,7 @@ async def kge_knowledge_map(request: web.Request, kg_name: str, session_id: str)
         map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing)
     )
 
-    # logger.info('knowledge_map urls: %s', kg_urls)
+    # logger.debug('knowledge_map urls: %s', kg_urls)
     # import requests, json
     # metadata_key = kg_listing[0]
     # url = create_presigned_url(resources['bucket'], metadata_key)
@@ -202,7 +204,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
     :type request: web.Request
 
     """
-    logger.debug("register_kge_file_set(locals: " + str(locals()) + ")")
+    logger.debug("Entering register_kge_file_set(locals: " + str(locals()) + ")")
 
     data = await request.post()
 
@@ -266,7 +268,7 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
     :rtype: web.Response
     """
 
-    logger.info("upload_kge_file(locals: " + str(locals()) + ")")
+    logger.debug("Entering upload_kge_file(locals: " + str(locals()) + ")")
 
     data = await request.post()
 
@@ -296,7 +298,7 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
 
     if upload_mode == 'content_from_url':
         url = upload_mode = data['content_url']
-        logger.info("upload_kge_file(): content_url == '" + url + "')")
+        logger.debug("upload_kge_file(): content_url == '" + url + "')")
         uploaded_file_object_key = transfer_file_from_url(
             url,  # file_name derived from the URL
             bucket=resources['bucket'],

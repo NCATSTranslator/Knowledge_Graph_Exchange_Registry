@@ -23,7 +23,7 @@ from .kgea_session import (
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 #############################################################
 # Site Controller Handlers
