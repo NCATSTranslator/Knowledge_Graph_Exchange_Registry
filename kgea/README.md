@@ -134,16 +134,31 @@ Note that the Docker option of launching the application, currently assumes that
 
 If you don't really want to store your keys outside the project root directory, [Boto can use AWS environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
 
-### Project Configuration File
+### Project Configuration Files
 
-You must also use the project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template` in the `kgea/server/`, whose contents are noted here: 
+You must also use the project configuration templates. These are the YAML files provided as template files `kgea_archive_config.yaml-template` and `kgea_ui_config.yaml-template` in the `kgea/server/`  and `kgea/ui/` subdirectories, respectively.
+
+To apply these files, make a copy of the templates and rename them without the `-template` infix, namely, to `kgea_archive_config.yaml` and  `kgea_ui_config.yaml`  in  their respective locations.  Fill out the required information. 
+
+The  'archive' configuration file sets the target AWS S3 storage bucket name:
 
 ```yaml
 bucket: 'kgea-bucket'   # REQUIRED: the name of the S3 bucket that will host your kgea files
 ```
-To apply this file, make a copy of the template in the `kgea/server/` subdirectory, and rename it to `kgea_config.yaml`.  Fill out the required information. Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
 
-NOTE: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
+The  'ui' configuration file sets AWS Cognito configuration values for the OAuth2 'login' authentication flow:
+
+```yaml
+oauth2:
+  host:      '<AWS Cognito URL>'
+  client_id: '<myclientid>'     # get from AWS Cognito User Pool app
+  site_uri:  '<ArchiveSiteURL>' # get from AWS Cognito User Pool app
+  login_callback:  '/oauth2callback'
+```
+
+Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
+
+NOTE: `kgea_archive_config.yaml` and `kgea_ui_config.yaml` are in `.gitignore`, but their templates not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
 
 ## Other Prerequisites
 
