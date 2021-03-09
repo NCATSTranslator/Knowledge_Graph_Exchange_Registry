@@ -11,7 +11,7 @@
                 "KG Name: '"+kg_name+"')"
             );
 
-            let url = '/' + kg_name + '/' + source.id + "?session={{session}}";
+            let url = '/archive/' + kg_name + '/' + source.id + "?session={{session}}";
 
             console.log("Downloading  URL: '"+url+"'");
 
@@ -55,7 +55,7 @@
         <tr>
             <td>
                 <center>
-                    <form action="/register" method="get">
+                    <form action="/archive/register" method="get">
                         <!-- https://stackoverflow.com/a/9882750/1991892 -->
                         <input type="hidden" name="session" value="{{session}}" />
                         <input type="submit" value="Register KGE File Set" /><br>
