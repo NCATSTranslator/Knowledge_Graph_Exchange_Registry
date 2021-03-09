@@ -4,10 +4,10 @@
 {% endblock %}
 {% block content %}
 <h1>Register your File Set</h1>
-<form name="formData"
-      method="post"
-      action="/archive/register"
+<form method="post"
+      action="{{registration_action}}"
       enctype="application/x-www-form-urlencoded"
+      accept-charset="utf-8"
 >
     <br>
     <h4>Knowledge Graph Name</h4>

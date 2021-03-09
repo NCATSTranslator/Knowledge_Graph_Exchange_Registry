@@ -46,6 +46,10 @@ FAKE_LOGIN=True
 LANDING = '/'
 HOME = '/home'
 
+ARCHIVE_HOST = 'http://localhost:8080'
+ARCHIVE_PATH = '/archive/'
+ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_HOST+ARCHIVE_PATH+"register"
+
 
 async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
     """Display landing page.
@@ -242,7 +246,10 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:  # no
         raise web.HTTPFound(LANDING)
 
     #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
-    context = {"session": session_id}
+    context = {
+        "session": session_id,
+        "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
+    }
     response = aiohttp_jinja2.render_template('register.html',
                                               request,
                                               context)

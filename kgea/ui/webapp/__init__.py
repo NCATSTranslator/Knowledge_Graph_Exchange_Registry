@@ -56,5 +56,5 @@ async def make_app():
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
-    web.run_app(make_app())
+    web.run_app(make_app(), port=8090)
 
