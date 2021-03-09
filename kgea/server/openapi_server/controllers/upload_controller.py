@@ -6,7 +6,7 @@ from ..kgea_handlers import (
 )
 
 
-async def register_file_set(request: web.Request) -> web.Response:
+async def register_file_set(request: web.Request):
     """Register core parameters for the KGE File Set upload
 
     :param request:
