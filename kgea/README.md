@@ -13,6 +13,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
             - [AWS Configuration Files](#aws-configuration-files)
             - [AWS Environment Variables](#aws-environment-variables)
         - [Project Configuration File](#project-configuration-file-recommended)
+        - [Other Prerequisites](#other-prerequisites)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
     - [Basic Operation of the Server](#basic-operation-of-the-server)
     - [Running the Application within a Docker Container](#running-the-application-within-a-docker-container)

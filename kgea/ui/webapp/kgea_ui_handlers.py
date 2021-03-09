@@ -25,6 +25,8 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+FAKE_LOGIN=True
+
 #############################################################
 # Site Controller Handlers
 #
@@ -155,6 +157,14 @@ async def kge_login(request: web.Request):  # noqa: E501
     :type request: web.Request
     """
 
+    if FAKE_LOGIN:
+        # This fake logging process bypasses AWS Cognito, for development testing purposes
+        session_id = create_session()
+
+        # then redirect to an authenticated home page
+        authenticated_url = HOME + '?session=' + session_id
+        raise web.HTTPFound(authenticated_url)
+        
     state = str(uuid4())
     _state_cache.append(state)
 
