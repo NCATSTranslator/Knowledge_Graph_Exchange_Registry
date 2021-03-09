@@ -91,37 +91,6 @@ paths:
               schema:
                 type: string
   /upload:
-    get:
-      parameters:
-      - name: session
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: submitter
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: kg_name
-        in: query
-        required: true
-        schema:
-          type: string
-      tags:
-        - upload
-      summary: Get web form for the KGE File Set upload process
-      operationId: getFileUploadForm
-      responses:
-        '200':
-          description: >-
-            Returns a web form for the KGE File Set upload process
-          content:
-            text/html:
-              schema:
-                description: >-
-                  HTML web form for KGE File Set upload
-                type: string
     post:
       tags:
         - upload
