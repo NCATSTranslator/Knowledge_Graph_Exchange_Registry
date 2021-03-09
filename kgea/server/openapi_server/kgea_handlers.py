@@ -165,8 +165,6 @@ async def kge_knowledge_map(request: web.Request, kg_name: str, session_id: str)
 # Insert imports and return calls into upload_controller.py:
 #
 # from ..kge_handlers import (
-#     get_kge_file_upload_form,
-#     get_kge_registration_form,
 #     register_kge_file_set,
 #     upload_kge_file
 # )
@@ -193,70 +191,6 @@ def _kge_metadata(
         session['submitter'] = ''
 
     return session
-
-
-@aiohttp_jinja2.template('register.html')
-async def get_kge_registration_form(request: web.Request, session_id: str):  # noqa: E501
-    """Get web form for specifying KGE File Set name and submitter
-
-     # noqa: E501
-
-    :param request:
-    :type request: web.Request
-    :param session_id:
-    :type session_id: str
-
-    :rtype: web.Response
-    """
-
-    if not valid_session(session_id):
-        # If session is not active, then just
-        # redirect back to public landing page
-        raise web.HTTPFound(LANDING)
-
-    #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
-
-    return {"session": session_id}
-
-
-@aiohttp_jinja2.template('upload.html')
-async def get_kge_file_upload_form(
-        request: web.Request,
-        session_id: str,
-        submitter: str,
-        kg_name: str
-):  # noqa: E501
-    """Get web form for specifying KGE File Set upload
-
-     # noqa: E501
-
-    :param request:
-    :type request: web.Request
-    :param session_id:
-    :type session_id: str
-    :param submitter:
-    :type submitter: str
-    :param kg_name:
-    :type kg_name: str
-    
-    :rtype: web.Response
-    """
-
-    if not valid_session(session_id):
-        # If session is not active, then just
-        # redirect back to public landing page
-        raise web.HTTPFound(LANDING)
-
-    # TODO guard against absent kg_name
-    # TODO guard against invalid kg_name (check availability in bucket)
-    # TODO redirect to register_form with given optional param as the entered kg_name
-
-    # return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
-    return {
-        "kg_name": kg_name,
-        "submitter": submitter,
-        "session": session_id
-    }
 
 
 async def register_kge_file_set(request: web.Request):  # noqa: E501

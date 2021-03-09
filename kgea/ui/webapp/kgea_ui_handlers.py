@@ -74,7 +74,7 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
         return response
 
 
-async def get_kge_home(request: web.Request):  # noqa: E501
+async def get_kge_home(request: web.Request) -> web.Response:  # noqa: E501
     """Get default landing page
 
      # noqa: E501
@@ -178,8 +178,6 @@ async def kge_logout(request: web.Request):  # noqa: E501
 
     :param request:
     :type request: web.Request
-    :param session_id:
-    :type session_id: str
     """
     session_id = request.query.get('session', default='')
 
@@ -200,3 +198,77 @@ async def kge_logout(request: web.Request):  # noqa: E501
     else:
         # redirect to unauthenticated landing page for login
         raise web.HTTPFound(LANDING)
+
+
+#############################################################
+# Upload Controller Handlers
+#
+# Insert imports and return calls into into ui/__init__.py:
+#
+# from ..kge_handlers import (
+#     get_kge_registration_form,
+#     get_kge_file_upload_form
+# )
+#############################################################
+
+
+async def get_kge_registration_form(request: web.Request) -> web.Response:  # noqa: E501
+    """Get web form for specifying KGE File Set name and submitter
+
+     # noqa: E501
+
+    :param request:
+    :type request: web.Request
+    :param session_id:
+    :type session_id: str
+
+    :rtype: web.Response
+    """
+    session_id = request.query.get('session', default='')
+
+    if not valid_session(session_id):
+        # If session is not active, then just
+        # redirect back to public landing page
+        raise web.HTTPFound(LANDING)
+
+    #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
+    context = {"session": session_id}
+    response = aiohttp_jinja2.render_template('register.html',
+                                              request,
+                                              context)
+    return response
+
+
+async def get_kge_file_upload_form(request: web.Request) -> web.Response:  # noqa: E501
+    """Get web form for specifying KGE File Set upload
+
+     # noqa: E501
+
+    :param request:
+    :type request: web.Request
+
+    :rtype: web.Response
+    """
+    session_id = request.query.get('session', default='')
+    submitter = request.query.get('submitter', default='')
+    kg_name = request.query.get('kg_name', default='')
+
+    if not valid_session(session_id):
+        # If session is not active, then just
+        # redirect back to public landing page
+        raise web.HTTPFound(LANDING)
+
+    # TODO guard against absent kg_name
+    # TODO guard against invalid kg_name (check availability in bucket)
+    # TODO redirect to register_form with given optional param as the entered kg_name
+
+    # return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
+    context = {
+        "kg_name": kg_name,
+        "submitter": submitter,
+        "session": session_id
+    }
+    response = aiohttp_jinja2.render_template('upload.html',
+                                              request,
+                                              context)
+    return response
