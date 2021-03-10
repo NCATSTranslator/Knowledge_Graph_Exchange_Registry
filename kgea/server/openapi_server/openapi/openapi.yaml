@@ -43,15 +43,12 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               properties:
-                session:
-                  type: string
                 submitter:
                   type: string
                 kg_name:
                   type: string
               required:
               - kg_name
-              - session
               - submitter
               type: object
         required: true
@@ -110,8 +107,6 @@ paths:
                 (authentication not yet supported - URL should provide unauthenticated
                 access)
               properties:
-                session:
-                  type: string
                 upload_mode:
                   type: string
                 content_url:
@@ -121,7 +116,6 @@ paths:
                   format: binary
                   type: string
               required:
-              - session
               - upload_mode
               type: object
         description: KGE File Set metadata or data file submitted
@@ -172,13 +166,6 @@ paths:
         schema:
           type: string
         style: simple
-      - explode: true
-        in: query
-        name: session
-        required: true
-        schema:
-          type: string
-        style: form
       responses:
         "200":
           content:
@@ -215,13 +202,6 @@ paths:
         schema:
           type: string
         style: simple
-      - explode: true
-        in: query
-        name: session
-        required: true
-        schema:
-          type: string
-        style: form
       responses:
         "200":
           content:
@@ -288,15 +268,12 @@ components:
       type: object
     inline_object:
       properties:
-        session:
-          type: string
         submitter:
           type: string
         kg_name:
           type: string
       required:
       - kg_name
-      - session
       - submitter
       type: object
     inline_object_1:
@@ -309,8 +286,6 @@ components:
         Archive (authentication not yet supported - URL should provide unauthenticated
         access)
       properties:
-        session:
-          type: string
         upload_mode:
           type: string
         content_url:
@@ -320,6 +295,5 @@ components:
           format: binary
           type: string
       required:
-      - session
       - upload_mode
       type: object
