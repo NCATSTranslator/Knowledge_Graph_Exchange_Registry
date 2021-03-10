@@ -1,3 +1,6 @@
+# get the latest jsonschema Python support - need for connexion
+jsonschema
+
 # Patched version of Connexion for proper 'application/x-www-form-urlencoded' support
 -e git+https://github.com/STARInformatics/connexion.git#egg=connexion
 
