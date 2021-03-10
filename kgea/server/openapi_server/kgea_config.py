@@ -91,25 +91,23 @@ except Exception as e:
 
 
 resources = None
-try: 
+try:
+    # the following config file should be visible in the root 'server' subdirectory, as copied
+    # from the available template and populated with site-specific configuration values
     with open(abspath('kgea_archive_config.yaml'), 'r') as resource_config_file:
         
         resource_config = yaml.load(resource_config_file, Loader=Loader)
 
-        try:
-            resource_config['bucket']
-
+        if 'bucket' not in resource_config:
+            print("The resource_config doesn't have all its necessary attributes")
+        else:
             if s3_client is not None:
                 # TODO: detect the bucket here
                 # if not detected, raise an error
                 pass
 
-        except KeyError as e:
-            print("The resource_config doesn't have all its necessary attributes")
-            print(e)
-
         resources = dict(resource_config)
 
 except Exception as e:
-    print('ERROR: resource configuration file failed to load')
+    print('ERROR: KGE Archive resource configuration file failed to load')
     print(e)

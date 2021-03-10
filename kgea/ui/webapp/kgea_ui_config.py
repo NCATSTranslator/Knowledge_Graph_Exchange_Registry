@@ -4,16 +4,18 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-from os.path import expanduser, abspath
+from os.path import abspath
 
 
 resources = None
-try: 
+try:
+    # the following config file should be visible in the root 'ui' subdirectory, as copied
+    # from the available template and populated with site-specific configuration values
     with open(abspath('kgea_ui_config.yaml'), 'r') as resource_config_file:
         
         resource_config = yaml.load(resource_config_file, Loader=Loader)
         resources = dict(resource_config)
 
 except Exception as e:
-    print('ERROR: resource configuration file failed to load')
+    print('ERROR: KGE Archive User Interface resource configuration file failed to load')
     print(e)
