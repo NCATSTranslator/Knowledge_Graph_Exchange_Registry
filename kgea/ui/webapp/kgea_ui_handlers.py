@@ -16,12 +16,6 @@ from aiohttp_session import get_session, new_session
 
 from .kgea_ui_config import resources
 
-from .kgea_session import (
-    create_session,
-    valid_session,
-    delete_session
-)
-
 import logging
 
 logger = logging.getLogger(__name__)
