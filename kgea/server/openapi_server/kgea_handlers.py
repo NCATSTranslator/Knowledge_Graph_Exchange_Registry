@@ -33,10 +33,9 @@ from .kgea_file_ops import (
 from .kgea_stream import transfer_file_from_url
 
 from .kgea_session import (
-    create_session,
     valid_session,
     get_session,
-    delete_session
+    # delete_session
 )
 
 import logging

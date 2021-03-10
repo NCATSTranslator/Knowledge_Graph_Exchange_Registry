@@ -1,14 +1,6 @@
 import os
 import logging
 
-# import asyncio
-# import time
-# import base64
-
-# from cryptography import fernet
-# from aiohttp import web
-# from aiohttp_session.cookie_storage import EncryptedCookieStorage
-
 import aiohttp_session
 import aiomcache
 from aiohttp_session.memcached_storage import MemcachedStorage
