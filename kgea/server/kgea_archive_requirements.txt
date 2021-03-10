@@ -18,3 +18,4 @@ pyyaml
 #Flask-Session
 #flask-cors >= 3.0.10
 aiohttp
+aiomcache

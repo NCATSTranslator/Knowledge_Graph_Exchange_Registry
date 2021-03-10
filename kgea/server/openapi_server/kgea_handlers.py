@@ -170,10 +170,6 @@ async def kge_knowledge_map(request: web.Request, kg_name: str, session_id: str)
 #     register_kge_file_set,
 #     upload_kge_file
 # )
-#
-# Remove all parameters  other than 'request'  from
-# 'register_file_set' and 'upload_files' arguments.
-# (rather retrieved from request.post inside the respective handlers)
 #############################################################
 
 def _kge_metadata(

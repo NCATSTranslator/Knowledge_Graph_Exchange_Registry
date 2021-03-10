@@ -12,6 +12,7 @@ pyyaml = "*"
 jinja2 = "*"
 cryptography = "*"
 aiohttp-session = "*"
+aiomcache = "*"
 
 [dev-packages]
 

@@ -3,11 +3,15 @@ import logging
 
 # import asyncio
 # import time
-import base64
-from cryptography import fernet
+# import base64
+
+# from cryptography import fernet
 # from aiohttp import web
-import aiohttp_session  # import setup, get_session, session_middleware
-from aiohttp_session.cookie_storage import EncryptedCookieStorage
+# from aiohttp_session.cookie_storage import EncryptedCookieStorage
+
+import aiohttp_session
+import aiomcache
+from aiohttp_session.memcached_storage import MemcachedStorage
 
 import jinja2
 import aiohttp_jinja2
@@ -23,15 +27,28 @@ from .kgea_ui_handlers import (
     get_kge_file_upload_form
 )
 
+# TODO: configure the session management storage Docker-aware
+MEMCACHED_SERVICE = "localhost"
+
+# Docker Service container name
+# MEMCACHED_SERVICE = "memcached"
+
 
 async def make_app():
 
     app = web.Application()
 
+    #
+    # Older secure but non-distributed version of AIOHTTP session storage
+    #
     # secret_key must be 32 url-safe base64-encoded bytes
-    fernet_key = fernet.Fernet.generate_key()
-    secret_key = base64.urlsafe_b64decode(fernet_key)
-    aiohttp_session.setup(app, EncryptedCookieStorage(secret_key))
+    # fernet_key = fernet.Fernet.generate_key()
+    # secret_key = base64.urlsafe_b64decode(fernet_key)
+    # aiohttp_session.setup(app, EncryptedCookieStorage(secret_key))
+
+    mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
+    storage = MemcachedStorage(mc)
+    aiohttp_session.setup(app, storage)
 
     # Configure Jinja2 template map
     templates_dir = os.path.join(os.path.dirname(__file__), 'templates')

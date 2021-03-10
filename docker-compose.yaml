@@ -44,6 +44,11 @@ services:
   #    networks:
   #        - default
 
+  memcached:
+      image: memcached:latest
+      ports:
+        - "11211:11211"
+
 networks:
     default:
         driver: bridge

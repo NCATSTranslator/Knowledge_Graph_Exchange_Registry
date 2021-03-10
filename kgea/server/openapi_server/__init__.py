@@ -1,8 +1,16 @@
 import os
 import connexion
 import aiohttp_cors
-import aiohttp_jinja2
-import jinja2
+
+import aiohttp_session
+import aiomcache
+from aiohttp_session.memcached_storage import MemcachedStorage
+
+# TODO: configure the session management storage Docker-aware
+MEMCACHED_SERVICE = "localhost"
+
+# Docker Service container name
+# MEMCACHED_SERVICE = "memcached"
 
 
 def main():
@@ -29,5 +37,9 @@ def main():
     # Register all routers for CORS.
     for route in list(app.app.router.routes()):
         cors.add(route)
+
+    mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
+    storage = MemcachedStorage(mc)
+    aiohttp_session.setup(app, storage)
 
     app.run(port=8080)
