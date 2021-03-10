@@ -9,7 +9,7 @@ services:
     #environment:
     #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
     ports:
-    - "8080:8080"
+    - "8090:8090"
     # depends_on:
     # - "archive"
     # volumes:
@@ -24,7 +24,7 @@ services:
     #environment:
     #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
     ports:
-    - "8090:8080"
+    - "8080:8080"
     # depends_on:
     # - "kgx"
     volumes:
@@ -37,7 +37,7 @@ services:
   #    environment:
   #      - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
   #    ports:
-  #      - "8090:8080"
+  #      - "8100:8080"
   #    volumes:
   #      - $HOME/data:/data
   #      - $HOME/logs:/logs
