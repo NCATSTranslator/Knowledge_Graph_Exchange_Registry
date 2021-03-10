@@ -21,7 +21,8 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-FAKE_LOG_IN_AND_OUT = True
+# TODO: have a way of setting the FAKE log in/out from the commandline
+FAKE_LOG_IN_AND_OUT = False
 
 #
 # Design pattern for aiohttp session aware handlers:

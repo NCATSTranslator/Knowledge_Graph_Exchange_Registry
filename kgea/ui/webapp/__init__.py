@@ -19,11 +19,11 @@ from .kgea_ui_handlers import (
     get_kge_file_upload_form
 )
 
-# TODO: configure the session management storage Docker-aware
-MEMCACHED_SERVICE = "localhost"
+# TODO: configure the session management storage to automatically be Docker-aware and have a mock session instead
+# MEMCACHED_SERVICE = "localhost"
 
 # Docker Service container name
-# MEMCACHED_SERVICE = "memcached"
+MEMCACHED_SERVICE = "memcached"
 
 
 async def make_app():

@@ -6,11 +6,11 @@ import aiohttp_session
 import aiomcache
 from aiohttp_session.memcached_storage import MemcachedStorage
 
-# TODO: configure the session management storage Docker-aware
-MEMCACHED_SERVICE = "localhost"
+# TODO: configure the session management storage to automatically be Docker-aware and have a mock session instead
+# MEMCACHED_SERVICE = "localhost"
 
 # Docker Service container name
-# MEMCACHED_SERVICE = "memcached"
+MEMCACHED_SERVICE = "memcached"
 
 
 def main():
