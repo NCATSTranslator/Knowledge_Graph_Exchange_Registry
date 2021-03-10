@@ -30,14 +30,6 @@ async def make_app():
 
     app = web.Application()
 
-    #
-    # Older secure but non-distributed version of AIOHTTP session storage
-    #
-    # secret_key must be 32 url-safe base64-encoded bytes
-    # fernet_key = fernet.Fernet.generate_key()
-    # secret_key = base64.urlsafe_b64decode(fernet_key)
-    # aiohttp_session.setup(app, EncryptedCookieStorage(secret_key))
-
     mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
     storage = MemcachedStorage(mc)
     aiohttp_session.setup(app, storage)

@@ -40,6 +40,6 @@ def main():
 
     mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
     storage = MemcachedStorage(mc)
-    aiohttp_session.setup(app, storage)
+    aiohttp_session.setup(app.app, storage)
 
     app.run(port=8080)
