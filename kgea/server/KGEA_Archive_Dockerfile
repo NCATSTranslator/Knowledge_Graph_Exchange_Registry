@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 COPY kgea_archive_requirements.txt /usr/src/app/requirements.txt
 COPY kgea_archive_config.yaml      /usr/src/app/kgea_archive_config.yaml
 
-RUN apk add --no-cache build-base
+RUN apk update && apk upgrade && apk add --no-cache build-base git
 
 RUN python -m pip install --upgrade pip
 
