@@ -14,9 +14,11 @@ VERSION = "1.0.0"
 # http://pypi.python.org/pypi/setuptools
 
 REQUIRES = [
-    "connexion==2.6.0",
+    # TODO: fix temporary Patched version of Connexion for proper 'application/x-www-form-urlencoded' support
+    "connexion @ git+https://github.com/STARInformatics/connexion.git#egg=connexion",
     "swagger-ui-bundle==0.0.6",
     "aiohttp_jinja2==1.2.0",
+    "jsonschema<3.0.0"
 ]
 
 setup(
