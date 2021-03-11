@@ -1,4 +1,4 @@
-FROM python:3-alpine
+FROM python:3.8-alpine
 
 # Create a location for credentials
 RUN mkdir -p /root/.aws

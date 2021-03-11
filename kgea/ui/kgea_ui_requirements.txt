@@ -1,8 +1,5 @@
-# get the right jsonschema version needed for connexion
-jsonschema < 3.0.0
-
 # TODO: temporary patched version of Connexion for proper 'application/x-www-form-urlencoded' support
--e git+https://github.com/STARInformatics/connexion.git#egg=connexion
+-e git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion
 
 swagger-ui-bundle == 0.0.6
 aiohttp_jinja2 == 1.2.0

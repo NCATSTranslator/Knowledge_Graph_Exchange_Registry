@@ -13,7 +13,6 @@ cryptography = "*"
 aiohttp-session = "*"
 aiomcache = "*"
 connexion = {editable = true, git = "https://github.com/STARInformatics/connexion.git"}
-jsonschema = "*"
 
 [dev-packages]
 
