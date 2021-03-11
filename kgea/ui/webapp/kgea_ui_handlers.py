@@ -51,9 +51,13 @@ FAKE_LOG_IN_AND_OUT = False
 LANDING = '/'
 HOME = '/home'
 
-ARCHIVE_HOST = 'http://localhost:8080'
 ARCHIVE_PATH = '/archive/'
-ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_HOST+ARCHIVE_PATH+"register"
+
+# TODO: automate use of http://localhost:8080 for Archive host for testing locally;
+# Production NGINX resolves the relative path otherwise?
+# ARCHIVE_REGISTRATION_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"register"
+
+ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
 
 
 async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501

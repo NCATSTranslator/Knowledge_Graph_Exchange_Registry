@@ -145,3 +145,7 @@ banner.jpg
 # OpenAPI codegen Java JAR...
 .openapi-generator/
 *.jar
+
+# ignore local virtual environments
+py*/
+venv/
