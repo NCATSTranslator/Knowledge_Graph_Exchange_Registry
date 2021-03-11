@@ -41,6 +41,13 @@ paths:
         $ref: '#/components/requestBodies/inline_object'
         content:
           application/x-www-form-urlencoded:
+            encoding:
+              submitter:
+                contentType: text/plain; charset=utf-8
+                style: form
+              kg_name:
+                contentType: text/plain; charset=utf-8
+                style: form
             schema:
               properties:
                 submitter:
@@ -93,6 +100,12 @@ paths:
         content:
           multipart/form-data:
             encoding:
+              upload_mode:
+                contentType: text/plain; charset=utf-8
+                style: form
+              content_url:
+                contentType: text/plain; charset=utf-8
+                style: form
               content_file:
                 contentType: text/csv, text/tab-separated-values, text/json
                 style: form
@@ -110,7 +123,6 @@ paths:
                 upload_mode:
                   type: string
                 content_url:
-                  format: binary
                   type: string
                 content_file:
                   format: binary

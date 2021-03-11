@@ -57,6 +57,11 @@ paths:
               required:
                 - submitter
                 - kg_name
+            encoding:
+              submitter:
+                contentType: text/plain; charset=utf-8
+              kg_name:
+                contentType: text/plain; charset=utf-8
       responses:
         '201':
           description: Upload successfully completed.
@@ -115,13 +120,16 @@ paths:
                   type: string
                 content_url:
                   type: string
-                  format: binary
                 content_file:
                   type: string
                   format: binary
               required:
               - upload_mode
             encoding:
+              upload_mode:
+                contentType: text/plain; charset=utf-8
+              content_url:
+                contentType: text/plain; charset=utf-8
               content_file: # Property name (see above)
                 contentType: text/csv, text/tab-separated-values, text/json
       responses:
