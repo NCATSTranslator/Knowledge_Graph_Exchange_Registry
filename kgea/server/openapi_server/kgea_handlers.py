@@ -50,7 +50,7 @@ if DEV_MODE:
     UPLOAD_FORM_PATH = "http://localhost:8090/upload"
 else:
     # Production NGINX resolves the relative path otherwise?
-    UPLOAD_FORM_ACTION = "/upload"
+    UPLOAD_FORM_PATH = "/upload"
     
 #############################################################
 # Provider Controller Handler
