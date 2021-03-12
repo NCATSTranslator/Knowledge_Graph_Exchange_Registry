@@ -204,8 +204,7 @@ async def kge_logout(request: web.Request):  # noqa: E501
     try:
         session = await get_session(request)
 
-        # TODO: invalidate session here by removing the session cookie?
-        # delete_session(session)
+        session.invalidate()
 
         # ...then redirect to signal logout at the Oauth2 host
         logout_url = \
