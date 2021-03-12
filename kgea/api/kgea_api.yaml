@@ -120,7 +120,7 @@ paths:
                   type: string
                 content_url:
                   type: string
-                content_file:
+                uploaded_file:
                   type: string
                   format: binary
               required:
@@ -130,7 +130,7 @@ paths:
                 contentType: text/plain; charset=utf-8
               content_url:
                 contentType: text/plain; charset=utf-8
-              content_file: # Property name (see above)
+              uploaded_file: # Property name (see above)
                 contentType: text/csv, text/tab-separated-values, text/json
       responses:
         '201':

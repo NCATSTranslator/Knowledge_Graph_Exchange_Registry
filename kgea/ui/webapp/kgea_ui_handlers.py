@@ -1,3 +1,4 @@
+from os import getenv
 from uuid import uuid4
 
 try:
@@ -18,11 +19,12 @@ from .kgea_ui_config import resources
 
 import logging
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+# Master flag for local development runs bypassing authentication and other production processes
+DEV_MODE = getenv('DEV_MODE', default=False)
 
-# TODO: have a way of setting the FAKE log in/out from the commandline
-FAKE_LOG_IN_AND_OUT = False
+logger = logging.getLogger(__name__)
+if DEV_MODE:
+    logger.setLevel(logging.DEBUG)
 
 #
 # Design pattern for aiohttp session aware handlers:
@@ -53,11 +55,14 @@ HOME = '/home'
 
 ARCHIVE_PATH = '/archive/'
 
-# TODO: automate use of http://localhost:8080 for Archive host for testing locally;
-# Production NGINX resolves the relative path otherwise?
-# ARCHIVE_REGISTRATION_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"register"
-
-ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
+if DEV_MODE:
+    # Point to http://localhost:8080 for Archive process host for local testing
+    ARCHIVE_REGISTRATION_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"register"
+    UPLOAD_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"upload"
+else:
+    # Production NGINX resolves the relative path otherwise?
+    ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
+    UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
 
 
 async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
@@ -160,7 +165,7 @@ async def kge_login(request: web.Request):  # noqa: E501
     :type request: web.Request
     """
 
-    if FAKE_LOG_IN_AND_OUT:
+    if DEV_MODE:
         # This fake logging process bypasses AWS Cognito authentication, for development testing purposes
         await new_session(request)
 
@@ -192,9 +197,9 @@ async def kge_logout(request: web.Request):  # noqa: E501
     :param request:
     :type request: web.Request
     """
-    if FAKE_LOG_IN_AND_OUT:
+    if DEV_MODE:
         # redirect to unauthenticated landing page for login
-        raise web.HTTPFound(LANDING)
+        raise web.HTTPFound(HOME)
         
     try:
         session = await get_session(request)
@@ -279,6 +284,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:  # noq
 
         # return render_template('upload.html', kg_name=kg_name, submitter=submitter, session=session_id)
         context = {
+            "upload_action": UPLOAD_FORM_ACTION,
             "kg_name": kg_name,
             "submitter": submitter
         }

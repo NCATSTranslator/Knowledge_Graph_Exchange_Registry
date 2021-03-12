@@ -1,3 +1,4 @@
+from os import getenv
 from pathlib import Path
 
 try:
@@ -32,15 +33,25 @@ from .kgea_stream import transfer_file_from_url
 
 import logging
 
+# Master flag for local development runs bypassing authentication and other production processes
+DEV_MODE = getenv('DEV_MODE', default=False)
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+if DEV_MODE:
+    logger.setLevel(logging.DEBUG)
 
 # This is the home page path,
 # should match the API path spec
 LANDING = '/'
 HOME = '/home'
 
-
+if DEV_MODE:
+    # Point to http://localhost:8090 for UI
+    UPLOAD_FORM_PATH = "http://localhost:8090/upload"
+else:
+    # Production NGINX resolves the relative path otherwise?
+    UPLOAD_FORM_ACTION = "/upload"
+    
 #############################################################
 # Provider Controller Handler
 #
@@ -199,16 +210,20 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
         data = await request.post()
 
-        submitter = data['submitter']
-        kg_name = data['kg_name']
+        if DEV_MODE:
+            submitter = "KGE Working Group"
+            kg_name = "SemMedDb"
+        else:
+            submitter = data['submitter']
+            kg_name = data['kg_name']
 
-        logger.debug("register_kge_file_set(original submitter: " + submitter +
-                     "original kg_name: " + kg_name + ")")
+            logger.debug("register_kge_file_set(original submitter: " + submitter +
+                         "original kg_name: " + kg_name + ")")
 
-        session = _kge_metadata(session, kg_name, submitter)
+            session = _kge_metadata(session, kg_name, submitter)
 
-        kg_name = session['kg_name']
-        submitter = session['submitter']
+            kg_name = session['kg_name']
+            submitter = session['submitter']
 
         logger.debug("register_kge_file_set(cached submitter: " + submitter +
                      "cached kg_name: " + kg_name + ")")
@@ -227,7 +242,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 #  2. replace with /upload form returned
                 #
                 raise web.HTTPFound(
-                    Template('/upload?submitter=$submitter&kg_name=$kg_name').substitute(kg_name=kg_name, submitter=submitter)
+                    Template(UPLOAD_FORM_PATH+'?submitter=$submitter&kg_name=$kg_name').substitute(kg_name=kg_name, submitter=submitter)
                 )
         #     else:
         #         # TODO: more graceful front end failure signal
@@ -242,13 +257,24 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         raise web.HTTPFound(LANDING)
 
 
-async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
+async def upload_kge_file(
+        request: web.Request,
+        upload_mode: str,
+        content_url: str = None,
+        uploaded_file=None
+) -> web.Response:  # noqa: E501
     """KGE File Set upload process
 
      # noqa: E501
 
     :param request:
     :type request: web.Request
+    :param upload_mode:
+    :type upload_mode: str
+    :param content_url:
+    :type content_url: str
+    :param uploaded_file:
+    :type uploaded_file: FileField
 
     :rtype: web.Response
     """
@@ -257,19 +283,16 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
     try:
         session = await get_session(request)
 
-        # assume this is multipart/form-data
-        reader = await request.multipart()
-
-        field = await reader.next()
-        assert field.name == 'upload_mode'
-        upload_mode: str = str(await field.read(decode=True))
-
         if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
             # Invalid upload mode
             raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 
-        kg_name = session['kg_name']
-        submitter = session['submitter']
+        if DEV_MODE:
+            submitter = "KGE Working Group"
+            kg_name = "SemMedDb"
+        else:
+            kg_name = session['kg_name']
+            submitter = session['submitter']
 
         content_location, _ = with_timestamp(get_object_location)(kg_name)
 
@@ -279,13 +302,10 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
 
         if upload_mode == 'content_from_url':
 
-            field = await reader.next()
-            assert field.name == 'content_url'
-            url: str = str(await field.read(decode=True))
-            logger.debug("upload_kge_file(): content_url == '" + url + "')")
+            logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
 
             uploaded_file_object_key = transfer_file_from_url(
-                url,  # file_name derived from the URL
+                content_url,  # file_name derived from the URL
                 bucket=resources['bucket'],
                 object_location=content_location
             )
@@ -294,17 +314,18 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
 
         else:  # process direct metadata or content file upload
 
-            uploaded_file = await reader.next()
-            assert field.name == 'uploaded_file'
+            # upload_file is a FileField with a file attribute
+            # pointing to the actual data file as a temporary file
+            # Initial approach here will be to user the uploaded_file.file
+            # TODO: check if uploaded_file.file scales to large files
 
             if upload_mode == 'content_from_local_file':
 
                 # KGE Content File for upload?
 
                 uploaded_file_object_key = upload_file(
-                    # This should work since 'uploaded_file' is
-                    # either a 'MultipartReader' or a 'BodyPartReader' here?
-                    uploaded_file,
+                    # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
+                    uploaded_file.file,
                     file_name=uploaded_file.filename,
                     bucket=resources['bucket'],
                     object_location=content_location
@@ -319,9 +340,8 @@ async def upload_kge_file(request: web.Request) -> web.Response:  # noqa: E501
                 metadata_location = get_object_location(kg_name)
 
                 uploaded_file_object_key = upload_file(
-                    # This should work since 'uploaded_file' is
-                    # either a 'MultipartReader' or a 'BodyPartReader' here?
-                    uploaded_file,
+                    # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
+                    uploaded_file.file,
                     file_name=uploaded_file.filename,
                     bucket=resources['bucket'],
                     object_location=metadata_location

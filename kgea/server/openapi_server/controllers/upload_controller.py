@@ -17,11 +17,22 @@ async def register_file_set(request: web.Request):
     await register_kge_file_set(request)
 
 
-async def upload_file(request: web.Request) -> web.Response:
+async def upload_file(
+        request: web.Request,
+        upload_mode: str,
+        content_url: str = None,
+        uploaded_file=None
+) -> web.Response:
     """Upload processing of KGE File Set file
 
     :param request:
     :type request: web.Request
+    :param upload_mode:
+    :type upload_mode: str
+    :param content_url:
+    :type content_url: str
+    :param uploaded_file:
+    :type uploaded_file: FileField
 
     """
-    return await upload_kge_file(request)
+    return await upload_kge_file(request,  upload_mode, content_url, uploaded_file)

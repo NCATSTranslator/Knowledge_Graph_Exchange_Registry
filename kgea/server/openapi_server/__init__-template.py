@@ -1,23 +1,30 @@
-import os
+from os import path, getenv
 import connexion
 import aiohttp_cors
 
 import aiohttp_session
-import aiomcache
-from aiohttp_session.memcached_storage import MemcachedStorage
 
-# TODO: configure the session management storage to automatically be Docker-aware and have a mock session instead
-# MEMCACHED_SERVICE = "localhost"
 
-# Docker Service container name
-MEMCACHED_SERVICE = "memcached"
+# Master flag for local development runs bypassing authentication and other production processes
+DEV_MODE = getenv('DEV_MODE', default=False)
+
+if DEV_MODE:
+    import base64
+    from cryptography import fernet
+    from aiohttp_session.cookie_storage import EncryptedCookieStorage
+else:
+    import aiomcache
+    from aiohttp_session.memcached_storage import MemcachedStorage
+    
+    # Dockerized service name?
+    MEMCACHED_SERVICE = "memcached"
 
 
 def main():
     options = {
         "swagger_ui": True
         }
-    specification_dir = os.path.join(os.path.dirname(__file__), 'openapi')
+    specification_dir = path.join(path.dirname(__file__), 'openapi')
     app = connexion.AioHttpApp(__name__, specification_dir=specification_dir, options=options)
 
     app.add_api('openapi.yaml',
@@ -38,8 +45,14 @@ def main():
     for route in list(app.app.router.routes()):
         cors.add(route)
 
-    mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
-    storage = MemcachedStorage(mc)
-    aiohttp_session.setup(app.app, storage)
+    if DEV_MODE:
+        # TODO: this needs to be global across the UI and Archive code bases(?!?)
+        fernet_key = fernet.Fernet.generate_key()
+        secret_key = base64.urlsafe_b64decode(fernet_key)
+        aiohttp_session.setup(app, EncryptedCookieStorage(secret_key))
+    else:
+        mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
+        storage = MemcachedStorage(mc)
+        aiohttp_session.setup(app, storage)
 
     app.run(port=8080)

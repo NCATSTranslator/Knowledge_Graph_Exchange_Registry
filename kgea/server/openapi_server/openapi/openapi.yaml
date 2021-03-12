@@ -106,7 +106,7 @@ paths:
               content_url:
                 contentType: text/plain; charset=utf-8
                 style: form
-              content_file:
+              uploaded_file:
                 contentType: text/csv, text/tab-separated-values, text/json
                 style: form
             schema:
@@ -124,7 +124,7 @@ paths:
                   type: string
                 content_url:
                   type: string
-                content_file:
+                uploaded_file:
                   format: binary
                   type: string
               required:
@@ -301,9 +301,8 @@ components:
         upload_mode:
           type: string
         content_url:
-          format: binary
           type: string
-        content_file:
+        uploaded_file:
           format: binary
           type: string
       required:

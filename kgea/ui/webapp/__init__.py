@@ -1,9 +1,7 @@
-import os
+from os import getenv, path
 import logging
 
 import aiohttp_session
-import aiomcache
-from aiohttp_session.memcached_storage import MemcachedStorage
 
 import jinja2
 import aiohttp_jinja2
@@ -19,23 +17,37 @@ from .kgea_ui_handlers import (
     get_kge_file_upload_form
 )
 
-# TODO: configure the session management storage to automatically be Docker-aware and have a mock session instead
-# MEMCACHED_SERVICE = "localhost"
+# Master flag for local development runs bypassing authentication and other production processes
+DEV_MODE = getenv('DEV_MODE', default=False)
 
-# Docker Service container name
-MEMCACHED_SERVICE = "memcached"
+if DEV_MODE:
+    import base64
+    from cryptography import fernet
+    from aiohttp_session.cookie_storage import EncryptedCookieStorage
+else:
+    import aiomcache
+    from aiohttp_session.memcached_storage import MemcachedStorage
+    
+    # Dockerized service name?
+    MEMCACHED_SERVICE = "memcached"
 
 
 async def make_app():
 
     app = web.Application()
 
-    mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
-    storage = MemcachedStorage(mc)
-    aiohttp_session.setup(app, storage)
+    if DEV_MODE:
+        # TODO: this needs to be global across the UI and Archive code bases(?!?)
+        fernet_key = fernet.Fernet.generate_key()
+        secret_key = base64.urlsafe_b64decode(fernet_key)
+        aiohttp_session.setup(app, EncryptedCookieStorage(secret_key))
+    else:
+        mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
+        storage = MemcachedStorage(mc)
+        aiohttp_session.setup(app, storage)
 
     # Configure Jinja2 template map
-    templates_dir = os.path.join(os.path.dirname(__file__), 'templates')
+    templates_dir = path.join(path.dirname(__file__), 'templates')
     aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(templates_dir))
 
     app.router.add_get('/', kge_landing_page)
@@ -50,6 +62,7 @@ async def make_app():
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    if DEV_MODE:
+        logging.basicConfig(level=logging.DEBUG)
     web.run_app(make_app(), port=8090)
 

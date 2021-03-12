@@ -42,7 +42,7 @@
             }
 
             try {
-                let r = await fetch('/archive/upload', {method: "POST", body: formData});
+                let r = await fetch("{{upload_action}}", {method: "POST", body: formData});
                 console.log('HTTP response code:', r.status);
                 window.alert('File successfully uploaded!');
             } catch(e) {

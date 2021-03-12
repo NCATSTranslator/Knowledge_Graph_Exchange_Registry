@@ -1,4 +1,5 @@
 from string import Template
+from os import getenv
 from os.path import splitext
 from pathlib import Path
 from typing import List, Dict
@@ -20,8 +21,12 @@ from .kgea_file_ops import (
 
 import logging
 
+# Master flag for local development runs bypassing authentication and other production processes
+DEV_MODE = getenv('DEV_MODE', default=False)
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+if DEV_MODE:
+    logger.setLevel(logging.DEBUG)
 
 
 # Allow for a default maximum of 5 minutes to transfer a relatively large file
@@ -206,8 +211,7 @@ def test_transfer_file_from_url(test_url=TEST_FILE_URL, test_bucket=TEST_BUCKET,
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-DEBUG = False
-if DEBUG:
+if DEV_MODE:
     assert(test_data_stream_from_url())
     print("test_data_stream_from_url passed")
 
