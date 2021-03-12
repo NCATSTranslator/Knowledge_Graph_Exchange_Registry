@@ -371,7 +371,9 @@ async def upload_kge_file(
         else:
             raise web.HTTPBadRequest(reason="upload_kge_file(): " + file_type + " upload failed?")
 
-    except RuntimeError:
-        # If session is not active, then just
-        # redirect back to unauthenticated landing page
+    except RuntimeError as rt_error:
+        # could be another error
+        logger.warning(str(rt_error))
+        # Could be that the session is not active, then
+        # just redirect back to unauthenticated landing page
         raise web.HTTPFound(LANDING)

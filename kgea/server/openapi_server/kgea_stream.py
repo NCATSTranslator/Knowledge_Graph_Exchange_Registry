@@ -23,6 +23,7 @@ import logging
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
+RUN_TESTS = getenv('RUN_TESTS', default=False)
 
 logger = logging.getLogger(__name__)
 if DEV_MODE:
@@ -177,14 +178,14 @@ def transfer_file_from_url(url, bucket, object_location, timeout=URL_TRANSFER_TI
             response = mpu.abort()
             # TODO: should check ListParts for empty list after abort
             print(response)
-        raise ClientError(ce_error)
+        raise ce_error
     except RuntimeError as rt_error:
         if mpu:
             # clean up failed multipart uploads?
             response = mpu.abort()
             # TODO: should check ListParts for empty list after abort
             print(response)
-        raise ClientError(rt_error)
+        raise rt_error
 
     return object_key
 
@@ -211,7 +212,7 @@ def test_transfer_file_from_url(test_url=TEST_FILE_URL, test_bucket=TEST_BUCKET,
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-if DEV_MODE:
+if RUN_TESTS:
     assert(test_data_stream_from_url())
     print("test_data_stream_from_url passed")
 
