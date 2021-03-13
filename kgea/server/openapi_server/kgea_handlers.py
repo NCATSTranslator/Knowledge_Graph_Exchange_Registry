@@ -210,20 +210,20 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
         data = await request.post()
 
-        if DEV_MODE:
-            submitter = "KGE Working Group"
-            kg_name = "SemMedDb"
-        else:
-            submitter = data['submitter']
-            kg_name = data['kg_name']
+        # if DEV_MODE:
+        #     submitter = "KGE Working Group"
+        #     kg_name = "SemMedDb"
+        # else:
+        submitter = data['submitter']
+        kg_name = data['kg_name']
 
-            logger.debug("register_kge_file_set(original submitter: " + submitter +
-                         "original kg_name: " + kg_name + ")")
-
-            session = _kge_metadata(session, kg_name, submitter)
-
-            kg_name = session['kg_name']
-            submitter = session['submitter']
+        #    logger.debug("register_kge_file_set(original submitter: " + submitter +
+        #              "original kg_name: " + kg_name + ")")
+        #
+        #    session = _kge_metadata(session, kg_name, submitter)
+        #
+        #    kg_name = session['kg_name']
+        #    submitter = session['submitter']
 
         logger.debug("register_kge_file_set(cached submitter: " + submitter +
                      "cached kg_name: " + kg_name + ")")
@@ -259,6 +259,8 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
 async def upload_kge_file(
         request: web.Request,
+        kg_name: str,
+        submitter: str,
         upload_mode: str,
         content_url: str = None,
         uploaded_file=None
@@ -269,6 +271,10 @@ async def upload_kge_file(
 
     :param request:
     :type request: web.Request
+    :param kg_name:
+    :type kg_name: str
+    :param submitter:
+    :type submitter: str
     :param upload_mode:
     :type upload_mode: str
     :param content_url:
@@ -283,16 +289,17 @@ async def upload_kge_file(
     try:
         session = await get_session(request)
 
+        if not kg_name:
+            # must not be empty string
+            raise web.HTTPBadRequest(reason="upload_kge_file(): empty Knowledge Graph Name?")
+
+        if not submitter:
+            # must not be empty string
+            raise web.HTTPBadRequest(reason="upload_kge_file(): empty Submitter?")
+
         if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
             # Invalid upload mode
             raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
-
-        if DEV_MODE:
-            submitter = "KGE Working Group"
-            kg_name = "SemMedDb"
-        else:
-            kg_name = session['kg_name']
-            submitter = session['submitter']
 
         content_location, _ = with_timestamp(get_object_location)(kg_name)
 

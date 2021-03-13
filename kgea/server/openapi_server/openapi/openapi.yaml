@@ -42,10 +42,10 @@ paths:
         content:
           application/x-www-form-urlencoded:
             encoding:
-              submitter:
+              kg_name:
                 contentType: text/plain; charset=utf-8
                 style: form
-              kg_name:
+              submitter:
                 contentType: text/plain; charset=utf-8
                 style: form
             schema:
@@ -100,6 +100,12 @@ paths:
         content:
           multipart/form-data:
             encoding:
+              kg_name:
+                contentType: text/plain; charset=utf-8
+                style: form
+              submitter:
+                contentType: text/plain; charset=utf-8
+                style: form
               upload_mode:
                 contentType: text/plain; charset=utf-8
                 style: form
@@ -120,6 +126,10 @@ paths:
                 (authentication not yet supported - URL should provide unauthenticated
                 access)
               properties:
+                kg_name:
+                  type: string
+                submitter:
+                  type: string
                 upload_mode:
                   type: string
                 content_url:
@@ -128,6 +138,8 @@ paths:
                   format: binary
                   type: string
               required:
+              - kg_name
+              - submitter
               - upload_mode
               type: object
         description: KGE File Set metadata or data file submitted
@@ -298,6 +310,10 @@ components:
         Archive (authentication not yet supported - URL should provide unauthenticated
         access)
       properties:
+        kg_name:
+          type: string
+        submitter:
+          type: string
         upload_mode:
           type: string
         content_url:
@@ -306,5 +322,7 @@ components:
           format: binary
           type: string
       required:
+      - kg_name
+      - submitter
       - upload_mode
       type: object

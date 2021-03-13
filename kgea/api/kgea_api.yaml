@@ -116,6 +116,10 @@ paths:
                 of the file to be transferred into the Archive (authentication
                 not yet supported - URL should provide unauthenticated access)
               properties:
+                kg_name:
+                  type: string
+                submitter:
+                  type: string
                 upload_mode:
                   type: string
                 content_url:
@@ -124,8 +128,14 @@ paths:
                   type: string
                   format: binary
               required:
+              - kg_name
+              - submitter
               - upload_mode
             encoding:
+              kg_name:
+                contentType: text/plain; charset=utf-8
+              submitter:
+                contentType: text/plain; charset=utf-8
               upload_mode:
                 contentType: text/plain; charset=utf-8
               content_url:
