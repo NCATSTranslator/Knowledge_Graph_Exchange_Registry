@@ -114,7 +114,11 @@ paths:
                 uploaded. If 'upload_mode' is set to 'content_from_url'
                 then the 'content_url' parameter is taken as a REST endpoint
                 of the file to be transferred into the Archive (authentication
-                not yet supported - URL should provide unauthenticated access)
+                not yet supported - URL should provide unauthenticated access).
+                The 'content_name' should be set either to the file name of
+                the 'metadata' or 'content_from_local_file', or for url transfers,
+                set by inference or as specified by the caller (especially if
+                the 'content_url' doesn't resolve to a definitive file name).
               properties:
                 kg_name:
                   type: string
@@ -124,12 +128,15 @@ paths:
                   type: string
                 content_url:
                   type: string
+                content_name:
+                  type: string
                 uploaded_file:
                   type: string
                   format: binary
               required:
               - kg_name
               - submitter
+              - content_name
               - upload_mode
             encoding:
               kg_name:

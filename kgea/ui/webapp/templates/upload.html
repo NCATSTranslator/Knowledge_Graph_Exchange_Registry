@@ -1,6 +1,11 @@
 {% extends "layout.html" %}
 {% block scripts %}
     <script>
+        let content_name = 'unknown';
+        async function SetFileName(url) {
+            // TODO: need a sensible heuristic here to guess a reasonable file name from a given content_url
+            content_name = url.value;
+        }
         async function UploadFile(source) {
 
             console.log("UploadFile(upload_mode: '" + source.id + "')");
@@ -13,6 +18,7 @@
             if (source.id === 'content_from_url') {
                 // Transfer file from REST URL endpoint
                 let content_url = document.getElementById('content_url').value;
+
                 if(content_url)   {
                     console.log("Content URL: '" + content_url + "')");
                     formData.append("content_url", content_url);
@@ -23,8 +29,10 @@
                 }
             } else if (source.id === 'metadata') {
                 let uploaded_file = document.getElementById('metadata_file').files[0];
+                content_name = uploaded_file.name;
+
                 if(uploaded_file) {
-                    console.log("KGX metadata file being uploaded: '" + uploaded_file.name + "'");
+                    console.log("KGX metadata file being uploaded: '" +  + "'");
                     formData.append("uploaded_file", uploaded_file);
                 } else  {
                     console.log("KGX metadata file is undefined?");
@@ -33,6 +41,8 @@
                 }
             } else if (source.id === 'content_from_local_file') {
                 let uploaded_file = document.getElementById('content_file').files[0];
+                content_name = uploaded_file.name;
+
                 if(uploaded_file) {
                     console.log("KGX data file being uploaded: '" + uploaded_file.name + "'");
                     formData.append("uploaded_file", uploaded_file);
@@ -42,6 +52,7 @@
                     return;
                 }
             }
+            formData.append("content_name", content_name);
 
             try {
                 let r = await fetch("{{upload_action}}", {method: "POST", body: formData});
@@ -94,7 +105,9 @@
                 <h4>Transfer KGX data file from URL endpoint:</h4>
 
                 <br><label for="content_url"><b>URL to File:</b></label>
-                <input id="content_url" type="text"/>
+                <input id="content_url" type="text" onchange="SetFileName(this)"/>
+                <br><label for="file_name"><b>File Name:</b></label>
+                <input id="file_name" type="text"/>
                 <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
             </center>
         </td>

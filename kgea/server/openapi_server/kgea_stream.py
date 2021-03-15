@@ -74,6 +74,7 @@ async def stream_from_url(url) -> str:
 
 
 TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
+TEST_FILE_NAME = "MIT_LICENSE"
 
 
 async def merge_file_from_url(url):
@@ -127,24 +128,20 @@ async def _mpu_transfer_from_url(mpu, url: str) -> List[Dict]:
 
 
 # TODO: should I wrap any exceptions within this function?
-def transfer_file_from_url(url, bucket, object_location, timeout=URL_TRANSFER_TIMEOUT):
+def transfer_file_from_url(url, file_name, bucket, object_location, timeout=URL_TRANSFER_TIMEOUT):
     """Upload a file from a URL  endpoint, to a S3 bucket
 
     :param url: URL to file to upload (can be read in binary mode)
-    :param bucket: Bucket to which to upload the file
+    :param bucket: Bucket into which to upload the file
+    :param file_name: name of the file to be uploaded
     :param object_location: root S3 object location name.
     :param timeout: URL file transfer timeout (default: 300 seconds)
     :return: True if file was uploaded, else False
     """
 
-    # Strive to isolate the file name in the URL path
-    url_parts = urlparse(url)
-    url_path = url_parts.path
-
-    object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
+    object_key = Template('$ROOT$FILENAME').substitute(
         ROOT=object_location,
-        FILENAME=Path(url_path).stem,
-        EXTENSION=splitext(url_path)[1]
+        FILENAME=file_name
     )
 
     # Attempt to transfer the file from the URL
@@ -191,11 +188,16 @@ def transfer_file_from_url(url, bucket, object_location, timeout=URL_TRANSFER_TI
 
 
 @prepare_test
-def test_transfer_file_from_url(test_url=TEST_FILE_URL, test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+def test_transfer_file_from_url(
+        test_url=TEST_FILE_URL,
+        test_file_name=TEST_FILE_NAME,
+        test_bucket=TEST_BUCKET,
+        test_kg=TEST_KG_NAME
+):
     try:
-        content_location, _ = with_timestamp(get_object_location)(test_kg)
-        object_key = transfer_file_from_url(test_url, test_bucket, content_location)
-        assert(object_key in kg_files_in_location(test_bucket, content_location))
+        test_object_location, _ = with_timestamp(get_object_location)(test_kg)
+        object_key = transfer_file_from_url(test_url, test_file_name, test_bucket, test_object_location)
+        assert(object_key in kg_files_in_location(test_bucket, test_object_location))
     except ClientError as e:
         logger.error('The upload to S3 has failed!')
         logger.error(e)

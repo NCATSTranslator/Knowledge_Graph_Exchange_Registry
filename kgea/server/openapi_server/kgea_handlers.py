@@ -262,6 +262,7 @@ async def upload_kge_file(
         kg_name: str,
         submitter: str,
         upload_mode: str,
+        content_name: str,
         content_url: str = None,
         uploaded_file=None
 ) -> web.Response:  # noqa: E501
@@ -277,6 +278,8 @@ async def upload_kge_file(
     :type submitter: str
     :param upload_mode:
     :type upload_mode: str
+    :param content_name:
+    :type content_name: str
     :param content_url:
     :type content_url: str
     :param uploaded_file:
@@ -297,6 +300,10 @@ async def upload_kge_file(
             # must not be empty string
             raise web.HTTPBadRequest(reason="upload_kge_file(): empty Submitter?")
 
+        if not content_name:
+            # must not be empty string
+            raise web.HTTPBadRequest(reason="upload_kge_file(): empty Content Name?")
+
         if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
             # Invalid upload mode
             raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
@@ -312,7 +319,8 @@ async def upload_kge_file(
             logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
 
             uploaded_file_object_key = transfer_file_from_url(
-                content_url,  # file_name derived from the URL
+                url=content_url,
+                file_name=content_name,
                 bucket=resources['bucket'],
                 object_location=content_location
             )
@@ -332,8 +340,8 @@ async def upload_kge_file(
 
                 uploaded_file_object_key = upload_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
-                    uploaded_file.file,
-                    file_name=uploaded_file.filename,
+                    data_file=uploaded_file.file,
+                    file_name=content_name,
                     bucket=resources['bucket'],
                     object_location=content_location
                 )
@@ -348,8 +356,8 @@ async def upload_kge_file(
 
                 uploaded_file_object_key = upload_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
-                    uploaded_file.file,
-                    file_name=uploaded_file.filename,
+                    data_file=uploaded_file.file,
+                    file_name=content_name,
                     bucket=resources['bucket'],
                     object_location=metadata_location
                 )
