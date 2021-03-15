@@ -2,10 +2,25 @@
 {% block scripts %}
     <script>
         let content_name = 'unknown';
-        async function SetFileName(url) {
-            // TODO: need a sensible heuristic here to guess a reasonable file name from a given content_url
-            content_name = url.value;
+        function SetFileName(value) {
+            // TODO: Sanitize content_names as per AWS Object Key naming guidelines?
+            // https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
+            content_name = value;
         }
+
+        async function GetUrl(source) {
+            // TODO: need a sensible heuristic here to guess a reasonable file name from a given content_url
+            let url = new URL(source.value.trim());
+            let pathname = url.pathname;
+            if(pathname === '/') {
+                content_name = Math.random().toString(16).substr(2, 8).toUpperCase()+".kgx";
+            } else {
+                content_name = pathname.split("/")[1];
+            }
+            document.getElementById("file_name").value = content_name;
+            SetFileName(content_name)
+        }
+
         async function UploadFile(source) {
 
             console.log("UploadFile(upload_mode: '" + source.id + "')");
@@ -53,6 +68,7 @@
                 }
             }
             formData.append("content_name", content_name);
+            window.alert("Target File Name is: "+content_name);
 
             try {
                 let r = await fetch("{{upload_action}}", {method: "POST", body: formData});
@@ -105,9 +121,9 @@
                 <h4>Transfer KGX data file from URL endpoint:</h4>
 
                 <br><label for="content_url"><b>URL to File:</b></label>
-                <input id="content_url" type="text" onchange="SetFileName(this)"/>
+                <input id="content_url" type="text" oninput="GetUrl(this)"/>
                 <br><label for="file_name"><b>File Name:</b></label>
-                <input id="file_name" type="text"/>
+                <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
                 <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
             </center>
         </td>
