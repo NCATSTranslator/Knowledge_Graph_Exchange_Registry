@@ -6,10 +6,13 @@
     - Stress test URL file transfer
 - Fix AIOHTTP session management (esp. with respect to AWS Cognito)
     - Enhance URL handling of websites requiring authorization (e.g. perhaps with OAuth2?)
-- Review sanitization of UI inputs: content_name, kg_name
-- Derive 'Submitter' from user login identity
 - Input file format validation: KGX files, metadata file
-- SmartAPI entry registration
-- Metadata file download
-- Data file download
+- Data Access
+  - Metadata file download
+  - Data file download
+  - SmartAPI entry registration
+  -  Web file catalog query (tied with metadata and data file indexing)
+- User interface clean-up and simplification
+  - Derive 'Submitter' from user login identity
+  - Review sanitization of UI inputs: content_name, kg_name
 - KGX metadata generation (maybe give radio button selection on web form: 1) provided 2) autogenerate!)
