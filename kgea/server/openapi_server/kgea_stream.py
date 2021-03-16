@@ -183,7 +183,7 @@ def test_transfer_file_from_url(test_url, test_file_name, test_bucket, test_kg):
         logger.error(e)
         return False
     except AssertionError as e:
-        logger.error('The resulting S3 object_key of file transferred from url '+
+        logger.error('The resulting S3 object_key of file transferred from url ' +
                      test_url+' was not found inside of the knowledge graph folder!')
         logger.error(e)
         return False
