@@ -68,7 +68,7 @@
                 }
             }
             formData.append("content_name", content_name);
-            window.alert("Target File Name is: "+content_name);
+            // window.alert("Target File Name is: "+content_name);
 
             try {
                 let r = await fetch("{{upload_action}}", {method: "POST", body: formData});

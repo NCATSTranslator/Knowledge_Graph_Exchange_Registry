@@ -1,14 +1,13 @@
 from string import Template
 from os import getenv
-from os.path import splitext
-from pathlib import Path
 from typing import List, Dict
-from urllib.parse import urlparse
 
-import asyncio
-
-# For details of aiohttp usage, See https://docs.aiohttp.org/en/stable/client_quickstart.html#make-a-request
-import aiohttp
+from asyncio import (
+    ensure_future,
+    wait,
+    wait_for
+)
+from collections.abc import AsyncIterable
 
 import boto3
 from botocore.exceptions import ClientError
@@ -17,6 +16,13 @@ from .kgea_file_ops import (
     get_object_location,
     kg_files_in_location,
     with_timestamp
+)
+
+from .kgea_session import (
+    initialize_global_session,
+    get_event_loop,
+    get_global_session,
+    close_global_session
 )
 
 import logging
@@ -37,24 +43,10 @@ S3_CHUNK_SIZE = 8 * MB  # MPU threshold8 MB at a time
 
 URL_TRANSFER_TIMEOUT = 300   # default timeout, in seconds
 
-"""
-Test Parameters + Decorator
-"""
-TEST_BUCKET = 'kgea-test-bucket'
-TEST_KG_NAME = 'test_kg'
-
-
-def prepare_test(func):
-    def wrapper():
-        TEST_BUCKET = 'kgea-test-bucket'
-        TEST_KG_NAME = 'test_kg'
-        return func()
-    return wrapper
-
 
 # TODO: Perhaps need to manage the aiohttp sessions globally in the application?
 # See https://docs.aiohttp.org/en/stable/client_quickstart.html#make-a-request
-async def stream_from_url(url) -> str:
+async def stream_from_url(url) -> AsyncIterable:
     """
     Streaming of data from URL endpoint.
 
@@ -64,17 +56,9 @@ async def stream_from_url(url) -> str:
     :yield: chunk of data
     :rtype: str
     """
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            while True:
-                chunk = await resp.content.read(S3_CHUNK_SIZE)
-                if not chunk:
-                    break
-                yield chunk
-
-
-TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
-TEST_FILE_NAME = "MIT_LICENSE"
+    async with get_global_session().get(url, chunked=True, read_bufsize=S3_CHUNK_SIZE) as resp:
+        async for data in resp.content.iter_chunked(S3_CHUNK_SIZE):
+            yield data
 
 
 async def merge_file_from_url(url):
@@ -89,24 +73,22 @@ async def merge_file_from_url(url):
     :return: data aggregated from stream
     :rtype: str
     """
-    filedata = b''
+    file_data = b''
     async for data in stream_from_url(url):
-        filedata += data
-    return filedata
+        file_data += data
+    return file_data
 
 
-@prepare_test
-def test_data_stream_from_url(test_url=TEST_FILE_URL):
-    loop = asyncio.get_event_loop()
-    tasks = [asyncio.ensure_future(merge_file_from_url(test_url))]
-    loop.run_until_complete(asyncio.wait(tasks))
+def test_data_stream_from_url(test_url):
+    tasks = [ensure_future(merge_file_from_url(test_url))]
+    get_event_loop().run_until_complete(wait(tasks))
     print("Data from URL: %s" % [task.result() for task in tasks])
     return True
 
 
 async def _mpu_transfer_from_url(mpu, url: str) -> List[Dict]:
     """
-    Data pipe from an aiohttp URL data stream, to AWS S3 Multi-part Upload process.
+    Data pipe from an aiohttp URL data stream, to an AWS S3 Multi-part Upload process.
 
     :param mpu: active Multi-Part Upload handle
     :param url: URL from which to access the (binary) data stream.
@@ -128,14 +110,19 @@ async def _mpu_transfer_from_url(mpu, url: str) -> List[Dict]:
 
 
 # TODO: should I wrap any exceptions within this function?
-def transfer_file_from_url(url, file_name, bucket, object_location, timeout=URL_TRANSFER_TIMEOUT):
+def transfer_file_from_url(
+        url: str, file_name: str,
+        bucket: str, object_location: str,
+        timeout=URL_TRANSFER_TIMEOUT
+):
     """Upload a file from a URL  endpoint, to a S3 bucket
 
-    :param url: URL to file to upload (can be read in binary mode)
-    :param bucket: Bucket into which to upload the file
-    :param file_name: name of the file to be uploaded
-    :param object_location: root S3 object location name.
-    :param timeout: URL file transfer timeout (default: 300 seconds)
+    :param url: string URL to file to upload (can be read in binary mode)
+    :param bucket: string name of bucket into which to upload the file
+    :param file_name: string name of the file to be uploaded
+    :param object_location: string root S3 object location name.
+    :param timeout: integer URL file transfer timeout (default: 300 seconds)
+    
     :return: True if file was uploaded, else False
     """
 
@@ -156,10 +143,9 @@ def transfer_file_from_url(url, file_name, bucket, object_location, timeout=URL_
         # initiate MultiPartUpload
         mpu = target_s3obj.initiate_multipart_upload()
 
-        loop = asyncio.get_event_loop()
-        transfer_task = asyncio.ensure_future(_mpu_transfer_from_url(mpu, url))
-        loop.run_until_complete(asyncio.wait_for(transfer_task, timeout=timeout))
-
+        transfer_task = ensure_future(_mpu_transfer_from_url(mpu, url))
+        get_event_loop().run_until_complete(wait_for(transfer_task, timeout=timeout))
+        
         # MPU Parts returned as the result
         parts = transfer_task.result()
 
@@ -187,13 +173,7 @@ def transfer_file_from_url(url, file_name, bucket, object_location, timeout=URL_
     return object_key
 
 
-@prepare_test
-def test_transfer_file_from_url(
-        test_url=TEST_FILE_URL,
-        test_file_name=TEST_FILE_NAME,
-        test_bucket=TEST_BUCKET,
-        test_kg=TEST_KG_NAME
-):
+def test_transfer_file_from_url(test_url, test_file_name, test_bucket, test_kg):
     try:
         test_object_location, _ = with_timestamp(get_object_location)(test_kg)
         object_key = transfer_file_from_url(test_url, test_file_name, test_bucket, test_object_location)
@@ -214,9 +194,27 @@ def test_transfer_file_from_url(
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-if RUN_TESTS:
-    assert(test_data_stream_from_url())
+if __name__ == '__main__':
+    
+    TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
+                    "Knowledge_Graph_Exchange_Registry/master/LICENSE"
+    TEST_FILE_NAME = "MIT_LICENSE"
+    TEST_BUCKET = 'kgea-test-bucket'
+    TEST_KG_NAME = 'test_kg'
+    
+    initialize_global_session()
+    
+    assert(test_data_stream_from_url(test_url=TEST_FILE_URL))
     print("test_data_stream_from_url passed")
 
-    assert(test_transfer_file_from_url())
+    assert(test_transfer_file_from_url(
+        test_url=TEST_FILE_URL,
+        test_file_name=TEST_FILE_NAME,
+        test_bucket=TEST_BUCKET,
+        test_kg=TEST_KG_NAME)
+    )
     print("test_transfer_file_from_url passed")
+    
+    close_global_session()
+    
+    exit(0)

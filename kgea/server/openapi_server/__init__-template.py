@@ -4,6 +4,11 @@ import aiohttp_cors
 
 import aiohttp_session
 
+from .kgea_session import (
+    initialize_global_session,
+    close_global_session
+)
+
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
 
@@ -55,4 +60,8 @@ def main():
         storage = MemcachedStorage(mc)
         aiohttp_session.setup(app.app, storage)
     
+    initialize_global_session()
+    
     app.run(port=8080)
+    
+    close_global_session()

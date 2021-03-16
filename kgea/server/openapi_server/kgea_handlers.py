@@ -317,7 +317,7 @@ async def upload_kge_file(
         if upload_mode == 'content_from_url':
 
             logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
-
+            
             uploaded_file_object_key = transfer_file_from_url(
                 url=content_url,
                 file_name=content_name,
