@@ -137,9 +137,7 @@ If you don't really want to store your keys outside the project root directory, 
 
 ### Project Configuration Files
 
-You must also use the project configuration templates. These are the YAML files provided as template files `kgea_archive_config.yaml-template` and `kgea_ui_config.yaml-template` in the `kgea/server/`  and `kgea/ui/` subdirectories, respectively.
-
-To apply these files, make a copy of the templates and rename them without the `-template` infix, namely, to `kgea_archive_config.yaml` and  `kgea_ui_config.yaml`  in  their respective locations.  Fill out the required information. 
+You must also use the project configuration templates. These are the YAML files provided as template files `kgea_archive_config.yaml-template` and `kgea_ui_config.yaml-template` in the `kgea/server/`  and `kgea/` subdirectories, respectively.  To apply these files, make a copy of the templates and rename them without the `-template` infix, namely, to `kgea_archive_config.yaml` and  `kgea_ui_config.yaml`  in  their respective locations.  Fill out the required information. 
 
 The  'archive' configuration file sets the target AWS S3 storage bucket name:
 
