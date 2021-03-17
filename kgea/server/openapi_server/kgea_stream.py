@@ -191,6 +191,10 @@ def test_transfer_file_from_url(test_url, test_file_name, test_bucket, test_kg):
                      test_url+' was not found inside of the knowledge graph folder!')
         logger.error(e)
         return False
+    except RuntimeError as rte:
+        logger.error('Some other test_transfer_file_from_url() runtime error!')
+        logger.error(rte)
+        return False
     return True
 
 
@@ -203,6 +207,10 @@ if __name__ == '__main__':
     TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
                     "Knowledge_Graph_Exchange_Registry/master/LICENSE"
     TEST_FILE_NAME = "MIT_LICENSE"
+    # TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
+    #                 "Knowledge_Graph_Exchange_Registry/blob/consolidate_web_apps/kgea/test_data/" + \
+    #                 "translator_sankey_2021-02-01-01.jpg"
+    # TEST_FILE_NAME = "TranslatorSankey.jpg"
     TEST_BUCKET = 'kgea-test-bucket'
     TEST_KG_NAME = 'test_kg'
     
