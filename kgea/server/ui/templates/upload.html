@@ -68,16 +68,21 @@
                 }
             }
             formData.append("content_name", content_name);
-            // window.alert("Target File Name is: "+content_name);
 
-            try {
-                let r = await fetch("{{upload_action}}", {method: "POST", body: formData});
-                console.log('HTTP response code:', r.status);
-                window.alert('File successfully uploaded!');
-            } catch(e) {
-               console.log('File upload error: '+e);
-               window.alert('File upload error:  '+e);
-            }
+            fetch(
+                "{{upload_action}}",
+                {
+                    method: "POST",
+                    body: formData
+            }).then(
+                response => {
+                    console.log('HTTP response code:', response.status);
+                    window.alert('File successfully uploaded!');
+                }
+            ).catch((error) => {
+               console.log('File upload error: '+error);
+               window.alert('File upload error:  '+error);
+            });
         }
     </script>
 {% endblock %}
