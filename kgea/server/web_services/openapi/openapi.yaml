@@ -90,7 +90,7 @@ paths:
       summary: Register core parameters for the KGE File Set upload
       tags:
       - upload
-      x-openapi-router-controller: openapi_server.controllers.upload_controller
+      x-openapi-router-controller: web_services.controllers.upload_controller
       x-codegen-request-body-name: body
   /upload:
     post:
@@ -181,7 +181,7 @@ paths:
       summary: Upload processing of KGE File Set file
       tags:
       - upload
-      x-openapi-router-controller: openapi_server.controllers.upload_controller
+      x-openapi-router-controller: web_services.controllers.upload_controller
       x-codegen-request-body-name: body
   /{kg_name}/access:
     get:
@@ -218,7 +218,7 @@ paths:
       summary: Get KGE File Sets
       tags:
       - provider
-      x-openapi-router-controller: openapi_server.controllers.provider_controller
+      x-openapi-router-controller: web_services.controllers.provider_controller
   /{kg_name}/knowledge_map:
     get:
       operationId: knowledge_map
@@ -263,7 +263,7 @@ paths:
       summary: Get supported relationships by source and target
       tags:
       - content
-      x-openapi-router-controller: openapi_server.controllers.content_controller
+      x-openapi-router-controller: web_services.controllers.content_controller
 components:
   requestBodies:
     inline_object_1:

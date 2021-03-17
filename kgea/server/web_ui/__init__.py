@@ -26,6 +26,7 @@ async def make_app():
     app = web.Application()
 
     if DEV_MODE:
+        # Development mode user sessions - probably don't work?
         import base64
         from cryptography import fernet
         from aiohttp_session.cookie_storage import EncryptedCookieStorage

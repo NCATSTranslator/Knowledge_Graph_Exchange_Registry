@@ -37,7 +37,7 @@ if DEV_MODE:
 #############################################################
 # Site Controller Handlers
 #
-# Insert imports and return calls into ui/__init__.py:
+# Insert imports and return calls into web_ui/__init__.py:
 #
 # from ..kge_ui_handlers import (
 #     kge_landing_page,
@@ -224,7 +224,7 @@ async def kge_logout(request: web.Request):  # noqa: E501
 #############################################################
 # Upload Controller Handlers
 #
-# Insert imports and return calls into into ui/__init__.py:
+# Insert imports and return calls into into web_ui/__init__.py:
 #
 # from ..kge_handlers import (
 #     get_kge_registration_form,

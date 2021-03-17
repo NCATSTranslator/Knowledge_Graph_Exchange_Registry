@@ -4,7 +4,7 @@ services:
 
   ui:
     build:
-      context: ./kgea/ui
+      context: ./kgea/web_ui
       dockerfile: kgea/server/KGEA_UI_Dockerfile
     #environment:
     #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}

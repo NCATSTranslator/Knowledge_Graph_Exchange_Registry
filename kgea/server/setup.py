@@ -3,7 +3,7 @@
 import sys
 from setuptools import setup, find_packages
 
-NAME = "openapi_server"
+NAME = "web_services"
 VERSION = "1.0.0"
 
 # To install the library, run the following
@@ -16,7 +16,7 @@ VERSION = "1.0.0"
 REQUIRES = [
     # TODO: fix temporary Patched version of Connexion for proper 'application/x-www-form-urlencoded' support
     "connexion @ git+https://github.com/STARInformatics/connexion.git#egg=connexion",
-    "swagger-ui-bundle==0.0.6",
+    "swagger-web_ui-bundle==0.0.6",
     "aiohttp_jinja2==1.2.0",
     "jsonschema<3.0.0"
 ]
@@ -33,7 +33,7 @@ setup(
     package_data={'': ['openapi/openapi.yaml']},
     include_package_data=True,
     entry_points={
-        'console_scripts': ['openapi_server=openapi_server.__main__:main']},
+        'console_scripts': ['web_services=web_services.__main__:main']},
     long_description="""\
     OpenAPI for the NCATS Biomedical Translator Knowledge Graph Exchange Archive
     """

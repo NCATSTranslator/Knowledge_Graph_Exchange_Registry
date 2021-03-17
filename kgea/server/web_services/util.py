@@ -2,7 +2,7 @@ import datetime
 
 import typing
 from typing import Union
-from openapi_server import typing_utils
+from web_services import typing_utils
 
 T = typing.TypeVar('T')
 Class = typing.Type[T]
