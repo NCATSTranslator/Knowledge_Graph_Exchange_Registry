@@ -20,28 +20,28 @@ from .kgea_ui_handlers import (
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
 
-if DEV_MODE:
-    import base64
-    from cryptography import fernet
-    from aiohttp_session.cookie_storage import EncryptedCookieStorage
-else:
-    import aiomcache
-    from aiohttp_session.memcached_storage import MemcachedStorage
-    
-    # Dockerized service name?
-    MEMCACHED_SERVICE = "memcached"
-
 
 async def make_app():
 
     app = web.Application()
 
     if DEV_MODE:
+        import base64
+        from cryptography import fernet
+        from aiohttp_session.cookie_storage import EncryptedCookieStorage
+        
         # TODO: this needs to be global across the UI and Archive code bases(?!?)
+        # maybe share the secret_key across a common VOLUME path
         fernet_key = fernet.Fernet.generate_key()
         secret_key = base64.urlsafe_b64decode(fernet_key)
         aiohttp_session.setup(app, EncryptedCookieStorage(secret_key))
     else:
+        import aiomcache
+        from aiohttp_session.memcached_storage import MemcachedStorage
+    
+        # Dockerized service name?
+        MEMCACHED_SERVICE = "memcached"
+        
         mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
         storage = MemcachedStorage(mc)
         aiohttp_session.setup(app, storage)
