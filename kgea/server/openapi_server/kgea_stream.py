@@ -40,10 +40,7 @@ if DEV_MODE:
 KB = 1024
 MB = KB * KB
 
-if DEV_MODE:
-    S3_CHUNK_SIZE = 1 * KB  # MPU threshold 1 KB at a time for test transfers
-else:
-    S3_CHUNK_SIZE = 8 * MB  # MPU threshold 8 MB at a time for production AWS transfers
+S3_CHUNK_SIZE = 8 * MB  # MPU threshold 8 MB at a time for production AWS transfers
 
 URL_TRANSFER_TIMEOUT = 300   # default timeout, in seconds
 
