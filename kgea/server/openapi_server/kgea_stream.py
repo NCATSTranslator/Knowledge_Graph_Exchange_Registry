@@ -39,7 +39,11 @@ if DEV_MODE:
 # Allow for a default maximum of 5 minutes to transfer a relatively large file
 KB = 1024
 MB = KB * KB
-S3_CHUNK_SIZE = 8 * MB  # MPU threshold8 MB at a time
+
+if DEV_MODE:
+    S3_CHUNK_SIZE = 1 * KB  # MPU threshold 1 KB at a time for test transfers
+else:
+    S3_CHUNK_SIZE = 8 * MB  # MPU threshold 8 MB at a time for production AWS transfers
 
 URL_TRANSFER_TIMEOUT = 300   # default timeout, in seconds
 
@@ -57,8 +61,8 @@ async def stream_from_url(url) -> AsyncIterable:
     :rtype: str
     """
     async with get_global_session().get(url, chunked=True, read_bufsize=S3_CHUNK_SIZE) as resp:
-        async for data in resp.content.iter_chunked(S3_CHUNK_SIZE):
-            yield data
+        data = await resp.content.read(S3_CHUNK_SIZE)
+        yield data
 
 
 async def merge_file_from_url(url):

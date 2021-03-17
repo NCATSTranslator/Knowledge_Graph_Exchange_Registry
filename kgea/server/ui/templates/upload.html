@@ -1,0 +1,132 @@
+{% extends "layout.html" %}
+{% block scripts %}
+    <script>
+        let content_name = 'unknown';
+        function SetFileName(value) {
+            // TODO: Sanitize content_names as per AWS Object Key naming guidelines?
+            // https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
+            content_name = value;
+        }
+
+        async function GetUrl(source) {
+            // TODO: need a sensible heuristic here to guess a reasonable file name from a given content_url
+            let url = new URL(source.value.trim());
+            let pathname = url.pathname;
+            if(pathname === '/') {
+                content_name = Math.random().toString(16).substr(2, 8).toUpperCase()+".kgx";
+            } else {
+                content_name = pathname.split("/")[1];
+            }
+            document.getElementById("file_name").value = content_name;
+            SetFileName(content_name)
+        }
+
+        async function UploadFile(source) {
+
+            console.log("UploadFile(upload_mode: '" + source.id + "')");
+
+            let formData = new FormData();
+            formData.append("kg_name", "{{kg_name}}");
+            formData.append("submitter", "{{submitter}}");
+            formData.append("upload_mode", source.id);
+
+            if (source.id === 'content_from_url') {
+                // Transfer file from REST URL endpoint
+                let content_url = document.getElementById('content_url').value;
+
+                if(content_url)   {
+                    console.log("Content URL: '" + content_url + "')");
+                    formData.append("content_url", content_url);
+                } else  {
+                    console.log("KGX content file URL is undefined?");
+                    window.alert("KGX content file URL is undefined");
+                    return;
+                }
+            } else if (source.id === 'metadata') {
+                let uploaded_file = document.getElementById('metadata_file').files[0];
+                content_name = uploaded_file.name;
+
+                if(uploaded_file) {
+                    console.log("KGX metadata file being uploaded: '" +  + "'");
+                    formData.append("uploaded_file", uploaded_file);
+                } else  {
+                    console.log("KGX metadata file is undefined?");
+                    window.alert("KGX metadata file is undefined");
+                    return;
+                }
+            } else if (source.id === 'content_from_local_file') {
+                let uploaded_file = document.getElementById('content_file').files[0];
+                content_name = uploaded_file.name;
+
+                if(uploaded_file) {
+                    console.log("KGX data file being uploaded: '" + uploaded_file.name + "'");
+                    formData.append("uploaded_file", uploaded_file);
+                } else  {
+                    console.log("KGX data file is undefined?");
+                    window.alert("KGX data file is undefined");
+                    return;
+                }
+            }
+            formData.append("content_name", content_name);
+            // window.alert("Target File Name is: "+content_name);
+
+            try {
+                let r = await fetch("{{upload_action}}", {method: "POST", body: formData});
+                console.log('HTTP response code:', r.status);
+                window.alert('File successfully uploaded!');
+            } catch(e) {
+               console.log('File upload error: '+e);
+               window.alert('File upload error:  '+e);
+            }
+        }
+    </script>
+{% endblock %}
+{% block menu %}
+{% include "logout.html" %}
+{% endblock %}
+{% block content %}
+<h3>Knowledge Graph "{{kg_name}}"</h3>
+<h4>Submitted by {{submitter}}</h4>
+
+<table>
+    <tr>
+        <td colspan="2">
+            <center>
+                <h4>Upload KGX metadata file from computer:</h4>
+
+                <p>Must be valid KGX metadata generated from your dataset.
+                    Read more <a href="https://github.com/biolink/kgx">here</a>.
+
+                <br><label for="metadata_file"><b>Select Metadata File: </b></label>
+                <input id="metadata_file" class="textbox" type="file"/>
+                <button id="metadata" onclick="UploadFile(this)">Upload</button>
+            </center>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <center>
+                <h4>Upload KGX data file from your computer:</h4>
+
+                <p>Select single file for upload (multiple file upload net currently supported).
+
+                <br><label for="content_file"><b>Select Data File:</b></label>
+                <input id="content_file"  class="textbox" type="file"/>
+                <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
+            </center>
+        </td>
+        <td>
+            <center>
+
+                <h4>Transfer KGX data file from URL endpoint:</h4>
+
+                <br><label for="content_url"><b>URL to File:</b></label>
+                <input id="content_url" type="text" oninput="GetUrl(this)"/>
+                <br><label for="file_name"><b>File Name:</b></label>
+                <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
+                <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
+            </center>
+        </td>
+    </tr>
+</table>
+{% endblock %}
