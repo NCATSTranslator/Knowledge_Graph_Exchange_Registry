@@ -11,7 +11,7 @@ resources = None
 try:
     # the following config file should be visible in the root 'web_ui' subdirectory, as copied
     # from the available template and populated with site-specific configuration values
-    with open(abspath('kgea_ui_config.yaml'), 'r') as resource_config_file:
+    with open(abspath('server/kgea_ui_config.yaml'), 'r') as resource_config_file:
         
         resource_config = yaml.load(resource_config_file, Loader=Loader)
         resources = dict(resource_config)
