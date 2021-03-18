@@ -97,12 +97,12 @@ async def kge_access(request: web.Request, kg_name: str) -> web.Response:
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
         
         response = web.Response(text=str(kg_urls), status=200)
-        return with_session(request, response)
+        return await with_session(request, response)
     
     else:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
-        redirect(request, LANDING)
+        await redirect(request, LANDING)
 
 
 #############################################################
@@ -156,12 +156,12 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
         # metadata = json.loads(requests.get(url).text)
         
         response = web.Response(text=str(kg_urls), status=200)
-        return with_session(request, response)
+        return await with_session(request, response)
 
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        redirect(request, LANDING)
+        await redirect(request, LANDING)
 
 
 #############################################################
@@ -242,20 +242,20 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
                 #
-                redirect(request,
+                await redirect(request,
                          Template(UPLOAD_FORM_PATH + '?submitter=$submitter&kg_name=$kg_name').substitute(
                              kg_name=kg_name, submitter=submitter)
                          )
         #     else:
         #         # TODO: more graceful front end failure signal
-        #         redirect(request, HOME)
+        #         await redirect(request, HOME)
         # else:
         #     # TODO: more graceful front end failure signal
         #     report_error("Unknown failure")
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        redirect(request, LANDING)
+        await redirect(request, LANDING)
 
 
 async def upload_kge_file(
@@ -389,7 +389,7 @@ async def upload_kge_file(
             s3_metadata[file_type][uploaded_file_object_key] = s3_file_url
             
             response = web.Response(text=str(s3_metadata), status=200)
-            return with_session(request, response)
+            return await with_session(request, response)
         
         else:
             report_error("upload_kge_file(): " + file_type + " upload failed?")
@@ -397,4 +397,4 @@ async def upload_kge_file(
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        redirect(request, LANDING)
+        await redirect(request, LANDING)

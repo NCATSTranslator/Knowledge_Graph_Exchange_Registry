@@ -73,7 +73,7 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
     if await is_active_session(request):
         # if active session and no exception raised, then
         # redirect to the home page, with a session cookie
-        redirect(request, HOME, active_session=True)
+        await redirect(request, HOME, active_session=True)
     else:
         # Exception implies that session is not active,
         # then render the login page
@@ -93,11 +93,11 @@ async def get_kge_home(request: web.Request) -> web.Response:  # noqa: E501
     """
     if await is_active_session(request):
         response = aiohttp_jinja2.render_template('home.html', request=request, context={})
-        return with_session(request, response)
+        return await with_session(request, response)
     else:
-        # If session is not active, then just a redirect
+        # If session is not active, then just a await redirect
         # directly back to unauthenticated landing page
-        redirect(request, LANDING)
+        await redirect(request, LANDING)
 
 
 # hack: short term state dictionary
@@ -142,11 +142,11 @@ async def kge_client_authentication(request: web.Request):  # noqa: E501
                     
                 # if active session and no exception raised, then
                 # redirect to the home page, with a session cookie
-                redirect(request, HOME, active_session=True)
+                await redirect(request, HOME, active_session=True)
 
     # If authentication conditions are not met, then
     # simply redirect back to public landing page
-    redirect(request, LANDING)
+    await redirect(request, LANDING)
 
 
 async def kge_login(request: web.Request):  # noqa: E501
@@ -170,7 +170,7 @@ async def kge_login(request: web.Request):  # noqa: E501
             raise RuntimeError(rte)
 
         # then redirect to an authenticated home page
-        redirect(request, HOME, active_session=True)
+        await redirect(request, HOME, active_session=True)
       
     state = str(uuid4())
     _state_cache.append(state)
@@ -185,7 +185,7 @@ async def kge_login(request: web.Request):  # noqa: E501
         resources['oauth2']['site_uri'] + \
         resources['oauth2']['login_callback']
 
-    redirect(request, login_url)
+    await redirect(request, login_url)
 
 
 async def kge_logout(request: web.Request):
@@ -208,7 +208,7 @@ async def kge_logout(request: web.Request):
         if DEV_MODE:
             # Just bypass the AWS Cognito and directly redirect to
             # the unauthenticated landing page after session deletion
-            redirect(request, LANDING)
+            await redirect(request, LANDING)
         
         else:
 
@@ -220,11 +220,11 @@ async def kge_logout(request: web.Request):
                 '&logout_uri=' + \
                 resources['oauth2']['site_uri']
     
-            redirect(request, logout_url)
+            await with_session(request, logout_url)
     else:
-        # If session is not active, then just a redirect
+        # If session is not active, then just a await redirect
         # directly back to unauthenticated landing page
-        redirect(request, LANDING)
+        await redirect(request, LANDING)
 
 
 #############################################################
@@ -255,11 +255,11 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:  # no
             "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
-        return with_session(request, response)
+        return await with_session(request, response)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        redirect(request, LANDING)
+        await redirect(request, LANDING)
 
 
 async def get_kge_file_upload_form(request: web.Request) -> web.Response:
@@ -284,9 +284,9 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             "submitter": submitter
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
-        return with_session(request, response)
+        return await with_session(request, response)
 
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        redirect(request, LANDING)
+        await redirect(request, LANDING)
