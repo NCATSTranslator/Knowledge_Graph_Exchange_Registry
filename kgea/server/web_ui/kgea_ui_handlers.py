@@ -75,8 +75,7 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
         # redirect to the home page, with a session cookie
         await redirect(request, HOME, active_session=True)
     else:
-        # Exception implies that session is not active,
-        # then render the login page
+        # Session is not active, then render the login page
         response = aiohttp_jinja2.render_template('login.html', request=request, context={})
         return response
 
@@ -134,7 +133,10 @@ async def kge_client_authentication(request: web.Request):  # noqa: E501
             if authenticated:
                 try:
                     # create and persist Session here
-                    await new_session(request)
+                    session = await new_session(request)
+
+                    # TODO: figure out how to get more AWS Cognito user metadata into the session
+                    session['user'] = "Developer"
                     
                 except RuntimeError as rte:
                     logger.error("get_kge_home exception(): " + str(rte))
@@ -161,13 +163,16 @@ async def kge_login(request: web.Request):  # noqa: E501
     if DEV_MODE:
         # This fake logging process bypasses AWS Cognito
         # authentication, for development testing purposes
+        session = None
         try:
             # create and persist Session here
-            await new_session(request)
+            session = await new_session(request)
 
         except RuntimeError as rte:
             logger.error("get_kge_home exception(): " + str(rte))
             raise RuntimeError(rte)
+
+        session['user'] = "Developer"
 
         # then redirect to an authenticated home page
         await redirect(request, HOME, active_session=True)
