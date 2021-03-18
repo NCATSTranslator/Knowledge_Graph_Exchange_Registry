@@ -18,6 +18,8 @@ from aiohttp_session import get_session, Session
 
 from .kgea_config import resources
 
+from .kgea_session import is_active_session, redirect, with_session, report_error
+
 from .kgea_file_ops import (
     upload_file,
     create_presigned_url,
@@ -51,7 +53,8 @@ if DEV_MODE:
 else:
     # Production NGINX resolves the relative path otherwise?
     UPLOAD_FORM_PATH = "/upload"
-    
+
+
 #############################################################
 # Provider Controller Handler
 #
@@ -62,10 +65,8 @@ else:
 
 
 # TODO: get file out from timestamped folders 
-async def kge_access(request: web.Request, kg_name: str) -> web.Response:  # noqa: E501
+async def kge_access(request: web.Request, kg_name: str) -> web.Response:
     """Get KGE File Sets
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
@@ -75,9 +76,8 @@ async def kge_access(request: web.Request, kg_name: str) -> web.Response:  # noq
     :rtype: web.Response( Dict[str, Attribute] )
     """
     logger.debug("Entering kge_access(kg_name: " + kg_name + ")")
-
-    try:
-        await get_session(request)
+    
+    if await is_active_session(request):
 
         files_location = get_object_location(kg_name)
         # Listings Approach
@@ -95,14 +95,15 @@ async def kge_access(request: web.Request, kg_name: str) -> web.Response:  # noq
         kg_urls = dict(
             map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
-
-        # return Response(kg_urls)
-        return web.Response(text=str(kg_urls), status=200)
-
-    except RuntimeError:
+        
+        response = web.Response(text=str(kg_urls), status=200)
+        return with_session(request, response)
+    
+    else:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
-        raise web.HTTPFound(LANDING)
+        redirect(request, LANDING)
+
 
 #############################################################
 # Content Controller Handler
@@ -114,10 +115,8 @@ async def kge_access(request: web.Request, kg_name: str) -> web.Response:  # noq
 
 
 # TODO: get file out of root folder
-async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:  # noqa: E501
+async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
     """Get supported relationships by source and target
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
@@ -127,12 +126,11 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
     logger.debug("Entering kge_knowledge_map(kg_name: " + kg_name + ")")
-
-    try:
-        await get_session(request)
-
+    
+    if await is_active_session(request):
+        
         files_location = get_object_location(kg_name)
-
+        
         # Listings Approach
         # - Introspect on Bucket
         # - Create URL per Item Listing
@@ -150,20 +148,20 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
         kg_urls = dict(
             map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing)
         )
-
+        
         # logger.debug('knowledge_map urls: %s', kg_urls)
         # import requests, json
         # metadata_key = kg_listing[0]
         # url = create_presigned_url(resources['bucket'], metadata_key)
         # metadata = json.loads(requests.get(url).text)
+        
+        response = web.Response(text=str(kg_urls), status=200)
+        return with_session(request, response)
 
-        # return Response(kg_urls)
-        return web.Response(text=str(kg_urls), status=200)
-
-    except RuntimeError:
-        # If session is not active, then just
-        # redirect back to unauthenticated landing page
-        raise web.HTTPFound(LANDING)
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        redirect(request, LANDING)
 
 
 #############################################################
@@ -190,7 +188,7 @@ def _kge_metadata(
         session['submitter'] = submitter
     else:
         session['submitter'] = ''
-
+    
     return session
 
 
@@ -205,56 +203,59 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
     """
     logger.debug("Entering register_kge_file_set()")
 
-    try:
-        session = await get_session(request)
-
+    if await is_active_session(request):
+ 
         data = await request.post()
-
-        # if DEV_MODE:
-        #     submitter = "KGE Working Group"
-        #     kg_name = "SemMedDb"
-        # else:
+        
         submitter = data['submitter']
         kg_name = data['kg_name']
+        
+        try:
+            # attempt to access the Session here
+            session = await get_session(request)
 
-        #    logger.debug("register_kge_file_set(original submitter: " + submitter +
-        #              "original kg_name: " + kg_name + ")")
-        #
-        #    session = _kge_metadata(session, kg_name, submitter)
-        #
-        #    kg_name = session['kg_name']
-        #    submitter = session['submitter']
-
+        except RuntimeError as rte:
+            logger.error("kge_logout exception(): " + str(rte))
+            raise RuntimeError(rte)
+        
+        logger.debug("register_kge_file_set(original submitter: " + submitter +
+                     "original kg_name: " + kg_name + ")")
+        
+        session = _kge_metadata(session, kg_name, submitter)
+        
+        kg_name = session['kg_name']
+        submitter = session['submitter']
+        
         logger.debug("register_kge_file_set(cached submitter: " + submitter +
                      "cached kg_name: " + kg_name + ")")
-
+        
         if not (kg_name and submitter):
-            raise web.HTTPBadRequest(reason="register_kge_file_set(): either kg_name or submitter are empty?")
-
+            report_error("register_kge_file_set(): either kg_name or submitter are empty?")
+        
         register_location = get_object_location(kg_name)
-
+        
         logger.debug("register_kge_file_set(register_location: " + register_location + ")")
-
+        
         if True:  # location_available(bucket_name, object_key):
             if True:  # api_specification and url:
                 # TODO: repair return
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
                 #
-                raise web.HTTPFound(
-                    Template(UPLOAD_FORM_PATH+'?submitter=$submitter&kg_name=$kg_name').substitute(kg_name=kg_name, submitter=submitter)
-                )
+                redirect(request,
+                         Template(UPLOAD_FORM_PATH + '?submitter=$submitter&kg_name=$kg_name').substitute(
+                             kg_name=kg_name, submitter=submitter)
+                         )
         #     else:
         #         # TODO: more graceful front end failure signal
-        #         raise web.HTTPFound(HOME)
+        #         redirect(request, HOME)
         # else:
         #     # TODO: more graceful front end failure signal
-        #     raise web.HTTPBadRequest()
-
-    except RuntimeError:
-        # If session is not active, then just
-        # redirect back to public landing page
-        raise web.HTTPFound(LANDING)
+        #     report_error("Unknown failure")
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        redirect(request, LANDING)
 
 
 async def upload_kge_file(
@@ -288,34 +289,40 @@ async def upload_kge_file(
     :rtype: web.Response
     """
     logger.debug("Entering upload_kge_file()")
+    
+    if await is_active_session(request):
+        
+        try:
+            # attempt to access the Session here
+            session = await get_session(request)
 
-    try:
-        session = await get_session(request)
-
+        except RuntimeError as rte:
+            logger.error("kge_logout exception(): " + str(rte))
+            raise RuntimeError(rte)
+        
         if not kg_name:
             # must not be empty string
-            raise web.HTTPBadRequest(reason="upload_kge_file(): empty Knowledge Graph Name?")
-
+            report_error("upload_kge_file(): empty Knowledge Graph Name?")
+        
         if not submitter:
             # must not be empty string
-            raise web.HTTPBadRequest(reason="upload_kge_file(): empty Submitter?")
-
+            report_error("upload_kge_file(): empty Submitter?")
+        
         if not content_name:
             # must not be empty string
-            raise web.HTTPBadRequest(reason="upload_kge_file(): empty Content Name?")
-
+            report_error("upload_kge_file(): empty Content Name?")
+        
         if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
             # Invalid upload mode
-            raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
-
+            report_error("upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+        
         content_location, _ = with_timestamp(get_object_location)(kg_name)
-
+        
         uploaded_file_object_key = None
         file_type = "Unknown"
-        response = dict()
-
+        
         if upload_mode == 'content_from_url':
-
+            
             logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
             
             uploaded_file_object_key = transfer_file_from_url(
@@ -324,20 +331,20 @@ async def upload_kge_file(
                 bucket=resources['bucket'],
                 object_location=content_location
             )
-
+            
             file_type = "content"
-
+        
         else:  # process direct metadata or content file upload
-
+            
             # upload_file is a FileField with a file attribute
             # pointing to the actual data file as a temporary file
             # Initial approach here will be to user the uploaded_file.file
             # TODO: check if uploaded_file.file scales to large files
-
+            
             if upload_mode == 'content_from_local_file':
-
+                
                 # KGE Content File for upload?
-
+                
                 uploaded_file_object_key = upload_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
                     data_file=uploaded_file.file,
@@ -345,15 +352,15 @@ async def upload_kge_file(
                     bucket=resources['bucket'],
                     object_location=content_location
                 )
-
+                
                 file_type = "content"
-
+            
             elif upload_mode == 'metadata':
-
+                
                 # KGE Metadata File for upload?
-
+                
                 metadata_location = get_object_location(kg_name)
-
+                
                 uploaded_file_object_key = upload_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
                     data_file=uploaded_file.file,
@@ -361,34 +368,33 @@ async def upload_kge_file(
                     bucket=resources['bucket'],
                     object_location=metadata_location
                 )
-
+                
                 file_type = "metadata"
-
+            
             else:
-                raise web.HTTPBadRequest(reason="upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
-
+                report_error("upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+        
         if uploaded_file_object_key:
-
+            
             # If we get this far, time to register the KGE dataset in SmartAPI
             translator_registration(submitter, kg_name)
-
-            response = {file_type: dict({})}
-
+            
+            s3_metadata = {file_type: dict({})}
+            
             s3_file_url = create_presigned_url(
                 bucket=resources['bucket'],
                 object_key=uploaded_file_object_key
             )
-
-            response[file_type][uploaded_file_object_key] = s3_file_url
-
-            return web.Response(text=str(response), status=200)
-
+            
+            s3_metadata[file_type][uploaded_file_object_key] = s3_file_url
+            
+            response = web.Response(text=str(s3_metadata), status=200)
+            return with_session(request, response)
+        
         else:
-            raise web.HTTPBadRequest(reason="upload_kge_file(): " + file_type + " upload failed?")
+            report_error("upload_kge_file(): " + file_type + " upload failed?")
 
-    except RuntimeError as rt_error:
-        # could be another error
-        logger.warning(str(rt_error))
-        # Could be that the session is not active, then
-        # just redirect back to unauthenticated landing page
-        raise web.HTTPFound(LANDING)
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        redirect(request, LANDING)

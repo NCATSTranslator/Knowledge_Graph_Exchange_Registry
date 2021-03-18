@@ -41,7 +41,7 @@ async def save_session(request, response, session):
 #     return web.Response(text=text)
 
 
-def with_session(request, response):
+async def with_session(request, response):
     """
     Wraps a response with a session cookie
     :param request: input request object
@@ -57,7 +57,7 @@ def with_session(request, response):
     return response
 
 
-def redirect(request, location, active_session: bool = False):
+async def redirect(request, location, active_session: bool = False):
     """
     Redirects to a web path location, with or without session cookie.
 
@@ -77,6 +77,10 @@ def redirect(request, location, active_session: bool = False):
             raise RuntimeError(rte)
     raise response
 
+
+def report_error(reason: str):
+    raise web.HTTPBadRequest(reason=reason)
+    
 
 def initialize_global_session(app=None):
     """
