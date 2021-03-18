@@ -5,7 +5,7 @@ server {
     server_name localhost;
     access_log  /var/log/nginx/kge.access.log;
 
-    root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/openapi_server/templates;
+    root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates;
 
     location / {
         # 'kge' is the docker-compose.yaml service name of

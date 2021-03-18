@@ -11,6 +11,8 @@ import aiohttp_jinja2
 
 from aiohttp_session import get_session, new_session
 
+from ..web_services.kgea_session import is_active_session, redirect, with_session
+
 #############################################################
 # Application Configuration
 #############################################################
@@ -26,13 +28,6 @@ logger = logging.getLogger(__name__)
 if DEV_MODE:
     logger.setLevel(logging.DEBUG)
 
-#
-# Design pattern for aiohttp session aware handlers:
-# async def handler(request):
-#     session = await get_session(request)
-#     last_visit = session['last_visit'] if 'last_visit' in session else None
-#     text = 'Last visited: {}'.format(last_visit)
-#     return web.Response(text=text)
 
 #############################################################
 # Site Controller Handlers
@@ -75,12 +70,11 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
 
     :rtype: str
     """
-    try:
-        await get_session(request)
-        # if no exception raised, then redirect to the home page
-        raise web.HTTPFound(HOME)
-    
-    except RuntimeError:
+    if await is_active_session(request):
+        # if active session and no exception raised, then
+        # redirect to the home page, with a session cookie
+        redirect(request, HOME, active_session=True)
+    else:
         # Exception implies that session is not active,
         # then render the login page
         response = aiohttp_jinja2.render_template('login.html', request=request, context={})
@@ -97,16 +91,14 @@ async def get_kge_home(request: web.Request) -> web.Response:  # noqa: E501
 
     :rtype: web.Response
     """
-    try:
-        await get_session(request)
-        
+    if await is_active_session(request):
         response = aiohttp_jinja2.render_template('home.html', request=request, context={})
-        return response
+        return with_session(request, response)
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        redirect(request, LANDING)
 
-    except RuntimeError:
-        # If session is not active, then just
-        # redirect back to unauthenticated landing page
-        raise web.HTTPFound(LANDING)
 
 # hack: short term state dictionary
 _state_cache = []
@@ -119,10 +111,6 @@ async def kge_client_authentication(request: web.Request):  # noqa: E501
 
     :param request:
     :type request: web.Request
-    :param code:
-    :type code: str
-    :param state:
-    :type state: str
     """
     code = request.query['code']
     state = request.query['state']
@@ -144,16 +132,21 @@ async def kge_client_authentication(request: web.Request):  # noqa: E501
             authenticated = True
 
             if authenticated:
-                # create and persist Session here
-                await new_session(request)
-
-                # then redirect to an authenticated home page
-                # TODO: how does the new session get propagated from the handler? By saving a cookie somewhere?
-                raise web.HTTPFound(HOME)
+                try:
+                    # create and persist Session here
+                    await new_session(request)
+                    
+                except RuntimeError as rte:
+                    logger.error("get_kge_home exception(): " + str(rte))
+                    raise RuntimeError(rte)
+                    
+                # if active session and no exception raised, then
+                # redirect to the home page, with a session cookie
+                redirect(request, HOME, active_session=True)
 
     # If authentication conditions are not met, then
     # simply redirect back to public landing page
-    raise web.HTTPFound(LANDING)
+    redirect(request, LANDING)
 
 
 async def kge_login(request: web.Request):  # noqa: E501
@@ -166,13 +159,19 @@ async def kge_login(request: web.Request):  # noqa: E501
     """
 
     if DEV_MODE:
-        # This fake logging process bypasses AWS Cognito authentication, for development testing purposes
-        await new_session(request)
+        # This fake logging process bypasses AWS Cognito
+        # authentication, for development testing purposes
+        try:
+            # create and persist Session here
+            await new_session(request)
+
+        except RuntimeError as rte:
+            logger.error("get_kge_home exception(): " + str(rte))
+            raise RuntimeError(rte)
 
         # then redirect to an authenticated home page
-        # TODO: how does the new session get propagated from the request? By saving a cookie somewhere?
-        raise web.HTTPFound(HOME)
-        
+        redirect(request, HOME, active_session=True)
+      
     state = str(uuid4())
     _state_cache.append(state)
 
@@ -186,40 +185,47 @@ async def kge_login(request: web.Request):  # noqa: E501
         resources['oauth2']['site_uri'] + \
         resources['oauth2']['login_callback']
 
-    raise web.HTTPFound(login_url)
+    redirect(request, login_url)
 
 
-async def kge_logout(request: web.Request):  # noqa: E501
+async def kge_logout(request: web.Request):
     """Process client user logout
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
     """
-    if DEV_MODE:
-        # redirect to unauthenticated landing page for login
-        raise web.HTTPFound(HOME)
-        
-    try:
-        session = await get_session(request)
+    if await is_active_session(request):
+        try:
+            # attempt to access the Session here
+            session = await get_session(request)
+
+        except RuntimeError as rte:
+            logger.error("kge_logout exception(): " + str(rte))
+            raise RuntimeError(rte)
 
         session.invalidate()
-
-        # ...then redirect to signal logout at the Oauth2 host
-        logout_url = \
-            resources['oauth2']['host'] + \
-            '/logout?client_id=' + \
-            resources['oauth2']['client_id'] + \
-            '&logout_uri=' + \
-            resources['oauth2']['site_uri']
-
-        raise web.HTTPFound(logout_url)
-
-    except RuntimeError:
-        # redirect to unauthenticated landing page for login
-        raise web.HTTPFound(LANDING)
         
+        if DEV_MODE:
+            # Just bypass the AWS Cognito and directly redirect to
+            # the unauthenticated landing page after session deletion
+            redirect(request, LANDING)
+        
+        else:
+
+            # ...then redirect to signal logout at the Oauth2 host
+            logout_url = \
+                resources['oauth2']['host'] + \
+                '/logout?client_id=' + \
+                resources['oauth2']['client_id'] + \
+                '&logout_uri=' + \
+                resources['oauth2']['site_uri']
+    
+            redirect(request, logout_url)
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        redirect(request, LANDING)
+
 
 #############################################################
 # Upload Controller Handlers
@@ -240,39 +246,29 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:  # no
 
     :param request:
     :type request: web.Request
-    :param session_id:
-    :type session_id: str
 
     :rtype: web.Response
     """
-    try:
-        await get_session(request)
-        
+    if await is_active_session(request):
         #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
         context = {
             "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
-        return response
+        return with_session(request, response)
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        redirect(request, LANDING)
 
-    except RuntimeError:
-        # If session is not active, then just
-        # redirect back to unauthenticated landing page
-        raise web.HTTPFound(LANDING)
 
-
-async def get_kge_file_upload_form(request: web.Request) -> web.Response:  # noqa: E501
+async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     """Get web form for specifying KGE File Set upload
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
-
-    :rtype: web.Response
     """
-    try:
-        await get_session(request)
+    if await is_active_session(request):
 
         submitter = request.query.get('submitter', default='')
         kg_name = request.query.get('kg_name', default='')
@@ -288,9 +284,9 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:  # noq
             "submitter": submitter
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
-        return response
+        return with_session(request, response)
 
-    except RuntimeError:
-        # If session is not active, then just
-        # redirect back to unauthenticated landing page
-        raise web.HTTPFound(LANDING)
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        redirect(request, LANDING)
