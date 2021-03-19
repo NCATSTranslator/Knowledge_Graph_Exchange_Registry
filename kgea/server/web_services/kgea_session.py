@@ -100,7 +100,24 @@ async def redirect(request, location, active_session: bool = False):
 
 def report_error(reason: str):
     raise web.HTTPBadRequest(reason=reason)
-    
+
+
+def get_secret_key():
+    if DEV_MODE:
+        from .kgea_config import resources, save_resources
+        if 'secret_key' in resources:
+            secret_key = resources['secret_key']
+        else:
+            import base64
+            from cryptography import fernet
+            fernet_key = fernet.Fernet.generate_key()
+            secret_key = base64.urlsafe_b64decode(fernet_key)
+            resources['secret_key'] = secret_key
+            save_resources()
+        return secret_key
+    else:
+        pass
+
 
 def initialize_global_session(app=None):
     """
@@ -112,13 +129,9 @@ def initialize_global_session(app=None):
     
     if app:
         if DEV_MODE:
-            import base64
-            from cryptography import fernet
             from aiohttp_session.cookie_storage import EncryptedCookieStorage
-            
             # TODO: this needs to be global across the UI and Archive code bases(?!?)
-            fernet_key = fernet.Fernet.generate_key()
-            secret_key = base64.urlsafe_b64decode(fernet_key)
+            secret_key = get_secret_key()
             _kgea_global_session_storage = EncryptedCookieStorage(secret_key)
         else:
             import aiomcache

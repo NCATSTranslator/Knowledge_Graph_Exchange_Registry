@@ -1,3 +1,5 @@
+from typing import TextIO
+
 import boto3
 from botocore.client import Config
 
@@ -12,6 +14,10 @@ from os.path import expanduser, abspath
 
 home = expanduser("~")
 AWS_CONFIG_ROOT = home+"/.aws/"
+
+# the following config file should be visible in the root 'server' subdirectory, as
+# copied from the available template and populated with site-specific configuration values
+KGEA_CONFIG_FILE = 'kgea_config.yaml'
 
 
 def validate_session_configuration():
@@ -92,13 +98,11 @@ except Exception as e:
 
 resources = None
 try:
-    # the following config file should be visible in the root 'server' subdirectory, as copied
-    # from the available template and populated with site-specific configuration values
-    with open(abspath('kgea_archive_config.yaml'), 'r') as resource_config_file:
+    with open(abspath(KGEA_CONFIG_FILE), mode='r', encoding='utf-8') as resource_config_file:
         
         resource_config = yaml.load(resource_config_file, Loader=Loader)
 
-        if 'bucket' not in resource_config:
+        if ['bucket', 'oauth2'] not in resource_config:
             print("The resource_config doesn't have all its necessary attributes")
         else:
             if s3_client is not None:
@@ -111,3 +115,9 @@ try:
 except Exception as e:
     print('ERROR: KGE Archive resource configuration file failed to load')
     print(e)
+
+
+def save_resources(resources: dict = resources):
+    resource_config_file: TextIO
+    with open(abspath(KGEA_CONFIG_FILE), mode='w', encoding='utf-8') as resource_config_file:
+        yaml.dump(resources, resource_config_file, Dumper=Dumper)

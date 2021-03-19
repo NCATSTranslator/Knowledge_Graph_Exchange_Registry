@@ -1,3 +1,10 @@
+# AWS Cognito OAuth2 transaction parameters
+oauth2:
+  host:      ''
+  client_id: ''
+  site_uri:  ''
+  login_callback:  '/oauth2callback'
+
 bucket: 'kgea-bucket'               # REQUIRED: the name of the S3 bucket that will host your kgea files
 
 # Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`

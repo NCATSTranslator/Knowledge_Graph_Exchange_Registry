@@ -17,7 +17,7 @@ from ..web_services.kgea_session import initialize_user_session, redirect, with_
 # Application Configuration
 #############################################################
 
-from .kgea_ui_config import resources
+from ..web_services.kgea_config import resources
 
 import logging
 
