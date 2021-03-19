@@ -96,11 +96,14 @@ async def get_kge_home(request: web.Request, uid: str = None) -> web.Response:  
     """
     # Can't seem to get the session cookie via any
     # redirection so use a URL query string workaround?
-    uid = request.query.get('uid')
-    if uid:
+    # uid = request.query.get('uid')
+    # if uid:
+    session = await get_session(request)
+    if not session.empty:
+        
         # TODO: verify that all local session data is reloaded?
         # reconstituting the session
-        await initialize_user_session(request, uid)
+        # await initialize_user_session(request, uid)
         
         response = aiohttp_jinja2.render_template('home.html', request=request, context={})
         return await with_session(request, response)

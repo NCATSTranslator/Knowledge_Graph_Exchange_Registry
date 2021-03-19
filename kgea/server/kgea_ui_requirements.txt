@@ -8,6 +8,6 @@ aiohttp_cors >= 0.7.0
 
 # KGE UI specific
 pyyaml
-aiohttp
+aiohttp<3.7
 aiohttp-session
 aiomcache

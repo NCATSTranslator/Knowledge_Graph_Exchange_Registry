@@ -31,9 +31,11 @@ async def initialize_user_session(request, uid: str = None):
         else:
             user_id = uuid4().hex
         
+        # the identifier field value doesn't seem to be
+        # propagated (in aiohttp 3.6 - review status in 3.7)
         session.set_new_identity(user_id)
         
-        session['active'] = 1
+        session['user_id'] = user_id
     
     except RuntimeError as rte:
         logger.error("initialize_user_session() ERROR: " + str(rte))
@@ -82,16 +84,17 @@ async def redirect(request, location, active_session: bool = False):
     :type active_session: bool
     :return: raised web.HTTPFound(location)
     """
+    response = web.HTTPFound(location)
     if active_session:
         try:
             session = await get_session(request)
-            response = web.HTTPFound(location+"?uid="+session.identity)
+            # response = web.HTTPFound(location+"?uid="+session.identity)
             await save_session(request, response, session)
         except RuntimeError as rte:
             logger.error("kgea_session.redirect() RuntimeError: " + str(rte))
             raise RuntimeError(rte)
-    else:
-        response = web.HTTPFound(location)
+    # else:
+    #     response = web.HTTPFound(location)
     raise response
 
 
