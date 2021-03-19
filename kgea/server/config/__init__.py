@@ -60,30 +60,30 @@ def validate_session_configuration():
 
 def validate_client_configuration():
     try:
-        with open(AWS_CONFIG_ROOT + 'old_config', 'r') as config_file:
+        with open(AWS_CONFIG_ROOT + 'config', 'r') as config_file:
             client_credentials = boto3.client("s3")._client_config
             config = configparser.ConfigParser()
             config.read_file(config_file)
             
-            # if old_config['default']['region'] != 'us-east-1':
-            #     print("NOTE: we recommend using us-east-1 as your region", "(currently %s)" % old_config['default']['region'])
+            # if config['default']['region'] != 'us-east-1':
+            #     print("NOTE: we recommend using us-east-1 as your region", "(currently %s)" % config['default']['region'])
             #     # this is a warning, no need to return false
             
             try:
                 assert (client_credentials.region_name == config['default']['region'])
             except AssertionError:
-                raise AssertionError("the boto3 client does not have the same region as `~/.aws/old_config")
+                raise AssertionError("the boto3 client does not have the same region as `~/.aws/config")
     
     except FileNotFoundError as e:
-        print("ERROR: ~/.aws/old_config isn't found! try running `aws configure` after installing `aws-cli`")
+        print("ERROR: ~/.aws/config isn't found! try running `aws configure` after installing `aws-cli`")
         print(e)
         return False
     except AssertionError as e:
-        print("ERROR: boto3 s3 client has different configuration information from ~/.aws/old_config!")
+        print("ERROR: boto3 s3 client has different configuration information from ~/.aws/config!")
         print(e)
         return False
     except KeyError as e:
-        print("ERROR: ~/.aws/old_config does not have all the necessary keys")
+        print("ERROR: ~/.aws/config does not have all the necessary keys")
         print(e)
         return False
     finally:
@@ -138,7 +138,7 @@ def load_app_config() -> dict:
                 secret_key = base64.urlsafe_b64decode(fernet_key)
                 app_config['secret_key'] = secret_key
                 
-                # persist updated old_config back?
+                # persist updated updated app_config back to config.yaml?
                 with open(CONFIG_FILE_PATH, mode='w', encoding='utf-8') as app_config_file:
                     yaml.dump(app_config, app_config_file, Dumper=Dumper)
         
