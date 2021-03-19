@@ -2,7 +2,7 @@ from os import path
 import connexion
 import aiohttp_cors
 
-from .kgea_session import (
+from kgea.server.web_services.kgea_session import (
     initialize_global_session,
     close_global_session
 )

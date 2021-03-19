@@ -74,37 +74,41 @@ async def with_session(request, response):
     return response
 
 
-# AIOHTTP Redirects don't seem to propagate
-# cookies (problematic for propagating session state)
-# As a workaround, if the session exists, add the
-# session.identity string as a 'uid' querystring to the
-# redirection location for possible recovery again at the other end(?)
-async def redirect(request, location, active_session: bool = False):
+# TODO: session propagation with redirects only work for aiohttp<3.7 (now) or aiohttp>3.8 (later)
+async def _process_redirection(request, response, active_session):
     """
     Redirects to a web path location, with or without session cookie.
 
     :param request: input request
-    :param location: target URL of redirection
+    :param response: redirection response
     :param active_session: add session cookie if True (default: False)
     :type active_session: bool
     :return: raised web.HTTPFound(location)
     """
-    response = web.HTTPFound(location)
     if active_session:
         try:
             session = await get_session(request)
-            # response = web.HTTPFound(location+"?uid="+session.identity)
             await save_session(request, response, session)
         except RuntimeError as rte:
-            logger.error("kgea_session.redirect() RuntimeError: " + str(rte))
+            logger.error("kgea_session._process_redirection() RuntimeError: " + str(rte))
             raise RuntimeError(rte)
-    # else:
-    #     response = web.HTTPFound(location)
     raise response
 
 
-def report_error(reason: str):
-    raise web.HTTPBadRequest(reason=reason)
+async def redirect(request, location, active_session: bool = False):
+    await _process_redirection(
+        request,
+        web.HTTPFound(location),
+        active_session
+    )
+
+
+async def report_error(request, reason: str, active_session: bool = False):
+    await _process_redirection(
+        request,
+        web.HTTPBadRequest(reason=reason),
+        active_session
+    )
 
 
 def initialize_global_session(app=None):

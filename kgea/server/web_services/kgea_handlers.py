@@ -82,7 +82,7 @@ async def kge_access(request: web.Request, kg_name: str) -> web.Response:
     
     session = await get_session(request)
     if not session.empty:
-
+        
         files_location = get_object_location(kg_name)
         # Listings Approach
         # - Introspect on Bucket
@@ -97,7 +97,8 @@ async def kge_access(request: web.Request, kg_name: str) -> web.Response:
         pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)], kg_listing))
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
+                kg_listing))
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
         
         response = web.Response(text=str(kg_urls), status=200)
@@ -151,7 +152,8 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
         )
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)], kg_listing)
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
+                kg_listing)
         )
         
         # logger.debug('knowledge_map urls: %s', kg_urls)
@@ -162,7 +164,7 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
         
         response = web.Response(text=str(kg_urls), status=200)
         return await with_session(request, response)
-
+    
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
@@ -207,10 +209,10 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
     """
     logger.debug("Entering register_kge_file_set()")
-
+    
     session = await get_session(request)
     if not session.empty:
- 
+        
         data = await request.post()
         
         submitter = data['submitter']
@@ -228,7 +230,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                      "cached kg_name: " + kg_name + ")")
         
         if not (kg_name and submitter):
-            report_error("register_kge_file_set(): either kg_name or submitter are empty?")
+            await report_error(request, "register_kge_file_set(): either kg_name or submitter are empty?")
         
         register_location = get_object_location(kg_name)
         
@@ -241,15 +243,16 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 #  2. replace with /upload form returned
                 #
                 await redirect(request,
-                         Template(UPLOAD_FORM_PATH + '?submitter=$submitter&kg_name=$kg_name').substitute(
-                             kg_name=kg_name, submitter=submitter)
-                         )
+                               Template(UPLOAD_FORM_PATH + '?submitter=$submitter&kg_name=$kg_name').substitute(
+                                   kg_name=kg_name, submitter=submitter),
+                               active_session=True
+                               )
         #     else:
         #         # TODO: more graceful front end failure signal
         #         await redirect(request, HOME)
         # else:
         #     # TODO: more graceful front end failure signal
-        #     report_error("Unknown failure")
+        #     await report_error(request, "Unknown failure")
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
@@ -264,10 +267,8 @@ async def upload_kge_file(
         content_name: str,
         content_url: str = None,
         uploaded_file=None
-) -> web.Response:  # noqa: E501
+) -> web.Response:
     """KGE File Set upload process
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
@@ -293,19 +294,19 @@ async def upload_kge_file(
         
         if not kg_name:
             # must not be empty string
-            report_error("upload_kge_file(): empty Knowledge Graph Name?")
+            await report_error(request, "upload_kge_file(): empty Knowledge Graph Name?")
         
         if not submitter:
             # must not be empty string
-            report_error("upload_kge_file(): empty Submitter?")
+            await report_error(request, "upload_kge_file(): empty Submitter?")
         
         if not content_name:
             # must not be empty string
-            report_error("upload_kge_file(): empty Content Name?")
+            await report_error(request, "upload_kge_file(): empty Content Name?")
         
         if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
             # Invalid upload mode
-            report_error("upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+            await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
         
         content_location, _ = with_timestamp(get_object_location)(kg_name)
         
@@ -363,7 +364,7 @@ async def upload_kge_file(
                 file_type = "metadata"
             
             else:
-                report_error("upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+                await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
         
         if uploaded_file_object_key:
             
@@ -383,8 +384,8 @@ async def upload_kge_file(
             return await with_session(request, response)
         
         else:
-            report_error("upload_kge_file(): " + file_type + " upload failed?")
-
+            await report_error(request, "upload_kge_file(): " + file_type + " upload failed?")
+    
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
