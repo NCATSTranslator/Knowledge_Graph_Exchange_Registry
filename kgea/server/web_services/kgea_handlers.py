@@ -18,7 +18,7 @@ from aiohttp_session import get_session, Session
 
 from .kgea_config import resources
 
-from .kgea_session import is_active_session, redirect, with_session, report_error
+from .kgea_session import redirect, with_session, report_error
 
 from .kgea_file_ops import (
     upload_file,
@@ -77,7 +77,8 @@ async def kge_access(request: web.Request, kg_name: str) -> web.Response:
     """
     logger.debug("Entering kge_access(kg_name: " + kg_name + ")")
     
-    if await is_active_session(request):
+    session = await get_session(request)
+    if not session.empty:
 
         files_location = get_object_location(kg_name)
         # Listings Approach
@@ -127,7 +128,8 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
     """
     logger.debug("Entering kge_knowledge_map(kg_name: " + kg_name + ")")
     
-    if await is_active_session(request):
+    session = await get_session(request)
+    if not session.empty:
         
         files_location = get_object_location(kg_name)
         
@@ -203,20 +205,13 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
     """
     logger.debug("Entering register_kge_file_set()")
 
-    if await is_active_session(request):
+    session = await get_session(request)
+    if not session.empty:
  
         data = await request.post()
         
         submitter = data['submitter']
         kg_name = data['kg_name']
-        
-        try:
-            # attempt to access the Session here
-            session = await get_session(request)
-
-        except RuntimeError as rte:
-            logger.error("kge_logout exception(): " + str(rte))
-            raise RuntimeError(rte)
         
         logger.debug("register_kge_file_set(original submitter: " + submitter +
                      "original kg_name: " + kg_name + ")")
@@ -290,15 +285,8 @@ async def upload_kge_file(
     """
     logger.debug("Entering upload_kge_file()")
     
-    if await is_active_session(request):
-        
-        try:
-            # attempt to access the Session here
-            session = await get_session(request)
-
-        except RuntimeError as rte:
-            logger.error("kge_logout exception(): " + str(rte))
-            raise RuntimeError(rte)
+    session = await get_session(request)
+    if not session.empty:
         
         if not kg_name:
             # must not be empty string

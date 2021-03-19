@@ -1,11 +1,11 @@
 from os import getenv
+from uuid import uuid4
 
 import asyncio
 from asyncio.events import AbstractEventLoop
 
 from aiohttp import web, ClientSession
-from aiohttp_session import AbstractStorage, setup, get_session
-
+from aiohttp_session import AbstractStorage, setup, new_session, get_session
 import logging
 
 # Master flag for simplified local development
@@ -22,12 +22,22 @@ _kgea_global_session: ClientSession
 _kgea_event_loop: AbstractEventLoop
 
 
-async def is_active_session(request):
-    cookie = _kgea_global_session_storage.load_cookie(request)
-    if cookie is not None:
-        return True
-    else:
-        return False
+async def initialize_user_session(request, uid: str = None):
+    try:
+        session = await new_session(request)
+        
+        if uid:
+            user_id = uid
+        else:
+            user_id = uuid4().hex
+        
+        session.set_new_identity(user_id)
+        
+        session['active'] = 1
+    
+    except RuntimeError as rte:
+        logger.error("initialize_user_session() ERROR: " + str(rte))
+        raise RuntimeError(rte)
 
 
 async def save_session(request, response, session):
@@ -57,6 +67,11 @@ async def with_session(request, response):
     return response
 
 
+# AIOHTTP Redirects don't seem to propagate
+# cookies (problematic for propagating session state)
+# As a workaround, if the session exists, add the
+# session.identity string as a 'uid' querystring to the
+# redirection location for possible recovery again at the other end(?)
 async def redirect(request, location, active_session: bool = False):
     """
     Redirects to a web path location, with or without session cookie.
@@ -67,14 +82,16 @@ async def redirect(request, location, active_session: bool = False):
     :type active_session: bool
     :return: raised web.HTTPFound(location)
     """
-    response = web.HTTPFound(location)
     if active_session:
         try:
             session = await get_session(request)
+            response = web.HTTPFound(location+"?uid="+session.identity)
             await save_session(request, response, session)
         except RuntimeError as rte:
             logger.error("kgea_session.redirect() RuntimeError: " + str(rte))
             raise RuntimeError(rte)
+    else:
+        response = web.HTTPFound(location)
     raise response
 
 
@@ -132,11 +149,15 @@ def close_global_session():
     """
     Close the current global KGE Archive Client Session
     """
+    # The main event_loop is already closed in
+    # the web.run_app() so I retrieve a new one?
+    loop = asyncio.get_event_loop()
+    
     # Close the global Client Session
-    _kgea_event_loop.run_until_complete(_close_kgea_global_session())
+    loop.run_until_complete(_close_kgea_global_session())
     
     # see https://docs.aiohttp.org/en/v3.7.4.post0/client_advanced.html#graceful-shutdown
     # Zero-sleep to allow underlying connections to close
-    _kgea_event_loop.run_until_complete(asyncio.sleep(0))
+    loop.run_until_complete(asyncio.sleep(0))
     
-    _kgea_event_loop.close()
+    loop.close()
