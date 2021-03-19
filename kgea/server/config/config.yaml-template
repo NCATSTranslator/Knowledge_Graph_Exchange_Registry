@@ -15,3 +15,5 @@ credentials_mode: 'default'         # the part of the credentials to use. Allows
 credentials:
   aws_access_key_id: '...'         # the 20 character AWS access key id
   aws_secret_access_key: '...'     # the 40 character AWS secret key
+
+# secret_key:

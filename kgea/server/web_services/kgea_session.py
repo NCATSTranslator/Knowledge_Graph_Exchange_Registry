@@ -1,3 +1,11 @@
+# Design pattern for aiohttp session aware handlers:
+#
+# async def handler(request):
+#     session = await get_session(request)
+#     last_visit = session['last_visit'] if 'last_visit' in session else None
+#     text = 'Last visited: {}'.format(last_visit)
+#     return web.Response(text=text)
+
 from os import getenv
 from uuid import uuid4
 
@@ -6,6 +14,9 @@ from asyncio.events import AbstractEventLoop
 
 from aiohttp import web, ClientSession
 from aiohttp_session import AbstractStorage, setup, new_session, get_session
+
+from kgea.server.config import load_app_config
+
 import logging
 
 # Master flag for simplified local development
@@ -14,6 +25,7 @@ DEV_MODE = getenv('DEV_MODE', default=False)
 logger = logging.getLogger(__name__)
 if DEV_MODE:
     logger.setLevel(logging.DEBUG)
+
 
 # Global KGE Archive Client Session for
 # AIOHTTP requests within the application
@@ -44,13 +56,6 @@ async def initialize_user_session(request, uid: str = None):
 
 async def save_session(request, response, session):
     await _kgea_global_session_storage.save_session(request, response, session)
-
-# Design pattern for aiohttp session aware handlers:
-# async def handler(request):
-#     session = await get_session(request)
-#     last_visit = session['last_visit'] if 'last_visit' in session else None
-#     text = 'Last visited: {}'.format(last_visit)
-#     return web.Response(text=text)
 
 
 async def with_session(request, response):
@@ -102,23 +107,6 @@ def report_error(reason: str):
     raise web.HTTPBadRequest(reason=reason)
 
 
-def get_secret_key():
-    if DEV_MODE:
-        from .kgea_config import resources, save_resources
-        if 'secret_key' in resources:
-            secret_key = resources['secret_key']
-        else:
-            import base64
-            from cryptography import fernet
-            fernet_key = fernet.Fernet.generate_key()
-            secret_key = base64.urlsafe_b64decode(fernet_key)
-            resources['secret_key'] = secret_key
-            save_resources()
-        return secret_key
-    else:
-        pass
-
-
 def initialize_global_session(app=None):
     """
     Initialize a global KGE Archive Client Session
@@ -127,11 +115,13 @@ def initialize_global_session(app=None):
     global _kgea_global_session
     global _kgea_event_loop
     
+    kgea_app_config = load_app_config()
+    
     if app:
         if DEV_MODE:
             from aiohttp_session.cookie_storage import EncryptedCookieStorage
             # TODO: this needs to be global across the UI and Archive code bases(?!?)
-            secret_key = get_secret_key()
+            secret_key = kgea_app_config['secret_key']
             _kgea_global_session_storage = EncryptedCookieStorage(secret_key)
         else:
             import aiomcache

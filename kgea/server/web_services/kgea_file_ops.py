@@ -8,7 +8,7 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 
-from .kgea_config import s3_client
+from kgea.server.config import s3_client
 
 import boto3
 from botocore.exceptions import ClientError

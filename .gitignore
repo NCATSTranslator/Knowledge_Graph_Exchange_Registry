@@ -137,8 +137,7 @@ dmypy.json
 
 # Project & site configuration ignored
 .aws
-kgea_archive_config.yaml
-kgea_ui_config.yaml
+config.yaml
 styles.css
 banner.jpg
 
@@ -148,4 +147,3 @@ banner.jpg
 
 # ignore local virtual environments
 py*/
-venv/

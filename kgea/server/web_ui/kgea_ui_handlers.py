@@ -11,13 +11,15 @@ import aiohttp_jinja2
 
 from aiohttp_session import get_session
 
-from ..web_services.kgea_session import initialize_user_session, redirect, with_session
+from kgea.server.web_services.kgea_session import (
+    initialize_user_session, redirect, with_session
+)
 
 #############################################################
 # Application Configuration
 #############################################################
 
-from ..web_services.kgea_config import resources
+from kgea.server.config import get_app_config
 
 import logging
 
@@ -28,6 +30,8 @@ logger = logging.getLogger(__name__)
 if DEV_MODE:
     logger.setLevel(logging.DEBUG)
 
+# Opaquely access the configuration dictionary
+kgea_app_config = get_app_config()
 
 #############################################################
 # Site Controller Handlers
@@ -174,14 +178,14 @@ async def kge_login(request: web.Request):  # noqa: E501
     _state_cache.append(state)
 
     login_url = \
-        resources['oauth2']['host'] + \
+        kgea_app_config['oauth2']['host'] + \
         '/login?response_type=code' + \
         '&state=' + state + \
         '&client_id=' + \
-        resources['oauth2']['client_id'] + \
+        kgea_app_config['oauth2']['client_id'] + \
         '&redirect_uri=' + \
-        resources['oauth2']['site_uri'] + \
-        resources['oauth2']['login_callback']
+        kgea_app_config['oauth2']['site_uri'] + \
+        kgea_app_config['oauth2']['login_callback']
 
     await redirect(request, login_url)
 
@@ -206,11 +210,11 @@ async def kge_logout(request: web.Request):
 
             # ...then redirect to signal logout at the Oauth2 host
             logout_url = \
-                resources['oauth2']['host'] + \
+                kgea_app_config['oauth2']['host'] + \
                 '/logout?client_id=' + \
-                resources['oauth2']['client_id'] + \
+                kgea_app_config['oauth2']['client_id'] + \
                 '&logout_uri=' + \
-                resources['oauth2']['site_uri']
+                kgea_app_config['oauth2']['site_uri']
     
             await redirect(request, logout_url)
     else:

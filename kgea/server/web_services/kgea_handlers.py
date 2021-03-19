@@ -16,7 +16,7 @@ from aiohttp_session import get_session, Session
 # Application Configuration
 #############################################################
 
-from .kgea_config import resources
+from kgea.server.config import get_app_config
 
 from .kgea_session import redirect, with_session, report_error
 
@@ -41,6 +41,9 @@ DEV_MODE = getenv('DEV_MODE', default=False)
 logger = logging.getLogger(__name__)
 if DEV_MODE:
     logger.setLevel(logging.DEBUG)
+
+# Opaquely access the configuration dictionary
+kgea_app_config = get_app_config()
 
 # This is the home page path,
 # should match the API path spec
@@ -88,13 +91,13 @@ async def kge_access(request: web.Request, kg_name: str) -> web.Response:
         # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
         # TODO: convert into redirect approach with cross-origin scripting?
         kg_files = kg_files_in_location(
-            bucket_name=resources['bucket'],
+            bucket_name=kgea_app_config['bucket'],
             object_location=files_location
         )
         pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing))
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)], kg_listing))
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
         
         response = web.Response(text=str(kg_urls), status=200)
@@ -140,7 +143,7 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
         # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
         # TODO: convert into redirect approach with cross-origin scripting?
         kg_files = kg_files_in_location(
-            bucket_name=resources['bucket'],
+            bucket_name=kgea_app_config['bucket'],
             object_location=files_location
         )
         pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
@@ -148,13 +151,13 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
         )
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(resources['bucket'], kg_file)], kg_listing)
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)], kg_listing)
         )
         
         # logger.debug('knowledge_map urls: %s', kg_urls)
         # import requests, json
         # metadata_key = kg_listing[0]
-        # url = create_presigned_url(resources['bucket'], metadata_key)
+        # url = create_presigned_url(kgea_app_config['bucket'], metadata_key)
         # metadata = json.loads(requests.get(url).text)
         
         response = web.Response(text=str(kg_urls), status=200)
@@ -316,7 +319,7 @@ async def upload_kge_file(
             uploaded_file_object_key = transfer_file_from_url(
                 url=content_url,
                 file_name=content_name,
-                bucket=resources['bucket'],
+                bucket=kgea_app_config['bucket'],
                 object_location=content_location
             )
             
@@ -337,7 +340,7 @@ async def upload_kge_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
                     data_file=uploaded_file.file,
                     file_name=content_name,
-                    bucket=resources['bucket'],
+                    bucket=kgea_app_config['bucket'],
                     object_location=content_location
                 )
                 
@@ -353,7 +356,7 @@ async def upload_kge_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
                     data_file=uploaded_file.file,
                     file_name=content_name,
-                    bucket=resources['bucket'],
+                    bucket=kgea_app_config['bucket'],
                     object_location=metadata_location
                 )
                 
@@ -370,7 +373,7 @@ async def upload_kge_file(
             s3_metadata = {file_type: dict({})}
             
             s3_file_url = create_presigned_url(
-                bucket=resources['bucket'],
+                bucket=kgea_app_config['bucket'],
                 object_key=uploaded_file_object_key
             )
             
