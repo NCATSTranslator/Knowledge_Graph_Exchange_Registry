@@ -2,10 +2,7 @@ from os import path
 import connexion
 import aiohttp_cors
 
-from .kgea_session import (
-    initialize_global_session,
-    close_global_session
-)
+from kgea.server.web_services.kgea_session import KgeaSession
 
 
 def main():
@@ -33,9 +30,9 @@ def main():
     # Register all routers for CORS.
     for route in list(app.app.router.routes()):
         cors.add(route)
-    
-    initialize_global_session(app.app)
-    
+
+    KgeaSession.init(app.app)
+
     app.run(port=8080)
-    
-    close_global_session()
+
+    KgeaSession.close_global_session()

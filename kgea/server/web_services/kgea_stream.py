@@ -18,12 +18,7 @@ from .kgea_file_ops import (
     with_timestamp
 )
 
-from .kgea_session import (
-    initialize_global_session,
-    get_event_loop,
-    get_global_session,
-    close_global_session
-)
+from .kgea_session import KgeaSession
 
 import logging
 
@@ -57,7 +52,7 @@ async def stream_from_url(url) -> AsyncIterable:
     :yield: chunk of data
     :rtype: str
     """
-    async with get_global_session().get(url, chunked=True, read_bufsize=S3_CHUNK_SIZE) as resp:
+    async with KgeaSession.get_global_session().get(url, chunked=True, read_bufsize=S3_CHUNK_SIZE) as resp:
         data = await resp.content.read(S3_CHUNK_SIZE)
         yield data
 
@@ -82,7 +77,7 @@ async def merge_file_from_url(url):
 
 def test_data_stream_from_url(test_url):
     tasks = [ensure_future(merge_file_from_url(test_url))]
-    get_event_loop().run_until_complete(wait(tasks))
+    KgeaSession.get_event_loop().run_until_complete(wait(tasks))
     print("Data from URL: %s" % [task.result() for task in tasks])
     return True
 
@@ -145,7 +140,7 @@ def transfer_file_from_url(
         mpu = target_s3obj.initiate_multipart_upload()
 
         transfer_task = ensure_future(_mpu_transfer_from_url(mpu, url))
-        get_event_loop().run_until_complete(wait_for(transfer_task, timeout=timeout))
+        KgeaSession.get_event_loop().run_until_complete(wait_for(transfer_task, timeout=timeout))
         
         # MPU Parts returned as the result
         parts = transfer_task.result()
@@ -211,7 +206,7 @@ if __name__ == '__main__':
     TEST_BUCKET = 'kgea-test-bucket'
     TEST_KG_NAME = 'test_kg'
     
-    initialize_global_session()
+    KgeaSession()
     
     assert(test_data_stream_from_url(test_url=TEST_FILE_URL))
     print("test_data_stream_from_url passed")
@@ -224,6 +219,6 @@ if __name__ == '__main__':
     )
     print("test_transfer_file_from_url passed")
     
-    close_global_session()
+    KgeaSession.close_global_session()
     
     exit(0)

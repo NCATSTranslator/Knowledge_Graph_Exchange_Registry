@@ -27,11 +27,81 @@ if DEV_MODE:
     logger.setLevel(logging.DEBUG)
 
 
-# Global KGE Archive Client Session for
-# AIOHTTP requests within the application
-_kgea_global_session_storage: AbstractStorage
-_kgea_global_session: ClientSession
-_kgea_event_loop: AbstractEventLoop
+class KgeaSession:
+    
+    _session_storage: AbstractStorage
+    _event_loop: AbstractEventLoop
+    _client_session: ClientSession
+
+    @classmethod
+    def init(cls, app=None):
+        """
+        Initialize a global KGE Archive Client Session
+        """
+    
+        app_config = load_app_config()
+    
+        if app:
+            if DEV_MODE:
+                from aiohttp_session.cookie_storage import EncryptedCookieStorage
+                # TODO: this needs to be global across the UI and Archive code bases(?!?)
+                secret_key = app_config['secret_key']
+                KgeaSession.set_storage(EncryptedCookieStorage(secret_key))
+            else:
+                import aiomcache
+                from aiohttp_session.memcached_storage import MemcachedStorage
+                mc = aiomcache.Client("memcached", 11211)
+                KgeaSession.set_storage(MemcachedStorage(mc))
+        
+            setup(app, KgeaSession.get_storage())
+    
+        cls._event_loop = asyncio.get_event_loop()
+        cls._client_session = ClientSession(loop=cls._event_loop)
+
+    @classmethod
+    def set_storage(cls, storage: AbstractStorage):
+        cls._session_storage = storage
+
+    @classmethod
+    def get_storage(cls) -> AbstractStorage:
+        return cls._session_storage
+
+    @classmethod
+    def get_event_loop(cls) -> AbstractEventLoop:
+        return cls._event_loop
+    
+    @classmethod
+    async def save_session(cls, request, response, session):
+        await cls._session_storage.save_session(request, response, session)
+
+    @classmethod
+    def get_global_session(cls) -> ClientSession:
+        """
+        Get the current global KGE Archive Client Session
+        """
+        return cls._client_session
+
+    @classmethod
+    async def _close_kgea_global_session(cls):
+        await cls._client_session.close()
+
+    @classmethod
+    def close_global_session(cls):
+        """
+        Close the current global KGE Archive Client Session
+        """
+        # The main event_loop is already closed in
+        # the web.run_app() so I retrieve a new one?
+        loop = asyncio.get_event_loop()
+        
+        # Close the global Client Session
+        loop.run_until_complete(cls._close_kgea_global_session())
+        
+        # see https://docs.aiohttp.org/en/v3.7.4.post0/client_advanced.html#graceful-shutdown
+        # Zero-sleep to allow underlying connections to close
+        loop.run_until_complete(asyncio.sleep(0))
+        
+        loop.close()
 
 
 async def initialize_user_session(request, uid: str = None):
@@ -54,10 +124,6 @@ async def initialize_user_session(request, uid: str = None):
         raise RuntimeError(rte)
 
 
-async def save_session(request, response, session):
-    await _kgea_global_session_storage.save_session(request, response, session)
-
-
 async def with_session(request, response):
     """
     Wraps a response with a session cookie
@@ -67,7 +133,7 @@ async def with_session(request, response):
     """
     try:
         session = await get_session(request)
-        await save_session(request, response, session)
+        await KgeaSession.save_session(request, response, session)
     except RuntimeError as rte:
         logger.error("kgea_session.with_session() RuntimeError: " + str(rte))
         raise RuntimeError(rte)
@@ -88,7 +154,7 @@ async def _process_redirection(request, response, active_session):
     if active_session:
         try:
             session = await get_session(request)
-            await save_session(request, response, session)
+            await KgeaSession.save_session(request, response, session)
         except RuntimeError as rte:
             logger.error("kgea_session._process_redirection() RuntimeError: " + str(rte))
             raise RuntimeError(rte)
@@ -109,65 +175,3 @@ async def report_error(request, reason: str, active_session: bool = False):
         web.HTTPBadRequest(reason=reason),
         active_session
     )
-
-
-def initialize_global_session(app=None):
-    """
-    Initialize a global KGE Archive Client Session
-    """
-    global _kgea_global_session_storage
-    global _kgea_global_session
-    global _kgea_event_loop
-    
-    kgea_app_config = load_app_config()
-    
-    if app:
-        if DEV_MODE:
-            from aiohttp_session.cookie_storage import EncryptedCookieStorage
-            # TODO: this needs to be global across the UI and Archive code bases(?!?)
-            secret_key = kgea_app_config['secret_key']
-            _kgea_global_session_storage = EncryptedCookieStorage(secret_key)
-        else:
-            import aiomcache
-            from aiohttp_session.memcached_storage import MemcachedStorage
-        
-            # Dockerized service name?
-            MEMCACHED_SERVICE = "memcached"
-            
-            mc = aiomcache.Client(MEMCACHED_SERVICE, 11211)
-            _kgea_global_session_storage = MemcachedStorage(mc)
-            
-        setup(app, _kgea_global_session_storage)
-        
-    _kgea_event_loop = asyncio.get_event_loop()
-    _kgea_global_session = ClientSession(loop=_kgea_event_loop)
-
-
-def get_event_loop() -> AbstractEventLoop:
-    return _kgea_event_loop
-
-
-def get_global_session() -> ClientSession:
-    return _kgea_global_session
-
-
-async def _close_kgea_global_session():
-    await _kgea_global_session.close()
-
-
-def close_global_session():
-    """
-    Close the current global KGE Archive Client Session
-    """
-    # The main event_loop is already closed in
-    # the web.run_app() so I retrieve a new one?
-    loop = asyncio.get_event_loop()
-    
-    # Close the global Client Session
-    loop.run_until_complete(_close_kgea_global_session())
-    
-    # see https://docs.aiohttp.org/en/v3.7.4.post0/client_advanced.html#graceful-shutdown
-    # Zero-sleep to allow underlying connections to close
-    loop.run_until_complete(asyncio.sleep(0))
-    
-    loop.close()

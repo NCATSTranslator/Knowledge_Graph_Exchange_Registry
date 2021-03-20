@@ -1,10 +1,7 @@
 from os import getenv, path
 import logging
 
-from kgea.server.web_services.kgea_session import (
-    initialize_global_session,
-    close_global_session
-)
+from kgea.server.web_services.kgea_session import KgeaSession
 
 import jinja2
 import aiohttp_jinja2
@@ -37,7 +34,7 @@ async def make_app():
     app.router.add_get('/register', get_kge_registration_form)
     app.router.add_get('/upload', get_kge_file_upload_form)
     
-    initialize_global_session(app)
+    KgeaSession.init(app)
     
     return app
 
@@ -53,6 +50,6 @@ def main():
 
     web.run_app(make_app(), port=8090)
 
-    close_global_session()
+    KgeaSession.close_global_session()
 
 
