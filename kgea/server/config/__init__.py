@@ -105,10 +105,12 @@ app_config: dict = dict()
 
 
 def get_app_config() -> dict:
+    if not app_config:
+        _load_app_config()
     return app_config
 
 
-def load_app_config() -> dict:
+def _load_app_config() -> dict:
     
     global app_config
     

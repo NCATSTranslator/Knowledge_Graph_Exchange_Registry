@@ -15,7 +15,7 @@ from asyncio.events import AbstractEventLoop
 from aiohttp import web, ClientSession
 from aiohttp_session import AbstractStorage, setup, new_session, get_session
 
-from kgea.server.config import load_app_config
+from kgea.server.config import get_app_config
 
 import logging
 
@@ -39,31 +39,39 @@ class KgeaSession:
         Initialize a global KGE Archive Client Session
         """
     
-        app_config = load_app_config()
-    
         if app:
-            if DEV_MODE:
-                from aiohttp_session.cookie_storage import EncryptedCookieStorage
-                # TODO: this needs to be global across the UI and Archive code bases(?!?)
-                secret_key = app_config['secret_key']
-                KgeaSession.set_storage(EncryptedCookieStorage(secret_key))
-            else:
-                import aiomcache
-                from aiohttp_session.memcached_storage import MemcachedStorage
-                mc = aiomcache.Client("memcached", 11211)
-                KgeaSession.set_storage(MemcachedStorage(mc))
-        
-            setup(app, KgeaSession.get_storage())
+            storage = cls.get_storage()
+            setup(app, storage)
+        else:
+            raise RuntimeError("Invalid web application?")
     
         cls._event_loop = asyncio.get_event_loop()
         cls._client_session = ClientSession(loop=cls._event_loop)
 
     @classmethod
-    def set_storage(cls, storage: AbstractStorage):
-        cls._session_storage = storage
-
+    def _initialize_storage(cls):
+        app_config = get_app_config()
+        if DEV_MODE:
+            from aiohttp_session.cookie_storage import EncryptedCookieStorage
+            # TODO: this needs to be global across the UI and Archive code bases(?!?)
+            secret_key = app_config['secret_key']
+            cls._session_storage = EncryptedCookieStorage(secret_key)
+        else:
+            import aiomcache
+            from aiohttp_session.memcached_storage import MemcachedStorage
+            mc = aiomcache.Client("memcached", 11211)
+            cls._session_storage = MemcachedStorage(mc)
+    
     @classmethod
     def get_storage(cls) -> AbstractStorage:
+        try:
+            cls._session_storage
+        except AttributeError:
+            # I'm not sure why this may have to
+            # be called more than twice... some
+            # async contexts may call it more often?
+            cls._initialize_storage()
+            
         return cls._session_storage
 
     @classmethod
@@ -72,7 +80,8 @@ class KgeaSession:
     
     @classmethod
     async def save_session(cls, request, response, session):
-        await cls._session_storage.save_session(request, response, session)
+        storage = cls.get_storage()
+        await storage.save_session(request, response, session)
 
     @classmethod
     def get_global_session(cls) -> ClientSession:

@@ -73,7 +73,8 @@
                 "{{upload_action}}",
                 {
                     method: "POST",
-                    body: formData
+                    body: formData,
+                    credentials: "include"
             }).then(
                 response => {
                     console.log('HTTP response code:', response.status);
