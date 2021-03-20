@@ -7,7 +7,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 COPY kgea_archive_requirements.txt /usr/src/app/requirements.txt
-COPY config/config.yaml      /usr/src/app/config/config.yaml
+COPY kgea/server/config/config.yaml  /usr/src/app/kgea/server/config/config.yaml
 
 RUN apk update && apk upgrade && apk add --no-cache build-base git
 
@@ -21,4 +21,4 @@ EXPOSE 8080
 
 ENTRYPOINT ["python3"]
 
-CMD ["-m", "web_services"]
+CMD ["-m", "kgea.server.web_services"]

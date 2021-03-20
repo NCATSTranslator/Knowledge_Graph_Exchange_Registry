@@ -6,8 +6,8 @@ RUN mkdir -p /root/.aws
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
-COPY server/kgea_ui_requirements.txt /usr/src/app/requirements.txt
-COPY server/config/config.yaml      /usr/src/app/config/config.yaml
+COPY kgea_ui_requirements.txt  /usr/src/app/requirements.txt
+COPY kgea/server/config/config.yaml  /usr/src/app/kgea/server/config/config.yaml
 
 RUN apk update && apk upgrade && apk add --no-cache build-base git
 
@@ -19,4 +19,4 @@ EXPOSE 8090
 
 ENTRYPOINT ["python3"]
 
-CMD ["-m", "server.web_ui"]
+CMD ["-m", "kgea.server.web_ui"]
