@@ -58,7 +58,7 @@ The project is developed in the latest Python release (3.9 as of January 2021). 
 
 ### Pipenv
 
-**NOTE: Docker deployment of the system does not (currently) use the `pipenv` to manage dependencies but Dockerfile calls to `pip` using requirements.txt files in the kgea/server subdirectory, thus pipenv installation is not necessary. However, pipenv is useful for local development deployments (outside Docker containers).**
+**NOTE: Docker deployment of the system does not (currently) use the `pipenv` to manage dependencies but Dockerfile calls to `pip` using requirements.txt files in the root subdirectory, thus pipenv installation is not necessary. However, pipenv is useful for local development deployments (outside Docker containers).**
 
 The project can use the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, for bare metal development and testing. To install the tool (assuming a user-centric local installation), type:
 
@@ -106,6 +106,12 @@ pipenv install <some-new-python-package>
 ```
 
 Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
+
+Permanent package additions to the project should also be added to the project root directory `requirements.txt` (or `requirements-dev.txt` if only used for development builds) then added to the `pipenv` build by typing:
+
+```
+pipenv install -r requirements.txt
+```
 
 ### Amazon Web Services Configuration
 
@@ -186,7 +192,16 @@ During development, it may be convenient to simply run the application from the 
 - A back end web services API (kgea/server/web_services)
 - A KGX validation tool (T.B.A.)
 
-With respect to command line execution, each component may be started from within the root KGEA Archive project directory as independent Python module processes (e.g. as separate run configurations in your IDE, or in separate terminal shells; run with the DEV_MODE flag set, the application does not attempt to authenticate externally using AWS Cognito, see below)
+With respect to command line execution, each component may be started from within the root KGEA Archive project directory as independent Python module processes (e.g. as separate run configurations in your IDE, or in separate terminal shells).
+
+Run with the DEV_MODE flag set, the application does not attempt to authenticate externally using AWS Cognito, see below. Note that before running with the DEV_MODE flag, you must also install the pip development package dependencies, namely
+
+```
+pip install -r requirements-dev.txt
+
+# or the pipenv equivalent...
+pipenv install -r requirements-dev.txt
+```
 
 ### The Web User interface
 
