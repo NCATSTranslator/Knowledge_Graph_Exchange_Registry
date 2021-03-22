@@ -1,17 +1,15 @@
 FROM python:3.8-alpine
 
-# Create a location for credentials
-RUN mkdir -p /root/.aws
-
-RUN mkdir -p /usr/src/app
+# Create a location for credentials & the application
+RUN mkdir -p /root/.aws && mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 COPY kgea_ui_requirements.txt  /usr/src/app/requirements.txt
 COPY kgea/server/config/config.yaml  /usr/src/app/kgea/server/config/config.yaml
 
-RUN apk update && apk upgrade && apk add --no-cache build-base git
-
-RUN python -m pip install --upgrade pip && pip3 install wheel && pip3 install --no-cache-dir -r requirements.txt
+RUN apk update && apk upgrade && apk add --no-cache build-base git && \
+    python -m pip install --upgrade pip && pip3 install wheel && \
+    pip3 install --no-cache-dir -r requirements.txt
 
 COPY . /usr/src/app
 
