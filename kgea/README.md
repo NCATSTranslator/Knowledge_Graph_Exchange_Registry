@@ -58,7 +58,9 @@ The project is developed in the latest Python release (3.9 as of January 2021). 
 
 ### Pipenv
 
-The project uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, both for bare metal development/testing, and within the Docker production development. To install the tool (assuming a user-centric local installation), type:
+**NOTE: Docker deployment of the system does not (currently) use the `pipenv` to manage dependencies but Dockerfile calls to `pip` using requirements.txt files in the kgea/server subdirectory, thus pipenv installation is not necessary. However, pipenv is useful for local development deployments (outside Docker containers).**
+
+The project can use the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, for bare metal development and testing. To install the tool (assuming a user-centric local installation), type:
 
 ```shell
 python -m pip install pipenv
@@ -115,10 +117,10 @@ There are three options to configure AWS credentials for the KGE Archive system:
 
 #### AWS Configuration Files
 
-On Linux, the `awscli` can be installed to facilitate administration (plus _ad hoc_ access to AWS services). Type:
+On Ubuntu Linux, the `awscli` can be installed to facilitate administration (plus _ad hoc_ access to AWS services). Type:
 
 ```shell
-sudo install awscli
+sudo apt install awscli
 ```
 
 after which time, aws credentials can be specified and stored on the system using the command:
@@ -166,7 +168,7 @@ NOTE: `config.yaml` is in `.gitignore`, but its templates not. That said, if you
 
 ## Other Prerequisites
 
-Installation of the `cryptography` Python package requires a local copy of the rust compiler by following the [rust installation instructions](https://cryptography.io/en/latest/installation.html#rust).
+In development, we use a local AIOHTTP Session management, that requires [installation of the `cryptography` Python package](https://cryptography.io/en/latest/installation.html).
 
 ## Project Python Package Dependencies
 
@@ -178,7 +180,34 @@ pipenv install
 
 ## Basic Operation of the Server
 
-During development, it may be convenient to simply run the server from the command line.  Basic instructions for running the server are provided in the [server README file](./server/README.md) obtained from API code generation. These instructions provide for both for server execution from the command line and within a Docker container (see below).  With respect to command line execution, note the need to change the directory into the `kgea/server` before directly starting the `openapi_server` as a Python module. 
+During development, it may be convenient to simply run the application from the command line. The application is currently split into multiple components running in parallel (preferrably each within their own Python virtual environment, to be safe):
+
+- A web user interface (kgea/server/web_ui)
+- A back end web services API (kgea/server/web_services)
+- A KGX validation tool (T.B.A.)
+
+With respect to command line execution, each component may be started from within the root project directory as independent processes (e.g. as separate run configurations in your IDE, or in separate terminal shells; run with the DEV_MODE flag set, the application does not attempt to authenticate externally using AWS Cognito, see below)
+
+### The Web User interface
+
+```python
+cd /path/to/kge/project/root
+DEV_MODE=1 python -m kgea.server.web_ui
+```
+
+### Back End Web Services
+
+```python
+cd /path/to/kge/project/root
+DEV_MODE=1 python -m kgea.server.web_services
+```
+
+
+
+```python
+cd /path/to/kge/project/root
+DEV_MODE=1 python -m kgea.server.web_ui
+```
 
 Note that the README also mentions some basic Python `tox` tests which can be run. It also mentions the use of Docker, about which we further elaborate here below.
 
