@@ -186,34 +186,23 @@ During development, it may be convenient to simply run the application from the 
 - A back end web services API (kgea/server/web_services)
 - A KGX validation tool (T.B.A.)
 
-With respect to command line execution, each component may be started from within the root project directory as independent processes (e.g. as separate run configurations in your IDE, or in separate terminal shells; run with the DEV_MODE flag set, the application does not attempt to authenticate externally using AWS Cognito, see below)
+With respect to command line execution, each component may be started from within the root KGEA Archive project directory as independent Python module processes (e.g. as separate run configurations in your IDE, or in separate terminal shells; run with the DEV_MODE flag set, the application does not attempt to authenticate externally using AWS Cognito, see below)
 
 ### The Web User interface
 
 ```python
-cd /path/to/kge/project/root
 DEV_MODE=1 python -m kgea.server.web_ui
 ```
 
 ### Back End Web Services
 
 ```python
-cd /path/to/kge/project/root
 DEV_MODE=1 python -m kgea.server.web_services
 ```
 
-
-
-```python
-cd /path/to/kge/project/root
-DEV_MODE=1 python -m kgea.server.web_ui
-```
-
-Note that the README also mentions some basic Python `tox` tests which can be run. It also mentions the use of Docker, about which we further elaborate here below.
-
 # Running the Application within a Docker Container
 
-The simpler way to deploy and run the application may be within a Docker container.
+The simpler way to deploy and run the application is within a Docker container.
 
 ## Installation of Docker
 
