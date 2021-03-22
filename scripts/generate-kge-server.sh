@@ -43,6 +43,9 @@ MODULE="server"
 OUTPUT=$SRC/$MODULE
 echo "Generated "$MODULE" code: "$OUTPUT
 
+PACKAGE="kgea.server.web_services"
+echo "Root package name "$PACKAGE
+
 #
 # A SemVer major.minor.patch version identifier (e.g. 0.0.1)
 # can be given as the first argument of the script.
@@ -68,7 +71,7 @@ $CODE_GEN_CLI generate \
    -g $SERVER_TARGET \
    -i $SPECIFICATION \
    -o $OUTPUT \
-   --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,projectVersion=$VERSION,featureCORS=true
+   --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,packageName=$PACKAGE,projectVersion=$VERSION,featureCORS=true
 
 #
 # After code generation, the package.json has been overwritten again,
