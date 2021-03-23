@@ -43,8 +43,8 @@ MODULE="server"
 OUTPUT=$SRC/$MODULE
 echo "Generated "$MODULE" code: "$OUTPUT
 
-PACKAGE="kgea.server.web_services"
-echo "Root package name "$PACKAGE
+PACKAGE="web_services"
+echo "Root package name: "$PACKAGE
 
 #
 # A SemVer major.minor.patch version identifier (e.g. 0.0.1)

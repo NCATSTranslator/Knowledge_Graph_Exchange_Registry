@@ -224,23 +224,32 @@ paths:
         - name: kg_name
           in: path
           description: >-
-            Name label of KGE File Set, the knowledge graph
-            for which data files are being accessed
+            KGE File Set identifier for the knowledge graph
+            for which data files are being accessed.
           required: true
           schema:
             type: string
       tags:
         - content
       summary: Meta knowledge graph representation of this KGX knowledge graph.
+      operationId: metaKnowledgeGraph
       responses:
         '200':
           description: >-
-            Returns meta knowledge graph representation of
-            this KGX knowledge graph.
+            Returns meta knowledge graph representation
+            of this KGX knowledge graph.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MetaKnowledgeGraph'
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR KGX knowledge graph identifier is not just unrecognized.
+          content:
+            application/json:
+              schema:
+                type: string
 components:
   schemas:
     Attribute:
