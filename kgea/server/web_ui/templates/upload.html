@@ -75,22 +75,33 @@
                     method: "POST",
                     body: formData,
                     credentials: "include"
-            }).then(
-                response => {
-                    console.log('HTTP response code:', response.status);
-                    window.alert(
-                        "File '"+content_name+
-                        "' for knowledge graph '{{kg_name}}' (KG Name: '" +
-                        response.text()+
-                        "') was successfully uploaded!");
-                }
-            ).catch((error) => {
-                let err_msg = "File upload error encountered for file '" +
-                           content_name +
-                           "' for knowledge graph '{{kg_name}}: " + error;
-               console.log(err_msg);
-               window.alert(err_msg);
-            });
+                }).then(
+                    response => {
+                        console.log('HTTP response code:', response.status);
+                        response.text(
+                            // nop
+                        ).then(
+                            name => {
+                                window.alert(
+                                    "File '" + content_name +
+                                    "' for knowledge graph '{{kg_name}}' (KG Name: '" +
+                                    name +
+                                    `') was successfully uploaded!`);
+                            }
+                        ).catch(error => {
+                            let err_msg = "Error accessing KGE Archive file set ID for file '" +
+                                content_name +
+                                "' from knowledge graph '{{kg_name}}: " + error;
+                            console.log(err_msg);
+                            window.alert(err_msg);
+                        })
+                }).catch(error => {
+                    let err_msg = "File upload error encountered for file '" +
+                        content_name +
+                        "' from knowledge graph '{{kg_name}}: " + error;
+                    console.log(err_msg);
+                    window.alert(err_msg);
+                });
         }
     </script>
 {% endblock %}

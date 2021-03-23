@@ -52,7 +52,7 @@ def test_convert_to_yaml():
 
 
 # TODO
-def create_smartapi(submitter, kg_name):
+def create_smartapi(submitter: str, kg_name: str):
     spec = {}
     yaml_file = convert_to_yaml(spec)
     return yaml_file
