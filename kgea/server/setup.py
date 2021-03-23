@@ -1,6 +1,5 @@
 # coding: utf-8
 
-import sys
 from setuptools import setup, find_packages
 
 NAME = "web_services"
@@ -38,4 +37,3 @@ setup(
     OpenAPI for the NCATS Biomedical Translator Knowledge Graph Exchange Archive
     """
 )
-

@@ -302,12 +302,12 @@ async def upload_kge_file(
 #
 # Insert import and return call into content_controller.py:
 #
-# from ..kge_handlers import kge_knowledge_map
+# from ..kge_handlers import kge_meta_knowledge_graph
 #############################################################
 
 
 # TODO: get file out of root folder
-async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
+async def kge_meta_knowledge_graph(request: web.Request, kg_name: str) -> web.Response:
     """Get supported relationships by source and target
 
     :param request:
@@ -317,7 +317,7 @@ async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
 
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
-    logger.debug("Entering kge_knowledge_map(kg_name: " + kg_name + ")")
+    logger.debug("Entering kge_meta_knowledge_graph(kg_name: " + kg_name + ")")
 
     session = await get_session(request)
     if not session.empty:

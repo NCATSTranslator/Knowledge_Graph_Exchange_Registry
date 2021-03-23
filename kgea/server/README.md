@@ -15,7 +15,7 @@ To run the server, please execute the following from the root directory:
 
 ```
 pip3 install -r requirements.txt
-python3 -m kgea.server.web_services
+python3 -m kgea.services.web_services
 ```
 
 and open your browser to here:

@@ -152,3 +152,25 @@ should read
 ```yaml
 x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
 ```
+
+### Documentation
+
+The `kgea/server/README.md` should be manually corrected as follows:
+
+1. Under **# Usage**, the startup instructions which read:
+
+
+```
+pip3 install -r requirements.txt
+python3 -m web_services
+```
+
+should be revised to read
+
+
+```
+pip3 install -r requirements.txt
+python3 -m kgea.services.web_services
+```
+
+again to align with the nature of the integrated Archive application.

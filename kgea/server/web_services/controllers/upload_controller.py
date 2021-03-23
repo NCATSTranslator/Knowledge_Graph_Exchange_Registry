@@ -13,7 +13,7 @@ async def register_file_set(request: web.Request):
     :type request: web.Request
 
     """
-    # This method raises an obligatory web.HTTPFound exception
+    # This method raises an obligatory web.HTTPFound redirection exception
     await register_kge_file_set(request)
 
 

@@ -179,20 +179,20 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kg_name}/access:
+  /{kg_id}/access:
     get:
       parameters:
-      - name: kg_name
+      - name: kg_id
         in: path
         description: >-
-          Name label of KGE File Set, the knowledge graph
+          KGE File Set identifier for the knowledge graph
           for which data files are being accessed
         required: true
         schema:
           type: string
       tags:
         - provider
-      summary: Get KGE File Sets
+      summary: Get KGE File Set provider metadata.
       operationId: access
       responses:
         '200':
@@ -218,10 +218,10 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kg_name}/meta_knowledge_graph:
+  /{kg_id}/meta_knowledge_graph:
     get:
       parameters:
-        - name: kg_name
+        - name: kg_id
           in: path
           description: >-
             KGE File Set identifier for the knowledge graph

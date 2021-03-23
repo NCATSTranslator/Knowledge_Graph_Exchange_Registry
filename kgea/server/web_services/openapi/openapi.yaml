@@ -183,15 +183,15 @@ paths:
       - upload
       x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
       x-codegen-request-body-name: body
-  /{kg_name}/access:
+  /{kg_id}/access:
     get:
       operationId: access
       parameters:
-      - description: Name label of KGE File Set, the knowledge graph for which data
-          files are being accessed
+      - description: KGE File Set identifier for the knowledge graph for which
+          data files are being accessed.
         explode: false
         in: path
-        name: kg_name
+        name: kg_id
         required: true
         schema:
           type: string
@@ -214,20 +214,20 @@ paths:
               schema:
                 type: string
           description: Bad request. The request is invalid according to this OpenAPI
-            schema OR knowledge graph identifier is not just unrecognized.
+            schema OR knowledge graph identifier is not just recognized.
       summary: Get KGE File Sets
       tags:
       - provider
       x-openapi-router-controller: kgea.server.web_services.controllers.provider_controller
-  /{kg_name}/knowledge_map:
+  /{kg_id}/meta_knowledge_graph:
     get:
-      operationId: knowledge_map
+      operationId: meta_knowledge_graph
       parameters:
-      - description: Name label of KGE File Set, the knowledge graph for which content
-          metadata is being accessed
+      - description: KGE File Set identifier for the knowledge graph for which data
+          files are being accessed.
         explode: false
         in: path
-        name: kg_name
+        name: kg_id
         required: true
         schema:
           type: string
@@ -237,30 +237,17 @@ paths:
           content:
             application/json:
               schema:
-                additionalProperties:
-                  additionalProperties:
-                    description: Array of predicates
-                    items:
-                      type: string
-                    type: array
-                  description: Target map
-                  type: object
-                description: Source map
-                example:
-                  biolink:ChemicalSubstance:
-                    biolink:Gene:
-                    - biolink:directly_interacts_with
-                    - biolink:decreases_activity_of
-                type: object
-          description: Knowledge Map of predicates by source and target
+                $ref: '#/components/schemas/MetaKnowledgeGraph'
+          description: Returns meta knowledge graph representation of this KGX knowledge
+            graph.
         "400":
           content:
             application/json:
               schema:
                 type: string
           description: Bad request. The request is invalid according to this OpenAPI
-            schema OR knowledge graph identifier is not just unrecognized.
-      summary: Get supported relationships by source and target
+            schema OR KGX knowledge graph identifier is not just unrecognized.
+      summary: Meta knowledge graph representation of this KGX knowledge graph.
       tags:
       - content
       x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
@@ -286,15 +273,205 @@ components:
         type:
           description: Type of the metadata attribute, from the Translator Registry
             metadata dictionary.
-          example: Foo
+          example: submitter
+          title: type
           type: string
         value:
           description: Value of the attribute, encoded as a string.
-          example: Bar
+          example: Abraham Lincoln
+          title: value
           type: string
       required:
       - type
       - value
+      title: Attribute
+      type: object
+    BiolinkEntity:
+      description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing or
+        a child thereof. The CURIE must use the prefix 'biolink:' followed by the
+        PascalCase class name.
+      example: biolink:PhenotypicFeature
+      externalDocs:
+        description: Biolink model entities
+        url: https://biolink.github.io/biolink-model/docs/NamedThing.html
+      pattern: ^biolink:[A-Z][a-zA-Z]*$
+      title: BiolinkEntity
+      type: string
+    BiolinkPredicate:
+      description: CURIE for a Biolink 'predicate' slot, taken from the Biolink slot
+        ('is_a') hierarchy rooted in biolink:related_to (snake_case). This predicate
+        defines the Biolink relationship between the subject and object nodes of a
+        biolink:Association defining a knowledge graph edge.
+      example: biolink:interacts_with
+      externalDocs:
+        description: Biolink model predicates
+        url: https://biolink.github.io/biolink-model/docs/related_to.html
+      pattern: ^biolink:[a-z][a-z_]*$
+      title: BiolinkPredicate
+      type: string
+    MetaKnowledgeGraph:
+      description: Knowledge-map representation of this KGX knowledge graph.
+      example:
+        nodes:
+          key:
+            id_prefixes:
+            - CHEMBL.COMPOUND
+            - INCHIKEY
+            count: 0
+            count_by_source:
+              ChEMBL: 1234
+        edges:
+        - predicate: biolink:interacts_with
+          subject: biolink:PhenotypicFeature
+          count: 6
+          relations:
+          - inhibits
+          - activates
+          count_by_source:
+            ChEMBL: 1234
+          object: biolink:PhenotypicFeature
+        - predicate: biolink:interacts_with
+          subject: biolink:PhenotypicFeature
+          count: 6
+          relations:
+          - inhibits
+          - activates
+          count_by_source:
+            ChEMBL: 1234
+          object: biolink:PhenotypicFeature
+      properties:
+        nodes:
+          additionalProperties:
+            $ref: '#/components/schemas/MetaNode'
+          description: Collection of node categories provided by this KGX knowledge
+            graph, indexed by Biolink class CURIEs.
+          title: nodes
+          type: object
+        edges:
+          description: List of edges/predicates provided by this KGX knowledge graph.
+          items:
+            $ref: '#/components/schemas/MetaEdge'
+          minItems: 1
+          title: edges
+          type: array
+      title: MetaKnowledgeGraph
+      type: object
+    MetaNode:
+      additionalProperties: false
+      description: Description of a node category provided by this KGX knowledge graph.
+      example:
+        id_prefixes:
+        - CHEMBL.COMPOUND
+        - INCHIKEY
+        count: 0
+        count_by_source:
+          ChEMBL: 1234
+      properties:
+        id_prefixes:
+          description: List of CURIE prefixes for the node category that this TRAPI
+            web service understands and accepts on the input.
+          example:
+          - CHEMBL.COMPOUND
+          - INCHIKEY
+          items:
+            type: string
+          minItems: 1
+          title: id_prefixes
+          type: array
+        count:
+          description: Total number of node instances of this node category known
+            to this KGX knowledge graph, or -1 if the number is not known.
+          title: count
+          type: integer
+        count_by_source:
+          additionalProperties:
+            type: integer
+          description: Number of node instances by their source
+          example:
+            ChEMBL: 1234
+          title: count_by_source
+          type: object
+      required:
+      - id_prefixes
+      title: MetaNode
+      type: object
+    MetaEdge:
+      additionalProperties: false
+      description: Edge in a meta knowledge map describing relationship between a
+        subject Biolink class and an object Biolink class.
+      example:
+        predicate: biolink:interacts_with
+        subject: biolink:PhenotypicFeature
+        count: 6
+        relations:
+        - inhibits
+        - activates
+        count_by_source:
+          ChEMBL: 1234
+        object: biolink:PhenotypicFeature
+      properties:
+        subject:
+          description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing
+            or a child thereof. The CURIE must use the prefix 'biolink:' followed
+            by the PascalCase class name.
+          example: biolink:PhenotypicFeature
+          externalDocs:
+            description: Biolink model entities
+            url: https://biolink.github.io/biolink-model/docs/NamedThing.html
+          pattern: ^biolink:[A-Z][a-zA-Z]*$
+          title: BiolinkEntity
+          type: string
+        predicate:
+          description: CURIE for a Biolink 'predicate' slot, taken from the Biolink
+            slot ('is_a') hierarchy rooted in biolink:related_to (snake_case). This
+            predicate defines the Biolink relationship between the subject and object
+            nodes of a biolink:Association defining a knowledge graph edge.
+          example: biolink:interacts_with
+          externalDocs:
+            description: Biolink model predicates
+            url: https://biolink.github.io/biolink-model/docs/related_to.html
+          pattern: ^biolink:[a-z][a-z_]*$
+          title: BiolinkPredicate
+          type: string
+        object:
+          description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing
+            or a child thereof. The CURIE must use the prefix 'biolink:' followed
+            by the PascalCase class name.
+          example: biolink:PhenotypicFeature
+          externalDocs:
+            description: Biolink model entities
+            url: https://biolink.github.io/biolink-model/docs/NamedThing.html
+          pattern: ^biolink:[A-Z][a-zA-Z]*$
+          title: BiolinkEntity
+          type: string
+        relations:
+          description: Low-level relations from the underlying source.
+          example:
+          - inhibits
+          - activates
+          items:
+            type: string
+          title: relations
+          type: array
+        count:
+          description: Total number of edge instances of this (subject, predicate,
+            object) triple known to this KGX knowledge graph, or -1 if the number
+            is not known.
+          title: count
+          type: integer
+        count_by_source:
+          additionalProperties:
+            type: integer
+          description: Number of edge instances by their source.
+          example:
+            ChEMBL: 1234
+          title: count_by_source
+          type: object
+      required:
+      - object
+      - predicate
+      - subject
+      title: MetaEdge
       type: object
     inline_object:
       properties:

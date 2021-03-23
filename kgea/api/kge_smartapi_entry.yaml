@@ -21,8 +21,8 @@ info:
         team:
         - {{nameOfTeam}}
 servers:
-  # $kg_name should be set to the
-  # registered Knowledge Graph name in the KGE Archive
+  # $kg_id should be set to the Translator SmartAPI
+  # registered Knowledge Graph identifier in the KGE Archive
   - url: "_https://kge.starinformatics.ca/{{kgname}}"
     description: "Production Server"
 externalDocs:
@@ -46,17 +46,7 @@ paths:
     get:
       tags:
         - provider
-      summary: Get KGE File Sets
-      parameters:
-        - name: kg_name
-          in: path
-          description: >-
-            Name label of KGE File Set whose files are being accessed
-          required: true
-          # x-valueType:
-          #  - don't know if this needs a SmartAPI value type?
-          schema:
-            type: string
+      summary: Get KGE File Set provider metadata.
       responses:
         '200':
           description: >-
