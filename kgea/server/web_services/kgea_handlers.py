@@ -34,9 +34,8 @@ from .kgea_file_ops import (
 from .kgea_stream import transfer_file_from_url
 
 from ..registry import (
-    KgxFileType,
-    KgeRegistry,
-    add_to_kgx_file_set
+    KgeFileType,
+    KgeaRegistry
 )
 
 import logging
@@ -138,7 +137,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
-                KgeRegistry.add_knowledge_graph(submitter=submitter, name=kg_name)
+                KgeaRegistry.registry().add_knowledge_graph(submitter=submitter, kg_name=kg_name)
                 
                 await redirect(request,
                                Template(UPLOAD_FORM_PATH + '?submitter=$submitter&kg_name=$kg_name').substitute(
@@ -209,7 +208,7 @@ async def upload_kge_file(
         content_location, _ = with_timestamp(get_object_location)(kg_name)
         
         uploaded_file_object_key = None
-        file_type: KgxFileType = KgxFileType.KGX_UNKNOWN
+        file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
         
         if upload_mode == 'content_from_url':
             
@@ -222,7 +221,7 @@ async def upload_kge_file(
                 object_location=content_location
             )
             
-            file_type = KgxFileType.KGX_DATA_FILE
+            file_type = KgeFileType.KGX_DATA_FILE
         
         else:  # process direct metadata or content file upload
             
@@ -243,7 +242,7 @@ async def upload_kge_file(
                     object_location=content_location
                 )
                 
-                file_type = KgxFileType.KGX_DATA_FILE
+                file_type = KgeFileType.KGX_DATA_FILE
             
             elif upload_mode == 'metadata':
 
@@ -259,7 +258,7 @@ async def upload_kge_file(
                     object_location=metadata_location
                 )
                 
-                file_type = KgxFileType.KGX_METADATA_FILE
+                file_type = KgeFileType.KGX_METADATA_FILE
             
             else:
                 await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
@@ -275,7 +274,7 @@ async def upload_kge_file(
                 # This action adds a file to a knowledge graph initiating or
                 # continuing a KGE file set registration process. The return
                 # value is a normalized kg_name, for client access polling.
-                kg_name = add_to_kgx_file_set(
+                kg_name = KgeaRegistry.registry().add_to_kge_file_set(
                     submitter, kg_name, file_type,
                     uploaded_file_object_key, s3_file_url
                 )
