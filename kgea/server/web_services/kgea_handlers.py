@@ -35,6 +35,7 @@ from .kgea_stream import transfer_file_from_url
 
 from ..registry import (
     KgxFileType,
+    KgeRegistry,
     add_to_kgx_file_set
 )
 
@@ -134,6 +135,11 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
                 #
+                
+                # Here we start to inject local KGE Archive tracking
+                # of the file set of a specific knowledge graph submission
+                KgeRegistry.add_knowledge_graph(submitter=submitter, name=kg_name)
+                
                 await redirect(request,
                                Template(UPLOAD_FORM_PATH + '?submitter=$submitter&kg_name=$kg_name').substitute(
                                    kg_name=kg_name, submitter=submitter),
@@ -268,13 +274,13 @@ async def upload_kge_file(
 
                 # This action adds a file to a knowledge graph initiating or
                 # continuing a KGE file set registration process. The return
-                # value is an KGE File Set identifier for client status polling.
-                kge_file_set_id = add_to_kgx_file_set(
+                # value is a normalized kg_name, for client access polling.
+                kg_name = add_to_kgx_file_set(
                     submitter, kg_name, file_type,
                     uploaded_file_object_key, s3_file_url
                 )
 
-                response = web.Response(text=str(kge_file_set_id), status=200)
+                response = web.Response(text=str(kg_name), status=200)
 
                 return await with_session(request, response)
 

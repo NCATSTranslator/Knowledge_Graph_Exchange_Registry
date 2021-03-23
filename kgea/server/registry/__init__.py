@@ -5,6 +5,8 @@ from os import getenv
 from enum import Enum
 
 import logging
+from typing import Dict, Union
+
 logger = logging.getLogger(__name__)
 DEBUG = getenv('DEV_MODE', default=False)
 if DEBUG:
@@ -99,6 +101,80 @@ def test_translator_registration():
     return True
 
 
+class KgeEntry:
+    """
+    Class wrapping information about a KGE file set being
+    assembled in AWS S3, for SmartAPI registration and client access
+    """
+    def __init__(self, kg_name: str, submitter: str):
+        """
+        
+        :param kg_name: name of knowledge graph in entry
+        :param submitter: owner of knowledge graph
+        """
+        self.name: str = kg_name
+        self.submitter = submitter
+        self.files: Dict[str,str] = dict()
+
+
+class KgeRegistry:
+    """
+    Knowledge Graph Exchange (KGE) Temporary Registry for
+    tracking compilation and validation of complete KGE File Sets
+    """
+    _initialized = False
+    
+    @classmethod
+    def registry(cls):
+        """
+        :return: singleton of KgeRegistry
+        """
+        if not cls._initialized:
+            KgeRegistry._registry = KgeRegistry()
+            cls._initialized = True
+        return KgeRegistry._registry
+
+    def __init__(self):
+        self._knowledge_graphs: Dict[str, KgeEntry] = dict()
+    
+    @staticmethod
+    def normal_name(kg_name: str) -> str:
+        # TODO: need to review graph name normalization and indexing
+        #       against various internal graph use cases, e.g. lookup
+        kg_name = kg_name.lower()  # all lower case
+        kg_name = kg_name.replace(' ', '_')  # spaces with underscores
+        return kg_name
+    
+    # TODO: what is the required idempotency of this KG addition relative to submitters (can submitters change?)
+    # TODO: how do we deal with versioning of submissions across several days(?)
+    def add_knowledge_graph(self, submitter: str, kg_name: str):
+        """
+        Adds a new record for a knowledge graph with a given 'name' for a given 'submitter'.
+        The name is indexed by normalization to lower case and substitution of underscore for spaces.
+        
+        :param submitter: 'owner' of the knowledge graph submission
+        :param kg_name: of the knowledge graph (normalized to lower case and all spaces converted to underscores
+        :return: dict of specific knowledge graph
+        """
+        kg_name = self.normal_name(kg_name)
+        
+        # For now, a given graph is only submitted once for a given submitter
+        if kg_name not in self._knowledge_graphs:
+            self._knowledge_graphs[kg_name] = KgeEntry(kg_name, submitter)
+
+    def get_knowledge_graph(self, kg_name: str) -> Union[KgeEntry, None]:
+        """
+        
+        :param kg_name:
+        :return:
+        """
+        kg_name = self.normal_name(kg_name)
+        if kg_name in self._knowledge_graphs:
+            return self._knowledge_graphs[kg_name]
+        else:
+            return None
+
+
 # TODO: this is code extracted from the kgea_handlers.py file upload... needs a total rethinking
 def add_to_kgx_file_set(
         submitter: str, kg_name: str, file_type: KgxFileType,
@@ -118,7 +194,7 @@ def add_to_kgx_file_set(
     :param s3_file_url: str
     :return: kge_file_set_id: to the local (not SmartAPI) KGE Registry which is a kind of pointer to the KGX file set
     """
-
+    """
     s3_metadata = {file_type: dict({})}
     s3_metadata[file_type][uploaded_file_object_key] = s3_file_url
 
@@ -136,9 +212,13 @@ def add_to_kgx_file_set(
         error_msg: str = "upload_kge_file(uploaded_file_object_key: " + \
                          str(uploaded_file_object_key) + ") is not a KGX compliant file."
         logger.error(error_msg)
-        raise RuntimeError(error_msg)
+        raise RuntimeError(error_msg)"""
 
-    return "kge_file_set_id"
+    # TODO: stub implementation
+    kg_name = KgeRegistry.normal_name(kg_name)
+    
+    return kg_name
+
 
 """
 Unit Tests

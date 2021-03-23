@@ -213,7 +213,7 @@ paths:
         '400':
           description: >-
             Bad request. The request is invalid according to this OpenAPI
-            schema OR knowledge graph identifier is not just unrecognized.
+            schema OR knowledge graph identifier is not just recognized.
           content:
             application/json:
               schema:
