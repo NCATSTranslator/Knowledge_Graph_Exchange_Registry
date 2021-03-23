@@ -142,6 +142,7 @@ class KgeaRegistry:
     def normal_name(kg_name: str) -> str:
         # TODO: need to review graph name normalization and indexing
         #       against various internal graph use cases, e.g. lookup
+        #       and need to be robust to user typos (e.g. extra blank spaces?)
         kg_name = kg_name.lower()  # all lower case
         kg_name = kg_name.replace(' ', '_')  # spaces with underscores
         return kg_name
@@ -177,13 +178,13 @@ class KgeaRegistry:
             return self._knowledge_graphs[kg_name]
         else:
             return None
-    
+
     # TODO: this is code extracted from the kgea_handlers.py file upload... needs a total rethinking
     def add_to_kge_file_set(
             self,
-            submitter: str, kg_name: str, file_type: KgeFileType,
+            submitter: str, kg_id: str, file_type: KgeFileType,
             uploaded_file_object_key: str, s3_file_url: str
-    ) -> str:
+    ):
         """
         This method adds the given input file to a local catalog of recently
         updated files, within which files formats are asynchronously validated
@@ -192,11 +193,11 @@ class KgeaRegistry:
         An exception is raise if there is an error.
     
         :param submitter: Submitter of the Knowledge Graph of focus
-        :param kg_name: Knowledge Graph Name
+        :param kg_id: Knowledge Graph File Set identifier
         :param file_type: File type
         :param uploaded_file_object_key: str
         :param s3_file_url: str
-        :return: kge_file_set_id: to the local (not SmartAPI) KGE Registry which is a kind of pointer to the KGX file set
+        :return: None
         """
         """
         s3_metadata = {file_type: dict({})}
@@ -219,9 +220,7 @@ class KgeaRegistry:
             raise RuntimeError(error_msg)"""
         
         # TODO: stub implementation
-        kg_name = KgeaRegistry.normal_name(kg_name)
-        
-        return kg_name
+        pass
 
 
 """

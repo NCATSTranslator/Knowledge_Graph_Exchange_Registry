@@ -205,7 +205,11 @@ async def upload_kge_file(
             # Invalid upload mode
             await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
         
-        content_location, _ = with_timestamp(get_object_location)(kg_name)
+        # Use a normalized version of the knowledge
+        # graph name as the KGE File Set identifier.
+        kg_id = KgeaRegistry.normal_name(kg_name)
+        
+        content_location, _ = with_timestamp(get_object_location)(kg_id)
         
         uploaded_file_object_key = None
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
@@ -248,7 +252,7 @@ async def upload_kge_file(
 
                 # KGE Metadata File for upload?
                 
-                metadata_location = get_object_location(kg_name)
+                metadata_location = get_object_location(kg_id)
                 
                 uploaded_file_object_key = upload_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
@@ -271,15 +275,15 @@ async def upload_kge_file(
                     object_key=uploaded_file_object_key
                 )
 
-                # This action adds a file to a knowledge graph initiating or
-                # continuing a KGE file set registration process. The return
-                # value is a normalized kg_name, for client access polling.
-                kg_name = KgeaRegistry.registry().add_to_kge_file_set(
-                    submitter, kg_name, file_type,
+                # This action adds a file to a knowledge graph initiating
+                # or continuing a KGE file set registration process.
+                # May raise an Exception if something goes wrong.
+                KgeaRegistry.registry().add_to_kge_file_set(
+                    submitter, kg_id, file_type,
                     uploaded_file_object_key, s3_file_url
                 )
 
-                response = web.Response(text=str(kg_name), status=200)
+                response = web.Response(text=str(kg_id), status=200)
 
                 return await with_session(request, response)
 
@@ -307,22 +311,22 @@ async def upload_kge_file(
 
 
 # TODO: get file out of root folder
-async def kge_meta_knowledge_graph(request: web.Request, kg_name: str) -> web.Response:
+async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Response:
     """Get supported relationships by source and target
 
     :param request:
     :type request: web.Request
-    :param kg_name: Name label of KGE File Set whose knowledge graph content metadata is being reported
-    :type kg_name: str
+    :param kg_id: Name label of KGE File Set whose knowledge graph content metadata is being reported
+    :type kg_id: str
 
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
-    logger.debug("Entering kge_meta_knowledge_graph(kg_name: " + kg_name + ")")
+    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ")")
 
     session = await get_session(request)
     if not session.empty:
 
-        files_location = get_object_location(kg_name)
+        files_location = get_object_location(kg_id)
 
         # Listings Approach
         # - Introspect on Bucket
@@ -366,22 +370,22 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_name: str) -> web.Re
 # from ..kge_handlers import kge_access
 #############################################################
 # TODO: get file out from timestamped folders
-async def kge_access(request: web.Request, kg_name: str) -> web.Response:
+async def kge_access(request: web.Request, kg_id: str) -> web.Response:
     """Get KGE File Sets
 
     :param request:
     :type request: web.Request
-    :param kg_name: Name label of KGE File Set whose files are being accessed
-    :type kg_name: str
+    :param kg_id: Name label of KGE File Set whose files are being accessed
+    :type kg_id: str
 
     :rtype: web.Response( Dict[str, Attribute] )
     """
-    logger.debug("Entering kge_access(kg_name: " + kg_name + ")")
+    logger.debug("Entering kge_access(kg_id: " + kg_id + ")")
 
     session = await get_session(request)
     if not session.empty:
 
-        files_location = get_object_location(kg_name)
+        files_location = get_object_location(kg_id)
         # Listings Approach
         # - Introspect on Bucket
         # - Create URL per Item Listing
