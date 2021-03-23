@@ -220,8 +220,17 @@ paths:
                 type: string
   /{kg_name}/meta_knowledge_graph:
     get:
+      parameters:
+        - name: kg_name
+          in: path
+          description: >-
+            Name label of KGE File Set, the knowledge graph
+            for which data files are being accessed
+          required: true
+          schema:
+            type: string
       tags:
-        - meta_knowledge_graph
+        - content
       summary: Meta knowledge graph representation of this KGX knowledge graph.
       responses:
         '200':

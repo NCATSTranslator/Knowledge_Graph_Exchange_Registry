@@ -76,7 +76,7 @@ paths:
   /meta_knowledge_graph:
     get:
       tags:
-        - meta_knowledge_graph
+        - content
       summary: Meta knowledge graph representation of this KGX knowledge graph.
       responses:
         '200':
