@@ -78,11 +78,18 @@
             }).then(
                 response => {
                     console.log('HTTP response code:', response.status);
-                    window.alert('File successfully uploaded!');
+                    window.alert(
+                        "File '"+content_name+
+                        "' for knowledge graph '{{kg_name}}' (File Set Id: '" +
+                        response.text()+
+                        "') was successfully uploaded!");
                 }
             ).catch((error) => {
-               console.log('File upload error: '+error);
-               window.alert('File upload error:  '+error);
+                let err_msg = "File upload error encountered for file '" +
+                           content_name +
+                           "' for knowledge graph '{{kg_name}}: " + error;
+               console.log(err_msg);
+               window.alert(err_msg);
             });
         }
     </script>

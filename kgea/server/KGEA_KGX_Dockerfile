@@ -1,0 +1,12 @@
+# Putative KGX Docker Process...
+# not sure how this will work in practice?
+FROM python:3.8-alpine
+
+RUN python -m pip install --upgrade pip && pip3 install wheel && \
+    pip3 install --no-cache-dir kgx
+
+EXPOSE 8100
+
+ENTRYPOINT ["python3"]
+
+CMD ["-m", "kgea.server.kgx_validator"]

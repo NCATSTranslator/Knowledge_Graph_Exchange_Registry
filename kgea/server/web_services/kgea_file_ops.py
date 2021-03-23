@@ -63,11 +63,11 @@ def prepare_test(func):
         TEST_BUCKET = 'kgea-test-bucket'
         TEST_KG_NAME = 'test_kg'
         return func()
+
     return wrapper
 
 
 def prepare_test_random_object_location(func):
-
     def wrapper(object_key=_random_alpha_string()):
         s3_client.put_object(
             Bucket='kgea-test-bucket',
@@ -76,7 +76,7 @@ def prepare_test_random_object_location(func):
         result = func(test_object_location=get_object_location(object_key))
         # TODO: prevent deletion for a certain period of time
         s3_client.delete_object(
-            Bucket='kgea-test-bucket', 
+            Bucket='kgea-test-bucket',
             Key=get_object_location(object_key)
         )
         return result
@@ -86,7 +86,7 @@ def prepare_test_random_object_location(func):
 
 def get_object_location(kg_name):
     """
-    NOTE: Must be kept deterministic. No datetimes or
+    NOTE: Must be kept deterministic. No date times or
     randomness in this method; they may be appended afterwards.
     """
     location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
@@ -98,7 +98,8 @@ def get_object_location(kg_name):
 
 def with_timestamp(func, date_time=datetime.now().strftime('%Y-%m-%d')):
     def wrapper(kg_name):
-        return func(kg_name +'/' + date_time), date_time
+        return func(kg_name + '/' + date_time), date_time
+
     return wrapper
 
 
@@ -125,7 +126,8 @@ def location_available(bucket_name, object_key):
 
 
 @prepare_test
-def test_is_location_available(test_object_location=get_object_location(_random_alpha_string()), test_bucket=TEST_BUCKET):
+def test_is_location_available(test_object_location=get_object_location(_random_alpha_string()),
+                               test_bucket=TEST_BUCKET):
     try:
         isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=test_object_location)
         return isRandomLocationAvailable
@@ -133,6 +135,7 @@ def test_is_location_available(test_object_location=get_object_location(_random_
         logger.error("location_available(): found a location that should not exist")
         logger.error(e)
         return False
+
 
 # note: use this decorator only if the child function satisfies `test_object_location` in its arguments
 @prepare_test
@@ -147,7 +150,7 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
     """
     try:
         isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=test_object_location)
-        assert(isRandomLocationAvailable is not True)
+        assert (isRandomLocationAvailable is not True)
     except AssertionError as e:
         logger.error("ERROR: created location was not found")
         logger.error(e)
@@ -157,7 +160,7 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
 
 def kg_files_in_location(bucket_name, object_location):
     bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
-                        e in p['Contents']]
+                       e in p['Contents']]
     object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
     return object_matches
 
@@ -168,30 +171,33 @@ def kg_files_in_location(bucket_name, object_location):
 def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
     try:
         kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=test_object_location)
-        assert(len(kg_file_list) > 0)
+        assert (len(kg_file_list) > 0)
     except AssertionError as e:
         raise AssertionError(e)
     return True
 
 
-# TODO: clarify expiration time
-def create_presigned_url(bucket, object_key, expiration=3600):
-    """Generate a presigned URL to share an S3 object
+# TODO: clarify expiration time - default to 1 day (in seconds)
+def create_presigned_url(bucket, object_key, expiration=86400):
+    """Generate a pre-signed URL to share an S3 object
 
     :param bucket: string
     :param object_key: string
-    :param expiration: Time in seconds for the presigned URL to remain valid
+    :param expiration: Time in seconds for the pre-signed URL to remain valid
     :return: Presigned URL as string. If error, returns None.
     """
-    
-    # Generate a presigned URL for the S3 object
+
+    # Generate a pre-signed URL for the S3 object
     # https://stackoverflow.com/a/52642792
-    try:
-        response = s3_client.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': object_key}, ExpiresIn=expiration)
-    except ClientError as e:
-        raise ClientError(e)
-    
-    # The response contains the presigned URL
+    #
+    # This may thrown a Boto related exception - assume that it will be catch by the caller
+    response = s3_client.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket, 'Key': object_key},
+        ExpiresIn=expiration
+    )
+
+    # The response contains the pre-signed URL
     return response
 
 
@@ -236,10 +242,10 @@ def upload_file(data_file, file_name, bucket, object_location):
 def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         # NOTE: file must be read in binary mode!
-        with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
+        with open(abspath('test/data/' + 'somedata.csv'), 'rb') as test_file:
             content_location, _ = with_timestamp(get_object_location)(test_kg)
             object_key = upload_file(test_file, test_file.name, test_bucket, content_location)
-            assert(object_key in kg_files_in_location(test_bucket, content_location))
+            assert (object_key in kg_files_in_location(test_bucket, content_location))
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
@@ -263,10 +269,10 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         test_location, time_created = with_timestamp(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
-        with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
+        with open(abspath('test/data/' + 'somedata.csv'), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, test_location)
-            assert(object_key in kg_files_in_location(test_bucket, test_location))
-            assert(time_created in object_key)
+            assert (object_key in kg_files_in_location(test_bucket, test_location))
+            assert (time_created in object_key)
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
@@ -277,7 +283,7 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     except AssertionError as e:
         logger.error(
-            'The resulting path was not found inside of the '+
+            'The resulting path was not found inside of the ' +
             'knowledge graph folder, OR the timestamp isn\'t in the path!'
         )
         logger.error(e)
@@ -290,13 +296,13 @@ def download_file(bucket, object_key, open_file=False):
     if open_file:
         return download_url, webbrowser.open_new_tab(download_url)
     return download_url
-    
+
 
 @prepare_test
 # @prepare_test_random_object_location
 def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
     try:
-        with open(abspath('test/data/'+'somedata.csv'), 'rb') as test_file:
+        with open(abspath('test/data/' + 'somedata.csv'), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_name))
             url = download_file(
                 bucket=test_bucket,
@@ -304,7 +310,7 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
                 open_file=False
             )  # open_file=False to affirm we won't trigger a browser action
             response = requests.get(url)
-            assert(response.status_code == 200)
+            assert (response.status_code == 200)
             # TODO: test for equal content from download response
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -317,97 +323,30 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
     return True
 
 
-# TODO
-def convert_to_yaml(spec):
-    yaml_file = lambda spec: spec 
-    return yaml_file(spec)
-
-
-# TODO
-@prepare_test
-def test_convert_to_yaml():
-    return True
-
-
-# TODO
-def create_smartapi(submitter, kg_name):
-    spec = {}
-    yaml_file = convert_to_yaml(spec)
-    return yaml_file
-
-
-# TODO
-@prepare_test
-def test_create_smartapi():
-    return True
-
-
-# TODO
-def add_to_github(api_specification):
-    # using https://github.com/NCATS-Tangerine/translator-api-registry
-    repo = ''
-    return repo
-
-
-# TODO
-@prepare_test
-def test_add_to_github():
-    return True
-
-
-# TODO
-def translator_registration(submitter, kg_name):
-    # TODO: check if the kg_name is already registered?
-    api_specification = create_smartapi(submitter, kg_name)
-    translator_registry_url = add_to_github(api_specification)
-
-
-# TODO
-@prepare_test
-def test_translator_registration():
-    return True
-
-
-# TODO
-def api_registered(kg_name):
-    return True
-
-
-# TODO
-@prepare_test
-def test_api_registered():
-    return True
-
 """
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
 if __name__ == '__main__':
-    
-    assert(test_kg_files_in_location()) 
+    assert (test_kg_files_in_location())
     print("test_kg_files_in_location passed")
 
-    assert(test_is_location_available())
+    assert (test_is_location_available())
     print("test_is_location_available passed")
 
-    assert(test_is_not_location_available())
+    assert (test_is_not_location_available())
     print("test_is_not_location_available passed")
 
-    assert(test_create_presigned_url())
+    assert (test_create_presigned_url())
     print("test_create_presigned_url passed")
 
-    assert(test_upload_file())
+    assert (test_upload_file())
     print("test_upload_file passed")
 
-    assert(test_upload_file_timestamp())
+    assert (test_upload_file_timestamp())
     print("test_upload_file_timestamp passed")
 
-    assert(test_download_file())
+    assert (test_download_file())
     print("test_download_file passed")
 
-    print("TODO: Smart API Registry functions and tests")
-    assert(test_convert_to_yaml())
-    assert(test_add_to_github())
-    assert(test_api_registered()) 
-    
     print("all file ops tests passed")

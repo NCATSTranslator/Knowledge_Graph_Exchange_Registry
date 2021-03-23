@@ -28,10 +28,15 @@ from .kgea_file_ops import (
     # add_to_github,
     # create_smartapi,
     get_object_location,
-    with_timestamp, translator_registration
+    with_timestamp
 )
 
 from .kgea_stream import transfer_file_from_url
+
+from ..registry import (
+    KgxFileType,
+    add_to_kgx_file_set
+)
 
 import logging
 
@@ -311,7 +316,7 @@ async def upload_kge_file(
         content_location, _ = with_timestamp(get_object_location)(kg_name)
         
         uploaded_file_object_key = None
-        file_type = "Unknown"
+        file_type: KgxFileType = KgxFileType.KGX_UNKNOWN
         
         if upload_mode == 'content_from_url':
             
@@ -324,7 +329,7 @@ async def upload_kge_file(
                 object_location=content_location
             )
             
-            file_type = "content"
+            file_type = KgxFileType.KGX_DATA_FILE
         
         else:  # process direct metadata or content file upload
             
@@ -345,10 +350,10 @@ async def upload_kge_file(
                     object_location=content_location
                 )
                 
-                file_type = "content"
+                file_type = KgxFileType.KGX_DATA_FILE
             
             elif upload_mode == 'metadata':
-                
+
                 # KGE Metadata File for upload?
                 
                 metadata_location = get_object_location(kg_name)
@@ -361,30 +366,38 @@ async def upload_kge_file(
                     object_location=metadata_location
                 )
                 
-                file_type = "metadata"
+                file_type = KgxFileType.KGX_METADATA_FILE
             
             else:
                 await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
         
         if uploaded_file_object_key:
-            
-            # If we get this far, time to register the KGE dataset in SmartAPI
-            translator_registration(submitter, kg_name)
-            
-            s3_metadata = {file_type: dict({})}
-            
-            s3_file_url = create_presigned_url(
-                bucket=kgea_app_config['bucket'],
-                object_key=uploaded_file_object_key
-            )
-            
-            s3_metadata[file_type][uploaded_file_object_key] = s3_file_url
-            
-            response = web.Response(text=str(s3_metadata), status=200)
-            return await with_session(request, response)
-        
+
+            try:
+                s3_file_url = create_presigned_url(
+                    bucket=kgea_app_config['bucket'],
+                    object_key=uploaded_file_object_key
+                )
+
+                # This action adds a file to a knowledge graph initiating or
+                # continuing a KGE file set registration process. The return
+                # value is an KGE File Set identifier for client status polling.
+                kge_file_set_id = add_to_kgx_file_set(
+                    submitter, kg_name, file_type,
+                    uploaded_file_object_key, s3_file_url
+                )
+
+                response = web.Response(text=str(kge_file_set_id), status=200)
+
+                return await with_session(request, response)
+
+            except Exception as exc:
+                error_msg: str = "upload_kge_file(uploaded_file_object_key: " + \
+                                 str(uploaded_file_object_key)+") - "+str(exc)
+                logger.error(error_msg)
+                await report_error(request, error_msg)
         else:
-            await report_error(request, "upload_kge_file(): " + file_type + " upload failed?")
+            await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
     
     else:
         # If session is not active, then just a redirect
