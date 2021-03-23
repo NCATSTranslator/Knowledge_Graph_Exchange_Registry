@@ -64,119 +64,6 @@ else:
 
 
 #############################################################
-# Provider Controller Handler
-#
-# Insert import and return call into provider_controller.py:
-#
-# from ..kge_handlers import kge_access
-#############################################################
-
-
-# TODO: get file out from timestamped folders 
-async def kge_access(request: web.Request, kg_name: str) -> web.Response:
-    """Get KGE File Sets
-
-    :param request:
-    :type request: web.Request
-    :param kg_name: Name label of KGE File Set whose files are being accessed
-    :type kg_name: str
-
-    :rtype: web.Response( Dict[str, Attribute] )
-    """
-    logger.debug("Entering kge_access(kg_name: " + kg_name + ")")
-    
-    session = await get_session(request)
-    if not session.empty:
-        
-        files_location = get_object_location(kg_name)
-        # Listings Approach
-        # - Introspect on Bucket
-        # - Create URL per Item Listing
-        # - Send Back URL with Dictionary
-        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-        # TODO: convert into redirect approach with cross-origin scripting?
-        kg_files = kg_files_in_location(
-            bucket_name=kgea_app_config['bucket'],
-            object_location=files_location
-        )
-        pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
-        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-        kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
-                kg_listing))
-        # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
-        
-        response = web.Response(text=str(kg_urls), status=200)
-        return await with_session(request, response)
-    
-    else:
-        # If session is not active, then just
-        # redirect back to unauthenticated landing page
-        await redirect(request, LANDING)
-
-
-#############################################################
-# Content Controller Handler
-#
-# Insert import and return call into content_controller.py:
-#
-# from ..kge_handlers import kge_knowledge_map
-#############################################################
-
-
-# TODO: get file out of root folder
-async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
-    """Get supported relationships by source and target
-
-    :param request:
-    :type request: web.Request
-    :param kg_name: Name label of KGE File Set whose knowledge graph content metadata is being reported
-    :type kg_name: str
-
-    :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
-    """
-    logger.debug("Entering kge_knowledge_map(kg_name: " + kg_name + ")")
-    
-    session = await get_session(request)
-    if not session.empty:
-        
-        files_location = get_object_location(kg_name)
-        
-        # Listings Approach
-        # - Introspect on Bucket
-        # - Create URL per Item Listing
-        # - Send Back URL with Dictionary
-        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-        # TODO: convert into redirect approach with cross-origin scripting?
-        kg_files = kg_files_in_location(
-            bucket_name=kgea_app_config['bucket'],
-            object_location=files_location
-        )
-        pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
-            FILES_LOCATION=files_location
-        )
-        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-        kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
-                kg_listing)
-        )
-        
-        # logger.debug('knowledge_map urls: %s', kg_urls)
-        # import requests, json
-        # metadata_key = kg_listing[0]
-        # url = create_presigned_url(kgea_app_config['bucket'], metadata_key)
-        # metadata = json.loads(requests.get(url).text)
-        
-        response = web.Response(text=str(kg_urls), status=200)
-        return await with_session(request, response)
-    
-    else:
-        # If session is not active, then just a redirect
-        # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
-
-
-#############################################################
 # Upload Controller Handlers
 #
 # Insert imports and return calls into upload_controller.py:
@@ -402,4 +289,115 @@ async def upload_kge_file(
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
+        await redirect(request, LANDING)
+
+
+#############################################################
+# Content Metadata Controller Handler
+#
+# Insert import and return call into content_controller.py:
+#
+# from ..kge_handlers import kge_knowledge_map
+#############################################################
+
+
+# TODO: get file out of root folder
+async def kge_knowledge_map(request: web.Request, kg_name: str) -> web.Response:
+    """Get supported relationships by source and target
+
+    :param request:
+    :type request: web.Request
+    :param kg_name: Name label of KGE File Set whose knowledge graph content metadata is being reported
+    :type kg_name: str
+
+    :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
+    """
+    logger.debug("Entering kge_knowledge_map(kg_name: " + kg_name + ")")
+
+    session = await get_session(request)
+    if not session.empty:
+
+        files_location = get_object_location(kg_name)
+
+        # Listings Approach
+        # - Introspect on Bucket
+        # - Create URL per Item Listing
+        # - Send Back URL with Dictionary
+        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+        # TODO: convert into redirect approach with cross-origin scripting?
+        kg_files = kg_files_in_location(
+            bucket_name=kgea_app_config['bucket'],
+            object_location=files_location
+        )
+        pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
+            FILES_LOCATION=files_location
+        )
+        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+        kg_urls = dict(
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
+                kg_listing)
+        )
+
+        # logger.debug('knowledge_map urls: %s', kg_urls)
+        # import requests, json
+        # metadata_key = kg_listing[0]
+        # url = create_presigned_url(kgea_app_config['bucket'], metadata_key)
+        # metadata = json.loads(requests.get(url).text)
+
+        response = web.Response(text=str(kg_urls), status=200)
+        return await with_session(request, response)
+
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING)
+
+
+#############################################################
+# Provider Metadata Controller Handler
+#
+# Insert import and return call into provider_controller.py:
+#
+# from ..kge_handlers import kge_access
+#############################################################
+# TODO: get file out from timestamped folders
+async def kge_access(request: web.Request, kg_name: str) -> web.Response:
+    """Get KGE File Sets
+
+    :param request:
+    :type request: web.Request
+    :param kg_name: Name label of KGE File Set whose files are being accessed
+    :type kg_name: str
+
+    :rtype: web.Response( Dict[str, Attribute] )
+    """
+    logger.debug("Entering kge_access(kg_name: " + kg_name + ")")
+
+    session = await get_session(request)
+    if not session.empty:
+
+        files_location = get_object_location(kg_name)
+        # Listings Approach
+        # - Introspect on Bucket
+        # - Create URL per Item Listing
+        # - Send Back URL with Dictionary
+        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+        # TODO: convert into redirect approach with cross-origin scripting?
+        kg_files = kg_files_in_location(
+            bucket_name=kgea_app_config['bucket'],
+            object_location=files_location
+        )
+        pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
+        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+        kg_urls = dict(
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
+                kg_listing))
+        # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
+
+        response = web.Response(text=str(kg_urls), status=200)
+        return await with_session(request, response)
+
+    else:
+        # If session is not active, then just
+        # redirect back to unauthenticated landing page
         await redirect(request, LANDING)
