@@ -30,6 +30,8 @@
             formData.append("submitter", "{{submitter}}");
             formData.append("upload_mode", source.id);
 
+            let file_type = '';
+
             if (source.id === 'content_from_url') {
                 // Transfer file from REST URL endpoint
                 let content_url = document.getElementById('content_url').value;
@@ -42,6 +44,7 @@
                     window.alert("KGX content file URL is undefined");
                     return;
                 }
+                file_type = 'data';
             } else if (source.id === 'metadata') {
                 let uploaded_file = document.getElementById('metadata_file').files[0];
                 content_name = uploaded_file.name;
@@ -54,6 +57,8 @@
                     window.alert("KGX metadata file is undefined");
                     return;
                 }
+                file_type = 'metadata';
+
             } else if (source.id === 'content_from_local_file') {
                 let uploaded_file = document.getElementById('content_file').files[0];
                 content_name = uploaded_file.name;
@@ -66,6 +71,7 @@
                     window.alert("KGX data file is undefined");
                     return;
                 }
+                file_type = 'data';
             }
             formData.append("content_name", content_name);
 
@@ -83,22 +89,21 @@
                         ).then(
                             name => {
                                 window.alert(
-                                    "File '" + content_name +
-                                    "' for knowledge graph '{{kg_name}}' (KGE File Set ID: '" +
-                                    name +
-                                    `') was successfully uploaded!`);
+                                    "Successfully uploaded '" + file_type + "' file '" + content_name +
+                                    "' for knowledge graph '{{kg_name}}' (KGE File Set ID: '" + name + "')!"
+                                );
                             }
                         ).catch(error => {
-                            let err_msg = "Error accessing KGE Archive file set ID for file '" +
-                                content_name +
-                                "' from knowledge graph '{{kg_name}}: " + error;
+                            let err_msg =
+                                "Error accessing KGE File Set ID for '" + file_type + "' file '" + content_name +
+                                "' for knowledge graph '{{kg_name}}: " + error;
                             console.log(err_msg);
                             window.alert(err_msg);
                         })
                 }).catch(error => {
-                    let err_msg = "File upload error encountered for file '" +
-                        content_name +
-                        "' from knowledge graph '{{kg_name}}: " + error;
+                    let err_msg =
+                            "File upload error encountered for '" + file_type + "' file '" + content_name +
+                            "' for knowledge graph '{{kg_name}}: " + error;
                     console.log(err_msg);
                     window.alert(err_msg);
                 });
