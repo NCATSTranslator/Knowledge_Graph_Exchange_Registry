@@ -123,8 +123,12 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         
         if not (kg_name and submitter):
             await report_error(request, "register_kge_file_set(): either kg_name or submitter are empty?")
-        
-        register_location = get_object_location(kg_name)
+
+        # Use a normalized version of the knowledge
+        # graph name as the KGE File Set identifier.
+        kg_id = KgeaRegistry.normal_name(kg_name)
+
+        register_location = get_object_location(kg_id)
         
         logger.debug("register_kge_file_set(register_location: " + register_location + ")")
         
@@ -137,7 +141,9 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
-                KgeaRegistry.registry().add_knowledge_graph(submitter=submitter, kg_name=kg_name)
+                KgeaRegistry.registry().add_knowledge_graph(
+                    kg_id=kg_id, submitter=submitter, kg_name=kg_name
+                )
                 
                 await redirect(request,
                                Template(UPLOAD_FORM_PATH + '?submitter=$submitter&kg_name=$kg_name').substitute(
@@ -279,8 +285,8 @@ async def upload_kge_file(
                 # or continuing a KGE file set registration process.
                 # May raise an Exception if something goes wrong.
                 KgeaRegistry.registry().add_to_kge_file_set(
-                    submitter, kg_id, file_type,
-                    uploaded_file_object_key, s3_file_url
+                    kg_id=kg_id, submitter=submitter, file_type=file_type,
+                    object_key=uploaded_file_object_key, s3_file_url=s3_file_url
                 )
 
                 response = web.Response(text=str(kg_id), status=200)
@@ -288,7 +294,7 @@ async def upload_kge_file(
                 return await with_session(request, response)
 
             except Exception as exc:
-                error_msg: str = "upload_kge_file(uploaded_file_object_key: " + \
+                error_msg: str = "upload_kge_file(object_key: " + \
                                  str(uploaded_file_object_key)+") - "+str(exc)
                 logger.error(error_msg)
                 await report_error(request, error_msg)
