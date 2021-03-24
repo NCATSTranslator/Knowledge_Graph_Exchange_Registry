@@ -121,10 +121,11 @@ class KgeaRegistry:
         self._kge_file_set: Dict[str, KgeaFileSet] = dict()
     
     @staticmethod
-    def normal_name(kg_name: str) -> str:
+    def normalize_name(kg_name: str) -> str:
         # TODO: need to review graph name normalization and indexing
         #       against various internal graph use cases, e.g. lookup
-        #       and need to be robust to user typos (e.g. extra blank spaces?)
+        #       and need to be robust to user typos (e.g. extra blank spaces?
+        #       invalid characters?). Maybe convert to regex cleanup?
         kg_id = kg_name.lower()  # all lower case
         kg_id = kg_id.replace(' ', '_')  # spaces with underscores
         return kg_id
@@ -230,11 +231,14 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
 
 # TODO
 # KGE File Set Translator SmartAPI parameters set here are the following string keyword arguments:
-# - kg_id: KGE Archive assigned knowledge graph identifier
+# - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
 # - kg_name: human readable name of the knowledge graph
-# - kg_description: detailed description of knowledge graph (may be multi-lined with '\n'
+# - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
 # - submitter - name of submitter of the KGE file set
 # - submitter_email - contact email of the submitter
+# - license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.
+# - license_url - web site link to project license
+# - terms_of_service - specifically relating to the project, beyond the licensing
 # - translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
 # - translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider
 #
