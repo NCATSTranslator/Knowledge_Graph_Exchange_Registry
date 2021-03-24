@@ -141,7 +141,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
-                KgeaRegistry.registry().add_knowledge_graph(
+                KgeaRegistry.registry().add_kge_file_set(
                     kg_id=kg_id, submitter=submitter, kg_name=kg_name
                 )
                 
@@ -285,8 +285,11 @@ async def upload_kge_file(
                 # or continuing a KGE file set registration process.
                 # May raise an Exception if something goes wrong.
                 KgeaRegistry.registry().add_to_kge_file_set(
-                    kg_id=kg_id, submitter=submitter, file_type=file_type,
-                    object_key=uploaded_file_object_key, s3_file_url=s3_file_url
+                    kg_id=kg_id,
+                    file_type=file_type,
+                    file_name=content_name,
+                    object_key=uploaded_file_object_key,
+                    s3_file_url=s3_file_url
                 )
 
                 response = web.Response(text=str(kg_id), status=200)

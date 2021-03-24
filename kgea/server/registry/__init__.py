@@ -5,7 +5,7 @@ from os import getenv
 from enum import Enum
 
 import logging
-from typing import Dict, Union
+from typing import Dict, Union, Tuple, Set, List
 
 logger = logging.getLogger(__name__)
 DEBUG = getenv('DEV_MODE', default=False)
@@ -26,7 +26,7 @@ class KgeFileType(Enum):
     KGX_DATA_FILE = "KGX data file"
 
 
-def is_kgx_compliant(file_type: KgeFileType, s3_object_url: str) -> bool:
+def check_kgx_compliance(file_type: KgeFileType, s3_object_url: str) -> bool:
     """
     Stub implementation of KGX Validation of a
     KGX graph file stored in back end AWS S3
@@ -52,7 +52,7 @@ def test_convert_to_yaml():
 
 
 # TODO
-def create_smartapi(submitter: str, kg_name: str):
+def create_smartapi(kg_id: str, submitter: str, kg_name: str):
     spec = {}
     yaml_file = convert_to_yaml(spec)
     return yaml_file
@@ -67,8 +67,7 @@ def test_create_smartapi():
 # TODO
 def add_to_github(api_specification):
     # using https://github.com/NCATS-Tangerine/translator-api-registry
-    repo = ''
-    return repo
+    pass
 
 
 # TODO
@@ -89,10 +88,10 @@ def test_api_registered():
 
 
 # TODO
-def translator_registration(submitter, kg_name):
-    # TODO: check if the kg_name is already registered?
-    api_specification = create_smartapi(submitter, kg_name)
-    translator_registry_url = add_to_github(api_specification)
+def translator_registration(kg_id: str, submitter: str, kg_name: str):
+    # TODO: check if the kg_id / kg_name is already registered?
+    api_specification = create_smartapi(kg_id, submitter, kg_name)
+    add_to_github(api_specification)
 
 
 # TODO
@@ -116,7 +115,60 @@ class KgeaFileSet:
         self.id: str = kg_id
         self.name: str = kg_name
         self.submitter = submitter
-        self.files: Dict[str, str] = dict()
+        self.metadata_file: Union[List, None] = None
+        self.data_files: Dict[str, List] = dict()
+
+    def set_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
+        """
+        Sets the metadata file identification for a KGE File Set
+        :param file_name: original name of metadata file
+        :param object_key:
+        :param s3_file_url:
+        :return: None
+        """
+        self.metadata_file = [file_name, object_key, s3_file_url]
+        
+        # trigger asynchronous KGX metadata file validation process here?
+        check_kgx_compliance(KgeFileType.KGX_METADATA_FILE, s3_file_url)
+
+    def get_metadata_file(self) -> Union[Tuple, None]:
+        """
+        :return: a Tuple of metadata about the KGE File Set metadata file, if available; None otherwise
+        """
+        if self.metadata_file:
+            return tuple(self.metadata_file)
+        else:
+            return None
+
+    # TODO: review what additional metadata is required to properly manage KGE data files
+    def add_data_file(self, file_name: str, object_key: str, s3_file_url: str):
+        """
+        
+        :param file_name: to add to the KGE File Set
+        :param object_key: of the file in AWS S3
+        :param s3_file_url: current S3 pre-signed data access url
+        :return: None
+        """
+        self.data_files[object_key] = [file_name, object_key, s3_file_url]
+        
+        # trigger asynchronous KGX metadata file validation process here?
+        check_kgx_compliance(KgeFileType.KGX_DATA_FILE, s3_file_url)
+
+    def get_data_file_set(self) -> Set[Tuple]:
+        """
+        :return: Set[Tuple] of access metadata for data files in the KGE File Set
+        """
+        dataset: Set[Tuple] = set()
+        [dataset.add(tuple(x)) for x in self.data_files.values()]
+        return dataset
+    
+    def register_file_set(self):
+        """
+        Register the current file set in the Translator SmartAPI Registry
+        :return:
+        """
+        # TODO: might need more information here to create the SmartAPI Registry entry?
+        translator_registration(self.id, self.submitter, self.name)
 
 
 class KgeaRegistry:
@@ -137,7 +189,7 @@ class KgeaRegistry:
         return KgeaRegistry._registry
     
     def __init__(self):
-        self._knowledge_graphs: Dict[str, KgeaFileSet] = dict()
+        self._kge_file_set: Dict[str, KgeaFileSet] = dict()
     
     @staticmethod
     def normal_name(kg_name: str) -> str:
@@ -150,7 +202,7 @@ class KgeaRegistry:
     
     # TODO: what is the required idempotency of this KG addition relative to submitters (can submitters change?)
     # TODO: how do we deal with versioning of submissions across several days(?)
-    def add_knowledge_graph(self, kg_id: str, submitter: str, kg_name: str) -> KgeaFileSet:
+    def add_kge_file_set(self, kg_id: str, submitter: str, kg_name: str) -> KgeaFileSet:
         """
         As needed, adds a new record for a knowledge graph with a given 'name' for a given 'submitter'.
         The name is indexed by normalization to lower case and substitution of underscore for spaces.
@@ -163,65 +215,66 @@ class KgeaRegistry:
         """
         
         # For now, a given graph is only submitted once for a given submitter
-        if kg_id not in self._knowledge_graphs:
-            self._knowledge_graphs[kg_id] = KgeaFileSet(kg_id, kg_name, submitter)
+        if kg_id not in self._kge_file_set:
+            self._kge_file_set[kg_id] = KgeaFileSet(kg_id, kg_name, submitter)
         
-        return self._knowledge_graphs[kg_id]
+        return self._kge_file_set[kg_id]
     
-    def get_knowledge_graph(self, kg_id: str) -> Union[KgeaFileSet, None]:
+    def get_kge_file_set(self, kg_id: str) -> Union[KgeaFileSet, None]:
         """
         Get the knowledge graph provider metadata associated with a given knowledge graph file set identifier.
         :param kg_id: input knowledge graph file set identifier
         :return: KgeaFileSet; None, if unknown
         """
-        if kg_id in self._knowledge_graphs:
-            return self._knowledge_graphs[kg_id]
+        if kg_id in self._kge_file_set:
+            return self._kge_file_set[kg_id]
         else:
             return None
 
-    # TODO: this is code extracted from the kgea_handlers.py file upload... needs a total rethinking
+    # TODO: probably need to somehow factor in timestamps
+    #       or are they already as encoded in the object_key?
     def add_to_kge_file_set(
             self,
-            submitter: str, kg_id: str, file_type: KgeFileType,
-            object_key: str, s3_file_url: str
+            kg_id: str,
+            file_type: KgeFileType,
+            file_name: str,
+            object_key: str,
+            s3_file_url: str
     ):
         """
         This method adds the given input file to a local catalog of recently
         updated files, within which files formats are asynchronously validated
         to KGX compliance, and the entire file set assessed for completeness.
-        the response sent back contains a kind of kgx fileset id , if available.
         An exception is raise if there is an error.
     
-        :param submitter: Submitter of the Knowledge Graph of focus
         :param kg_id: Knowledge Graph File Set identifier
-        :param file_type: File type
-        :param object_key: str
-        :param s3_file_url: str
+        :param file_type: KgeFileType of the current file
+        :param file_name: name of the current file
+        :param object_key: AWS S3 object key of the file
+        :param s3_file_url: current pre-signed url to access the file
         :return: None
         """
-        """
-        s3_metadata = {file_type: dict({})}
-        s3_metadata[file_type][object_key] = s3_file_url
-    
-        # Validate the uploaded file
-        # TODO: just a stub predicate... not sure if kgx validation
-        #       can be done in real time for large files. Upload may time out?
-        if is_kgx_compliant(file_type, s3_file_url):
-    
-            # If we get this far, time to register the KGE file in SmartAPI?
-            # TODO: how do we validate that files are valid KGX and complete with their metadata?
-            # Maybe need a separate validation process
-            translator_registration(submitter, kg_name)
-    
-        else:
-            error_msg: str = "upload_kge_file(object_key: " + \
-                             str(object_key) + ") is not a KGX compliant file."
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)"""
-        
-        # TODO: stub implementation
-        pass
+        file_set = self.get_kge_file_set(kg_id)
 
+        if not file_set:
+            raise RuntimeError("KGE File Set '" + kg_id + "' is unknown?")
+        else:
+            # Found a matching KGE file set? Add the current file to the set
+            if file_type == KgeFileType.KGX_DATA_FILE:
+                file_set.add_data_file(
+                    file_name=file_name,
+                    object_key=object_key,
+                    s3_file_url=s3_file_url
+                )
+            elif file_type == KgeFileType.KGX_METADATA_FILE:
+                file_set.set_metadata_file(
+                    file_name=file_name,
+                    object_key=object_key,
+                    s3_file_url=s3_file_url
+                )
+            else:
+                raise RuntimeError("Unknown KGE File Set type?")
+            
 
 """
 Unit Tests
