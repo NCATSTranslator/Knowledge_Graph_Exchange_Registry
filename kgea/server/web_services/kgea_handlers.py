@@ -126,7 +126,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
-        kg_id = KgeaRegistry.normal_name(kg_name)
+        kg_id = KgeaRegistry.normalize_name(kg_name)
 
         register_location = get_object_location(kg_id)
         
@@ -213,7 +213,7 @@ async def upload_kge_file(
         
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
-        kg_id = KgeaRegistry.normal_name(kg_name)
+        kg_id = KgeaRegistry.normalize_name(kg_name)
         
         content_location, _ = with_timestamp(get_object_location)(kg_id)
         
