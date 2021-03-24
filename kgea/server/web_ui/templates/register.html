@@ -25,34 +25,8 @@
         </textarea>
     </p>
     <p>
-        <label for="submitter">Submitter:</label>
-        <input id="submitter" class="textbox" type="text" name="submitter" />
-    </p>
-    <p>The name of the researcher or institution that contributed the dataset.</p>
-    <p>
-        <!--    submitter_email - contact email of the submitter-->
-        <label for="submitter_email">Submitter Email:</label>
-        <input id="submitter_email" class="textbox" type="text" name="submitter_email" />
-    </p>
-    <p>
-        <!--    license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.-->
-        <label for="license_name">License Name:</label>
-        <input id="license_name" class="textbox" type="text" name="license_name" />
-    </p>
-    <p>
-        <!--    license_url - web site link to project license-->
-        <label for="license_url">License URL:</label>
-        <input id="license_url" class="textbox" type="text" name="license_url" />
-    </p>
-    <p>
-        <!--    terms_of_service - specifically relating to the project, beyond the licensing-->
-        <label for="terms_of_service">Terms of Service URL:</label>
-        <input id="terms_of_service" class="textbox" type="text" name="terms_of_service" />
-    </p>
-    <p>
         <!--    translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)-->
         <label for="translator_component">Translator Component:</label>
-        <!--input id="translator_component" class="textbox" type="text" name="translator_component" / -->
         <select name="translator_component" id="translator_component">
           <option value="KP">Knowledge Provider</option>
           <option value="ARA">Autonomous Relay Agent</option>
@@ -65,6 +39,36 @@
         <label for="translator_team">Translator Team:</label>
         <input id="translator_team" class="textbox" type="text" name="translator_team" />
     </p>
+    <p>
+        <label for="submitter">Submitter:</label>
+        <input id="submitter" class="textbox" type="text" name="submitter" />
+    </p>
+    <p>The name of the researcher or institution that contributed the dataset.</p>
+    <p>
+        <!--    submitter_email - contact email of the submitter-->
+        <label for="submitter_email">Submitter Email:</label>
+        <input id="submitter_email" class="textbox" type="text" name="submitter_email" />
+    </p>
+    <p>
+        <!--    license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.-->
+        <label for="license_name">Data Access License:</label>
+        <select name="license_name" id="license_name">
+          <option value="Creative-Commons">Creative Commons</option>
+          <option value="MIT">MIT</option>
+          <option value="Apache-2.0">Apache 2.0</option>
+          <option value="Other">Other</option>
+        </select>
+        <!--    license_url - web site link to project license-->
+        <label for="license_url">License URL:</label>
+        <input id="license_url" class="textbox" type="text" name="license_url" />
+    </p>
+    <p>If "other" license, please specify URL to licensing page.</p>
+    <p>
+        <!--    terms_of_service - specifically relating to the project, beyond the licensing-->
+        <label for="terms_of_service">Terms of Service URL:</label>
+        <input id="terms_of_service" class="textbox" type="text" name="terms_of_service" />
+    </p>
+
     <p><input type="submit" value="Register"></p>
 </form>
 {% endblock %}
