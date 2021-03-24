@@ -1,30 +1,25 @@
 openapi: 3.0.1
 info:
-  version: 0.0.1-dev
+  version: 1.0.0
   title: >-
-    (Template for) Knowledge Graph EXchange (KGE) File Set SmartAPI Entry
+    ${kg_name} Knowledge Graph eXchange File Set.
   description: >-
-    (Template for) SmartAPI Entry for a distinct
-    NCATS Biomedical Translator
-    Knowledge Graph EXchange (KGE) File Set
+    ${kg_description}
   license:
-    name: MIT 2.0
-    url: https://en.wikipedia.org/wiki/MIT_License
-  termsOfService: https://ncats.nih.gov/translator
+    name: "${license_name}"
+    url:  "${license_url}"
+  termsOfService: "${terms_of_service}"
   contact:
-    name: {{nameOfSomebody}}
-    x-role: responsible curator
-    email: {{email4somebody}}
-    x-id: https://github.com/{{gitId4somebody}}
+    name: "${submitter}"
+    x-role: "Submitter"
+    email: "${submitter_email}"
   x-translator:
-        component: KP # could sometimes be ARA or SRI Service or ???
-        team:
-        - {{nameOfTeam}}
+    component: "${translator_component}"
+    team:
+    - "${translator_team}"
 servers:
-  # $kg_id should be set to the Translator SmartAPI
-  # registered Knowledge Graph identifier in the KGE Archive
-  - url: "_https://kge.starinformatics.ca/{{kgname}}"
-    description: "Production Server"
+  - url: "_https://kge.starinformatics.ca/${kg_id}"
+    description: "KGE Archive Entry base url for ${kg_name}"
 externalDocs:
   description: >-
     Documentation for the NCATS Biomedical Translator
@@ -62,7 +57,7 @@ paths:
                 additionalProperties:
                   description: >-
                      Provider metadata attributes
-                  $ref: '#/components/schemas/Attribute'
+                  $$ref: '#/components/schemas/Attribute'
   /meta_knowledge_graph:
     get:
       tags:
@@ -76,7 +71,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MetaKnowledgeGraph'
+                $$ref: '#/components/schemas/MetaKnowledgeGraph'
 components:
   schemas:
     Attribute:
@@ -103,7 +98,7 @@ components:
         or a child thereof. The CURIE must use the prefix 'biolink:'
         followed by the PascalCase class name.
       type: string
-      pattern: ^biolink:[A-Z][a-zA-Z]*$
+      pattern: ^biolink:[A-Z][a-zA-Z]*$$
       externalDocs:
         description: Biolink model entities
         url: https://biolink.github.io/biolink-model/docs/NamedThing.html
@@ -115,7 +110,7 @@ components:
         predicate defines the Biolink relationship between the subject and
         object nodes of a biolink:Association defining a knowledge graph edge.
       type: string
-      pattern: ^biolink:[a-z][a-z_]*$
+      pattern: ^biolink:[a-z][a-z_]*$$
       externalDocs:
         description: Biolink model predicates
         url: https://biolink.github.io/biolink-model/docs/related_to.html
@@ -131,13 +126,13 @@ components:
             Collection of node categories provided by this TRAPI web service,
             indexed by Biolink class CURIEs.
           additionalProperties:
-            $ref: '#/components/schemas/MetaNode'
+            $$ref: '#/components/schemas/MetaNode'
         edges:
           type: array
           description: >-
             List of edges/predicates provided by this TRAPI web service.
           items:
-            $ref: '#/components/schemas/MetaEdge'
+            $$ref: '#/components/schemas/MetaEdge'
           minItems: 1
     MetaNode:
       type: object
@@ -176,17 +171,17 @@ components:
         Biolink class and an object Biolink class.
       properties:
         subject:
-          $ref: '#/components/schemas/BiolinkEntity'
+          $$ref: '#/components/schemas/BiolinkEntity'
           description: >-
             Subject node category of this relationship edge.
           example: biolink:ChemicalSubstance
         predicate:
-          $ref: '#/components/schemas/BiolinkPredicate'
+          $$ref: '#/components/schemas/BiolinkPredicate'
           description: >-
             Biolink relationship between the subject and object categories.
           example: biolink:affects
         object:
-          $ref: '#/components/schemas/BiolinkEntity'
+          $$ref: '#/components/schemas/BiolinkEntity'
           description: >-
             Object node category of this relationship edge.
           example: biolink:Protein
