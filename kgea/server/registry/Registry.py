@@ -35,7 +35,7 @@ class KgeaFileSet:
     assembled in AWS S3, for SmartAPI registration and client access
     """
     
-    def __init__(self, kg_id: str, kg_name: str, submitter: str):
+    def __init__(self, kg_id: str, **kwargs):
         """
         
         :param kg_name: name of knowledge graph in entry
@@ -132,7 +132,7 @@ class KgeaRegistry:
     
     # TODO: what is the required idempotency of this KG addition relative to submitters (can submitters change?)
     # TODO: how do we deal with versioning of submissions across several days(?)
-    def add_kge_file_set(self, kg_id: str, submitter: str, kg_name: str) -> KgeaFileSet:
+    def add_kge_file_set(self, kg_id: str, **kwargs) -> KgeaFileSet:
         """
         As needed, adds a new record for a knowledge graph with a given 'name' for a given 'submitter'.
         The name is indexed by normalization to lower case and substitution of underscore for spaces.
@@ -146,7 +146,7 @@ class KgeaRegistry:
         
         # For now, a given graph is only submitted once for a given submitter
         if kg_id not in self._kge_file_set:
-            self._kge_file_set[kg_id] = KgeaFileSet(kg_id, kg_name, submitter)
+            self._kge_file_set[kg_id] = KgeaFileSet(kg_id, **kwargs)
         
         return self._kge_file_set[kg_id]
     

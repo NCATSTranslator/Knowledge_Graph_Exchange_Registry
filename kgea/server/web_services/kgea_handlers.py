@@ -74,21 +74,16 @@ else:
 # )
 #############################################################
 
-def _kge_metadata(
-        session: Session,
-        kg_name: str = None,
-        submitter: str = None
-) -> Session:
-    if kg_name is not None:
-        session['kg_name'] = kg_name
-    else:
-        session['kg_name'] = ''
-    if submitter is not None:
-        session['submitter'] = submitter
-    else:
-        session['submitter'] = ''
-    
-    return session
+_known_licenses = {
+    # < option
+    # value = "Creative-Commons" > Creative
+    # Commons < / option >
+    # < option
+    # value = "MIT" > MIT < / option >
+    # < option
+    # value = "Apache-2.0" > Apache
+    # 2.0 < / option >
+}
 
 
 async def register_kge_file_set(request: web.Request):  # noqa: E501
@@ -97,7 +92,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
      # noqa: E501
 
     :param request:
-    :type request: web.Request
+    :type request: web.Request - contains register.html form parameters
 
     """
     logger.debug("Entering register_kge_file_set()")
@@ -107,19 +102,55 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         
         data = await request.post()
         
-        submitter = data['submitter']
+        # KGE File Set Translator SmartAPI parameters set
+        # now includes the following string keyword arguments:
+        
+        # kg_name: human readable name of the knowledge graph
         kg_name = data['kg_name']
         
-        logger.debug("register_kge_file_set(original submitter: " + submitter +
-                     "original kg_name: " + kg_name + ")")
+        # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
+        kg_description = data['kg_description']
+
+        # translator_component: Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
+        translator_component = data['translator_component']
+
+        # translator_team: specific Translator team (affiliation)
+        # contributing the file set, e.g. Clinical Data Provider
+        translator_team = data['translator_team']
+
+        # submitter: name of submitter of the KGE file set
+        submitter = data['submitter']
+
+        # submitter_email: contact email of the submitter
+        submitter_email = data['submitter_email']
+
+        # license_name Open Source license name, e.g. MIT, Apache 2.0, etc.
+        license_name = data['license_name']
+
+        # license_url: web site link to project license
+        license_url = 'Unknown'
+        if license_name in _known_licenses:
+            license_url = _known_licenses[license_name]
+        elif license_name == "Other":
+            license_url = data['license_url']
+        else:
+            await report_error(request, "register_kge_file_set(): unknown licence_name: '"+license_name+"'?")
+
+        # terms_of_service: specifically relating to the project, beyond the licensing
+        terms_of_service = data['terms_of_service']
         
-        session = _kge_metadata(session, kg_name, submitter)
-        
-        kg_name = session['kg_name']
-        submitter = session['submitter']
-        
-        logger.debug("register_kge_file_set(cached submitter: " + submitter +
-                     "cached kg_name: " + kg_name + ")")
+        logger.debug(
+            "register_kge_file_set() form parameters:\n\t"
+            "\n\tkg_name: " + kg_name +
+            "\n\tkg_description: " + kg_description +
+            "\n\ttranslator_component: " + translator_component +
+            "\n\ttranslator_team: " + translator_team +
+            "\n\tsubmitter: " + submitter +
+            "\n\tsubmitter_email: " + submitter_email +
+            "\n\tlicense_name: " + license_name +
+            "\n\tlicense_url: " + license_url +
+            "\n\tterms_of_service: " + terms_of_service
+        )
         
         if not (kg_name and submitter):
             await report_error(request, "register_kge_file_set(): either kg_name or submitter are empty?")
@@ -128,9 +159,9 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         # graph name as the KGE File Set identifier.
         kg_id = KgeaRegistry.normalize_name(kg_name)
 
-        register_location = get_object_location(kg_id)
+        file_set_location = get_object_location(kg_id)
         
-        logger.debug("register_kge_file_set(register_location: " + register_location + ")")
+        logger.debug("register_kge_file_set(file_set_location: " + file_set_location + ")")
         
         if True:  # location_available(bucket_name, object_key):
             if True:  # api_specification and url:
@@ -142,7 +173,17 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
                 KgeaRegistry.registry().add_kge_file_set(
-                    kg_id=kg_id, submitter=submitter, kg_name=kg_name
+                    kg_id=kg_id,
+                    file_set_location=file_set_location,
+                    kg_name=kg_name,
+                    kg_description=kg_description,
+                    translator_component=translator_component,
+                    translator_team=translator_team,
+                    submitter=submitter,
+                    submitter_email=submitter_email,
+                    license_name=license_name,
+                    license_url=license_url,
+                    terms_of_service=terms_of_service
                 )
                 
                 await redirect(request,
