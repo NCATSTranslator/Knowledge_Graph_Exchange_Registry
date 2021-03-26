@@ -50,13 +50,30 @@ paths:
                 style: form
             schema:
               properties:
+                kg_name:
+                  type: string
+                kg_description:
+                  type: string
                 submitter:
                   type: string
-                kg_name:
+                submitter_email:
+                  type: string
+                translator_component:
+                  type: string
+                translator_team:
+                  type: string
+                license_name:
+                  type: string
+                license_url:
+                  type: string
+                terms_of_service:
                   type: string
               required:
               - kg_name
               - submitter
+              - submitter_email
+              - translator_component
+              - translator_team
               type: object
         required: true
         x-body-name: body
@@ -90,7 +107,7 @@ paths:
       summary: Register core parameters for the KGE File Set upload
       tags:
       - upload
-      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
+      x-openapi-router-controller: web_services.controllers.upload_controller
       x-codegen-request-body-name: body
   /upload:
     post:
@@ -181,14 +198,14 @@ paths:
       summary: Upload processing of KGE File Set file
       tags:
       - upload
-      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
+      x-openapi-router-controller: web_services.controllers.upload_controller
       x-codegen-request-body-name: body
   /{kg_id}/access:
     get:
       operationId: access
       parameters:
-      - description: KGE File Set identifier for the knowledge graph for which
-          data files are being accessed.
+      - description: KGE File Set identifier for the knowledge graph for which data
+          files are being accessed
         explode: false
         in: path
         name: kg_id
@@ -215,10 +232,10 @@ paths:
                 type: string
           description: Bad request. The request is invalid according to this OpenAPI
             schema OR knowledge graph identifier is not just recognized.
-      summary: Get KGE File Sets
+      summary: Get KGE File Set provider metadata.
       tags:
       - provider
-      x-openapi-router-controller: kgea.server.web_services.controllers.provider_controller
+      x-openapi-router-controller: web_services.controllers.provider_controller
   /{kg_id}/meta_knowledge_graph:
     get:
       operationId: meta_knowledge_graph
@@ -250,7 +267,7 @@ paths:
       summary: Meta knowledge graph representation of this KGX knowledge graph.
       tags:
       - content
-      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
+      x-openapi-router-controller: web_services.controllers.content_controller
 components:
   requestBodies:
     inline_object_1:
@@ -475,13 +492,30 @@ components:
       type: object
     inline_object:
       properties:
+        kg_name:
+          type: string
+        kg_description:
+          type: string
         submitter:
           type: string
-        kg_name:
+        submitter_email:
+          type: string
+        translator_component:
+          type: string
+        translator_team:
+          type: string
+        license_name:
+          type: string
+        license_url:
+          type: string
+        terms_of_service:
           type: string
       required:
       - kg_name
       - submitter
+      - submitter_email
+      - translator_component
+      - translator_team
       type: object
     inline_object_1:
       description: Uploading form posting of (meta-)data files. The 'upload_mode'
