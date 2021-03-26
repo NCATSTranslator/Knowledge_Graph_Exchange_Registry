@@ -173,7 +173,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
                 KgeaRegistry.registry().add_kge_file_set(
-                    kg_id=kg_id,
+                    kg_id,
                     file_set_location=file_set_location,
                     kg_name=kg_name,
                     kg_description=kg_description,

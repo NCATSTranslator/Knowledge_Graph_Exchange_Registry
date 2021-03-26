@@ -37,7 +37,6 @@ class KgeaFileSet:
     """
     
     _expected = [
-        "kg_id",
         "file_set_location",
         "kg_name",
         "kg_description",
@@ -50,13 +49,14 @@ class KgeaFileSet:
         "terms_of_service"
     ]
     
-    def __init__(self, **kwargs):
+    def __init__(self, kg_id: str, **kwargs):
         """
         KgeaFileSet constructor
         
         :param kg_name: name of knowledge graph in entry
         :param submitter: owner of knowledge graph
         """
+        self.kg_id = kg_id
         self.parameter: Dict = dict()
         for key, value in kwargs:
             
@@ -168,7 +168,7 @@ class KgeaRegistry:
         # For now, a given graph is only submitted once for a given submitter
         # TODO: should we accept any resubmissions or changes?
         if kg_id not in self._kge_file_set:
-            self._kge_file_set[kg_id] = KgeaFileSet(kg_id=kg_id, **kwargs)
+            self._kge_file_set[kg_id] = KgeaFileSet(kg_id, **kwargs)
         
         return self._kge_file_set[kg_id]
     
