@@ -10,7 +10,7 @@ from string import Template
 import re
 
 from aiohttp import web
-from aiohttp_session import get_session, Session
+from aiohttp_session import get_session
 
 #############################################################
 # Application Configuration
