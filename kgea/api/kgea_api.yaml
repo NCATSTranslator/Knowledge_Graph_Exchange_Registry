@@ -50,13 +50,30 @@ paths:
             schema:
               type: object
               properties:
-                submitter:
-                  type: string
                 kg_name:
                   type: string
+                kg_description:
+                  type: string
+                submitter:
+                  type: string
+                submitter_email:
+                  type: string
+                translator_component:
+                  type: string
+                translator_team:
+                  type: string
+                license_name:
+                  type: string
+                license_url:
+                  type: string
+                terms_of_service:
+                  type: string
               required:
-                - submitter
                 - kg_name
+                - translator_component
+                - translator_team
+                - submitter
+                - submitter_email
             encoding:
               submitter:
                 contentType: text/plain; charset=utf-8
