@@ -107,7 +107,7 @@ paths:
       summary: Register core parameters for the KGE File Set upload
       tags:
       - upload
-      x-openapi-router-controller: web_services.controllers.upload_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
       x-codegen-request-body-name: body
   /upload:
     post:
@@ -198,7 +198,7 @@ paths:
       summary: Upload processing of KGE File Set file
       tags:
       - upload
-      x-openapi-router-controller: web_services.controllers.upload_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
       x-codegen-request-body-name: body
   /{kg_id}/access:
     get:
@@ -235,7 +235,7 @@ paths:
       summary: Get KGE File Set provider metadata.
       tags:
       - provider
-      x-openapi-router-controller: web_services.controllers.provider_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.provider_controller
   /{kg_id}/meta_knowledge_graph:
     get:
       operationId: meta_knowledge_graph
@@ -267,7 +267,7 @@ paths:
       summary: Meta knowledge graph representation of this KGX knowledge graph.
       tags:
       - content
-      x-openapi-router-controller: web_services.controllers.content_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
 components:
   requestBodies:
     inline_object_1:
