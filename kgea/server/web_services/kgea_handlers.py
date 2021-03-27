@@ -139,7 +139,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         terms_of_service = data['terms_of_service']
         
         logger.debug(
-            "register_kge_file_set() form parameters:\n\t"+
+            "register_kge_file_set() form parameters:\n\t" +
             "\n\tkg_name: " + kg_name +
             "\n\tkg_description: " + kg_description +
             "\n\ttranslator_component: " + translator_component +
@@ -151,7 +151,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
             "\n\tterms_of_service: " + terms_of_service
         )
         
-        if not kg_name or submitter:
+        if not kg_name or not submitter:
             await report_error(request, "register_kge_file_set(): either kg_name or submitter are empty?")
 
         # Use a normalized version of the knowledge

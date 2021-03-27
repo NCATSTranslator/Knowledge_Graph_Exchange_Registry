@@ -58,7 +58,7 @@ class KgeaFileSet:
         """
         self.kg_id = kg_id
         self.parameter: Dict = dict()
-        for key, value in kwargs:
+        for key, value in kwargs.items():
             
             if key not in self._expected:
                 logger.warning("Unexpected KgeaFileSet parameter '"+str(key)+"'... ignored!")
