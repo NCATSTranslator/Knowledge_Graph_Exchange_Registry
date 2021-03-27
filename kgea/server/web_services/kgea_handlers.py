@@ -75,14 +75,9 @@ else:
 #############################################################
 
 _known_licenses = {
-    # < option
-    # value = "Creative-Commons" > Creative
-    # Commons < / option >
-    # < option
-    # value = "MIT" > MIT < / option >
-    # < option
-    # value = "Apache-2.0" > Apache
-    # 2.0 < / option >
+    "Creative-Commons-4.0": 'https://creativecommons.org/licenses/by/4.0/legalcode',
+    "MIT": 'https://opensource.org/licenses/MIT',
+    "Apache-2.0": 'https://www.apache.org/licenses/LICENSE-2.0.txt'
 }
 
 
@@ -128,13 +123,17 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         license_name = data['license_name']
 
         # license_url: web site link to project license
-        license_url = 'Unknown'
-        if license_name in _known_licenses:
-            license_url = _known_licenses[license_name]
-        elif license_name == "Other":
-            license_url = data['license_url']
-        else:
-            await report_error(request, "register_kge_file_set(): unknown licence_name: '"+license_name+"'?")
+        license_url = ''
+        
+        if 'license_url' in data:
+            license_url = data['license_url'].strip()
+            
+        # url may be empty or unavailable - try to take default license?
+        if not license_url:
+            if license_name in _known_licenses:
+                license_url = _known_licenses[license_name]
+            elif license_name != "Other":
+                await report_error(request, "register_kge_file_set(): unknown licence_name: '"+license_name+"'?")
 
         # terms_of_service: specifically relating to the project, beyond the licensing
         terms_of_service = data['terms_of_service']
