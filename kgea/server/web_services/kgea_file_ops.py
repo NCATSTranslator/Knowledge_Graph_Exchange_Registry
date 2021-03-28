@@ -56,7 +56,8 @@ Test Parameters + Decorator
 """
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
-
+TEST_FILE_DIR='kgea/server/test/data/'
+TEST_FILE_NAME='somedata.csv'
 
 def prepare_test(func):
     def wrapper():
@@ -214,8 +215,7 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME
         return False
     return True
 
-
-def upload_file(data_file, file_name, bucket, object_location):
+def upload_file(data_file, file_name, bucket, object_location, config=None):
     """Upload a file to an S3 bucket
 
     :param data_file: File to upload (can be read in binary mode)
@@ -232,17 +232,58 @@ def upload_file(data_file, file_name, bucket, object_location):
 
     # Upload the file
     try:
-        s3_client.upload_fileobj(data_file, bucket, object_key)
+        if config is None:
+            s3_client.upload_fileobj(data_file, bucket, object_key)
+        else:
+            s3_client.upload_fileobj(data_file, bucket, object_key, Config=config)
     except ClientError as error_message:
         raise ClientError(error_message)
     return object_key
+
+
+def upload_file_multipart(data_file, file_name, bucket, object_location, metadata=None):
+    """Upload a file to an S3 bucket. Use multipart protocols.
+    Multipart transfers occur when the file size exceeds the value of the multipart_threshold attribute
+    :param data_file: File to upload
+    :param file_name: Name of file to upload
+    :param bucket: Bucket to upload to
+    :param object_location: S3 object name
+    """
+
+    """
+    Multipart file upload configuration
+
+    Test Values:
+    MP_THRESHOLD = 10
+    MP_CONCURRENCY = 5
+    """
+    MP_THRESHOLD = 10
+    MP_CHUNK = 8  # MPU threshold 8 MB at a time for production AWS transfers
+    MP_CONCURRENCY = 5
+
+    KB = 1024
+    MB = KB * KB
+    GB = MB ** 3
+
+    mp_threshold = MP_THRESHOLD * MB
+    mp_chunk = MP_CHUNK * MB
+    concurrency = MP_CONCURRENCY
+
+    transfer_config = boto3.s3.transfer.TransferConfig(
+        multipart_threshold=mp_threshold,
+        multipart_chunksize=mp_chunk,
+        use_threads=True,
+        max_concurrency=concurrency
+    )
+
+    return upload_file(data_file, file_name, bucket, object_location, config=transfer_config)
 
 
 @prepare_test
 def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         # NOTE: file must be read in binary mode!
-        with open(abspath('test/data/' + 'somedata.csv'), 'rb') as test_file:
+        with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             content_location, _ = with_timestamp(get_object_location)(test_kg)
             object_key = upload_file(test_file, test_file.name, test_bucket, content_location)
             assert (object_key in kg_files_in_location(test_bucket, content_location))
@@ -260,6 +301,31 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+@prepare_test
+def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+    try:
+
+        # NOTE: file must be read in binary mode!
+        with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+            content_location, _ = with_timestamp(get_object_location)(test_kg)
+
+            object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
+
+            assert (object_key in kg_files_in_location(test_bucket, content_location))
+
+    except FileNotFoundError as e:
+        logger.error("Test is malformed!")
+        logger.error(e)
+        return False
+    except ClientError as e:
+        logger.error('The upload to S3 has failed!')
+        logger.error(e)
+        return False
+    except AssertionError as e:
+        logger.error('The resulting path was not found inside of the knowledge graph folder!')
+        logger.error(e)
+        return False
+    return True
 
 @prepare_test
 def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
@@ -269,7 +335,7 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         test_location, time_created = with_timestamp(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
-        with open(abspath('test/data/' + 'somedata.csv'), 'rb') as test_file:
+        with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, test_location)
             assert (object_key in kg_files_in_location(test_bucket, test_location))
             assert (time_created in object_key)
@@ -302,11 +368,11 @@ def download_file(bucket, object_key, open_file=False):
 # @prepare_test_random_object_location
 def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
     try:
-        with open(abspath('test/data/' + 'somedata.csv'), 'rb') as test_file:
+        with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_name))
             url = download_file(
                 bucket=test_bucket,
-                object_key=get_object_location(test_kg_name) + 'somedata.csv',
+                object_key=get_object_location(test_kg_name) + TEST_FILE_NAME,
                 open_file=False
             )  # open_file=False to affirm we won't trigger a browser action
             response = requests.get(url)
@@ -328,7 +394,15 @@ Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
 if __name__ == '__main__':
-    assert (test_kg_files_in_location())
+
+    import sys
+    import os
+    args = sys.argv[1:]
+    if len(args) == 2 and args[0] == '--testFile':
+        TEST_FILE_NAME = args[1]
+        print(TEST_FILE_NAME, os.path.getsize(abspath(TEST_FILE_DIR + TEST_FILE_NAME)), 'bytes')
+
+    # assert (test_kg_files_in_location())
     print("test_kg_files_in_location passed")
 
     assert (test_is_location_available())
@@ -340,11 +414,14 @@ if __name__ == '__main__':
     assert (test_create_presigned_url())
     print("test_create_presigned_url passed")
 
-    assert (test_upload_file())
-    print("test_upload_file passed")
+    # assert (test_upload_file())
+    # print("test_upload_file passed")
 
-    assert (test_upload_file_timestamp())
-    print("test_upload_file_timestamp passed")
+    assert (test_upload_file_multipart())
+    print("test_upload_multipart passed")
+
+    # assert (test_upload_file_timestamp())
+    # print("test_upload_file_timestamp passed")
 
     assert (test_download_file())
     print("test_download_file passed")

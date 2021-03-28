@@ -1,6 +1,6 @@
 # 15 March 2021 - KGE Archive Things to Do
 
-- Stress test large local file upload (multipart?)
+- ~~Stress test large local file upload (multipart?)~~
 - Fix URL file transfer:
     - ~~Perhaps need to manage the aiohttp sessions used in stream_from_url() globally in the application? See https://docs.aiohttp.org/en/stable/client_quickstart.html#make-a-request~~
     - Stress test URL file transfer

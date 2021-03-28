@@ -10,7 +10,15 @@ def main():
         "swagger_ui": True
     }
     specification_dir = path.join(path.dirname(__file__), 'openapi')
-    app = connexion.AioHttpApp(__name__, specification_dir=specification_dir, options=options)
+    app = connexion.AioHttpApp(
+        __name__,
+        specification_dir=specification_dir,
+        options=options,
+        # TODO: abstract this configuration
+        server_args={
+            "client_max_size": 1024**3
+        }
+    )
     
     app.add_api('openapi.yaml',
                 arguments={

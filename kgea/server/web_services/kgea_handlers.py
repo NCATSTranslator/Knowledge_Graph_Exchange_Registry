@@ -22,6 +22,7 @@ from .kgea_session import redirect, with_session, report_error
 
 from .kgea_file_ops import (
     upload_file,
+    upload_file_multipart,
     create_presigned_url,
     # location_available,
     kg_files_in_location,

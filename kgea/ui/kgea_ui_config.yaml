@@ -1,0 +1,5 @@
+oauth2:
+  host:      ''
+  client_id: ''
+  site_uri:  ''
+  login_callback:  '/oauth2callback'
