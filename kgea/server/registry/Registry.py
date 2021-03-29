@@ -267,11 +267,13 @@ class KgeaRegistry:
         #       file set (with all files, as uploaded by the client)
         logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"'): not yet implemented?!")
         
-        kge_file_set = self._kge_file_set[kg_id]
+        # Don't publish to the Translator SmartAPI Registry until you
+        # are confident of KGX validation and related post-processing
+        # kge_file_set = self._kge_file_set[kg_id]
         
         # TODO: need to ensure that the all the files are KGX validated first(?)
-        
-        kge_file_set.translator_registration()
+
+        # kge_file_set.translator_registration()
 
 
 def check_kgx_compliance(file_type: KgeFileType, s3_object_url: str) -> bool:

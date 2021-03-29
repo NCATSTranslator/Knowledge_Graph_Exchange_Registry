@@ -15,6 +15,8 @@ from kgea.server.web_services.kgea_session import (
     initialize_user_session, redirect, with_session
 )
 
+from ..registry.Registry import  KgeaRegistry
+
 #############################################################
 # Application Configuration
 #############################################################
@@ -272,7 +274,11 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
 
         submitter = request.query.get('submitter', default='')
         kg_name = request.query.get('kg_name', default='')
-
+        
+        # Use a normalized version of the knowledge
+        # graph name as the KGE File Set identifier.
+        kg_id = KgeaRegistry.normalize_name(kg_name)
+        
         # TODO guard against absent kg_name
         # TODO guard against invalid kg_name (check availability in bucket)
         # TODO redirect to register_form with given optional param as the entered kg_name
@@ -281,6 +287,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             "upload_action": UPLOAD_FORM_ACTION,
             "publish_file_set_action": PUBLISH_FILE_SET_ACTION,
             "kg_name": kg_name,
+            "kg_id": kg_id,
             "submitter": submitter
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
