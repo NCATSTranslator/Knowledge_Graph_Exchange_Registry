@@ -1,5 +1,23 @@
 """
-KGE Interface module to Knowledge Graph eXchange (KGX)
+KGE Interface module to the operational management of
+File Sets within Knowledge Graph eXchange (KGX) application.
+Note that this management is short term and doesn't read
+back the contents of the remote storage system (i.e. AWS S3)
+but just keeps an in memory copy of the (meta-)data being
+received from clients to the application, each time the
+application is started up.
+
+Set the RUN_TESTS environment variable to a non-blank value
+whenever you wish to run the unit tests in this module...
+Set the CLEAN_TESTS environment variable to a non-blank value
+to clean up test outputs from RUN_TESTS runs.
+
+The values for the Translator SmartAPI endpoint
+are hard coded in the module for now but may change in the future.
+This should be reviewed when needed...
+
+TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
+KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 from typing import Dict, Union, Tuple, Set, List
 from enum import Enum
@@ -22,14 +40,13 @@ if DEBUG:
 
 DEBUG = getenv('DEV_MODE', default=False)
 
-"""
-Set the RUN_TESTS environment variable to a non-blank value
-whenever you wish to run the unit tests in this module...
-Set the CLEAN_TESTS environment variable to a non-blank value
-to clean up test outputs from RUN_TESTS runs.
-"""
+
 RUN_TESTS = getenv('RUN_TESTS', default=False)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
+
+
+TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
+KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 
 # Opaquely access the configuration dictionary
 KGEA_APP_CONFIG = get_app_config()
@@ -324,10 +341,6 @@ def test_create_smartapi():
     _TEST_TSE = create_smartapi(**_TEST_TSE_PARAMETERS)
     print(str(_TEST_TSE), file=stderr)
     return True
-
-
-TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
-KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 
 
 def add_to_github(
