@@ -3,6 +3,7 @@ from aiohttp import web
 from ..kgea_handlers import (
     register_kge_file_set,
     upload_kge_file,
+    publish_kge_file_set
 )
 
 
@@ -64,4 +65,4 @@ async def publish_file_set(request: web.Request, kg_id) -> web.Response:
     :type kg_id: str
 
     """
-    return web.Response(status=200)
+    return await publish_kge_file_set(request, kg_id)

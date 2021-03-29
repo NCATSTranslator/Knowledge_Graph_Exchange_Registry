@@ -352,6 +352,16 @@ async def upload_kge_file(
         await redirect(request, LANDING)
 
 
+async def publish_kge_file_set(request: web.Request, kg_id) -> web.Response:
+    """Publish a registered File Set
+
+    :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed.
+    :type kg_id: str
+
+    """
+    return web.Response(status=200)
+
+
 #############################################################
 # Content Metadata Controller Handler
 #
