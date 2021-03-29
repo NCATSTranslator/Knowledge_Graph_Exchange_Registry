@@ -154,9 +154,9 @@ class KgeaRegistry:
     
     # TODO: what is the required idempotency of this KG addition relative to submitters (can submitters change?)
     # TODO: how do we deal with versioning of submissions across several days(?)
-    def add_kge_file_set(self, kg_id: str, **kwargs) -> KgeaFileSet:
+    def register_kge_file_set(self, kg_id: str, **kwargs) -> KgeaFileSet:
         """
-        As needed, adds a new record for a knowledge graph with a given 'name' for a given 'submitter'.
+        As needed, registers a new record for a knowledge graph with a given 'name' for a given 'submitter'.
         The name is indexed by normalization to lower case and substitution of underscore for spaces.
         Returns the new or any existing matching KgeaRegistry knowledge graph entry.
         
@@ -226,6 +226,12 @@ class KgeaRegistry:
                 )
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
+
+    def publish_file_set(self, kg_id):
+        # TODO: need to implement post-processing of the completed file set
+        #       (with all files as uploaded by the client)
+        logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"'): not yet implemented?!")
+        kge_file_set = self._kge_file_set[kg_id]
 
 
 def check_kgx_compliance(file_type: KgeFileType, s3_object_url: str) -> bool:

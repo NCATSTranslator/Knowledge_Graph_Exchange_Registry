@@ -171,7 +171,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
-                KgeaRegistry.registry().add_kge_file_set(
+                KgeaRegistry.registry().register_kge_file_set(
                     kg_id,
                     file_set_location=file_set_location,
                     kg_name=kg_name,
@@ -352,14 +352,18 @@ async def upload_kge_file(
         await redirect(request, LANDING)
 
 
-async def publish_kge_file_set(request: web.Request, kg_id) -> web.Response:
+async def publish_kge_file_set(request: web.Request, kg_id):
     """Publish a registered File Set
 
+    :param request:
+    :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed.
     :type kg_id: str
 
     """
-    return web.Response(status=200)
+    KgeaRegistry.registry().publish_file_set(kg_id)
+    
+    await redirect(request, HOME)
 
 
 #############################################################
