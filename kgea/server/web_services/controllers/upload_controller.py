@@ -53,3 +53,15 @@ async def upload_file(
         content_url,
         uploaded_file
     )
+
+
+async def publish_file_set(request: web.Request, kg_id) -> web.Response:
+    """Publish a registered File Set
+
+
+
+    :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed.
+    :type kg_id: str
+
+    """
+    return web.Response(status=200)

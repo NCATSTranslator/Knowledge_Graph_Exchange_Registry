@@ -196,6 +196,25 @@ paths:
             application/json:
               schema:
                 type: string
+  /publish/{kg_id}:
+    get:
+      parameters:
+        - name: kg_id
+          in: path
+          description: >-
+            KGE File Set identifier for the knowledge graph
+            for which data files are being accessed.
+          required: true
+          schema:
+            type: string
+      tags:
+      - upload
+      summary: Publish a registered File Set
+      operationId: publishFileSet
+      responses:
+        '302':
+          description: >-
+            After KGE File Set publication is triggered, user gets redirected to /home.
   /{kg_id}/access:
     get:
       parameters:

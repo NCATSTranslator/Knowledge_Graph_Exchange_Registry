@@ -63,7 +63,6 @@ else:
     # Production NGINX resolves the relative path otherwise?
     UPLOAD_FORM_PATH = "/upload"
 
-
 #############################################################
 # Upload Controller Handlers
 #
@@ -106,36 +105,36 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         
         # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
         kg_description = data['kg_description']
-
+        
         # translator_component: Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
         translator_component = data['translator_component']
-
+        
         # translator_team: specific Translator team (affiliation)
         # contributing the file set, e.g. Clinical Data Provider
         translator_team = data['translator_team']
-
+        
         # submitter: name of submitter of the KGE file set
         submitter = data['submitter']
-
+        
         # submitter_email: contact email of the submitter
         submitter_email = data['submitter_email']
-
+        
         # license_name Open Source license name, e.g. MIT, Apache 2.0, etc.
         license_name = data['license_name']
-
+        
         # license_url: web site link to project license
         license_url = ''
         
         if 'license_url' in data:
             license_url = data['license_url'].strip()
-            
+        
         # url may be empty or unavailable - try to take default license?
         if not license_url:
             if license_name in _known_licenses:
                 license_url = _known_licenses[license_name]
             elif license_name != "Other":
-                await report_error(request, "register_kge_file_set(): unknown licence_name: '"+license_name+"'?")
-
+                await report_error(request, "register_kge_file_set(): unknown licence_name: '" + license_name + "'?")
+        
         # terms_of_service: specifically relating to the project, beyond the licensing
         terms_of_service = data['terms_of_service']
         
@@ -154,11 +153,11 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         
         if not kg_name or not submitter:
             await report_error(request, "register_kge_file_set(): either kg_name or submitter are empty?")
-
+        
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
         kg_id = KgeaRegistry.normalize_name(kg_name)
-
+        
         file_set_location = get_object_location(kg_id)
         
         logger.debug("register_kge_file_set(file_set_location: " + file_set_location + ")")
@@ -187,8 +186,10 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 )
                 
                 await redirect(request,
-                               Template(UPLOAD_FORM_PATH + '?submitter=$submitter&kg_name=$kg_name').substitute(
-                                   kg_name=kg_name, submitter=submitter),
+                               Template(
+                                   UPLOAD_FORM_PATH +
+                                   '?kg_id=$kg_id&kg_name=$kg_name&submitter=$submitter&'
+                               ).substitute(kg_id=kg_id, kg_name=kg_name, submitter=submitter),
                                active_session=True
                                )
         #     else:
@@ -296,7 +297,7 @@ async def upload_kge_file(
                 file_type = KgeFileType.KGX_DATA_FILE
             
             elif upload_mode == 'metadata':
-
+                
                 # KGE Metadata File for upload?
                 
                 metadata_location = get_object_location(kg_id)
@@ -315,13 +316,13 @@ async def upload_kge_file(
                 await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
         
         if uploaded_file_object_key:
-
+            
             try:
                 s3_file_url = create_presigned_url(
                     bucket=kgea_app_config['bucket'],
                     object_key=uploaded_file_object_key
                 )
-
+                
                 # This action adds a file to a knowledge graph initiating
                 # or continuing a KGE file set registration process.
                 # May raise an Exception if something goes wrong.
@@ -332,14 +333,14 @@ async def upload_kge_file(
                     object_key=uploaded_file_object_key,
                     s3_file_url=s3_file_url
                 )
-
+                
                 response = web.Response(text=str(kg_id), status=200)
-
+                
                 return await with_session(request, response)
-
+            
             except Exception as exc:
                 error_msg: str = "upload_kge_file(object_key: " + \
-                                 str(uploaded_file_object_key)+") - "+str(exc)
+                                 str(uploaded_file_object_key) + ") - " + str(exc)
                 logger.error(error_msg)
                 await report_error(request, error_msg)
         else:
@@ -372,12 +373,12 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Resp
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
     logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ")")
-
+    
     session = await get_session(request)
     if not session.empty:
-
+        
         files_location = get_object_location(kg_id)
-
+        
         # Listings Approach
         # - Introspect on Bucket
         # - Create URL per Item Listing
@@ -396,16 +397,16 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Resp
             map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
                 kg_listing)
         )
-
+        
         # logger.debug('knowledge_map urls: %s', kg_urls)
         # import requests, json
         # metadata_key = kg_listing[0]
         # url = create_presigned_url(kgea_app_config['bucket'], metadata_key)
         # metadata = json.loads(requests.get(url).text)
-
+        
         response = web.Response(text=str(kg_urls), status=200)
         return await with_session(request, response)
-
+    
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
@@ -431,10 +432,10 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
     :rtype: web.Response( Dict[str, Attribute] )
     """
     logger.debug("Entering kge_access(kg_id: " + kg_id + ")")
-
+    
     session = await get_session(request)
     if not session.empty:
-
+        
         files_location = get_object_location(kg_id)
         # Listings Approach
         # - Introspect on Bucket
@@ -452,10 +453,10 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
             map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
                 kg_listing))
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
-
+        
         response = web.Response(text=str(kg_urls), status=200)
         return await with_session(request, response)
-
+    
     else:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
