@@ -31,7 +31,7 @@ if DEV_MODE:
     logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
-kgea_app_config = get_app_config()
+KGEA_APP_CONFIG = get_app_config()
 
 #############################################################
 # Site Controller Handlers
@@ -180,14 +180,14 @@ async def kge_login(request: web.Request):  # noqa: E501
     _state_cache.append(state)
 
     login_url = \
-        kgea_app_config['oauth2']['host'] + \
+        KGEA_APP_CONFIG['oauth2']['host'] + \
         '/login?response_type=code' + \
         '&state=' + state + \
         '&client_id=' + \
-        kgea_app_config['oauth2']['client_id'] + \
+        KGEA_APP_CONFIG['oauth2']['client_id'] + \
         '&redirect_uri=' + \
-        kgea_app_config['oauth2']['site_uri'] + \
-        kgea_app_config['oauth2']['login_callback']
+        KGEA_APP_CONFIG['oauth2']['site_uri'] + \
+        KGEA_APP_CONFIG['oauth2']['login_callback']
 
     await redirect(request, login_url)
 
@@ -212,11 +212,11 @@ async def kge_logout(request: web.Request):
 
             # ...then redirect to signal logout at the Oauth2 host
             logout_url = \
-                kgea_app_config['oauth2']['host'] + \
+                KGEA_APP_CONFIG['oauth2']['host'] + \
                 '/logout?client_id=' + \
-                kgea_app_config['oauth2']['client_id'] + \
+                KGEA_APP_CONFIG['oauth2']['client_id'] + \
                 '&logout_uri=' + \
-                kgea_app_config['oauth2']['site_uri']
+                KGEA_APP_CONFIG['oauth2']['site_uri']
     
             await redirect(request, logout_url)
     else:

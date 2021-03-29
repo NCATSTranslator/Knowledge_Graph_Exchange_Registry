@@ -1,20 +1,38 @@
 """
 KGE Interface module to Knowledge Graph eXchange (KGX)
 """
+from typing import Dict, Union, Tuple, Set, List
+from enum import Enum
+from string import Template
+
 from sys import stderr
 from os import getenv
 from os.path import abspath, dirname
-from enum import Enum
-
-from string import Template
 
 import logging
-from typing import Dict, Union, Tuple, Set, List
+
+from github import Github
+
+from kgea.server.config import get_app_config
 
 logger = logging.getLogger(__name__)
 DEBUG = getenv('DEV_MODE', default=False)
 if DEBUG:
     logger.setLevel(logging.DEBUG)
+
+DEBUG = getenv('DEV_MODE', default=False)
+
+"""
+Set the RUN_TESTS environment variable to a non-blank value
+whenever you wish to run the unit tests in this module...
+Set the CLEAN_TESTS environment variable to a non-blank value
+to clean up test outputs from RUN_TESTS runs.
+"""
+RUN_TESTS = getenv('RUN_TESTS', default=False)
+CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
+
+# Opaquely access the configuration dictionary
+KGEA_APP_CONFIG = get_app_config()
 
 
 def prepare_test(func):
@@ -119,7 +137,7 @@ class KgeaFileSet:
         :return:
         """
         api_specification = create_smartapi(**self.parameter)
-        add_to_github(api_specification)
+        add_to_github(self.kg_id, api_specification)
 
 
 class KgeaRegistry:
@@ -154,9 +172,9 @@ class KgeaRegistry:
     
     # TODO: what is the required idempotency of this KG addition relative to submitters (can submitters change?)
     # TODO: how do we deal with versioning of submissions across several days(?)
-    def add_kge_file_set(self, kg_id: str, **kwargs) -> KgeaFileSet:
+    def register_kge_file_set(self, kg_id: str, **kwargs) -> KgeaFileSet:
         """
-        As needed, adds a new record for a knowledge graph with a given 'name' for a given 'submitter'.
+        As needed, registers a new record for a knowledge graph with a given 'name' for a given 'submitter'.
         The name is indexed by normalization to lower case and substitution of underscore for spaces.
         Returns the new or any existing matching KgeaRegistry knowledge graph entry.
         
@@ -227,6 +245,17 @@ class KgeaRegistry:
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
 
+    def publish_file_set(self, kg_id):
+        # TODO: need to fully implement post-processing of the completed
+        #       file set (with all files, as uploaded by the client)
+        logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"'): not yet implemented?!")
+        
+        kge_file_set = self._kge_file_set[kg_id]
+        
+        # TODO: need to ensure that the all the files are KGX validated first(?)
+        
+        kge_file_set.translator_registration()
+
 
 def check_kgx_compliance(file_type: KgeFileType, s3_object_url: str) -> bool:
     """
@@ -251,8 +280,7 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../api/kge_smartapi_entry.yaml')
 
 
-# TODO
-# KGE File Set Translator SmartAPI parameters set here are the following string keyword arguments:
+# KGE File Set Translator SmartAPI parameters (March 2021 release) set here are the following string keyword arguments:
 # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
 # - kg_name: human readable name of the knowledge graph
 # - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
@@ -263,7 +291,6 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
 # - terms_of_service - specifically relating to the project, beyond the licensing
 # - translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
 # - translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider
-#
 def create_smartapi(**kwargs) -> str:
     with open(TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH, 'r') as template_file:
         smart_api_template = template_file.read()
@@ -272,55 +299,99 @@ def create_smartapi(**kwargs) -> str:
         return smart_api_entry
 
 
-_TEST_TRANSLATOR_SMARTAPI_ENTRY = create_smartapi(
-        kg_id="disney_small_world_graph",
-        kg_name="Disneyland Small World Graph",
-        kg_description="""Voyage along the Seven Seaways canal and behold a cast of
+_TEST_TSE_PARAMETERS = dict(
+    kg_id="disney_small_world_graph",
+    kg_name="Disneyland Small World Graph",
+    kg_description="""Voyage along the Seven Seaways canal and behold a cast of
     almost 300 Audio-Animatronics dolls representing children
     from every corner of the globe as they sing the classic
     anthem to world peace—in their native languages.""",
-        translator_component="KP",
-        translator_team="Disney Knowledge Provider",
-        submitter="Mickey Mouse",
-        submitter_email="mickey.mouse@disneyland.disney.go.com",
-        license_name="Artistic 2.0",
-        license_url="https://opensource.org/licenses/Artistic-2.0",
-        terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/"
-    )
+    translator_component="KP",
+    translator_team="Disney Knowledge Provider",
+    submitter="Mickey Mouse",
+    submitter_email="mickey.mouse@disneyland.disney.go.com",
+    license_name="Artistic 2.0",
+    license_url="https://opensource.org/licenses/Artistic-2.0",
+    terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/"
+)
+_TEST_TSE = 'empty'
 
 
 # TODO
 @prepare_test
 def test_create_smartapi():
+    global _TEST_TSE
     print("\ntest_create_smartapi() test output:\n", file=stderr)
-    print(_TEST_TRANSLATOR_SMARTAPI_ENTRY, file=stderr)
-    
+    _TEST_TSE = create_smartapi(**_TEST_TSE_PARAMETERS)
+    print(str(_TEST_TSE), file=stderr)
     return True
 
 
-# TODO
-def add_to_github(api_specification):
-    # Stub implementation
-    # using https://github.com/NCATS-Tangerine/translator-api-registry
-    pass
+TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
+KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
+
+
+def add_to_github(
+        kg_id: str,
+        api_specification: str,
+        repo: str = TRANSLATOR_SMARTAPI_REPO,
+        target_directory: str = KGE_SMARTAPI_DIRECTORY
+) -> bool:
+    
+    outcome: bool = False
+    
+    gh_token = KGEA_APP_CONFIG['github']['token']
+    
+    logger.debug(
+        "Calling Registry.add_to_github(\n"
+        "\t### gh_token = '"+str(gh_token)+"'\n"
+    )
+    
+    if gh_token:
+        
+        logger.debug(
+            "\t### api_specification = '''\n" + str(api_specification)[:60] + "...\n'''\n" +
+            "\t### repo_path = '" + str(repo) + "'\n" +
+            "\t### target_directory = '" + str(target_directory) + "'"
+        )
+    
+        if api_specification and repo and target_directory:
+            
+            entry_path = target_directory+"/"+kg_id + ".yaml"
+            
+            logger.debug("\t### gh_url = '" + str(entry_path) + "'")
+            
+            g = Github(gh_token)
+            repo = g.get_repo(repo)
+            
+            repo.create_file(
+                entry_path,
+                "Posting KGE entry  '" + kg_id + "' to Translator SmartAPI Registry.",
+                api_specification,  # API YAML specification as a string
+            )
+            
+            outcome = True
+
+    logger.debug(")\n")
+    return outcome
+
+
+_TEST_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
+_TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 
 
 # TODO
 @prepare_test
 def test_add_to_github():
-    add_to_github(_TEST_TRANSLATOR_SMARTAPI_ENTRY)
-    return True
-
-
-# TODO
-def api_registered(kg_id:str):
-    return True
-
-
-# TODO
-@prepare_test
-def test_api_registered():
-    return True
+    
+    outcome: bool = add_to_github(
+        "kge_test_entry",
+        _TEST_TSE,
+        repo=_TEST_SMARTAPI_REPO,
+        target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
+    )
+    
+    return outcome
 
 
 # TODO
@@ -329,14 +400,65 @@ def test_translator_registration():
     return True
 
 
+# TODO: make sure that you clean up all (external) test artifacts here
+def clean_tests(
+        kg_id="kge_test_entry",
+        repo_path=_TEST_SMARTAPI_REPO,
+        target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
+):
+    """
+    This method cleans up a 'test' target Github repository.
+    
+    This method should be run by setting the 'CLEAN_TESTS' environment flag,
+    after running the module with the 'RUN_TESTS' environment flag set.
+    
+    :param kg_id:
+    :param repo_path:
+    :param target_directory:
+    :return:
+    """
+    
+    gh_token = KGEA_APP_CONFIG['github']['token']
+    
+    print(
+        "Calling Registry.clean_tests()",
+        file=stderr
+    )
+    
+    if gh_token and repo_path and target_directory:
+            
+        entry_path = target_directory + "/" + kg_id + ".yaml"
+        
+        g = Github(gh_token)
+        repo = g.get_repo(repo_path)
+    
+        contents = repo.get_contents(entry_path)
+        repo.delete_file(contents.path, "Remove test entry = '" + entry_path + "'", contents.sha)
+
+
 """
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
 if __name__ == '__main__':
-    print("Smart API Registry functions and tests")
-    assert (test_create_smartapi())
-    assert (test_add_to_github())
-    assert (test_api_registered())
     
-    print("all registry tests passed")
+    # Set the RUN_TESTS environment variable to a non-blank value
+    # whenever you wish to run the unit tests in this module...
+    # Set the CLEAN_TESTS environment variable to a non-blank value
+    # to clean up test outputs from RUN_TESTS runs.
+    
+    if RUN_TESTS:
+        
+        print("KGEA Registry modules functions and tests")
+        
+        # The create_smartapi() and add_to_github() methods both seem to work, as coded as of 29 March 2021,
+        # thus we comment out this test to avoid repeated commits to the KGE repo. The 'clean_tests()' below
+        # is thus not currently needed either, since it simply removes the github artifacts from add_to_github().
+        # This code can be uncommented if these features need to be tested again in the future
+        # assert (test_create_smartapi())
+        # assert (test_add_to_github())
+        
+        print("all registry tests passed")
+        
+    # if CLEAN_TESTS:
+    #     clean_tests()
