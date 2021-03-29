@@ -20,7 +20,16 @@ DEBUG = getenv('DEV_MODE', default=False)
 if DEBUG:
     logger.setLevel(logging.DEBUG)
 
+DEBUG = getenv('DEV_MODE', default=False)
 
+"""
+Set the RUN_TESTS environment variable to a non-blank value
+whenever you wish to run the unit tests in this module...
+Set the CLEAN_TESTS environment variable to a non-blank value
+to clean up test outputs from RUN_TESTS runs.
+"""
+RUN_TESTS = getenv('RUN_TESTS', default=False)
+CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
 
 # Opaquely access the configuration dictionary
 KGEA_APP_CONFIG = get_app_config()
@@ -128,7 +137,7 @@ class KgeaFileSet:
         :return:
         """
         api_specification = create_smartapi(**self.parameter)
-        add_to_github(api_specification)
+        add_to_github(self.kg_id, api_specification)
 
 
 class KgeaRegistry:
@@ -307,7 +316,7 @@ _TEST_TSE_PARAMETERS = dict(
     license_url="https://opensource.org/licenses/Artistic-2.0",
     terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/"
 )
-_TEST_TSE = None
+_TEST_TSE = 'empty'
 
 
 # TODO
@@ -320,45 +329,56 @@ def test_create_smartapi():
     return True
 
 
-TRANSLATOR_SMARTAPI_REPO = "https://github.com/NCATS-Tangerine/translator-api-registry"
+TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 
 
-# TODO
 def add_to_github(
-        api_specification,
-        repo=TRANSLATOR_SMARTAPI_REPO,
-        target_directory=KGE_SMARTAPI_DIRECTORY
+        kg_id: str,
+        api_specification: str,
+        repo: str = TRANSLATOR_SMARTAPI_REPO,
+        target_directory: str = KGE_SMARTAPI_DIRECTORY
 ) -> bool:
+    
+    outcome: bool = False
+    
     gh_token = KGEA_APP_CONFIG['github']['token']
-    print(
+    
+    logger.debug(
         "Calling Registry.add_to_github(\n"
-        "\t### gh_token = '"+str(gh_token)+"'\n",
-        file=stderr
+        "\t### gh_token = '"+str(gh_token)+"'\n"
     )
+    
     if gh_token:
-        print(
+        
+        logger.debug(
             "\t### api_specification = '''\n" + str(api_specification)[:60] + "...\n'''\n" +
-            "\t### repo = '" + str(repo) + "'\n" +
-            "\t### target_directory = '" + str(target_directory) + "'",
-            file=stderr
+            "\t### repo_path = '" + str(repo) + "'\n" +
+            "\t### target_directory = '" + str(target_directory) + "'"
         )
     
         if api_specification and repo and target_directory:
-            gh_url = repo + "/tree/master/" + target_directory
-            print(
-                "\t### gh_url = '" + str(gh_url) + "'",
-                file=stderr
+            
+            entry_path = target_directory+"/"+kg_id + ".yaml"
+            
+            logger.debug("\t### gh_url = '" + str(entry_path) + "'")
+            
+            g = Github(gh_token)
+            repo = g.get_repo(repo)
+            
+            repo.create_file(
+                entry_path,
+                "Posting KGE entry  '" + kg_id + "' to Translator SmartAPI Registry.",
+                api_specification,  # API YAML specification as a string
             )
+            
+            outcome = True
 
-    print(
-        ")\n",
-        file=stderr
-    )
-    return False
+    logger.debug(")\n")
+    return outcome
 
 
-_TEST_SMARTAPI_REPO = "https://github.com/NCATS-Tangerine/translator-api-registry"
+_TEST_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 _TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 
 
@@ -367,6 +387,7 @@ _TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 def test_add_to_github():
     
     outcome: bool = add_to_github(
+        "kge_test_entry",
         _TEST_TSE,
         repo=_TEST_SMARTAPI_REPO,
         target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
@@ -392,14 +413,62 @@ def test_translator_registration():
     return True
 
 
+# TODO: make sure that you clean up all (external) test artifacts here
+def clean_tests(
+        kg_id="kge_test_entry",
+        repo_path=_TEST_SMARTAPI_REPO,
+        target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
+):
+    """
+    This method cleans up a 'test' target Github repository.
+    
+    This method should be run by setting the 'CLEAN_TESTS' environment flag,
+    after running the module with the 'RUN_TESTS' environment flag set.
+    
+    :param kg_id:
+    :param repo_path:
+    :param target_directory:
+    :return:
+    """
+    
+    gh_token = KGEA_APP_CONFIG['github']['token']
+    
+    print(
+        "Calling Registry.clean_tests()",
+        file=stderr
+    )
+    
+    if gh_token and repo_path and target_directory:
+            
+        entry_path = target_directory + "/" + kg_id + ".yaml"
+        
+        g = Github(gh_token)
+        repo = g.get_repo(repo_path)
+    
+        contents = repo.get_contents(entry_path)
+        repo.delete_file(contents.path, "Remove test entry = '" + entry_path + "'", contents.sha)
+
+
 """
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
 if __name__ == '__main__':
-    print("Smart API Registry functions and tests")
-    assert (test_create_smartapi())
-    assert (test_api_registered())
-    assert (test_add_to_github())
     
-    print("all registry tests passed")
+    # Set the RUN_TESTS environment variable to a non-blank value
+    # whenever you wish to run the unit tests in this module...
+    # Set the CLEAN_TESTS environment variable to a non-blank value
+    # to clean up test outputs from RUN_TESTS runs.
+    
+    if RUN_TESTS:
+        
+        print("KGEA Registry modules functions and tests")
+        
+        assert (test_create_smartapi())
+        assert (test_api_registered())
+        assert (test_add_to_github())
+        
+        print("all registry tests passed")
+        
+    if CLEAN_TESTS:
+        clean_tests()

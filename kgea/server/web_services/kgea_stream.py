@@ -196,29 +196,31 @@ Unit Tests
 """
 if __name__ == '__main__':
     
-    TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-                    "Knowledge_Graph_Exchange_Registry/master/LICENSE"
-    TEST_FILE_NAME = "MIT_LICENSE"
-    # TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-    #                 "Knowledge_Graph_Exchange_Registry/blob/consolidate_web_apps/kgea/server/test/data/" + \
-    #                 "somedata.csv"
-    # TEST_FILE_NAME = "somedata.csv"
-    TEST_BUCKET = 'kgea-test-bucket'
-    TEST_KG_NAME = 'test_kg'
+    if RUN_TESTS:
     
-    KgeaSession()
+        TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
+                        "Knowledge_Graph_Exchange_Registry/master/LICENSE"
+        TEST_FILE_NAME = "MIT_LICENSE"
+        # TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
+        #                 "Knowledge_Graph_Exchange_Registry/blob/consolidate_web_apps/kgea/server/test/data/" + \
+        #                 "somedata.csv"
+        # TEST_FILE_NAME = "somedata.csv"
+        TEST_BUCKET = 'kgea-test-bucket'
+        TEST_KG_NAME = 'test_kg'
+        
+        KgeaSession()
+        
+        assert(test_data_stream_from_url(test_url=TEST_FILE_URL))
+        print("test_data_stream_from_url passed")
     
-    assert(test_data_stream_from_url(test_url=TEST_FILE_URL))
-    print("test_data_stream_from_url passed")
-
-    assert(test_transfer_file_from_url(
-        test_url=TEST_FILE_URL,
-        test_file_name=TEST_FILE_NAME,
-        test_bucket=TEST_BUCKET,
-        test_kg=TEST_KG_NAME)
-    )
-    print("test_transfer_file_from_url passed")
-    
-    KgeaSession.close_global_session()
-    
-    exit(0)
+        assert(test_transfer_file_from_url(
+            test_url=TEST_FILE_URL,
+            test_file_name=TEST_FILE_NAME,
+            test_bucket=TEST_BUCKET,
+            test_kg=TEST_KG_NAME)
+        )
+        print("test_transfer_file_from_url passed")
+        
+        KgeaSession.close_global_session()
+        
+        exit(0)
