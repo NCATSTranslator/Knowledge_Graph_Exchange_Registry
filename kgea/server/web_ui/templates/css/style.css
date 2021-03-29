@@ -12,6 +12,11 @@ img.banner {
   height: auto;
 }
 
+.menu_bar {
+  float: left;
+  padding: 5px;
+}
+
 /* .center {
   display: block;
   margin-left: auto;

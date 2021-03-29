@@ -1,0 +1,5 @@
+<div class="menu_bar">
+<form action="/home">
+    <input type="submit" value="Home" />
+</form>
+</div>
