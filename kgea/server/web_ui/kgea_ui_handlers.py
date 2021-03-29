@@ -58,10 +58,12 @@ if DEV_MODE:
     # Point to http://localhost:8080 for Archive process host for local testing
     ARCHIVE_REGISTRATION_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"register"
     UPLOAD_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"upload"
+    PUBLISH_FILE_SET_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"publish"
 else:
     # Production NGINX resolves the relative path otherwise?
     ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
     UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
+    PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
 
 
 async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
@@ -277,6 +279,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
 
         context = {
             "upload_action": UPLOAD_FORM_ACTION,
+            "publish_file_set_action": PUBLISH_FILE_SET_ACTION,
             "kg_name": kg_name,
             "submitter": submitter
         }
