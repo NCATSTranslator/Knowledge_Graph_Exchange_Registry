@@ -1,20 +1,29 @@
 """
 KGE Interface module to Knowledge Graph eXchange (KGX)
 """
+from typing import Dict, Union, Tuple, Set, List
+from enum import Enum
+from string import Template
+
 from sys import stderr
 from os import getenv
 from os.path import abspath, dirname
-from enum import Enum
-
-from string import Template
 
 import logging
-from typing import Dict, Union, Tuple, Set, List
+
+from github import Github
+
+from kgea.server.config import get_app_config
 
 logger = logging.getLogger(__name__)
 DEBUG = getenv('DEV_MODE', default=False)
 if DEBUG:
     logger.setLevel(logging.DEBUG)
+
+
+
+# Opaquely access the configuration dictionary
+KGEA_APP_CONFIG = get_app_config()
 
 
 def prepare_test(func):
@@ -283,44 +292,87 @@ def create_smartapi(**kwargs) -> str:
         return smart_api_entry
 
 
-_TEST_TRANSLATOR_SMARTAPI_ENTRY = create_smartapi(
-        kg_id="disney_small_world_graph",
-        kg_name="Disneyland Small World Graph",
-        kg_description="""Voyage along the Seven Seaways canal and behold a cast of
+_TEST_TSE_PARAMETERS = dict(
+    kg_id="disney_small_world_graph",
+    kg_name="Disneyland Small World Graph",
+    kg_description="""Voyage along the Seven Seaways canal and behold a cast of
     almost 300 Audio-Animatronics dolls representing children
     from every corner of the globe as they sing the classic
     anthem to world peace—in their native languages.""",
-        translator_component="KP",
-        translator_team="Disney Knowledge Provider",
-        submitter="Mickey Mouse",
-        submitter_email="mickey.mouse@disneyland.disney.go.com",
-        license_name="Artistic 2.0",
-        license_url="https://opensource.org/licenses/Artistic-2.0",
-        terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/"
-    )
+    translator_component="KP",
+    translator_team="Disney Knowledge Provider",
+    submitter="Mickey Mouse",
+    submitter_email="mickey.mouse@disneyland.disney.go.com",
+    license_name="Artistic 2.0",
+    license_url="https://opensource.org/licenses/Artistic-2.0",
+    terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/"
+)
+_TEST_TSE = None
 
 
 # TODO
 @prepare_test
 def test_create_smartapi():
+    global _TEST_TSE
     print("\ntest_create_smartapi() test output:\n", file=stderr)
-    print(_TEST_TRANSLATOR_SMARTAPI_ENTRY, file=stderr)
-    
+    _TEST_TSE = create_smartapi(**_TEST_TSE_PARAMETERS)
+    print(str(_TEST_TSE), file=stderr)
     return True
 
 
+TRANSLATOR_SMARTAPI_REPO = "https://github.com/NCATS-Tangerine/translator-api-registry"
+KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
+
+
 # TODO
-def add_to_github(api_specification):
-    # Stub implementation
-    # using https://github.com/NCATS-Tangerine/translator-api-registry
-    pass
+def add_to_github(
+        api_specification,
+        repo=TRANSLATOR_SMARTAPI_REPO,
+        target_directory=KGE_SMARTAPI_DIRECTORY
+) -> bool:
+    gh_token = KGEA_APP_CONFIG['github']['token']
+    print(
+        "Calling Registry.add_to_github(\n"
+        "\t### gh_token = '"+str(gh_token)+"'\n",
+        file=stderr
+    )
+    if gh_token:
+        print(
+            "\t### api_specification = '''\n" + str(api_specification)[:60] + "...\n'''\n" +
+            "\t### repo = '" + str(repo) + "'\n" +
+            "\t### target_directory = '" + str(target_directory) + "'",
+            file=stderr
+        )
+    
+        if api_specification and repo and target_directory:
+            gh_url = repo + "/tree/master/" + target_directory
+            print(
+                "\t### gh_url = '" + str(gh_url) + "'",
+                file=stderr
+            )
+
+    print(
+        ")\n",
+        file=stderr
+    )
+    return False
+
+
+_TEST_SMARTAPI_REPO = "https://github.com/NCATS-Tangerine/translator-api-registry"
+_TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 
 
 # TODO
 @prepare_test
 def test_add_to_github():
-    add_to_github(_TEST_TRANSLATOR_SMARTAPI_ENTRY)
-    return True
+    
+    outcome: bool = add_to_github(
+        _TEST_TSE,
+        repo=_TEST_SMARTAPI_REPO,
+        target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
+    )
+    
+    return outcome
 
 
 # TODO
@@ -347,7 +399,7 @@ Unit Tests
 if __name__ == '__main__':
     print("Smart API Registry functions and tests")
     assert (test_create_smartapi())
-    assert (test_add_to_github())
     assert (test_api_registered())
+    assert (test_add_to_github())
     
     print("all registry tests passed")

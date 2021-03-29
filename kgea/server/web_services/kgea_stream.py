@@ -200,9 +200,9 @@ if __name__ == '__main__':
                     "Knowledge_Graph_Exchange_Registry/master/LICENSE"
     TEST_FILE_NAME = "MIT_LICENSE"
     # TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-    #                 "Knowledge_Graph_Exchange_Registry/blob/consolidate_web_apps/kgea/test_data/" + \
-    #                 "translator_sankey_2021-02-01-01.jpg"
-    # TEST_FILE_NAME = "TranslatorSankey.jpg"
+    #                 "Knowledge_Graph_Exchange_Registry/blob/consolidate_web_apps/kgea/server/test/data/" + \
+    #                 "somedata.csv"
+    # TEST_FILE_NAME = "somedata.csv"
     TEST_BUCKET = 'kgea-test-bucket'
     TEST_KG_NAME = 'test_kg'
     

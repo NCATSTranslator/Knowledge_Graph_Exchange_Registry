@@ -101,18 +101,18 @@ except Exception as e:
     print(e)
 
 # Exported  'application configuration' dictionary
-app_config: dict = dict()
+_app_config: dict = dict()
 
 
 def get_app_config() -> dict:
-    if not app_config:
+    if not _app_config:
         _load_app_config()
-    return app_config
+    return _app_config
 
 
 def _load_app_config() -> dict:
     
-    global app_config
+    global _app_config
     
     try:
         with open(CONFIG_FILE_PATH, mode='r', encoding='utf-8') as app_config_file:
@@ -120,31 +120,37 @@ def _load_app_config() -> dict:
             app_config_raw = yaml.load(app_config_file, Loader=Loader)
             
             if 'bucket' not in app_config_raw:
-                raise RuntimeError("The app_config doesn't have all its necessary attributes")
+                raise RuntimeError(
+                    "Missing 'bucket' attribute in '~/kgea/server/config/config.yaml' configuration file."
+                )
+            elif 'github' not in app_config_raw:
+                raise RuntimeError(
+                    "Missing 'github.token' attribute in '~/kgea/server/config/config.yaml' configuration file."
+                )
             else:
                 if s3_client is not None:
                     # TODO: detect the bucket here
                     # if not detected, raise an error
                     pass
             
-            app_config = dict(app_config_raw)
+            _app_config = dict(app_config_raw)
         
         if DEV_MODE:
             # For the EncryptedCookieStorage() managed
             # Session management during development
-            if 'secret_key' not in app_config:
+            if 'secret_key' not in _app_config:
                 import base64
                 from cryptography import fernet
                 
                 fernet_key = fernet.Fernet.generate_key()
                 secret_key = base64.urlsafe_b64decode(fernet_key)
-                app_config['secret_key'] = secret_key
+                _app_config['secret_key'] = secret_key
                 
-                # persist updated updated app_config back to config.yaml?
+                # persist updated updated _app_config back to config.yaml?
                 with open(CONFIG_FILE_PATH, mode='w', encoding='utf-8') as app_config_file:
-                    yaml.dump(app_config, app_config_file, Dumper=Dumper)
+                    yaml.dump(_app_config, app_config_file, Dumper=Dumper)
         
-        return app_config
+        return _app_config
     
     except Exception as exc:
         raise RuntimeError('KGE Archive resource configuration file failed to load? :' + str(exc))

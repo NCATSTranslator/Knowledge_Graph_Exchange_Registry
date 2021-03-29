@@ -13,3 +13,5 @@ pyyaml
 aiohttp<3.7
 aiohttp-session
 aiomcache
+
+PyGithub

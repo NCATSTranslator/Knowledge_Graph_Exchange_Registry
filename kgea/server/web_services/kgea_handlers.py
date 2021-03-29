@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
-kgea_app_config = get_app_config()
+KGEA_APP_CONFIG = get_app_config()
 
 # This is the home page path,
 # should match the API path spec
@@ -269,7 +269,7 @@ async def upload_kge_file(
             uploaded_file_object_key = transfer_file_from_url(
                 url=content_url,
                 file_name=content_name,
-                bucket=kgea_app_config['bucket'],
+                bucket=KGEA_APP_CONFIG['bucket'],
                 object_location=content_location
             )
             
@@ -290,7 +290,7 @@ async def upload_kge_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
                     data_file=uploaded_file.file,
                     file_name=content_name,
-                    bucket=kgea_app_config['bucket'],
+                    bucket=KGEA_APP_CONFIG['bucket'],
                     object_location=content_location
                 )
                 
@@ -306,7 +306,7 @@ async def upload_kge_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
                     data_file=uploaded_file.file,
                     file_name=content_name,
-                    bucket=kgea_app_config['bucket'],
+                    bucket=KGEA_APP_CONFIG['bucket'],
                     object_location=metadata_location
                 )
                 
@@ -319,7 +319,7 @@ async def upload_kge_file(
             
             try:
                 s3_file_url = create_presigned_url(
-                    bucket=kgea_app_config['bucket'],
+                    bucket=KGEA_APP_CONFIG['bucket'],
                     object_key=uploaded_file_object_key
                 )
                 
@@ -400,7 +400,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Resp
         # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
         # TODO: convert into redirect approach with cross-origin scripting?
         kg_files = kg_files_in_location(
-            bucket_name=kgea_app_config['bucket'],
+            bucket_name=KGEA_APP_CONFIG['bucket'],
             object_location=files_location
         )
         pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
@@ -408,14 +408,14 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Resp
         )
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
                 kg_listing)
         )
         
         # logger.debug('knowledge_map urls: %s', kg_urls)
         # import requests, json
         # metadata_key = kg_listing[0]
-        # url = create_presigned_url(kgea_app_config['bucket'], metadata_key)
+        # url = create_presigned_url(KGEA_APP_CONFIG['bucket'], metadata_key)
         # metadata = json.loads(requests.get(url).text)
         
         response = web.Response(text=str(kg_urls), status=200)
@@ -458,13 +458,13 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
         # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
         # TODO: convert into redirect approach with cross-origin scripting?
         kg_files = kg_files_in_location(
-            bucket_name=kgea_app_config['bucket'],
+            bucket_name=KGEA_APP_CONFIG['bucket'],
             object_location=files_location
         )
         pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(kgea_app_config['bucket'], kg_file)],
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
                 kg_listing))
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
         

@@ -16,4 +16,7 @@ credentials:
   aws_access_key_id: '...'         # the 20 character AWS access key id
   aws_secret_access_key: '...'     # the 40 character AWS secret key
 
+github:
+    token: ''
+
 # secret_key:
