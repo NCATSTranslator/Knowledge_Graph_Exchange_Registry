@@ -1,6 +1,7 @@
 """
 KGE Interface module to Knowledge Graph eXchange (KGX)
 """
+from sys import stderr
 from os import getenv
 from os.path import abspath, dirname
 from enum import Enum
@@ -35,15 +36,36 @@ class KgeaFileSet:
     assembled in AWS S3, for SmartAPI registration and client access
     """
     
-    def __init__(self, kg_id: str, kg_name: str, submitter: str):
+    _expected = [
+        "file_set_location",
+        "kg_name",
+        "kg_description",
+        "translator_component",
+        "translator_team",
+        "submitter",
+        "submitter_email",
+        "license_name",
+        "license_url",
+        "terms_of_service"
+    ]
+    
+    def __init__(self, kg_id: str, **kwargs):
         """
+        KgeaFileSet constructor
         
         :param kg_name: name of knowledge graph in entry
         :param submitter: owner of knowledge graph
         """
-        self.id: str = kg_id
-        self.name: str = kg_name
-        self.submitter = submitter
+        self.kg_id = kg_id
+        self.parameter: Dict = dict()
+        for key, value in kwargs.items():
+            
+            if key not in self._expected:
+                logger.warning("Unexpected KgeaFileSet parameter '"+str(key)+"'... ignored!")
+                continue
+            
+            self.parameter[key] = value
+
         self.metadata_file: Union[List, None] = None
         self.data_files: Dict[str, List] = dict()
 
@@ -91,13 +113,13 @@ class KgeaFileSet:
         [dataset.add(tuple(x)) for x in self.data_files.values()]
         return dataset
     
-    def register_file_set(self):
+    def translator_registration(self):
         """
         Register the current file set in the Translator SmartAPI Registry
         :return:
         """
-        # TODO: might need more information here to create the SmartAPI Registry entry?
-        translator_registration(self.id, self.submitter, self.name)
+        api_specification = create_smartapi(**self.parameter)
+        add_to_github(api_specification)
 
 
 class KgeaRegistry:
@@ -121,31 +143,32 @@ class KgeaRegistry:
         self._kge_file_set: Dict[str, KgeaFileSet] = dict()
     
     @staticmethod
-    def normal_name(kg_name: str) -> str:
+    def normalize_name(kg_name: str) -> str:
         # TODO: need to review graph name normalization and indexing
         #       against various internal graph use cases, e.g. lookup
-        #       and need to be robust to user typos (e.g. extra blank spaces?)
+        #       and need to be robust to user typos (e.g. extra blank spaces?
+        #       invalid characters?). Maybe convert to regex cleanup?
         kg_id = kg_name.lower()  # all lower case
         kg_id = kg_id.replace(' ', '_')  # spaces with underscores
         return kg_id
     
     # TODO: what is the required idempotency of this KG addition relative to submitters (can submitters change?)
     # TODO: how do we deal with versioning of submissions across several days(?)
-    def add_kge_file_set(self, kg_id: str, submitter: str, kg_name: str) -> KgeaFileSet:
+    def add_kge_file_set(self, kg_id: str, **kwargs) -> KgeaFileSet:
         """
         As needed, adds a new record for a knowledge graph with a given 'name' for a given 'submitter'.
         The name is indexed by normalization to lower case and substitution of underscore for spaces.
         Returns the new or any existing matching KgeaRegistry knowledge graph entry.
         
         :param kg_id: identifier of the knowledge graph file set
-        :param submitter: 'owner' of the knowledge graph submission
-        :param kg_name: originally submitted knowledge graph name (may have mixed case and spaces)
+        :param kwargs: dictionary of metadata describing a KGE File Set entry
         :return: KgeaFileSet of the graph (existing or added)
         """
         
         # For now, a given graph is only submitted once for a given submitter
+        # TODO: should we accept any resubmissions or changes?
         if kg_id not in self._kge_file_set:
-            self._kge_file_set[kg_id] = KgeaFileSet(kg_id, kg_name, submitter)
+            self._kge_file_set[kg_id] = KgeaFileSet(kg_id, **kwargs)
         
         return self._kge_file_set[kg_id]
     
@@ -230,11 +253,14 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
 
 # TODO
 # KGE File Set Translator SmartAPI parameters set here are the following string keyword arguments:
-# - kg_id: KGE Archive assigned knowledge graph identifier
+# - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
 # - kg_name: human readable name of the knowledge graph
-# - kg_description: detailed description of knowledge graph (may be multi-lined with '\n'
+# - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
 # - submitter - name of submitter of the KGE file set
 # - submitter_email - contact email of the submitter
+# - license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.
+# - license_url - web site link to project license
+# - terms_of_service - specifically relating to the project, beyond the licensing
 # - translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
 # - translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider
 #
@@ -246,30 +272,35 @@ def create_smartapi(**kwargs) -> str:
         return smart_api_entry
 
 
-# TODO
-@prepare_test
-def test_create_smartapi():
-    smart_api_template = create_smartapi(
+_TEST_TRANSLATOR_SMARTAPI_ENTRY = create_smartapi(
         kg_id="disney_small_world_graph",
         kg_name="Disneyland Small World Graph",
         kg_description="""Voyage along the Seven Seaways canal and behold a cast of
     almost 300 Audio-Animatronics dolls representing children
     from every corner of the globe as they sing the classic
     anthem to world peace—in their native languages.""",
+        translator_component="KP",
+        translator_team="Disney Knowledge Provider",
         submitter="Mickey Mouse",
         submitter_email="mickey.mouse@disneyland.disney.go.com",
         license_name="Artistic 2.0",
         license_url="https://opensource.org/licenses/Artistic-2.0",
-        terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/",
-        translator_component="KP",
-        translator_team="Disney Knowledge Provider"
+        terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/"
     )
-    print(smart_api_template)
+
+
+# TODO
+@prepare_test
+def test_create_smartapi():
+    print("\ntest_create_smartapi() test output:\n", file=stderr)
+    print(_TEST_TRANSLATOR_SMARTAPI_ENTRY, file=stderr)
+    
     return True
 
 
 # TODO
 def add_to_github(api_specification):
+    # Stub implementation
     # using https://github.com/NCATS-Tangerine/translator-api-registry
     pass
 
@@ -277,6 +308,7 @@ def add_to_github(api_specification):
 # TODO
 @prepare_test
 def test_add_to_github():
+    add_to_github(_TEST_TRANSLATOR_SMARTAPI_ENTRY)
     return True
 
 
@@ -289,13 +321,6 @@ def api_registered(kg_id:str):
 @prepare_test
 def test_api_registered():
     return True
-
-
-# TODO
-def translator_registration(kg_id: str, submitter: str, kg_name: str):
-    # TODO: check if the kg_id / kg_name is already registered?
-    api_specification = create_smartapi(kg_id=kg_id, submitter=submitter, kg_name=kg_name)
-    add_to_github(api_specification)
 
 
 # TODO

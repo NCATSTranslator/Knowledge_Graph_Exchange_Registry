@@ -236,8 +236,10 @@ def upload_file(data_file, file_name, bucket, object_location, config=None):
             s3_client.upload_fileobj(data_file, bucket, object_key)
         else:
             s3_client.upload_fileobj(data_file, bucket, object_key, Config=config)
-    except ClientError as error_message:
-        raise ClientError(error_message)
+    except Exception as exc:
+        logger.error("kgea file ops: upload_file() exception: "+str(exc))
+        raise exc
+
     return object_key
 
 

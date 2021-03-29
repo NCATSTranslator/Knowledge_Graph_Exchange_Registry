@@ -33,6 +33,10 @@ async def make_app():
     app.router.add_get('/logout', kge_logout)
     app.router.add_get('/register', get_kge_registration_form)
     app.router.add_get('/upload', get_kge_file_upload_form)
+
+    app.router.add_static('/css/',
+                          path=templates_dir+'/css',
+                          name='css')
     
     KgeaSession.init(app)
     
