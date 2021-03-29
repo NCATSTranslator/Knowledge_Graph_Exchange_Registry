@@ -228,10 +228,15 @@ class KgeaRegistry:
                 raise RuntimeError("Unknown KGE File Set type?")
 
     def publish_file_set(self, kg_id):
-        # TODO: need to implement post-processing of the completed file set
-        #       (with all files as uploaded by the client)
+        # TODO: need to fully implement post-processing of the completed
+        #       file set (with all files, as uploaded by the client)
         logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"'): not yet implemented?!")
+        
         kge_file_set = self._kge_file_set[kg_id]
+        
+        # TODO: need to ensure that the all the files are KGX validated first(?)
+        
+        kge_file_set.translator_registration()
 
 
 def check_kgx_compliance(file_type: KgeFileType, s3_object_url: str) -> bool:
