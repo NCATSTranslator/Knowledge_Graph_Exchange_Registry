@@ -280,8 +280,7 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../api/kge_smartapi_entry.yaml')
 
 
-# TODO
-# KGE File Set Translator SmartAPI parameters set here are the following string keyword arguments:
+# KGE File Set Translator SmartAPI parameters (March 2021 release) set here are the following string keyword arguments:
 # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
 # - kg_name: human readable name of the knowledge graph
 # - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
@@ -292,7 +291,6 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
 # - terms_of_service - specifically relating to the project, beyond the licensing
 # - translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
 # - translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider
-#
 def create_smartapi(**kwargs) -> str:
     with open(TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH, 'r') as template_file:
         smart_api_template = template_file.read()
@@ -397,17 +395,6 @@ def test_add_to_github():
 
 
 # TODO
-def api_registered(kg_id:str):
-    return True
-
-
-# TODO
-@prepare_test
-def test_api_registered():
-    return True
-
-
-# TODO
 @prepare_test
 def test_translator_registration():
     return True
@@ -464,11 +451,14 @@ if __name__ == '__main__':
         
         print("KGEA Registry modules functions and tests")
         
-        assert (test_create_smartapi())
-        assert (test_api_registered())
-        assert (test_add_to_github())
+        # The create_smartapi() and add_to_github() methods both seem to work, as coded as of 29 March 2021,
+        # thus we comment out this test to avoid repeated commits to the KGE repo. The 'clean_tests()' below
+        # is thus not currently needed either, since it simply removes the github artifacts from add_to_github().
+        # This code can be uncommented if these features need to be tested again in the future
+        # assert (test_create_smartapi())
+        # assert (test_add_to_github())
         
         print("all registry tests passed")
         
-    if CLEAN_TESTS:
-        clean_tests()
+    # if CLEAN_TESTS:
+    #     clean_tests()
