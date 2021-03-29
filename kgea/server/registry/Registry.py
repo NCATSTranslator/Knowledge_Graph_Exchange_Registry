@@ -27,6 +27,8 @@ from sys import stderr
 from os import getenv
 from os.path import abspath, dirname
 
+import threading, queue
+
 import logging
 
 from github import Github
@@ -103,7 +105,41 @@ class KgeaFileSet:
 
         self.metadata_file: Union[List, None] = None
         self.data_files: Dict[str, List] = dict()
+        
+        # this Queue serves at the communication link
+        # between a KGX validation process and the Registry
+        self.validation_queue = queue.Queue()
 
+        # turn-on the KGX Validation thread
+        threading.Thread(target=self.validator, daemon=True).start()
+
+    def validator(self):
+        while True:
+            file_spec = self.validation_queue.get()
+            print(f'Working on {file_spec}')
+        
+            # Run KGX validation here
+        
+            print(f'Finished {file_spec}')
+            self.validation_queue.task_done()
+
+    def check_kgx_compliance(self, file_type: KgeFileType, s3_object_url: str):
+        """
+        Stub implementation of KGX Validation of a
+        KGX graph file stored in back end AWS S3
+
+        :param file_type: str
+        :param s3_object_url: str
+        :return: bool
+        """
+        logger.debug("Checking if " + str(file_type) + " file " + s3_object_url + " is KGX compliant")
+    
+        kge_file_spec = {"file_type": file_type, "s3_object_url": s3_object_url}
+        
+        # delegate validation of this file
+        # to the KGX process reading this Queue
+        self.validation_queue.put(kge_file_spec)
+            
     def set_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
         """
         Sets the metadata file identification for a KGE File Set
@@ -115,7 +151,7 @@ class KgeaFileSet:
         self.metadata_file = [file_name, object_key, s3_file_url]
         
         # trigger asynchronous KGX metadata file validation process here?
-        check_kgx_compliance(KgeFileType.KGX_METADATA_FILE, s3_file_url)
+        self.check_kgx_compliance(KgeFileType.KGX_METADATA_FILE, s3_file_url)
 
     def get_metadata_file(self) -> Union[Tuple, None]:
         """
@@ -138,7 +174,7 @@ class KgeaFileSet:
         self.data_files[object_key] = [file_name, object_key, s3_file_url]
         
         # trigger asynchronous KGX metadata file validation process here?
-        check_kgx_compliance(KgeFileType.KGX_DATA_FILE, s3_file_url)
+        self.check_kgx_compliance(KgeFileType.KGX_DATA_FILE, s3_file_url)
 
     def get_data_file_set(self) -> Set[Tuple]:
         """
@@ -147,6 +183,10 @@ class KgeaFileSet:
         dataset: Set[Tuple] = set()
         [dataset.add(tuple(x)) for x in self.data_files.values()]
         return dataset
+
+    def confirm_file_set_validation(self):
+        # Blocking call to KGX validator worker Queue processing
+        self.validation_queue.join()
     
     def translator_registration(self):
         """
@@ -265,29 +305,18 @@ class KgeaRegistry:
     def publish_file_set(self, kg_id):
         # TODO: need to fully implement post-processing of the completed
         #       file set (with all files, as uploaded by the client)
-        logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"'): not yet implemented?!")
+        logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"')")
+
+        kge_file_set = self._kge_file_set[kg_id]
+        
+        # Ensure that the all the files are KGX validated first(?)
+        kge_file_set.confirm_file_set_validation()
+        
+        logger.debug("File set validation() complete for file set '" + kg_id + "')")
         
         # Don't publish to the Translator SmartAPI Registry until you
         # are confident of KGX validation and related post-processing
-        # kge_file_set = self._kge_file_set[kg_id]
-        
-        # TODO: need to ensure that the all the files are KGX validated first(?)
-
         # kge_file_set.translator_registration()
-
-
-def check_kgx_compliance(file_type: KgeFileType, s3_object_url: str) -> bool:
-    """
-    Stub implementation of KGX Validation of a
-    KGX graph file stored in back end AWS S3
-
-    :param file_type: str
-    :param s3_object_url: str
-    :return: bool
-    """
-    logger.debug("Checking if " + str(file_type) + " file " + s3_object_url + " is KGX compliant")
-    return not (file_type == KgeFileType.KGX_UNKNOWN)
-
 
 # TODO
 @prepare_test
