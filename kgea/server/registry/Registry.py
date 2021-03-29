@@ -166,7 +166,7 @@ class KgeaRegistry:
         #       against various internal graph use cases, e.g. lookup
         #       and need to be robust to user typos (e.g. extra blank spaces?
         #       invalid characters?). Maybe convert to regex cleanup?
-        kg_id = kg_name.lower()  # all lower case
+        kg_id = kg_name.lower()          # all lower case
         kg_id = kg_id.replace(' ', '_')  # spaces with underscores
         return kg_id
     
@@ -317,7 +317,6 @@ _TEST_TSE_PARAMETERS = dict(
 _TEST_TSE = 'empty'
 
 
-# TODO
 @prepare_test
 def test_create_smartapi():
     global _TEST_TSE
@@ -380,7 +379,6 @@ _TEST_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 _TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 
 
-# TODO
 @prepare_test
 def test_add_to_github():
     
@@ -392,12 +390,6 @@ def test_add_to_github():
     )
     
     return outcome
-
-
-# TODO
-@prepare_test
-def test_translator_registration():
-    return True
 
 
 # TODO: make sure that you clean up all (external) test artifacts here
