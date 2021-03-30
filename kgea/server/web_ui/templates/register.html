@@ -26,8 +26,7 @@
         <!--    kg_description: detailed description of knowledge graph (multi-lined text)-->
         <label for="kg_description">Knowledge Graph Description:</label>
         <textarea id="kg_description" class="textbox" type="text" name="kg_description" rows="4" cols="50">
-            Detailed description of knowledge graph.
-        </textarea>
+Detailed description of knowledge graph.</textarea>
     </p>
     <p>
         <!--    translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)-->
@@ -55,9 +54,10 @@
         <label for="submitter_email"><span style="color: red; font-weight: bold">*</span>Submitter Email:</label>
         <input id="submitter_email" class="textbox" type="text" name="submitter_email" />
     </p>
+        <p>Select data access license; if "Other" license, please specify licensing URL location.</p>
     <p>
         <!--    license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.-->
-        <label for="license_name">Data Access License:</label>
+        <label for="license_name">License:</label>
         <select name="license_name" id="license_name">
           <option value="Creative-Commons-4.0" selected>Creative Commons</option>
           <option value="MIT">MIT</option>
@@ -68,7 +68,6 @@
         <label for="license_url">License URL:</label>
         <input id="license_url" class="textbox" type="text" name="license_url" />
     </p>
-    <p>If "other" license, please specify URL to licensing page.</p>
     <p>
         <!--    terms_of_service - specifically relating to the project, beyond the licensing-->
         <label for="terms_of_service">Terms of Service URL:</label>

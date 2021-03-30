@@ -116,11 +116,11 @@ class KgeaFileSet:
     def validator(self):
         while True:
             file_spec = self.validation_queue.get()
-            print(f'Working on {file_spec}')
+            print(f'Working on {file_spec}', file=stderr)
         
             # Run KGX validation here
         
-            print(f'Finished {file_spec}')
+            print(f'Finished {file_spec}', file=stderr)
             self.validation_queue.task_done()
 
     def check_kgx_compliance(self, file_type: KgeFileType, s3_object_url: str):
