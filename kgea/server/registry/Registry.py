@@ -34,9 +34,9 @@ import logging
 
 from github import Github
 
-from kgx.validator import Validator
-
 from kgea.server.config import get_app_config
+
+from .kgea_kgx import KgxValidator
 
 logger = logging.getLogger(__name__)
 DEBUG = getenv('DEV_MODE', default=False)
@@ -106,41 +106,48 @@ class KgeaFileSet:
             
             self.parameter[key] = value
 
-        self.metadata_file: Union[List, None] = None
-        self.data_files: Dict[str, List] = dict()
+        self.metadata_file: Union[Dict, None] = None
+        self.data_files: Dict[str, Dict] = dict()
         
         # this Queue serves at the communication link
         # between a KGX validation process and the Registry
+        self.validator = KgxValidator()
+        
+        # KGX Validator singleton for this KGE File Set
         self.validation_queue = queue.Queue()
 
         # turn-on the KGX Validation thread
-        threading.Thread(target=self.validator, daemon=True).start()
+        threading.Thread(target=self.validate, daemon=True).start()
 
-    def validator(self):
+    def validate(self):
         while True:
             kge_file_spec = self.validation_queue.get()
             
             file_type = kge_file_spec['file_type']
             s3_object_url = kge_file_spec['s3_object_url']
+            object_key = kge_file_spec["object_key"]
             
-            print(f'Working on {kge_file_spec}', file=stderr)
-        
+            print(f'Working on file {object_key}', file=stderr)
+            
             # Run KGX validation here
-            if kge_file_spec['file_type'] == KgeFileType.KGX_DATA_FILE:
-                # v = Validator()
-                # v.validate(graph)
-                pass
-            elif kge_file_spec['file_type'] == KgeFileType.KGX_METADATA_FILE:
-                # v = Validator()
-                # v.validate(graph)
-                pass
+            kgx_compliant: bool = False
+            if file_type == KgeFileType.KGX_DATA_FILE:
+                kgx_compliant = await self.validator.validate_data_file(s3_object_url)
+                if kgx_compliant:
+                    self.data_files[object_key]["kgx_compliant"] = True
+            elif file_type == KgeFileType.KGX_METADATA_FILE:
+                kgx_compliant = await self.validator.validate_metadata(s3_object_url)
+                if kgx_compliant:
+                    self.metadata_file["kgx_compliant"] = True
             else:
                 print(f'WARNING: Unknown KgeFileType{file_type} ... ignoring', file=stderr)
-        
-            print(f'Finished {kge_file_spec}', file=stderr)
+            
+            compliance: str = ' not ' if not kgx_compliant else ' '
+            print(f"Finished processing file {object_key} ... is" + compliance + "KGX compliant", file=stderr)
+            
             self.validation_queue.task_done()
 
-    def check_kgx_compliance(self, file_type: KgeFileType, s3_object_url: str):
+    def check_kgx_compliance(self, file_type: KgeFileType, object_key: str, s3_object_url: str):
         """
         Stub implementation of KGX Validation of a
         KGX graph file stored in back end AWS S3
@@ -149,9 +156,17 @@ class KgeaFileSet:
         :param s3_object_url: str
         :return: bool
         """
-        logger.debug("Checking if " + str(file_type) + " file " + s3_object_url + " is KGX compliant")
+        logger.debug(
+            "Checking if " + str(file_type) + " file (object_key) " +
+            "'" + object_key + "'" +
+            "with S3 object URL '" + s3_object_url + "' " +
+            "is KGX compliant")
     
-        kge_file_spec = {"file_type": file_type, "s3_object_url": s3_object_url}
+        kge_file_spec = {
+            "file_type": file_type,
+            "object_key": object_key,
+            "s3_object_url": s3_object_url
+        }
         
         # delegate validation of this file
         # to the KGX process reading this Queue
@@ -165,17 +180,22 @@ class KgeaFileSet:
         :param s3_file_url:
         :return: None
         """
-        self.metadata_file = [file_name, object_key, s3_file_url]
+        self.metadata_file = {
+            "file_name": file_name,
+            "object_key": object_key,
+            "s3_file_url": s3_file_url,
+            "kgx_compliant": False  # until proven True...
+        }
         
         # trigger asynchronous KGX metadata file validation process here?
         self.check_kgx_compliance(KgeFileType.KGX_METADATA_FILE, s3_file_url)
 
-    def get_metadata_file(self) -> Union[Tuple, None]:
+    def get_metadata_file(self) -> Union[Dict, None]:
         """
-        :return: a Tuple of metadata about the KGE File Set metadata file, if available; None otherwise
+        :return: a copy of metadata dictionary about the KGE File Set metadata file, if available; None otherwise
         """
         if self.metadata_file:
-            return tuple(self.metadata_file)
+            return self.metadata_file.copy()
         else:
             return None
 
@@ -188,7 +208,12 @@ class KgeaFileSet:
         :param s3_file_url: current S3 pre-signed data access url
         :return: None
         """
-        self.data_files[object_key] = [file_name, object_key, s3_file_url]
+        self.data_files[object_key] = {
+            "file_name": file_name,
+            "object_key": object_key,
+            "s3_file_url": s3_file_url,
+            "kgx_compliant": False  # until proven True...
+        }
         
         # trigger asynchronous KGX metadata file validation process here?
         self.check_kgx_compliance(KgeFileType.KGX_DATA_FILE, s3_file_url)
