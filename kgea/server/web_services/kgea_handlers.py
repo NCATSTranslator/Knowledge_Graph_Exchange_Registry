@@ -463,7 +463,6 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     kg_files = kg_files_in_location(
         bucket_name=KGEA_APP_CONFIG['bucket'],
     )
-
     # regex
     # - match on
     # TODO: bad

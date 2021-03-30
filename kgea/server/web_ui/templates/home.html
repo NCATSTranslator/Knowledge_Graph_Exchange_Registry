@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA==" crossorigin="anonymous"></script>
     <script>
         async function DownloadFile(source)
         {
@@ -19,7 +21,7 @@
             try {
                 // TODO: What happens to the data returned here?
                 // TODO: Should this fetch rather be a redirect in a separate tab or window?
-               let r = await fetch(url, {method: "GET"});
+               let r = await fetch(url, { method: "GET"});
                console.log('HTTP response code:',r.status);
 
             } catch(e) {
@@ -29,6 +31,26 @@
             // block further propagation of the submit event here?
             return false;
         }
+
+
+        $(document).ready(function () {
+            var cache = {};
+            $('#kg_name').autocomplete({
+                source: function( request, response ) {
+                    fetch("http://localhost:8080/archive/catalog")
+                        .then(body => body.text())
+                        .then(text =>
+                            Array.from(new Set(
+                                text.replaceAll(/[\[\]]/g, '', ).split(', ')
+                                    .map(str => str.replaceAll('\'', '', ))
+                            ))
+                        )
+                        .then(array => response(array));
+                }
+            });
+
+        })
+
     </script>
 {% endblock %}
 {% block menu %}
@@ -69,6 +91,7 @@
             <td>
                 <center>
                     <p><label for="kg_name"><b>Graph Name: </b></label><br>
+
                     <input id="kg_name" type="text"/>
 
                     <p>
