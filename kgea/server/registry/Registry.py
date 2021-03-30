@@ -119,53 +119,89 @@ class KgeaFileSet:
         # turn-on the KGX Validation thread
         threading.Thread(target=self.validate, daemon=True).start()
 
+    # TODO: Review this design - may not be optimal in that the KGX Transformer
+    #       (and likely, KGX Validation) seems to handle multiple input files,
+    #       (in the Transformer) thus collecting those input files first then
+    #       sending them together for KGX validation, may make more sense here?
     def validate(self):
+        
         while True:
+            # Process one file at a time?
             kge_file_spec = self.validation_queue.get()
             
             file_type = kge_file_spec['file_type']
-            s3_object_url = kge_file_spec['s3_object_url']
-            object_key = kge_file_spec["object_key"]
-            
+            object_key = kge_file_spec['object_key']
+            s3_file_url = kge_file_spec['s3_file_url']
+            input_format = kge_file_spec['input_format']
+            input_compression = kge_file_spec['input_compression']
+
             print(f'Working on file {object_key}', file=stderr)
             
             # Run KGX validation here
-            kgx_compliant: bool = False
+            errors: List = list()
+            
             if file_type == KgeFileType.KGX_DATA_FILE:
-                kgx_compliant = await self.validator.validate_data_file(s3_object_url)
-                if kgx_compliant:
+                
+                errors = await self.validator.validate_data_file(
+                    file_path=s3_file_url,
+                    input_format=input_format,
+                    input_compression=input_compression
+                )
+                if not errors:
                     self.data_files[object_key]["kgx_compliant"] = True
+                else:
+                    self.data_files[object_key]["errors"] = errors
+                    
             elif file_type == KgeFileType.KGX_METADATA_FILE:
-                kgx_compliant = await self.validator.validate_metadata(s3_object_url)
-                if kgx_compliant:
+                
+                errors = await KgxValidator.validate_metadata(file_path=s3_file_url)
+                if not errors:
                     self.metadata_file["kgx_compliant"] = True
+                else:
+                    self.data_files[object_key]["errors"] = errors
+
             else:
                 print(f'WARNING: Unknown KgeFileType{file_type} ... ignoring', file=stderr)
             
-            compliance: str = ' not ' if not kgx_compliant else ' '
+            compliance: str = ' not ' if errors else ' '
+            
             print(f"Finished processing file {object_key} ... is" + compliance + "KGX compliant", file=stderr)
             
             self.validation_queue.task_done()
 
-    def check_kgx_compliance(self, file_type: KgeFileType, object_key: str, s3_object_url: str):
+    def check_kgx_compliance(
+            self,
+            file_type: KgeFileType,
+            object_key: str,
+            s3_file_url: str
+    ):
         """
         Stub implementation of KGX Validation of a
         KGX graph file stored in back end AWS S3
 
-        :param file_type: str
-        :param s3_object_url: str
+        :param file_type:
+        :param object_key:
+        :param s3_file_url:
         :return: bool
         """
         logger.debug(
             "Checking if " + str(file_type) + " file (object_key) " +
             "'" + object_key + "'" +
-            "with S3 object URL '" + s3_object_url + "' " +
+            "with S3 object URL '" + s3_file_url + "' " +
             "is KGX compliant")
-    
+
+        if file_type == KgeFileType.KGX_DATA_FILE:
+            input_format = self.data_files["input_format"]
+            input_compression = self.data_files["input_compression"]
+        else:
+            input_format = input_compression = None
+
         kge_file_spec = {
             "file_type": file_type,
             "object_key": object_key,
-            "s3_object_url": s3_object_url
+            "s3_file_url": s3_file_url,
+            "input_format": input_format,
+            "input_compression": input_compression
         }
         
         # delegate validation of this file
@@ -188,7 +224,11 @@ class KgeaFileSet:
         }
         
         # trigger asynchronous KGX metadata file validation process here?
-        self.check_kgx_compliance(KgeFileType.KGX_METADATA_FILE, s3_file_url)
+        self.check_kgx_compliance(
+            KgeFileType.KGX_METADATA_FILE,
+            object_key=object_key,
+            s3_file_url=s3_file_url
+        )
 
     def get_metadata_file(self) -> Union[Dict, None]:
         """
@@ -200,7 +240,12 @@ class KgeaFileSet:
             return None
 
     # TODO: review what additional metadata is required to properly manage KGE data files
-    def add_data_file(self, file_name: str, object_key: str, s3_file_url: str):
+    def add_data_file(
+            self,
+            file_name: str,
+            object_key: str,
+            s3_file_url: str
+    ):
         """
         
         :param file_name: to add to the KGE File Set
@@ -208,11 +253,19 @@ class KgeaFileSet:
         :param s3_file_url: current S3 pre-signed data access url
         :return: None
         """
+        
+        # Attempt to infer the format and compression
+        # of the data file from its filename
+        input_format, input_compression = self.format_and_compression(file_name)
+        
         self.data_files[object_key] = {
             "file_name": file_name,
             "object_key": object_key,
             "s3_file_url": s3_file_url,
-            "kgx_compliant": False  # until proven True...
+            "kgx_compliant": False,  # until proven True...
+            "input_format": input_format,
+            "input_compression": input_compression,
+            "errors": []
         }
         
         # trigger asynchronous KGX metadata file validation process here?
@@ -237,6 +290,30 @@ class KgeaFileSet:
         """
         api_specification = create_smartapi(**self.parameter)
         add_to_github(self.kg_id, api_specification)
+
+    def format_and_compression(self, file_name):
+        # assume that format and compression is encoded in the file_name
+        # as standardized period-delimited parts of the name. This is a
+        # hacky first version of this method that only recognizes
+        # common KGX file formats and compression
+        part = file_name.split('.')
+        if 'tsv' in part:
+            format = 'tsv'
+        else:
+            format = ''
+        if 'tar' in part:
+            archive = 'tar'
+        else:
+            archive = None
+        if 'gz' in part:
+            compression = ''
+            if archive:
+                compression = archive+"."
+            compression += 'gz'
+        else:
+            compression = None
+        
+        return format, compression
 
 
 class KgeaRegistry:
