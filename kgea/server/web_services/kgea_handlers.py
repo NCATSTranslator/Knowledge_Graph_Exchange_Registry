@@ -70,7 +70,8 @@ else:
 #
 # from ..kge_handlers import (
 #     register_kge_file_set,
-#     upload_kge_file
+#     upload_kge_file,
+#     publish_kge_file_set
 # )
 #############################################################
 
@@ -432,9 +433,22 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Resp
 #
 # Insert import and return call into provider_controller.py:
 #
-# from ..kge_handlers import kge_access
+# from ..kge_handlers import (
+#     get_kge_file_set_catalog,
+#     kge_access
+# )
 #############################################################
-# TODO: get file out from timestamped folders
+
+
+async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
+    """Returns the catalog of available KGE File Sets
+
+    :param request:
+    :type request: web.Request
+    """
+    return web.Response(status=200)
+
+
 async def kge_access(request: web.Request, kg_id: str) -> web.Response:
     """Get KGE File Sets
 

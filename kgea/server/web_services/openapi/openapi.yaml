@@ -28,12 +28,31 @@ servers:
 tags:
 - description: KGE file set upload form
   name: upload
-- description: Provider metadata for KGE file set
+- description: Provider "access" metadata for KGE file set
   name: provider
 - description: Content metadata for KGX-formatted data files in a KGE file set.
   name: content
 - name: translator
 paths:
+  /catalog:
+    get:
+      operationId: get_file_set_catalog
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                description: |-
+                  List of available KGE File Sets (initial implementation is a simple list of
+                   normalized knowledge graph identifiers)
+                items:
+                  type: string
+                type: array
+          description: Catalog of available KGE File Sets
+      summary: Returns the catalog of available KGE File Sets
+      tags:
+      - provider
+      x-openapi-router-controller: kgea.server.web_services.controllers.provider_controller
   /publish/{kg_id}:
     get:
       operationId: publish_file_set

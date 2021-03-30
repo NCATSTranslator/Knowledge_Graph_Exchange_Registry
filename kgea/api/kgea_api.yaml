@@ -32,7 +32,7 @@ tags:
   - name: upload
     description: KGE file set upload form
   - name: provider
-    description: Provider metadata for KGE file set
+    description: Provider "access" metadata for KGE file set
   - name: content
     description: Content metadata for KGX-formatted data files in a KGE file set.
   - name: translator
@@ -215,6 +215,26 @@ paths:
         '302':
           description: >-
             After KGE File Set publication is triggered, user gets redirected to /home.
+  /catalog:
+    get:
+      tags:
+      - provider
+      summary: Returns the catalog of available KGE File Sets
+      operationId: getFileSetCatalog
+      responses:
+        '200':
+          description: >-
+            Catalog of available KGE File Sets
+          content:
+            application/json:
+              schema:
+                description: >-
+                  List of available KGE File Sets
+                  (initial implementation is a simple list of
+                   normalized knowledge graph identifiers)
+                type: array
+                items:
+                  type: string
   /{kg_id}/access:
     get:
       parameters:

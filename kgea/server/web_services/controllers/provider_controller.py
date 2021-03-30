@@ -1,6 +1,9 @@
 from aiohttp import web
 
-from ..kgea_handlers import kge_access
+from ..kgea_handlers import (
+    get_kge_file_set_catalog,
+    kge_access
+)
 
 
 async def access(request: web.Request, kg_id: str) -> web.Response:
@@ -13,3 +16,12 @@ async def access(request: web.Request, kg_id: str) -> web.Response:
 
     """
     return await kge_access(request, kg_id)
+
+
+async def get_file_set_catalog(request: web.Request) -> web.Response:
+    """Returns the catalog of available KGE File Sets
+    
+    :param request:
+    :type request: web.Request
+    """
+    return await get_kge_file_set_catalog(request)
