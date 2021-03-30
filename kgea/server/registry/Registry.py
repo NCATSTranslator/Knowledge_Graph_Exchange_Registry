@@ -27,11 +27,14 @@ from sys import stderr
 from os import getenv
 from os.path import abspath, dirname
 
-import threading, queue
+import threading
+import queue
 
 import logging
 
 from github import Github
+
+from kgx.validator import Validator
 
 from kgea.server.config import get_app_config
 
@@ -124,8 +127,12 @@ class KgeaFileSet:
         
             # Run KGX validation here
             if kge_file_spec['file_type'] == KgeFileType.KGX_DATA_FILE:
+                # v = Validator()
+                # v.validate(graph)
                 pass
             elif kge_file_spec['file_type'] == KgeFileType.KGX_METADATA_FILE:
+                # v = Validator()
+                # v.validate(graph)
                 pass
             else:
                 print(f'WARNING: Unknown KgeFileType{file_type} ... ignoring', file=stderr)
