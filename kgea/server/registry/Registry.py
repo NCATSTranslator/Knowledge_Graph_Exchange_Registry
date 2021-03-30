@@ -115,12 +115,22 @@ class KgeaFileSet:
 
     def validator(self):
         while True:
-            file_spec = self.validation_queue.get()
-            print(f'Working on {file_spec}', file=stderr)
+            kge_file_spec = self.validation_queue.get()
+            
+            file_type = kge_file_spec['file_type']
+            s3_object_url = kge_file_spec['s3_object_url']
+            
+            print(f'Working on {kge_file_spec}', file=stderr)
         
             # Run KGX validation here
+            if kge_file_spec['file_type'] == KgeFileType.KGX_DATA_FILE:
+                pass
+            elif kge_file_spec['file_type'] == KgeFileType.KGX_METADATA_FILE:
+                pass
+            else:
+                print(f'WARNING: Unknown KgeFileType{file_type} ... ignoring', file=stderr)
         
-            print(f'Finished {file_spec}', file=stderr)
+            print(f'Finished {kge_file_spec}', file=stderr)
             self.validation_queue.task_done()
 
     def check_kgx_compliance(self, file_type: KgeFileType, s3_object_url: str):
@@ -215,7 +225,12 @@ class KgeaRegistry:
         return KgeaRegistry._registry
     
     def __init__(self):
-        self._kge_file_set: Dict[str, KgeaFileSet] = dict()
+        # This particular local 'registry' only has 'application runtime' scope
+        # and is mainly used during the assembly and initial publication of
+        # KGE File Sets. The AWS S3 repository of file sets is persistent
+        # in between application sessions... so is the authority on the
+        # full catalog of available KGE File Sets, at any point in time.
+        self._kge_file_set_registry: Dict[str, KgeaFileSet] = dict()
     
     @staticmethod
     def normalize_name(kg_name: str) -> str:
@@ -242,10 +257,10 @@ class KgeaRegistry:
         
         # For now, a given graph is only submitted once for a given submitter
         # TODO: should we accept any resubmissions or changes?
-        if kg_id not in self._kge_file_set:
-            self._kge_file_set[kg_id] = KgeaFileSet(kg_id, **kwargs)
+        if kg_id not in self._kge_file_set_registry:
+            self._kge_file_set_registry[kg_id] = KgeaFileSet(kg_id, **kwargs)
         
-        return self._kge_file_set[kg_id]
+        return self._kge_file_set_registry[kg_id]
     
     def get_kge_file_set(self, kg_id: str) -> Union[KgeaFileSet, None]:
         """
@@ -253,8 +268,8 @@ class KgeaRegistry:
         :param kg_id: input knowledge graph file set identifier
         :return: KgeaFileSet; None, if unknown
         """
-        if kg_id in self._kge_file_set:
-            return self._kge_file_set[kg_id]
+        if kg_id in self._kge_file_set_registry:
+            return self._kge_file_set_registry[kg_id]
         else:
             return None
 
@@ -307,16 +322,20 @@ class KgeaRegistry:
         #       file set (with all files, as uploaded by the client)
         logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"')")
 
-        kge_file_set = self._kge_file_set[kg_id]
-        
-        # Ensure that the all the files are KGX validated first(?)
-        kge_file_set.confirm_file_set_validation()
-        
-        logger.debug("File set validation() complete for file set '" + kg_id + "')")
-        
-        # Don't publish to the Translator SmartAPI Registry until you
-        # are confident of KGX validation and related post-processing
-        # kge_file_set.translator_registration()
+        if kg_id in self._kge_file_set_registry:
+            kge_file_set = self._kge_file_set_registry[kg_id]
+            
+            # Ensure that the all the files are KGX validated first(?)
+            kge_file_set.confirm_file_set_validation()
+            
+            logger.debug("File set validation() complete for file set '" + kg_id + "')")
+            
+            # Don't publish to the Translator SmartAPI Registry until you
+            # are confident of KGX validation and related post-processing
+            # kge_file_set.translator_registration()
+        else:
+            logger.error("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
+
 
 # TODO
 @prepare_test

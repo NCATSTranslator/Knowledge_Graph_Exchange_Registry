@@ -51,17 +51,16 @@ logger.setLevel(logging.DEBUG)
 # Opaquely access the configuration dictionary
 KGEA_APP_CONFIG = get_app_config()
 
-# This is the home page path,
-# should match the API path spec
-LANDING = '/'
-HOME = '/home'
-
 if DEV_MODE:
     # Point to http://localhost:8090 for UI
     UPLOAD_FORM_PATH = "http://localhost:8090/upload"
+    LANDING = "http://localhost:8090/"
+    HOME = "http://localhost:8090/home"
 else:
     # Production NGINX resolves the relative path otherwise?
     UPLOAD_FORM_PATH = "/upload"
+    LANDING = '/'
+    HOME = '/home'
 
 #############################################################
 # Upload Controller Handlers

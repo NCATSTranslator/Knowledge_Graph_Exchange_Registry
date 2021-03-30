@@ -89,21 +89,21 @@
                         ).then(
                             name => {
                                 window.alert(
-                                    "Successfully uploaded '" + file_type + "' file '" + content_name +
-                                    "' for knowledge graph '{{kg_name}}' (KGE File Set ID: '" + name + "')!"
+                                    "Successfully uploaded '" + file_type + "' file\n'" + content_name +
+                                    "'\n for knowledge graph '{{kg_name}}'\n(KGE File Set ID: '" + name + "')!"
                                 );
                             }
                         ).catch(error => {
                             let err_msg =
-                                "Error accessing KGE File Set ID for '" + file_type + "' file '" + content_name +
-                                "' for knowledge graph '{{kg_name}}: " + error;
+                                "Error accessing KGE File Set ID\nfor '" + file_type + "' file '" + content_name +
+                                "'\nfor knowledge graph '{{kg_name}}: " + error;
                             console.log(err_msg);
                             window.alert(err_msg);
                         })
                 }).catch(error => {
                     let err_msg =
-                            "File upload error encountered for '" + file_type + "' file '" + content_name +
-                            "' for knowledge graph '{{kg_name}}: " + error;
+                            "File upload error encountered\nfor '" + file_type + "' file '" + content_name +
+                            "'\nfor knowledge graph '{{kg_name}}: " + error;
                     console.log(err_msg);
                     window.alert(err_msg);
                 });
@@ -162,7 +162,7 @@
         <td colspan="2">
             <center>
                 <form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
-                    <input type="submit" value="Done Uploading" />
+                    <input type="submit" value="Done Uploading File Set" />
                 </form>
             </center>
         </td>
