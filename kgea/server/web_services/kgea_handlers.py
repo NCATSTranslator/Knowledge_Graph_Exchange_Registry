@@ -446,7 +446,51 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     :param request:
     :type request: web.Request
     """
-    return web.Response(status=200)
+
+    logger.debug("Entering get_kge_file_set_catalog()")
+
+    # session = await get_session(request)
+    # if not session.empty:
+
+    # files_location = get_object_location(kg_id)
+
+    # Listings Approach
+    # - Introspect on Bucket
+    # - Create URL per Item Listing
+    # - Send Back URL with Dictionary
+    # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+    # TODO: convert into redirect approach with cross-origin scripting?
+    kg_files = kg_files_in_location(
+        bucket_name=KGEA_APP_CONFIG['bucket'],
+    )
+
+    # regex
+    # - match on
+    # TODO: bad
+    kg_names = [kg_name.split('/')[1] for kg_name in kg_files]
+    # kg_listing = kg_files
+    # kg_urls = dict(
+    #     map(
+    #         lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
+    #         kg_listing
+    #     )
+    # )
+
+    # logger.debug('knowledge_map urls: %s', kg_urls)
+    # import requests, json
+    # metadata_key = kg_listing[0]
+    # url = create_presigned_url(KGEA_APP_CONFIG['bucket'], metadata_key)
+    # metadata = json.loads(requests.get(url).text)
+
+    response = web.Response(text=str(kg_names), status=200)
+    return await with_session(request, response)
+
+    # else:
+    #     # If session is not active, then just a redirect
+    #     # directly back to unauthenticated landing page
+    #     await redirect(request, LANDING)
+    #
+    # return web.Response(status=200)
 
 
 async def kge_access(request: web.Request, kg_id: str) -> web.Response:

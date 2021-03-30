@@ -159,9 +159,10 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
     return True
 
 
-def kg_files_in_location(bucket_name, object_location):
+def kg_files_in_location(bucket_name, object_location=''):
     bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
                        e in p['Contents']]
+    # If object_location is the empty string, then each object listed passes (since the empty string is part of every string)
     object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
     return object_matches
 
@@ -172,10 +173,19 @@ def kg_files_in_location(bucket_name, object_location):
 def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
     try:
         kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=test_object_location)
+        print(kg_file_list)
         assert (len(kg_file_list) > 0)
     except AssertionError as e:
         raise AssertionError(e)
     return True
+
+# def lll():
+#     s3_client.list_objects()
+#     pass
+#
+# @prepare_test
+# def test_lll():
+#     pass
 
 
 # TODO: clarify expiration time - default to 1 day (in seconds)
@@ -404,7 +414,7 @@ if __name__ == '__main__':
         TEST_FILE_NAME = args[1]
         print(TEST_FILE_NAME, os.path.getsize(abspath(TEST_FILE_DIR + TEST_FILE_NAME)), 'bytes')
 
-    # assert (test_kg_files_in_location())
+    assert (test_kg_files_in_location())
     print("test_kg_files_in_location passed")
 
     assert (test_is_location_available())
