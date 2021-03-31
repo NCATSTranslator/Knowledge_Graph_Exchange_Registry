@@ -1,4 +1,4 @@
-FROM python:3.8-alpine
+FROM python:3.8
 
 # Create a location for credentials & the application
 RUN mkdir -p /root/.aws && mkdir -p /usr/src/app
@@ -7,14 +7,14 @@ WORKDIR /usr/src/app
 COPY requirements.txt /usr/src/app/requirements.txt
 COPY kgea/server/config/config.yaml  /usr/src/app/kgea/server/config/config.yaml
 
-RUN apk update && apk upgrade && apk add --no-cache build-base git && \
-    python -m pip install --upgrade pip && pip3 install wheel && \
-    pip3 install --no-cache-dir -r requirements.txt
+RUN apt update && apt upgrade && apt install build-essential git python-lxml && \
+    python -m pip install --upgrade pip && pip install wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . /usr/src/app
 
 EXPOSE 8080
 
-ENTRYPOINT ["python3"]
+ENTRYPOINT ["python"]
 
 CMD ["-m", "kgea.server.web_services"]

@@ -32,8 +32,12 @@ services:
     networks:
     - default
 
+  # Stub service... may not really be used
+  # (KGX validation may be embedded in the archive?)
   #  kgx:
-  #    image: python:3.9
+  #    build:
+  #      context: .
+  #      dockerfile: ./kgea/server/KGEA_KGX_Dockerfile
   #    environment:
   #      - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
   #    ports:
