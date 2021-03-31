@@ -28,7 +28,7 @@ from os import getenv
 from os.path import abspath, dirname
 
 import threading
-import queue
+import asyncio
 
 import logging
 
@@ -54,7 +54,10 @@ TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 
 # Opaquely access the configuration dictionary
-KGEA_APP_CONFIG = get_app_config()
+_KGEA_APP_CONFIG = get_app_config()
+
+# one could perhaps parameterize this in the KGEA_APP_CONFIG
+_NO_KGX_VALIDATION_WORKER_TASKS = _KGEA_APP_CONFIG.setdefault("No_KGX_Validation_Worker_Tasks", 3)
 
 
 def prepare_test(func):
@@ -114,20 +117,33 @@ class KgeaFileSet:
         self.validator = KgxValidator()
         
         # KGX Validator singleton for this KGE File Set
-        self.validation_queue = queue.Queue()
+        self.validation_queue = asyncio.Queue()
+        
+        # Create three worker tasks to process the queue concurrently.
+        self.tasks = []
+        for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
+            task = asyncio.create_task(self.validate(f'KGX Validation Worker-{i}'))
+            self.tasks.append(task)
 
-        # turn-on the KGX Validation thread
-        threading.Thread(target=self.validate, daemon=True).start()
+    async def release_workers(self):
+        try:
+            # Cancel the KGX validation worker tasks.
+            for task in self.tasks:
+                task.cancel()
+            # Wait until all worker tasks are cancelled.
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+        except Exception as exc:
+            logger.error("KgeaFileSet() KGX worker task exception: "+str(exc))
 
     # TODO: Review this design - may not be optimal in that the KGX Transformer
     #       (and likely, KGX Validation) seems to handle multiple input files,
     #       (in the Transformer) thus collecting those input files first then
     #       sending them together for KGX validation, may make more sense here?
-    def validate(self):
+    async def validate(self, name):
         
         while True:
             # Process one file at a time?
-            kge_file_spec = self.validation_queue.get()
+            kge_file_spec = await self.validation_queue.get()
             
             file_type = kge_file_spec['file_type']
             object_key = kge_file_spec['object_key']
@@ -135,7 +151,7 @@ class KgeaFileSet:
             input_format = kge_file_spec['input_format']
             input_compression = kge_file_spec['input_compression']
 
-            print(f'Working on file {object_key}', file=stderr)
+            print(f'{name} working on file {object_key}', file=stderr)
             
             # Run KGX validation here
             errors: List = list()
@@ -147,6 +163,7 @@ class KgeaFileSet:
                     input_format=input_format,
                     input_compression=input_compression
                 )
+                
                 if not errors:
                     self.data_files[object_key]["kgx_compliant"] = True
                 else:
@@ -159,13 +176,12 @@ class KgeaFileSet:
                     self.metadata_file["kgx_compliant"] = True
                 else:
                     self.data_files[object_key]["errors"] = errors
-
             else:
-                print(f'WARNING: Unknown KgeFileType{file_type} ... ignoring', file=stderr)
+                print(f'{name} WARNING: Unknown KgeFileType{file_type} ... ignoring', file=stderr)
             
             compliance: str = ' not ' if errors else ' '
             
-            print(f"Finished processing file {object_key} ... is" + compliance + "KGX compliant", file=stderr)
+            print(f"{name} has finished processing file {object_key} ... is" + compliance + "KGX compliant", file=stderr)
             
             self.validation_queue.task_done()
 
@@ -191,8 +207,8 @@ class KgeaFileSet:
             "is KGX compliant")
 
         if file_type == KgeFileType.KGX_DATA_FILE:
-            input_format = self.data_files["input_format"]
-            input_compression = self.data_files["input_compression"]
+            input_format = self.data_files[object_key]["input_format"]
+            input_compression = self.data_files[object_key]["input_compression"]
         else:
             input_format = input_compression = None
 
@@ -206,7 +222,7 @@ class KgeaFileSet:
         
         # delegate validation of this file
         # to the KGX process reading this Queue
-        self.validation_queue.put(kge_file_spec)
+        self.validation_queue.put_nowait(kge_file_spec)
             
     def set_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
         """
@@ -225,7 +241,7 @@ class KgeaFileSet:
         
         # trigger asynchronous KGX metadata file validation process here?
         self.check_kgx_compliance(
-            KgeFileType.KGX_METADATA_FILE,
+            file_type=KgeFileType.KGX_METADATA_FILE,
             object_key=object_key,
             s3_file_url=s3_file_url
         )
@@ -253,10 +269,9 @@ class KgeaFileSet:
         :param s3_file_url: current S3 pre-signed data access url
         :return: None
         """
-        
         # Attempt to infer the format and compression
         # of the data file from its filename
-        input_format, input_compression = self.format_and_compression(file_name)
+        input_format, input_compression = KgeaFileSet.format_and_compression(file_name)
         
         self.data_files[object_key] = {
             "file_name": file_name,
@@ -269,7 +284,11 @@ class KgeaFileSet:
         }
         
         # trigger asynchronous KGX metadata file validation process here?
-        self.check_kgx_compliance(KgeFileType.KGX_DATA_FILE, s3_file_url)
+        self.check_kgx_compliance(
+            file_type=KgeFileType.KGX_DATA_FILE,
+            object_key=object_key,
+            s3_file_url=s3_file_url
+        )
 
     def get_data_file_set(self) -> Set[Tuple]:
         """
@@ -279,10 +298,11 @@ class KgeaFileSet:
         [dataset.add(tuple(x)) for x in self.data_files.values()]
         return dataset
 
-    def confirm_file_set_validation(self):
+    async def confirm_file_set_validation(self):
         # Blocking call to KGX validator worker Queue processing
-        self.validation_queue.join()
-    
+        await self.validation_queue.join()
+        await self.release_workers()
+        
     def translator_registration(self):
         """
         Register the current file set in the Translator SmartAPI Registry
@@ -291,20 +311,23 @@ class KgeaFileSet:
         api_specification = create_smartapi(**self.parameter)
         add_to_github(self.kg_id, api_specification)
 
-    def format_and_compression(self, file_name):
+    @staticmethod
+    def format_and_compression(file_name):
         # assume that format and compression is encoded in the file_name
         # as standardized period-delimited parts of the name. This is a
-        # hacky first version of this method that only recognizes
-        # common KGX file formats and compression
+        # hacky first version of this method that only recognizes common
+        # KGX file input format and compression.
         part = file_name.split('.')
         if 'tsv' in part:
-            format = 'tsv'
+            input_format = 'tsv'
         else:
-            format = ''
+            input_format = ''
+            
         if 'tar' in part:
             archive = 'tar'
         else:
             archive = None
+            
         if 'gz' in part:
             compression = ''
             if archive:
@@ -313,7 +336,7 @@ class KgeaFileSet:
         else:
             compression = None
         
-        return format, compression
+        return input_format, compression
 
 
 class KgeaRegistry:
@@ -426,7 +449,7 @@ class KgeaRegistry:
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
 
-    def publish_file_set(self, kg_id):
+    async def publish_file_set(self, kg_id):
         # TODO: need to fully implement post-processing of the completed
         #       file set (with all files, as uploaded by the client)
         logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"')")
@@ -435,7 +458,7 @@ class KgeaRegistry:
             kge_file_set = self._kge_file_set_registry[kg_id]
             
             # Ensure that the all the files are KGX validated first(?)
-            kge_file_set.confirm_file_set_validation()
+            await kge_file_set.confirm_file_set_validation()
             
             logger.debug("File set validation() complete for file set '" + kg_id + "')")
             
@@ -511,7 +534,7 @@ def add_to_github(
     
     outcome: bool = False
     
-    gh_token = KGEA_APP_CONFIG['github']['token']
+    gh_token = _KGEA_APP_CONFIG['github']['token']
     
     logger.debug(
         "Calling Registry.add_to_github(\n"
@@ -582,7 +605,7 @@ def clean_tests(
     :return:
     """
     
-    gh_token = KGEA_APP_CONFIG['github']['token']
+    gh_token = _KGEA_APP_CONFIG['github']['token']
     
     print(
         "Calling Registry.clean_tests()",

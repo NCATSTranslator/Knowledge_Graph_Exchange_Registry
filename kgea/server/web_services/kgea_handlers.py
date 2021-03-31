@@ -360,7 +360,7 @@ async def publish_kge_file_set(request: web.Request, kg_id):
     :type kg_id: str
 
     """
-    KgeaRegistry.registry().publish_file_set(kg_id)
+    await KgeaRegistry.registry().publish_file_set(kg_id)
     
     await redirect(request, HOME)
 
