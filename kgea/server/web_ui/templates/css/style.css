@@ -36,6 +36,10 @@ img.banner {
   padding: 5px;
 }
 
+label {
+  font-weight: bold;
+}
+
 /*
 .center {
   display: block;
