@@ -26,9 +26,9 @@ img.banner {
 }
 
 .title {
-  font-family: Verdana, sans-serif;
+  font-family: Arial, sans-serif;
   font-weight: bold;
-  font-size: medium;
+  font-size: large;
   display: block;
   margin-left: auto;
   margin-right: auto;
