@@ -3,8 +3,8 @@
 {% include "home.button" %}
 {% include "logout.button" %}
 {% endblock %}
+{% block title %}Register your File Set{% endblock %}
 {% block content %}
-<h1>Register your File Set</h1>
 <form method="post"
       action="{{registration_action}}"
       enctype="application/x-www-form-urlencoded"

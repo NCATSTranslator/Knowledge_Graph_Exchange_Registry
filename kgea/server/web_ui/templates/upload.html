@@ -114,10 +114,9 @@
 {% include "home.button" %}
 {% include "logout.button" %}
 {% endblock %}
+{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'{% endblock %}
 {% block content %}
-<h3>Knowledge Graph<br>"{{kg_name}}"</h3>
-<h4>Submitted by "{{submitter}}"</h4>
-
+<h4>Submitted by '{{submitter}}'</h4>
 <table>
     <tr>
         <td colspan="2">

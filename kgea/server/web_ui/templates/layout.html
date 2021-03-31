@@ -11,11 +11,11 @@
     {% block scripts %}{% endblock %}
 </head>
 <body>
-    <center>
+    <div class="center">
         <p><div id="header">
             <p><img class="banner" src="images/banner.jpg" alt="Translator Banner">
-            <div class="menu_bar">{% block menu %}{% endblock %}</div>
-            <p></p>
+            <p><div class="menu_bar">{% block menu %}{% endblock %}</div></p>
+        <p><div class="title"><h1>{% block title %}{% endblock %}</h1></div></p>
         </div>
         <p><div id="content">
             <p>{% block content %}{% endblock %}
@@ -25,6 +25,6 @@
             &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
             {% endblock %}
         </div>
-    </center>
+    </div>
 </body>
 </html>
