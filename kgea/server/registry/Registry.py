@@ -27,7 +27,6 @@ from sys import stderr
 from os import getenv
 from os.path import abspath, dirname
 
-import threading
 import asyncio
 
 import logging
@@ -117,18 +116,18 @@ class KgeaFileSet:
         self.metadata_file: Union[Dict, None] = dict()
         self.data_files: Dict[str, Dict] = dict()
         
-        # this Queue serves at the communication link
-        # between a KGX validation process and the Registry
+        # KGX Validator singleton for this KGE File Set
         self.validator = KgxValidator()
         
-        # KGX Validator singleton for this KGE File Set
+        # this Queue serves at the communication link
+        # between a KGX validation process and the Registry
         self.validation_queue = asyncio.Queue()
         
         # Create three worker tasks to process the queue concurrently.
         self.tasks = []
-        for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
-            task = asyncio.create_task(self.validate(f'KGX Validation Worker-{i}'))
-            self.tasks.append(task)
+        # for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
+        #     task = asyncio.create_task(self.validate(f'KGX Validation Worker-{i}'))
+        #     self.tasks.append(task)
 
     async def release_workers(self):
         try:
@@ -246,11 +245,11 @@ class KgeaFileSet:
         }
         
         # trigger asynchronous KGX metadata file validation process here?
-        self.check_kgx_compliance(
-            file_type=KgeFileType.KGX_METADATA_FILE,
-            object_key=object_key,
-            s3_file_url=s3_file_url
-        )
+        # self.check_kgx_compliance(
+        #     file_type=KgeFileType.KGX_METADATA_FILE,
+        #     object_key=object_key,
+        #     s3_file_url=s3_file_url
+        # )
 
     def get_metadata_file(self) -> Union[Dict, None]:
         """
@@ -290,11 +289,11 @@ class KgeaFileSet:
         }
         
         # trigger asynchronous KGX metadata file validation process here?
-        self.check_kgx_compliance(
-            file_type=KgeFileType.KGX_DATA_FILE,
-            object_key=object_key,
-            s3_file_url=s3_file_url
-        )
+        # self.check_kgx_compliance(
+        #     file_type=KgeFileType.KGX_DATA_FILE,
+        #     object_key=object_key,
+        #     s3_file_url=s3_file_url
+        # )
 
     def get_data_file_set(self) -> Set[Tuple]:
         """
@@ -473,10 +472,11 @@ class KgeaRegistry:
         logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"')")
 
         if kg_id in self._kge_file_set_registry:
+            
             kge_file_set = self._kge_file_set_registry[kg_id]
             
             # Ensure that the all the files are KGX validated first(?)
-            errors: List = await kge_file_set.confirm_file_set_validation()
+            errors: List = []  # await kge_file_set.confirm_file_set_validation()
             
             logger.debug("File set validation() complete for file set '" + kg_id + "')")
             
