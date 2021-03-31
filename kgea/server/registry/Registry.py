@@ -325,7 +325,7 @@ class KgeaFileSet:
         Register the current file set in the Translator SmartAPI Registry
         :return:
         """
-        api_specification = create_smartapi(**self.parameter)
+        api_specification = create_smartapi(kg_id=self.kg_id, **self.parameter)
         add_to_github(self.kg_id, api_specification)
 
     @staticmethod
