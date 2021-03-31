@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 COPY requirements.txt /usr/src/app/requirements.txt
 COPY kgea/server/config/config.yaml  /usr/src/app/kgea/server/config/config.yaml
 
-RUN apt-get update && apt-get upgrade && apt-get install -y build-essential git python-lxml
+RUN apt-get update && apt-get upgrade -y && apt-get install -y build-essential git python-lxml
 RUN python -m pip install --upgrade pip && pip install wheel
 RUN pip install --no-cache-dir -r requirements.txt
 
