@@ -49,9 +49,14 @@ DEBUG = getenv('DEV_MODE', default=False)
 RUN_TESTS = getenv('RUN_TESTS', default=False)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
 
-
-TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
-KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
+#
+# Until we are confident about the KGE File Set publication
+# We will post our Translator SmartAPI entries to a local KGE Archive folder
+#
+# TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
+# KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
+TRANSLATOR_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
+KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
@@ -109,7 +114,7 @@ class KgeaFileSet:
             
             self.parameter[key] = value
 
-        self.metadata_file: Union[Dict, None] = None
+        self.metadata_file: Union[Dict, None] = dict()
         self.data_files: Dict[str, Dict] = dict()
         
         # this Queue serves at the communication link
@@ -236,7 +241,8 @@ class KgeaFileSet:
             "file_name": file_name,
             "object_key": object_key,
             "s3_file_url": s3_file_url,
-            "kgx_compliant": False  # until proven True...
+            "kgx_compliant": False,  # until proven True...
+            "errors": []
         }
         
         # trigger asynchronous KGX metadata file validation process here?
@@ -299,9 +305,21 @@ class KgeaFileSet:
         return dataset
 
     async def confirm_file_set_validation(self):
+        
         # Blocking call to KGX validator worker Queue processing
         await self.validation_queue.join()
         await self.release_workers()
+        
+        # check if any errors were returned by KGX Validation
+        errors: List = []
+        if self.metadata_file:
+            if not self.metadata_file["kgx_compliant"]:
+                errors.append(self.metadata_file["errors"])
+        for data_file in self.data_files.values():
+            if not data_file["kgx_compliant"]:
+                errors.append(data_file["errors"])
+                
+        return errors
         
     def translator_registration(self):
         """
@@ -458,13 +476,17 @@ class KgeaRegistry:
             kge_file_set = self._kge_file_set_registry[kg_id]
             
             # Ensure that the all the files are KGX validated first(?)
-            await kge_file_set.confirm_file_set_validation()
+            errors: List = await kge_file_set.confirm_file_set_validation()
             
             logger.debug("File set validation() complete for file set '" + kg_id + "')")
             
-            # Don't publish to the Translator SmartAPI Registry until you
-            # are confident of KGX validation and related post-processing
-            # kge_file_set.translator_registration()
+            if not errors:
+                # Publish to the Translator SmartAPI Registry after KGX validation and related post-processing
+                logger.debug("Valid KGE File Set being publishing to the Translator Registry")
+                kge_file_set.translator_registration()
+            else:
+                logger.debug("KGX validation errors encountered:\n" + str(errors))
+            
         else:
             logger.error("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
 
