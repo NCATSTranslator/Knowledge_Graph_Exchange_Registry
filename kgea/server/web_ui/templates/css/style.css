@@ -30,7 +30,7 @@ img.banner {
   font-weight: bold;
   font-size: x-large;
   display: block;
-  margin-left: auto;
+  margin-left: 0px;
   margin-right: auto;
   width: 80%;
   padding: 5px;
