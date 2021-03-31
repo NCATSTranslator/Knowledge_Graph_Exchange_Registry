@@ -158,6 +158,7 @@ def transfer_file_from_url(
             # TODO: should check ListParts for empty list after abort
             print(response)
         raise ce_error
+    
     except RuntimeError as rt_error:
         if mpu:
             # clean up failed multipart uploads?
