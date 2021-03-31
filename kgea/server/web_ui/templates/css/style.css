@@ -8,18 +8,43 @@ h1 {
 } */
 
 img.banner {
-  max-width: 40%;
+  max-width: 50%;
   height: auto;
 }
 
 .menu_bar {
-  float: left;
-  padding: 5px;
-}
-
-/* .center {
   display: block;
   margin-left: auto;
   margin-right: auto;
   width: 50%;
-} */
+  padding: 5px;
+}
+
+.menu_item {
+  float: right;
+  padding: 5px;
+}
+
+.title {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: x-large;
+  display: block;
+  margin-left: 0px;
+  margin-right: auto;
+  width: 80%;
+  padding: 5px;
+}
+
+label {
+  font-weight: bold;
+}
+
+/*
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 80%;
+}
+*/

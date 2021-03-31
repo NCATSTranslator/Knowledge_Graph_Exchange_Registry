@@ -111,13 +111,12 @@
     </script>
 {% endblock %}
 {% block menu %}
-{% include "home.form" %}
-{% include "logout.form" %}
+{% include "logout.button" %}
+{% include "home.button" %}
 {% endblock %}
+{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'{% endblock %}
 {% block content %}
-<h3>Knowledge Graph<br>"{{kg_name}}"</h3>
-<h4>Submitted by "{{submitter}}"</h4>
-
+<h4>Submitted by '{{submitter}}'</h4>
 <table>
     <tr>
         <td colspan="2">
@@ -138,7 +137,7 @@
             <center>
                 <h4>Upload KGX data file from your computer:</h4>
 
-                <p>Select single file for upload<br>(multiple file upload not currently supported)</p>
+                <p>Select a single KGX formatted data file at a time for upload</p>
 
                 <br><label for="content_file"><b>Select Data File:</b></label>
                 <input id="content_file"  class="textbox" type="file"/>
