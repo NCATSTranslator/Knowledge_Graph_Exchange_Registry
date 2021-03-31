@@ -13,7 +13,10 @@ img.banner {
 }
 
 .menu_bar {
-  float: left;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
   padding: 5px;
 }
 

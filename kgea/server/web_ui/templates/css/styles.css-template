@@ -12,6 +12,14 @@ img.banner {
   height: auto;
 }
 
+.menu_bar {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+  padding: 5px;
+}
+
 /* .center {
   display: block;
   margin-left: auto;
