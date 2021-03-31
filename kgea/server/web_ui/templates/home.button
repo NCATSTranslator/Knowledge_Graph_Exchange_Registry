@@ -1,4 +1,4 @@
-<div class="menu_bar">
+<div class="menu_item">
 <form action="/home">
     <input type="submit" value="Home" />
 </form>

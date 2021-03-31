@@ -20,6 +20,11 @@ img.banner {
   padding: 5px;
 }
 
+.menu_item {
+  float: left;
+  padding: 5px;
+}
+
 /* .center {
   display: block;
   margin-left: auto;
