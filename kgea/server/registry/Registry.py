@@ -125,9 +125,9 @@ class KgeaFileSet:
         
         # Create three worker tasks to process the queue concurrently.
         self.tasks = []
-        # for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
-        #     task = asyncio.create_task(self.validate(f'KGX Validation Worker-{i}'))
-        #     self.tasks.append(task)
+        for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
+            task = asyncio.create_task(self.validate(f'KGX Validation Worker-{i}'))
+            self.tasks.append(task)
 
     async def release_workers(self):
         try:
@@ -245,11 +245,11 @@ class KgeaFileSet:
         }
         
         # trigger asynchronous KGX metadata file validation process here?
-        # self.check_kgx_compliance(
-        #     file_type=KgeFileType.KGX_METADATA_FILE,
-        #     object_key=object_key,
-        #     s3_file_url=s3_file_url
-        # )
+        self.check_kgx_compliance(
+            file_type=KgeFileType.KGX_METADATA_FILE,
+            object_key=object_key,
+            s3_file_url=s3_file_url
+        )
 
     def get_metadata_file(self) -> Union[Dict, None]:
         """
@@ -289,11 +289,11 @@ class KgeaFileSet:
         }
         
         # trigger asynchronous KGX metadata file validation process here?
-        # self.check_kgx_compliance(
-        #     file_type=KgeFileType.KGX_DATA_FILE,
-        #     object_key=object_key,
-        #     s3_file_url=s3_file_url
-        # )
+        self.check_kgx_compliance(
+            file_type=KgeFileType.KGX_DATA_FILE,
+            object_key=object_key,
+            s3_file_url=s3_file_url
+        )
 
     def get_data_file_set(self) -> Set[Tuple]:
         """
@@ -476,7 +476,7 @@ class KgeaRegistry:
             kge_file_set = self._kge_file_set_registry[kg_id]
             
             # Ensure that the all the files are KGX validated first(?)
-            errors: List = []  # await kge_file_set.confirm_file_set_validation()
+            errors: List = await kge_file_set.confirm_file_set_validation()
             
             logger.debug("File set validation() complete for file set '" + kg_id + "')")
             
