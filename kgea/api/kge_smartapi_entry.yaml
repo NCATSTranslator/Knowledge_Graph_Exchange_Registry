@@ -18,7 +18,7 @@ info:
     team:
     - "${translator_team}"
 servers:
-  - url: "_https://kge.starinformatics.ca/${kg_id}"
+  - url: "https://kge.starinformatics.ca/${kg_id}"
     description: "KGE Archive Entry base url for ${kg_name}"
 externalDocs:
   description: >-
