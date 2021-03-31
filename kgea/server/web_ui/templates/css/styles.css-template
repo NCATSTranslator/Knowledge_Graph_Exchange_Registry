@@ -35,12 +35,14 @@ img.banner {
   padding: 5px;
 }
 
+/*
 .center {
   display: block;
   margin-left: auto;
   margin-right: auto;
   width: 80%;
 }
+*/
 
 .textbox {
   border: 1px #DDA0DD;
