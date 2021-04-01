@@ -1,5 +1,7 @@
 from os import getenv
+from typing import List
 from uuid import uuid4
+from datetime import datetime
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -12,10 +14,13 @@ import aiohttp_jinja2
 from aiohttp_session import get_session
 
 from kgea.server.web_services.kgea_session import (
-    initialize_user_session, redirect, with_session
+    initialize_user_session,
+    redirect,
+    with_session,
+    report_error
 )
 
-from ..registry.Registry import  KgeaRegistry
+from ..registry.Registry import KgeaRegistry
 
 #############################################################
 # Application Configuration
@@ -102,10 +107,6 @@ async def get_kge_home(request: web.Request, uid: str = None) -> web.Response:  
 
     :rtype: web.Response
     """
-    # Can't seem to get the session cookie via any
-    # redirection so use a URL query string workaround?
-    # uid = request.query.get('uid')
-    # if uid:
     session = await get_session(request)
     if not session.empty:
         
@@ -253,7 +254,8 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:  # no
     if not session.empty:
         #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
         context = {
-            "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
+            "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION,
+            "kg_version": datetime.now().strftime('%Y-%m-%d')  # defaults to today's date "timestamp"
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
         return await with_session(request, response)
@@ -272,23 +274,31 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
 
-        submitter = request.query.get('submitter', default='')
+        kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
+        kg_version = request.query.get('kg_version', default='')
+        submitter = request.query.get('submitter', default='')
         
-        # Use a normalized version of the knowledge
-        # graph name as the KGE File Set identifier.
-        kg_id = KgeaRegistry.normalize_name(kg_name)
-        
-        # TODO guard against absent kg_name
-        # TODO guard against invalid kg_name (check availability in bucket)
-        # TODO redirect to register_form with given optional param as the entered kg_name
+        missing: List[str] = []
+        if not kg_id:
+            missing.append("kg_id")
+        if not kg_name:
+            missing.append("kg_name")
+        if not kg_version:
+            missing.append("kg_version")
+        if not submitter:
+            missing.append("submitter")
+
+        if missing:
+            await report_error( request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
 
         context = {
-            "upload_action": UPLOAD_FORM_ACTION,
-            "publish_file_set_action": PUBLISH_FILE_SET_ACTION,
-            "kg_name": kg_name,
             "kg_id": kg_id,
-            "submitter": submitter
+            "kg_name": kg_name,
+            "kg_version": kg_version,
+            "submitter": submitter,
+            "upload_action": UPLOAD_FORM_ACTION,
+            "publish_file_set_action": PUBLISH_FILE_SET_ACTION
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
         return await with_session(request, response)

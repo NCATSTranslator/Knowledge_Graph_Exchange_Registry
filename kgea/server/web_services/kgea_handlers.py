@@ -29,7 +29,7 @@ from .kgea_file_ops import (
     # add_to_github,
     # create_smartapi,
     get_object_location,
-    with_timestamp
+    with_version
 )
 
 from .kgea_stream import transfer_file_from_url
@@ -69,7 +69,8 @@ else:
 #
 # from ..kge_handlers import (
 #     register_kge_file_set,
-#     upload_kge_file
+#     upload_kge_file,
+#     publish_kge_file_set
 # )
 #############################################################
 
@@ -101,10 +102,13 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         
         # kg_name: human readable name of the knowledge graph
         kg_name = data['kg_name']
-        
+
         # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
         kg_description = data['kg_description']
-        
+
+        # kg_version: release version of knowledge graph
+        kg_version = data['kg_version']
+
         # translator_component: Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
         translator_component = data['translator_component']
         
@@ -175,6 +179,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                     file_set_location=file_set_location,
                     kg_name=kg_name,
                     kg_description=kg_description,
+                    kg_version=kg_version,
                     translator_component=translator_component,
                     translator_team=translator_team,
                     submitter=submitter,
@@ -187,8 +192,8 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 await redirect(request,
                                Template(
                                    UPLOAD_FORM_PATH +
-                                   '?kg_id=$kg_id&kg_name=$kg_name&submitter=$submitter&'
-                               ).substitute(kg_id=kg_id, kg_name=kg_name, submitter=submitter),
+                                   '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter=$submitter'
+                               ).substitute(kg_id=kg_id, kg_name=kg_name, kg_version=kg_version, submitter=submitter),
                                active_session=True
                                )
         #     else:
@@ -205,8 +210,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
 async def upload_kge_file(
         request: web.Request,
-        kg_name: str,
-        submitter: str,
+        kg_id: str,
         upload_mode: str,
         content_name: str,
         content_url: str = None,
@@ -216,10 +220,8 @@ async def upload_kge_file(
 
     :param request:
     :type request: web.Request
-    :param kg_name:
-    :type kg_name: str
-    :param submitter:
-    :type submitter: str
+    :param kg_id:
+    :type kg_id: str
     :param upload_mode:
     :type upload_mode: str
     :param content_name:
@@ -236,13 +238,9 @@ async def upload_kge_file(
     session = await get_session(request)
     if not session.empty:
         
-        if not kg_name:
+        if not kg_id:
             # must not be empty string
-            await report_error(request, "upload_kge_file(): empty Knowledge Graph Name?")
-        
-        if not submitter:
-            # must not be empty string
-            await report_error(request, "upload_kge_file(): empty Submitter?")
+            await report_error(request, "upload_kge_file(): empty Knowledge Graph Identifier?")
         
         if not content_name:
             # must not be empty string
@@ -251,12 +249,12 @@ async def upload_kge_file(
         if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
             # Invalid upload mode
             await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
-        
-        # Use a normalized version of the knowledge
-        # graph name as the KGE File Set identifier.
-        kg_id = KgeaRegistry.normalize_name(kg_name)
-        
-        content_location, _ = with_timestamp(get_object_location)(kg_id)
+
+        kge_file_set = KgeaRegistry.registry().get_kge_file_set(kg_id)
+        if not kge_file_set:
+            await report_error(request, "upload_kge_file(): unknown KGE File Set '" + kg_id + "'?")
+
+        content_location, _ = with_version(get_object_location, version=kge_file_set.get_version())(kg_id)
         
         uploaded_file_object_key = None
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
