@@ -1,4 +1,5 @@
 from os import getenv
+from typing import List
 from uuid import uuid4
 from datetime import datetime
 
@@ -19,7 +20,7 @@ from kgea.server.web_services.kgea_session import (
     report_error
 )
 
-from ..registry.Registry import  KgeaRegistry
+from ..registry.Registry import KgeaRegistry
 
 #############################################################
 # Application Configuration
@@ -274,22 +275,22 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     if not session.empty:
 
         kg_id = request.query.get('kg_id', default='')
+        kg_name = request.query.get('kg_name', default='')
+        kg_version = request.query.get('kg_version', default='')
+        submitter = request.query.get('submitter', default='')
+        
+        missing: List[str] = []
         if not kg_id:
-            await report_error(
-                request,
-                "get_kge_file_upload_form(): mandatory KGE File Set identifier was not provided?"
-            )
+            missing.append("kg_id")
+        if not kg_name:
+            missing.append("kg_name")
+        if not kg_version:
+            missing.append("kg_version")
+        if not submitter:
+            missing.append("submitter")
 
-        kge_file_set = KgeaRegistry.registry().get_kge_file_set()
-        if not kge_file_set:
-            await report_error(
-                request,
-                "get_kge_file_upload_form(): unknown KGE File Set: '"+kg_id+"'?"
-            )
-
-        kg_name = kge_file_set.parameter["kg_name"]
-        kg_version = kge_file_set.parameter["kg_version"]
-        submitter = kge_file_set.parameter["submitter"]
+        if missing:
+            await report_error( request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
 
         context = {
             "kg_id": kg_id,

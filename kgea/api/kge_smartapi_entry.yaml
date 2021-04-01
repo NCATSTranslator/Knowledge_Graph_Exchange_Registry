@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  version: 1.0.0
+  version: "${kg_version}"
   title: >-
     ${kg_name} Knowledge Graph eXchange File Set.
   description: >-

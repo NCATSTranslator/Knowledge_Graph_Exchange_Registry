@@ -190,7 +190,10 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 )
                 
                 await redirect(request,
-                               Template(UPLOAD_FORM_PATH + '?kg_id=$kg_id').substitute(kg_id=kg_id),
+                               Template(
+                                   UPLOAD_FORM_PATH +
+                                   '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter=$submitter'
+                               ).substitute(kg_id=kg_id, kg_name=kg_name, kg_version=kg_version, submitter=submitter),
                                active_session=True
                                )
         #     else:

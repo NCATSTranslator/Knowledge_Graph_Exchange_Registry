@@ -510,6 +510,7 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
 # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
 # - kg_name: human readable name of the knowledge graph
 # - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
+# - kg_version: release version of KGE File Set - simply recorded directly as the Translator SmartAPI entry 'version'
 # - submitter - name of submitter of the KGE file set
 # - submitter_email - contact email of the submitter
 # - license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.
@@ -532,6 +533,7 @@ _TEST_TSE_PARAMETERS = dict(
     almost 300 Audio-Animatronics dolls representing children
     from every corner of the globe as they sing the classic
     anthem to world peace—in their native languages.""",
+    kg_version="1964-04-22",
     translator_component="KP",
     translator_team="Disney Knowledge Provider",
     submitter="Mickey Mouse",
