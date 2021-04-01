@@ -288,11 +288,13 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             )
 
         kg_name = kge_file_set.parameter["kg_name"]
+        kg_version = kge_file_set.parameter["kg_version"]
         submitter = kge_file_set.parameter["submitter"]
 
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
+            "kg_version": kg_version,
             "submitter": submitter,
             "upload_action": UPLOAD_FORM_ACTION,
             "publish_file_set_action": PUBLISH_FILE_SET_ACTION
