@@ -22,7 +22,7 @@ KGEA_APP_CONFIG = get_app_config()
 _state_cache = []
 
 
-async def authenticate(request: web.Request, state: str):
+async def authenticate(request: web.Request):
     """
     Sends an authentication request to specified
     OAuth2 login service (i.e. AWS Cognito)
