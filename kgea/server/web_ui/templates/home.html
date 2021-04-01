@@ -3,16 +3,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA==" crossorigin="anonymous"></script>
     <script>
-        async function DownloadFile(source)
+
+
+
+        function DownloadFile(source, action)
         {
             let kg_name = document.getElementById('kg_name').value;
 
             console.log(
-                "DownloadFile(action: '"+source.id+"', "+
+                "DownloadFile(action: '"+action+"', "+
                 "KG Name: '"+kg_name+"')"
             );
 
-            let url = '/archive/' + kg_name + '/' + source.id;
+            let url = 'http://localhost:8080' + '/archive/' + kg_name + '/' + action;
 
             console.log("Downloading  URL: '"+url+"'");
 
@@ -21,7 +24,7 @@
             try {
                 // TODO: What happens to the data returned here?
                 // TODO: Should this fetch rather be a redirect in a separate tab or window?
-               let r = await fetch(url, { method: "GET"});
+               let r = fetch(url, { method: "GET", mode: 'no-cors' });
                console.log('HTTP response code:',r.status);
 
             } catch(e) {
@@ -32,12 +35,12 @@
             return false;
         }
 
-
+        let self = this;
         $(document).ready(function () {
-            var cache = {};
             $('#kg_name').autocomplete({
-                source: function( request, response ) {
-                    fetch("http://localhost:8080/archive/catalog")
+                minChars: 0,
+                source: async function( request, response ) {
+                    return await fetch("http://localhost:8080/archive/catalog")
                         .then(body => body.text())
                         .then(text =>
                             Array.from(new Set(
@@ -48,6 +51,9 @@
                         .then(array => response(array));
                 }
             });
+
+            $('#meta_knowledge_graph').on('click', _ => DownloadFile(self, 'meta_knowledge_graph'));
+            $('#access').on('click', _ => DownloadFile(self, 'access'));
 
         })
 
@@ -90,18 +96,25 @@
             </td>
             <td>
                 <center>
-                    <p><label for="kg_name"><b>Graph Name: </b></label><br>
+                    <p><label for="kg_name"><b>Graph Name</b></label><br>
 
                     <input id="kg_name" type="text"/>
 
                     <p>
-                    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">
-                        <input type="submit" value="Download Metadata" />
-                    </form>
+{#                    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">#}
+{#                        <input type="submit" value="Download Metadata" />#}
+{#                    </form>#}
 
-                    <form id="access" method="get" onsubmit="DownloadFile(this)">
-                        <input type="submit" value="Download Data File(s)" />
-                    </form>
+                    <button id="meta_knowledge_graph">Download Metadata</button>
+
+
+{#                    <form id="access" method="get" onsubmit="DownloadFile(this)">#}
+{#                        <input type="submit" value="Download Data File(s)" />#}
+{#                    </form>#}
+
+                    <button id="access">Download Data File(s)</button>
+
+
                 </center>
             </td>
         </tr>

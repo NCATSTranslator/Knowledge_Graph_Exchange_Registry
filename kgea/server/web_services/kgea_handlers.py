@@ -1,6 +1,8 @@
 from os import getenv
 from pathlib import Path
 
+from multidict import MultiDict
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -463,6 +465,7 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     # - match on
     # TODO: bad
     kg_names = [kg_name.split('/')[1] for kg_name in kg_files]
+
     # kg_listing = kg_files
     # kg_urls = dict(
     #     map(
@@ -478,8 +481,9 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     # metadata = json.loads(requests.get(url).text)
 
     response = web.Response(text=str(kg_names), status=200)
-    return await with_session(request, response)
 
+
+    return response
     # else:
     #     # If session is not active, then just a redirect
     #     # directly back to unauthenticated landing page
@@ -514,16 +518,32 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
             bucket_name=KGEA_APP_CONFIG['bucket'],
             object_location=files_location
         )
-        pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
-        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-        kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
-                kg_listing))
+
+        # this pattern signifies
+        kg_listing = [
+            create_presigned_url(KGEA_APP_CONFIG['bucket'], content_location) for content_location in kg_files
+            if files_location in content_location
+        ]
+
+        # kg_urls = dict(
+        #     map(
+        #         lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
+        #         kg_listing
+        #     )
+        # )
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
-        
-        response = web.Response(text=str(kg_urls), status=200)
-        return await with_session(request, response)
-    
+
+        # print(kg_files, pattern, kg_listing, kg_urls)
+
+        # response = web.Response(text=str(kg_listing), status=200)
+        # return await with_session(request, response)
+        print(kg_listing)
+        async with session.get(kg_listing[0]) as resp:
+            pokemon = await resp.json()
+
+        return web.Response(text=str('hello'), status=200)
+        # download_request = web.Request(headers=MultiDict({'Content-Disposition': 'Attachment'}))
+        # await redirect(request, kg_listing[0])
     else:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
