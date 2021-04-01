@@ -115,6 +115,7 @@ async def kge_client_authentication(request: web.Request):
     :type request: web.Request
     """
     user_attributes = await authenticate_user(request)
+    
     if user_attributes:
 
         await initialize_user_session(request, user_attributes=user_attributes)
@@ -178,10 +179,8 @@ async def kge_logout(request: web.Request):
 #############################################################
 
 
-async def get_kge_registration_form(request: web.Request) -> web.Response:  # noqa: E501
+async def get_kge_registration_form(request: web.Request) -> web.Response:
     """Get web form for specifying KGE File Set name and submitter
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
