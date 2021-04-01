@@ -102,6 +102,11 @@ async def _get_authenticated_user_token(code: str) -> Dict:
     #     "email": "test-user@amazon.com“
     # }
     #
+    
+    # Stub implementation
+    user_attributes["cognito:username"] = 'test-user'
+    user_attributes["email"] = 'test-user@amazon.com'
+
     return user_attributes
 
 
