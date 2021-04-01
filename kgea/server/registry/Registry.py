@@ -34,6 +34,7 @@ import logging
 from github import Github
 
 from kgea.server.config import get_app_config
+from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
 
 from .kgea_kgx import KgxValidator
 
@@ -87,6 +88,7 @@ class KgeaFileSet:
         "file_set_location",
         "kg_name",
         "kg_description",
+        "kg_version",
         "translator_component",
         "translator_team",
         "submitter",
@@ -251,6 +253,9 @@ class KgeaFileSet:
         #     s3_file_url=s3_file_url
         # )
 
+    def get_version(self) -> str:
+        return self.parameter.setdefault("kg_version", get_default_date_stamp())
+    
     def get_metadata_file(self) -> Union[Dict, None]:
         """
         :return: a copy of metadata dictionary about the KGE File Set metadata file, if available; None otherwise

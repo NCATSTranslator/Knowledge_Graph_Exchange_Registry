@@ -137,9 +137,7 @@ paths:
                 set by inference or as specified by the caller (especially if
                 the 'content_url' doesn't resolve to a definitive file name).
               properties:
-                kg_name:
-                  type: string
-                submitter:
+                kg_id:
                   type: string
                 upload_mode:
                   type: string
@@ -151,14 +149,11 @@ paths:
                   type: string
                   format: binary
               required:
-              - kg_name
-              - submitter
+              - kg_id
               - content_name
               - upload_mode
             encoding:
-              kg_name:
-                contentType: text/plain; charset=utf-8
-              submitter:
+              kg_id:
                 contentType: text/plain; charset=utf-8
               upload_mode:
                 contentType: text/plain; charset=utf-8

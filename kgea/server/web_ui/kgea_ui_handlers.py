@@ -1,5 +1,6 @@
 from os import getenv
 from uuid import uuid4
+from datetime import datetime
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -253,7 +254,8 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:  # no
     if not session.empty:
         #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
         context = {
-            "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
+            "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION,
+            "kg_version": datetime.now().strftime('%Y-%m-%d')  # defaults to today's date "timestamp"
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
         return await with_session(request, response)
@@ -281,7 +283,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
         
         # TODO guard against absent kg_name
         # TODO guard against invalid kg_name (check availability in bucket)
-        # TODO redirect to register_form with given optional param as the entered kg_name
+        # TODO redirect to registration_form with given optional param as the entered kg_name
 
         context = {
             "upload_action": UPLOAD_FORM_ACTION,
