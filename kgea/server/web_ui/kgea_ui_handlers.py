@@ -13,7 +13,10 @@ import aiohttp_jinja2
 from aiohttp_session import get_session
 
 from kgea.server.web_services.kgea_session import (
-    initialize_user_session, redirect, with_session
+    initialize_user_session,
+    redirect,
+    with_session,
+    report_error
 )
 
 from ..registry.Registry import  KgeaRegistry
@@ -103,10 +106,6 @@ async def get_kge_home(request: web.Request, uid: str = None) -> web.Response:  
 
     :rtype: web.Response
     """
-    # Can't seem to get the session cookie via any
-    # redirection so use a URL query string workaround?
-    # uid = request.query.get('uid')
-    # if uid:
     session = await get_session(request)
     if not session.empty:
         
@@ -274,23 +273,29 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
 
-        submitter = request.query.get('submitter', default='')
-        kg_name = request.query.get('kg_name', default='')
-        
-        # Use a normalized version of the knowledge
-        # graph name as the KGE File Set identifier.
-        kg_id = KgeaRegistry.normalize_name(kg_name)
-        
-        # TODO guard against absent kg_name
-        # TODO guard against invalid kg_name (check availability in bucket)
-        # TODO redirect to registration_form with given optional param as the entered kg_name
+        kg_id = request.query.get('kg_id', default='')
+        if not kg_id:
+            await report_error(
+                request,
+                "get_kge_file_upload_form(): mandatory KGE File Set identifier was not provided?"
+            )
+
+        kge_file_set = KgeaRegistry.registry().get_kge_file_set()
+        if not kge_file_set:
+            await report_error(
+                request,
+                "get_kge_file_upload_form(): unknown KGE File Set: '"+kg_id+"'?"
+            )
+
+        kg_name = kge_file_set.parameter["kg_name"]
+        submitter = kge_file_set.parameter["submitter"]
 
         context = {
-            "upload_action": UPLOAD_FORM_ACTION,
-            "publish_file_set_action": PUBLISH_FILE_SET_ACTION,
-            "kg_name": kg_name,
             "kg_id": kg_id,
-            "submitter": submitter
+            "kg_name": kg_name,
+            "submitter": submitter,
+            "upload_action": UPLOAD_FORM_ACTION,
+            "publish_file_set_action": PUBLISH_FILE_SET_ACTION
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
         return await with_session(request, response)
