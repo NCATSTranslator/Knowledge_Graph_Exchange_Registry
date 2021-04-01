@@ -25,13 +25,38 @@ img.banner {
   padding: 5px;
 }
 
+
 .title {
   font-family: Arial, sans-serif;
   font-weight: bold;
   font-size: x-large;
+  text-align: center;
   display: block;
-  margin-left: auto;
-  margin-right: auto;
+  margin: auto;
+  width: 80%;
+  padding: 5px;
+}
+
+.app_footer {
+  color: #5e2ca5;
+  font-family: Arial, sans-serif;
+  font-style: italic;
+  font-weight: lighter;
+  font-size: small;
+  text-align: center;
+  display: block;
+  margin: auto;
+  width: 80%;
+  padding: 5px;
+}
+
+.copyright_footer {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: small;
+  text-align: center;
+  display: block;
+  margin: auto;
   width: 80%;
   padding: 5px;
 }

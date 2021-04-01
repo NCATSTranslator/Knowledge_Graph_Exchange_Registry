@@ -15,7 +15,7 @@ from botocore.exceptions import ClientError
 from .kgea_file_ops import (
     get_object_location,
     kg_files_in_location,
-    with_timestamp
+    with_version
 )
 
 from .kgea_session import KgeaSession
@@ -172,7 +172,7 @@ def transfer_file_from_url(
 
 def test_transfer_file_from_url(test_url, test_file_name, test_bucket, test_kg):
     try:
-        test_object_location, _ = with_timestamp(get_object_location)(test_kg)
+        test_object_location, _ = with_version(get_object_location)(test_kg)
         object_key = transfer_file_from_url(test_url, test_file_name, test_bucket, test_object_location)
         assert(object_key in kg_files_in_location(test_bucket, test_object_location))
     except ClientError as e:

@@ -22,9 +22,13 @@
             <p>{% block content %}{% endblock %}
         </div>
         <p><div id="footer">
-            {% block footer %}
-            &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
-            {% endblock %}
+            <p><div class="app_footer">{% block app_footer %}{% endblock %}</div>
+            <div class="copyright_footer">
+                {% block footer %}
+                &copy; Copyright 2021 by the
+                <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
+                {% endblock %}
+            </div>
         </div>
     </center>
 </body>
