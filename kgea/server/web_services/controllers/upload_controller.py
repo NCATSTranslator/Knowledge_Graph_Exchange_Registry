@@ -21,8 +21,7 @@ async def register_file_set(request: web.Request):
 
 async def upload_file(
         request: web.Request,
-        kg_name: str,
-        submitter: str,
+        kg_id: str,
         upload_mode: str,
         content_name: str,
         content_url: str = None,
@@ -32,10 +31,8 @@ async def upload_file(
 
     :param request:
     :type request: web.Request
-    :param kg_name:
-    :type kg_name: str
-    :param submitter:
-    :type submitter: str
+    :param kg_id:
+    :type kg_id: str
     :param upload_mode:
     :type upload_mode: str
     :param content_name:
@@ -48,8 +45,7 @@ async def upload_file(
     """
     return await upload_kge_file(
         request,
-        kg_name,
-        submitter,
+        kg_id,
         upload_mode,
         content_name,
         content_url,

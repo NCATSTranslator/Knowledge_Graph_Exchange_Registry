@@ -26,8 +26,7 @@
             console.log("UploadFile(upload_mode: '" + source.id + "')");
 
             let formData = new FormData();
-            formData.append("kg_name", "{{kg_name}}");
-            formData.append("submitter", "{{submitter}}");
+            formData.append("kg_id", "{{kg_id}}");
             formData.append("upload_mode", source.id);
 
             let file_type = '';
@@ -89,21 +88,21 @@
                         ).then(
                             name => {
                                 window.alert(
-                                    "Successfully uploaded '" + file_type + "' file '" + content_name +
-                                    "' for knowledge graph '{{kg_name}}' (KGE File Set ID: '" + name + "')!"
+                                    "Successfully uploaded '" + file_type + "' file\n'" + content_name +
+                                    "'\n for knowledge graph '{{kg_name}}'\n(KGE File Set ID: '" + name + "')!"
                                 );
                             }
                         ).catch(error => {
                             let err_msg =
-                                "Error accessing KGE File Set ID for '" + file_type + "' file '" + content_name +
-                                "' for knowledge graph '{{kg_name}}: " + error;
+                                "Error accessing KGE File Set ID\nfor '" + file_type + "' file '" + content_name +
+                                "'\nfor knowledge graph '{{kg_name}}: " + error;
                             console.log(err_msg);
                             window.alert(err_msg);
                         })
                 }).catch(error => {
                     let err_msg =
-                            "File upload error encountered for '" + file_type + "' file '" + content_name +
-                            "' for knowledge graph '{{kg_name}}: " + error;
+                            "File upload error encountered\nfor '" + file_type + "' file '" + content_name +
+                            "'\nfor knowledge graph '{{kg_name}}: " + error;
                     console.log(err_msg);
                     window.alert(err_msg);
                 });
@@ -111,13 +110,12 @@
     </script>
 {% endblock %}
 {% block menu %}
-{% include "home.form" %}
-{% include "logout.form" %}
+{% include "logout.button" %}
+{% include "home.button" %}
 {% endblock %}
+{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>(Version: '{{kg_version}}') {% endblock %}
 {% block content %}
-<h3>Knowledge Graph<br>"{{kg_name}}"</h3>
-<h4>Submitted by "{{submitter}}"</h4>
-
+<h4>Submitted by '{{submitter}}'</h4>
 <table>
     <tr>
         <td colspan="2">
@@ -138,7 +136,7 @@
             <center>
                 <h4>Upload KGX data file from your computer:</h4>
 
-                <p>Select single file for upload<br>(multiple file upload not currently supported)</p>
+                <p>Select a single KGX formatted data file at a time for upload</p>
 
                 <br><label for="content_file"><b>Select Data File:</b></label>
                 <input id="content_file"  class="textbox" type="file"/>
@@ -162,7 +160,7 @@
         <td colspan="2">
             <center>
                 <form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
-                    <input type="submit" value="Done Uploading" />
+                    <input type="submit" value="Done Uploading File Set" />
                 </form>
             </center>
         </td>

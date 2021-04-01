@@ -97,9 +97,13 @@ def get_object_location(kg_name):
     return location
 
 
-def with_timestamp(func, date_time=datetime.now().strftime('%Y-%m-%d')):
+def get_default_date_stamp():
+    return datetime.now().strftime('%Y-%m-%d')
+
+
+def with_version(func, version=get_default_date_stamp()):
     def wrapper(kg_name):
-        return func(kg_name + '/' + date_time), date_time
+        return func(kg_name + '/' + version), version
 
     return wrapper
 
@@ -296,7 +300,7 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            content_location, _ = with_timestamp(get_object_location)(test_kg)
+            content_location, _ = with_version(get_object_location)(test_kg)
             object_key = upload_file(test_file, test_file.name, test_bucket, content_location)
             assert (object_key in kg_files_in_location(test_bucket, content_location))
     except FileNotFoundError as e:
@@ -313,13 +317,14 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+
 @prepare_test
 def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
 
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            content_location, _ = with_timestamp(get_object_location)(test_kg)
+            content_location, _ = with_version(get_object_location)(test_kg)
 
             object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
 
@@ -339,13 +344,14 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+
 @prepare_test
 def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     """
-    Use the "with_timestamp" wrapper to modify the object location
+    Use the "with_version" wrapper to modify the object location
     """
     try:
-        test_location, time_created = with_timestamp(get_object_location)(test_kg)
+        test_location, time_created = with_version(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, test_location)

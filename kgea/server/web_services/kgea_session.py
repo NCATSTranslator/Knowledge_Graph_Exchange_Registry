@@ -7,6 +7,7 @@
 #     return web.Response(text=text)
 
 from os import getenv
+from typing import Dict
 from uuid import uuid4
 
 import asyncio
@@ -113,7 +114,7 @@ class KgeaSession:
         loop.close()
 
 
-async def initialize_user_session(request, uid: str = None):
+async def initialize_user_session(request, uid: str = None, user_attributes: Dict = None):
     try:
         session = await new_session(request)
         
@@ -127,6 +128,10 @@ async def initialize_user_session(request, uid: str = None):
         session.set_new_identity(user_id)
         
         session['user_id'] = user_id
+        
+        if user_attributes:
+            session['username'] = user_attributes["cognito:username"]
+            session['user_email'] = user_attributes["email"]
     
     except RuntimeError as rte:
         logger.error("initialize_user_session() ERROR: " + str(rte))

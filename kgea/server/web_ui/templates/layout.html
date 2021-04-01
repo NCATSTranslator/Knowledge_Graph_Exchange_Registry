@@ -14,16 +14,22 @@
 <body>
     <center>
         <p><div id="header">
-            <p><img class="banner" src="images/banner.jpg" alt="Translator Banner">
-            <p>{% block menu %}{% endblock %}
+            <p><img class="banner" src="images/banner.jpg" alt="Translator Banner"/>
+            <div class="menu_bar">{% block menu %}{% endblock %}</div>
+            <p></p>
+            <p><div class="title">{% block title %}{% endblock %}</div>
         </div>
-        <p><div id="content">
+        <div id="content">
             <p>{% block content %}{% endblock %}
         </div>
         <p><div id="footer">
-            {% block footer %}
-            &copy; Copyright 2021 by the <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
-            {% endblock %}
+            <p><div class="app_footer">{% block app_footer %}{% endblock %}</div>
+            <div class="copyright_footer">
+                {% block footer %}
+                &copy; Copyright 2021 by the
+                <a href="https://ncats.nih.gov/translator">NCATS Biomedical Data Translator</a>.
+                {% endblock %}
+            </div>
         </div>
     </center>
 </body>
