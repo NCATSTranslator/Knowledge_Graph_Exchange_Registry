@@ -128,7 +128,9 @@ async def get_authorization(code: str) -> Dict:
     #
     # See https://aws.amazon.com/blogs/mobile/how-to-use-cognito-pre-token-generators-to-customize-claims-in-id-tokens/
     #
-    # got the authorization code Query parameter, the next step is to exchange it for user pool tokens. The exchange occurs by submitting a POST request with code Query parameter, client Id and Authorization Header like below.
+    # got the authorization code Query parameter, the next step is to exchange it
+    # for user pool tokens. The exchange occurs by submitting a POST request with
+    # code Query parameter, client Id and Authorization Header like below.
     #
     # # HTTP Request (including valid token with "email" scope)
     # $ curl -X POST \
@@ -143,7 +145,9 @@ async def get_authorization(code: str) -> Dict:
     #
     # Ssh
     #
-    # We would need to set the Authorization header for this request as Basic BASE64(CLIENT_ID:CLIENT_SECRET), where BASE64(CLIENT_ID:CLIENT_SECRET) is the base64 representation of the app client ID and app client secret, concatenated with a colon.
+    # We would need to set the Authorization header for this request as
+    # Basic BASE64(CLIENT_ID:CLIENT_SECRET), where BASE64(CLIENT_ID:CLIENT_SECRET)
+    # is the base64 representation of the app client ID and app client secret, concatenated with a colon.
     #
     # Once the POST Request is successful we should get a response with id_token, access_token and refresh_token.
     #
@@ -206,11 +210,11 @@ async def kge_client_authentication(request: web.Request):
         # now, check the returned code for authorization
         if code:
 
-            authenticated_user = get_authorization(code)
+            user_attributes = await get_authorization(code)
 
-            if authenticated_user:
+            if user_attributes:
     
-                await initialize_user_session(request, authenticated_user)
+                await initialize_user_session(request, user_attributes=user_attributes)
                 
                 # if active session and no exception raised, then
                 # redirect to the home page, with a session cookie
