@@ -33,6 +33,7 @@ import logging
 
 from github import Github
 from github.ContentFile import ContentFile
+from github.GithubException import UnknownObjectException
 
 from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
@@ -583,11 +584,10 @@ def add_to_github(
             g = Github(gh_token)
             repo = g.get_repo(repo_path)
 
-            content_file: Union[ContentFile, None] = None
             try:
                 content_file = repo.get_contents(entry_path)
-            except RuntimeError:
-                pass
+            except UnknownObjectException:
+                content_file = None
             
             if not content_file:
                 repo.create_file(
@@ -619,7 +619,7 @@ def test_add_to_github():
     outcome: bool = add_to_github(
         "kge_test_entry",
         _TEST_TSE,
-        repo=_TEST_SMARTAPI_REPO,
+        repo_path=_TEST_SMARTAPI_REPO,
         target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
     )
     
