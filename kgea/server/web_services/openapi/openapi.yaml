@@ -42,13 +42,15 @@ paths:
           content:
             application/json:
               schema:
-                description: |-
-                  List of available KGE File Sets (initial implementation is a simple list of
-                   normalized knowledge graph identifiers)
-                items:
-                  type: string
-                type: array
-          description: Catalog of available KGE File Sets
+                additionalProperties:
+                  items:
+                    type: string
+                  minItems: 1
+                  type: array
+                description: Dictionary of available KGE File Sets, with a list of
+                  (at least one) version.
+                type: object
+          description: Catalog of available KGE File Sets and their versions.
       summary: Returns the catalog of available KGE File Sets
       tags:
       - provider
