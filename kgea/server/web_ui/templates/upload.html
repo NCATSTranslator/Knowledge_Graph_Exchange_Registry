@@ -27,6 +27,11 @@
 
             let formData = new FormData();
             formData.append("kg_id", "{{kg_id}}");
+
+            let kfc_radio = document.querySelector("input[name=kgx_file_content]:checked");
+            let kgx_file_content = kfc_radio ? kfc_radio.value : "";
+            formData.append("kgx_file_content", kgx_file_content);
+
             formData.append("upload_mode", source.id);
 
             let file_type = '';
@@ -132,6 +137,13 @@
         </td>
     </tr>
     <tr>
+        <td rowspan="2">
+            <h4>KGX file content being uploaded</h4>
+            <input type="radio" id="nodes" name="kgx_file_content" value="nodes">
+            <label for="nodes">Nodes</label><br>
+            <input type="radio" id="edges" name="kgx_file_content" value="edges">
+            <label for="edges">Edges</label><br>
+        </td>
         <td>
             <center>
                 <h4>Upload KGX data file from your computer:</h4>
@@ -143,9 +155,10 @@
                 <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
             </center>
         </td>
+    </tr>
+    <tr>
         <td>
             <center>
-
                 <h4>Transfer KGX data file from URL endpoint:</h4>
 
                 <br><label for="content_url"><b>URL to File:</b></label>
