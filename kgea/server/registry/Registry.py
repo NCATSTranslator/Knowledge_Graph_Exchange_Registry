@@ -39,9 +39,7 @@ from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
 from .kgea_kgx import KgxValidator
 
 logger = logging.getLogger(__name__)
-DEBUG = getenv('DEV_MODE', default=False)
-if DEBUG:
-    logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 DEBUG = getenv('DEV_MODE', default=False)
 
