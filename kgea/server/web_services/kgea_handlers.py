@@ -22,14 +22,15 @@ from .kgea_session import redirect, with_session, report_error
 
 from .kgea_file_ops import (
     upload_file,
-    upload_file_multipart,
+    # upload_file_multipart,
     create_presigned_url,
     # location_available,
     kg_files_in_location,
     # add_to_github,
     # create_smartapi,
     get_object_location,
-    with_version
+    with_version,
+    with_subfolder
 )
 
 from .kgea_stream import transfer_file_from_url
@@ -50,6 +51,10 @@ logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
 KGEA_APP_CONFIG = get_app_config()
+
+# This is likely invariant almost forever unless new types of
+# KGX data files will eventually be added, i.e. 'attributes'(?)
+KGX_FILE_CONTENT_TYPES = ['nodes', 'edges']
 
 if DEV_MODE:
     # Point to http://localhost:8090 for UI
@@ -242,6 +247,8 @@ async def upload_kge_file(
     :type upload_mode: str
     :param content_name:
     :type content_name: str
+    :param kgx_file_content:
+    :type kgx_file_content: str
     :param content_url:
     :type content_url: str
     :param uploaded_file:
@@ -275,11 +282,17 @@ async def upload_kge_file(
             
             logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
             
+            if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
+                await report_error(
+                    request,
+                    "upload_kge_file(): KGX file content type must be set for content transfers from URLs"
+                )
+            
             uploaded_file_object_key = transfer_file_from_url(
                 url=content_url,
                 file_name=content_name,
                 bucket=KGEA_APP_CONFIG['bucket'],
-                object_location=file_set_location
+                object_location=with_subfolder(file_set_location, kgx_file_content)
             )
             
             file_type = KgeFileType.KGX_DATA_FILE
@@ -295,12 +308,18 @@ async def upload_kge_file(
                 
                 # KGE Content File for upload?
                 
+                if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
+                    await report_error(
+                        request,
+                        "upload_kge_file(): KGX file content type must be set for uploading content from a local file"
+                    )
+
                 uploaded_file_object_key = upload_file(
                     # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
                     data_file=uploaded_file.file,
                     file_name=content_name,
                     bucket=KGEA_APP_CONFIG['bucket'],
-                    object_location=file_set_location
+                    object_location=with_subfolder(file_set_location, kgx_file_content)
                 )
                 
                 file_type = KgeFileType.KGX_DATA_FILE
