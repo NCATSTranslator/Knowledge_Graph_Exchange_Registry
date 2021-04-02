@@ -28,7 +28,20 @@ img.banner {
 .title {
   font-family: Arial, sans-serif;
   font-weight: bold;
-  font-size: x-large;
+  font-size: large;
+  text-align: center;
+  display: block;
+  margin: auto;
+  width: 80%;
+  padding: 5px;
+}
+
+.subtitle {
+  color: #5e2ca5;
+  font-family: Arial, sans-serif;
+  font-style: normal;
+  font-weight: lighter;
+  font-size: medium;
   text-align: center;
   display: block;
   margin: auto;

@@ -94,7 +94,7 @@
                             name => {
                                 window.alert(
                                     "Successfully uploaded " + file_type + " file\n'" + content_name +
-                                    "'\n for knowledge graph '{{kg_name}}'\n(KGE File Set ID: '" + name + "')!"
+                                    "'\n for knowledge graph '{{kg_name}}'!"
                                 );
                             }
                         ).catch(error => {
@@ -118,10 +118,19 @@
 {% include "logout.button" %}
 {% include "home.button" %}
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>(Version: '{{kg_version}}') {% endblock %}
+{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br> {% endblock %}
 {% block content %}
-<h4>Submitted by '{{submitter}}'</h4>
+<div class="subtitle">Version: '{{kg_version}}', Submitted by '{{submitter}}'</div>
 <table>
+    <tr>
+        <td colspan="2">
+            <center>
+                <form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
+                    <input type="submit" value="Done Uploading File Set" />
+                </form>
+            </center>
+        </td>
+    </tr>
     <tr>
         <td colspan="2">
             <center>
@@ -168,15 +177,6 @@
                 <br><label for="file_name"><b>File Name:</b></label>
                 <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
                 <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
-            </center>
-        </td>
-    </tr>
-    <tr>
-        <td colspan="2">
-            <center>
-                <form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
-                    <input type="submit" value="Done Uploading File Set" />
-                </form>
             </center>
         </td>
     </tr>
