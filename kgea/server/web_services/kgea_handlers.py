@@ -372,18 +372,19 @@ async def publish_kge_file_set(request: web.Request, kg_id):
 #############################################################
 
 
-# TODO: get file out of root folder
-async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Response:
+async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
     """Get supported relationships by source and target
 
     :param request:
     :type request: web.Request
-    :param kg_id: Name label of KGE File Set whose knowledge graph content metadata is being reported
+    :param kg_id: KGE File Set identifier for the knowledge graph for which graph metadata is being accessed.
     :type kg_id: str
+    :param kg_version: Version of KGE File Set for a given knowledge graph.
+    :type kg_version: str
 
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
-    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ")")
+    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
     
     session = await get_session(request)
     if not session.empty:

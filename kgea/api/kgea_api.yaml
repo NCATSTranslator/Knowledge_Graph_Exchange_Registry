@@ -1,9 +1,12 @@
 openapi: 3.0.1
 info:
-  version: 0.0.1-dev
+  version: 1.0.0-dev
   title: >-
-    OpenAPI for the NCATS Biomedical Translator
-    Knowledge Graph EXchange (KGE) Archive
+    OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive.
+    Although this API is SmartAPI compliant, it will not normally be visible
+    in the Translator SmartAPI Registry since it is mainly meant to be
+    accessed through its various contained KGE File Sets (which will have
+    their own distinct entries in the Registry).
   description: >-
     OpenAPI for the NCATS Biomedical Translator
     Knowledge Graph Exchange Archive
@@ -29,13 +32,16 @@ externalDocs:
     Knowledge Graph Exchange (KGE) Archive
   url: "https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 tags:
+  - name: translator
+    description: NCATS Biomedical Data Translator component API
+  - name: kge
+    description: Translator Knowledge Graph eXchange (KGE) system API
   - name: upload
     description: KGE file set upload form
   - name: provider
     description: Provider "access" metadata for KGE file set
   - name: content
     description: Content metadata for KGX-formatted data files in a KGE file set.
-  - name: translator
 paths:
   /register:
     post:
@@ -250,19 +256,34 @@ paths:
       responses:
         '200':
           description: >-
-            Name label of KGE File Set whose
-            provider metadata is being reported
+            Catalog of available KGE File Set versions and their file contents.
           content:
             application/json:
               schema:
                 description: >-
-                  Provider metadata describing the
-                  location and inventory of KGE files
+                  Dictionary of details about available versions for a given KGE File Set.
                 type: object
                 additionalProperties:
+                  type: array
                   description: >-
-                    Provider metadata attributes
-                  $ref: '#/components/schemas/Attribute'
+                    List of file names and sizes for a given KGE File Set version
+                  items:
+                    type: object
+                    properties:
+                      file_name:
+                        description: original name of file (as uploaded)
+                        type: string
+                      file_size:
+                        description: size of file in megabytes
+                        type: number
+                        format: float
+        '404':
+          description: >-
+            Specified KGE File Set was not found.
+          content:
+            application/json:
+              schema:
+                type: string
         '400':
           description: >-
             Bad request. The request is invalid according to this OpenAPI
@@ -271,14 +292,21 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kg_id}/meta_knowledge_graph:
+  /{kg_id}/{kg_version}/meta_knowledge_graph:
     get:
       parameters:
         - name: kg_id
           in: path
           description: >-
             KGE File Set identifier for the knowledge graph
-            for which data files are being accessed.
+            for which graph metadata is being accessed.
+          required: true
+          schema:
+            type: string
+        - name: kg_version
+          in: path
+          description: >-
+            Version of KGE File Set for a given knowledge graph.
           required: true
           schema:
             type: string
@@ -295,6 +323,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MetaKnowledgeGraph'
+        '404':
+          description: >-
+            KGE File Set was not found.
+          content:
+            application/json:
+              schema:
+                type: string
         '400':
           description: >-
             Bad request. The request is invalid according to this OpenAPI
@@ -305,24 +340,6 @@ paths:
                 type: string
 components:
   schemas:
-    Attribute:
-      type: object
-      description: Generic metadata attribute.
-      properties:
-        type:
-          type: string
-          description: >-
-            Type of the metadata attribute, from the Translator Registry metadata dictionary.
-          example: "submitter"
-        value:
-          type: string
-          description: >-
-            Value of the attribute, encoded as a string.
-          example: "Abraham Lincoln"
-      required:
-          - type
-          - value
-      additionalProperties: false
     BiolinkEntity:
       description: >-
         Compact URI (CURIE) for a Biolink class, biolink:NamedThing
