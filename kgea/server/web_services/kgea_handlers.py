@@ -474,24 +474,21 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     return web.Response(status=200)
 
 
-async def kge_access(request: web.Request, kg_id: str, version: str) -> web.Response:
-    """Get KGE File Sets
+async def kge_access(request: web.Request, kg_id: str) -> web.Response:
+    """Get KGE File Set provider metadata.
 
     :param request:
     :type request: web.Request
-    :param kg_id: Name label of KGE File Set whose files are being accessed
+    :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed
     :type kg_id: str
-    :param version: Version of the KGE File Set
-    :type version: str
 
-    :rtype: web.Response( Dict[str, Attribute] )
     """
-    logger.debug("Entering kge_access(kg_id: " + kg_id + ", version: " + version + ")")
+    logger.debug("Entering kge_access(kg_id: " + kg_id + ")")
     
     session = await get_session(request)
     if not session.empty:
         
-        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=version)
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
         
         # Listings Approach
         # - Introspect on Bucket
@@ -511,6 +508,7 @@ async def kge_access(request: web.Request, kg_id: str, version: str) -> web.Resp
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
         
         response = web.Response(text=str(kg_urls), status=200)
+        
         return await with_session(request, response)
     
     else:
