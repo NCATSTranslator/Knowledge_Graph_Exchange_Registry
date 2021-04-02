@@ -213,6 +213,7 @@ async def upload_kge_file(
         kg_id: str,
         upload_mode: str,
         content_name: str,
+        kgx_file_content:str = None,
         content_url: str = None,
         uploaded_file=None
 ) -> web.Response:

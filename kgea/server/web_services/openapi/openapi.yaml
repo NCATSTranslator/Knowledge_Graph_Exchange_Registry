@@ -160,10 +160,16 @@ paths:
               kg_id:
                 contentType: text/plain; charset=utf-8
                 style: form
+              kgx_file_content:
+                contentType: text/plain; charset=utf-8
+                style: form
               upload_mode:
                 contentType: text/plain; charset=utf-8
                 style: form
               content_url:
+                contentType: text/plain; charset=utf-8
+                style: form
+              content_name:
                 contentType: text/plain; charset=utf-8
                 style: form
               uploaded_file:
@@ -171,7 +177,7 @@ paths:
                 style: form
             schema:
               description: Uploading form posting of (meta-)data files. The 'upload_mode'
-                string argument specifies the file type and/or mode as one of 'metadata',
+                string argument specifies the category and/or mode as one of 'metadata',
                 'content_from_local_file' or 'content_from_url'. If 'metadata' or
                 'content_from_local_file' are indicated, then the 'uploaded_file'
                 parameter should be set to the file to be uploaded. If 'upload_mode'
@@ -179,11 +185,16 @@ paths:
                 as a REST endpoint of the file to be transferred into the Archive
                 (authentication not yet supported - URL should provide unauthenticated
                 access). The 'content_name' should be set either to the file name
-                of the 'metadata' or 'content_from_local_file', or for url transfers,
+                of the 'metadata' or 'content_from_local_file', or url transfers,
                 set by inference or as specified by the caller (especially if the
-                'content_url' doesn't resolve to a definitive file name).
+                'content_url' doesn't resolve to a definitive file name). The specific
+                KGX file content of the current upload file is set by the `kgx_file_content'
+                for KGX data files uploaded in the 'content_from_local_file' or 'content_from_url'
+                modes set by the selected 'nodes' versus 'edges' radio button.
               properties:
                 kg_id:
+                  type: string
+                kgx_file_content:
                   type: string
                 upload_mode:
                   type: string
@@ -553,18 +564,23 @@ components:
       type: object
     inline_object_1:
       description: Uploading form posting of (meta-)data files. The 'upload_mode'
-        string argument specifies the file type and/or mode as one of 'metadata',
-        'content_from_local_file' or 'content_from_url'. If 'metadata' or 'content_from_local_file'
-        are indicated, then the 'uploaded_file' parameter should be set to the file
-        to be uploaded. If 'upload_mode' is set to 'content_from_url' then the 'content_url'
-        parameter is taken as a REST endpoint of the file to be transferred into the
-        Archive (authentication not yet supported - URL should provide unauthenticated
-        access). The 'content_name' should be set either to the file name of the 'metadata'
-        or 'content_from_local_file', or for url transfers, set by inference or as
-        specified by the caller (especially if the 'content_url' doesn't resolve to
-        a definitive file name).
+        string argument specifies the category and/or mode as one of 'metadata', 'content_from_local_file'
+        or 'content_from_url'. If 'metadata' or 'content_from_local_file' are indicated,
+        then the 'uploaded_file' parameter should be set to the file to be uploaded.
+        If 'upload_mode' is set to 'content_from_url' then the 'content_url' parameter
+        is taken as a REST endpoint of the file to be transferred into the Archive
+        (authentication not yet supported - URL should provide unauthenticated access).
+        The 'content_name' should be set either to the file name of the 'metadata'
+        or 'content_from_local_file', or url transfers, set by inference or as specified
+        by the caller (especially if the 'content_url' doesn't resolve to a definitive
+        file name). The specific KGX file content of the current upload file is set
+        by the `kgx_file_content' for KGX data files uploaded in the 'content_from_local_file'
+        or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
+        button.
       properties:
         kg_id:
+          type: string
+        kgx_file_content:
           type: string
         upload_mode:
           type: string
