@@ -6,7 +6,7 @@ from ..kgea_handlers import (
 )
 
 
-async def access(request: web.Request, kg_id: str) -> web.Response:
+async def access(request: web.Request, kg_id: str, version: str) -> web.Response:
     """Get KGE File Sets
 
     :param request:

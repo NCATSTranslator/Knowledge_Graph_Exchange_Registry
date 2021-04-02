@@ -37,8 +37,16 @@ tags:
       description: >-
         Documentation of Knowledge Graph Exchange content metadata
 paths:
-  /access:
+  /{version}/access:
     get:
+      parameters:
+        - name: version
+          in: path
+          description: >-
+            Version of the given KGE File Set
+          required: true
+          schema:
+            type: string
       tags:
         - provider
       summary: Get KGE File Set provider metadata.
@@ -58,8 +66,16 @@ paths:
                   description: >-
                      Provider metadata attributes
                   $$ref: '#/components/schemas/Attribute'
-  /meta_knowledge_graph:
+  /{version}/meta_knowledge_graph:
     get:
+      parameters:
+        - name: version
+          in: path
+          description: >-
+            Version of the given KGE File Set
+          required: true
+          schema:
+            type: string
       tags:
         - content
       summary: Meta knowledge graph representation of this KGX knowledge graph.
