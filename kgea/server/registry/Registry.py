@@ -32,6 +32,7 @@ import asyncio
 import logging
 
 from github import Github
+from github.ContentFile import ContentFile
 
 from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
@@ -40,9 +41,6 @@ from .kgea_kgx import KgxValidator
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-DEBUG = getenv('DEV_MODE', default=False)
-
 
 RUN_TESTS = getenv('RUN_TESTS', default=False)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
@@ -555,7 +553,7 @@ def test_create_smartapi():
 def add_to_github(
         kg_id: str,
         api_specification: str,
-        repo: str = TRANSLATOR_SMARTAPI_REPO,
+        repo_path: str = TRANSLATOR_SMARTAPI_REPO,
         target_directory: str = KGE_SMARTAPI_DIRECTORY
 ) -> bool:
     
@@ -571,25 +569,39 @@ def add_to_github(
     if gh_token:
         
         logger.debug(
-            "\t### api_specification = '''\n" + str(api_specification)[:60] + "...\n'''\n" +
-            "\t### repo_path = '" + str(repo) + "'\n" +
+            "\n\t### api_specification = '''\n" + str(api_specification)[:60] + "...\n'''\n" +
+            "\t### repo_path = '" + str(repo_path) + "'\n" +
             "\t### target_directory = '" + str(target_directory) + "'"
         )
     
-        if api_specification and repo and target_directory:
+        if api_specification and repo_path and target_directory:
             
             entry_path = target_directory+"/"+kg_id + ".yaml"
             
             logger.debug("\t### gh_url = '" + str(entry_path) + "'")
             
             g = Github(gh_token)
-            repo = g.get_repo(repo)
+            repo = g.get_repo(repo_path)
+
+            content_file: Union[ContentFile, None] = None
+            try:
+                content_file = repo.get_contents(entry_path)
+            except RuntimeError:
+                pass
             
-            repo.create_file(
-                entry_path,
-                "Posting KGE entry  '" + kg_id + "' to Translator SmartAPI Registry.",
-                api_specification,  # API YAML specification as a string
-            )
+            if not content_file:
+                repo.create_file(
+                    entry_path,
+                    "Creating new KGE entry  '" + kg_id + "' in " + repo_path,
+                    api_specification,  # API YAML specification as a string
+                )
+            else:
+                repo.update_file(
+                    entry_path,
+                    "Updating KGE entry  '" + kg_id + "' in " + repo_path,
+                    api_specification,  # API YAML specification as a string
+                    content_file.sha
+                )
             
             outcome = True
 

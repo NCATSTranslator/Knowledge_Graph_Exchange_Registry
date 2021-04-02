@@ -39,7 +39,7 @@ img.banner {
 .subtitle {
   color: #5e2ca5;
   font-family: Arial, sans-serif;
-  font-style: normal;
+  font-style: italic;
   font-weight: lighter;
   font-size: medium;
   text-align: center;
