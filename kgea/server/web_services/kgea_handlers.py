@@ -95,9 +95,9 @@ async def _get_file_set_location(request: web.Request, kg_id: str, version: str 
     if not version:
         version = kge_file_set.get_version()
         
-    file_set_location, _ = with_version(get_object_location, version)(kg_id)
+    file_set_location, assigned_version = with_version(get_object_location, version)(kg_id)
     
-    return file_set_location
+    return file_set_location, assigned_version
 
 
 async def register_kge_file_set(request: web.Request):  # noqa: E501
@@ -180,8 +180,8 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
         kg_id = KgeaRegistry.normalize_name(kg_name)
-        
-        file_set_location = await _get_file_set_location(request, kg_id, version=kg_version)
+
+        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
         
         logger.debug("register_kge_file_set(file_set_location: " + file_set_location + ")")
         
@@ -199,7 +199,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                     file_set_location=file_set_location,
                     kg_name=kg_name,
                     kg_description=kg_description,
-                    kg_version=kg_version,
+                    kg_version=assigned_version,
                     translator_component=translator_component,
                     translator_team=translator_team,
                     submitter=submitter,
@@ -273,7 +273,7 @@ async def upload_kge_file(
             # Invalid upload mode
             await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 
-        file_set_location = await _get_file_set_location(request, kg_id)
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
         
         uploaded_file_object_key = None
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
@@ -419,7 +419,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, version: st
     session = await get_session(request)
     if not session.empty:
         
-        file_set_location = await _get_file_set_location(request, kg_id, version=version)
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=version)
         
         # Listings Approach
         # - Introspect on Bucket
@@ -493,7 +493,7 @@ async def kge_access(request: web.Request, kg_id: str, version: str) -> web.Resp
     session = await get_session(request)
     if not session.empty:
         
-        file_set_location = await _get_file_set_location(request, kg_id, version=version)
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=version)
         
         # Listings Approach
         # - Introspect on Bucket

@@ -75,7 +75,7 @@
                     window.alert("KGX data file is undefined");
                     return;
                 }
-                file_type = 'data';
+                file_type = kgx_file_content + ' data';
             }
             formData.append("content_name", content_name);
 
@@ -93,20 +93,20 @@
                         ).then(
                             name => {
                                 window.alert(
-                                    "Successfully uploaded '" + file_type + "' file\n'" + content_name +
+                                    "Successfully uploaded " + file_type + " file\n'" + content_name +
                                     "'\n for knowledge graph '{{kg_name}}'\n(KGE File Set ID: '" + name + "')!"
                                 );
                             }
                         ).catch(error => {
                             let err_msg =
-                                "Error accessing KGE File Set ID\nfor '" + file_type + "' file '" + content_name +
+                                "Error accessing KGE File Set ID\nfor " + file_type + " file '" + content_name +
                                 "'\nfor knowledge graph '{{kg_name}}: " + error;
                             console.log(err_msg);
                             window.alert(err_msg);
                         })
                 }).catch(error => {
                     let err_msg =
-                            "File upload error encountered\nfor '" + file_type + "' file '" + content_name +
+                            "File upload error encountered\nfor " + file_type + " file '" + content_name +
                             "'\nfor knowledge graph '{{kg_name}}: " + error;
                     console.log(err_msg);
                     window.alert(err_msg);
@@ -137,15 +137,6 @@
         </td>
     </tr>
     <tr>
-        <td rowspan="2">
-            <h4>KGX file content being uploaded</h4>
-            <!-- kgx_file_content are likely invariant almost forever unless new types
-                 of KGX data files will eventually be added, i.e. 'attributes' files(?) -->
-            <input type="radio" id="nodes" name="kgx_file_content" value="nodes" checked>
-            <label for="nodes">Nodes</label><br>
-            <input type="radio" id="edges" name="kgx_file_content" value="edges">
-            <label for="edges">Edges</label><br>
-        </td>
         <td>
             <center>
                 <h4>Upload KGX data file from your computer:</h4>
@@ -156,6 +147,15 @@
                 <input id="content_file"  class="textbox" type="file"/>
                 <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
             </center>
+        </td>
+        <td rowspan="2">
+            <h4>KGX Content Type</h4>
+            <!-- kgx_file_content are likely invariant almost forever unless new types
+                 of KGX data files will eventually be added, i.e. 'attributes' files(?) -->
+            <input type="radio" id="nodes" name="kgx_file_content" value="nodes" checked>
+            <label for="nodes">Nodes</label><br>
+            <input type="radio" id="edges" name="kgx_file_content" value="edges">
+            <label for="edges">Edges</label><br>
         </td>
     </tr>
     <tr>

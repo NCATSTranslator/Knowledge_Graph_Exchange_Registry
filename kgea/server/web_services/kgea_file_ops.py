@@ -110,7 +110,7 @@ def with_version(func, version=get_default_date_stamp()):
 
 def with_subfolder(location: str, subfolder: str):
     if subfolder:
-        location += '/' + subfolder
+        location += subfolder + '/'
     return location
 
 
