@@ -283,6 +283,9 @@ paths:
                       file_name:
                         description: original name of file (as uploaded)
                         type: string
+                      file_type:
+                        description: designates if the file is meta-, node or edge data
+                        type: string
                       file_size:
                         description: size of file in megabytes
                         type: number

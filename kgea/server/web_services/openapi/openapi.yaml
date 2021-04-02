@@ -278,6 +278,10 @@ paths:
                       file_name:
                         description: original name of file (as uploaded)
                         type: string
+                      file_type:
+                        description: designates if the file is meta-, node or edge
+                          data
+                        type: string
                       file_size:
                         description: size of file in megabytes
                         format: float
@@ -301,7 +305,7 @@ paths:
                 type: string
           description: Bad request. The request is invalid according to this OpenAPI
             schema OR knowledge graph identifier is not just recognized.
-      summary: Get KGE File Set provider metadata.
+      summary: Get metadata about KGE File Set versions and their files.
       tags:
       - provider
       x-openapi-router-controller: kgea.server.web_services.controllers.provider_controller
