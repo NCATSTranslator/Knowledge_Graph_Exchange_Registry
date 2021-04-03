@@ -54,7 +54,7 @@ KGEA_APP_CONFIG = get_app_config()
 
 # This is likely invariant almost forever unless new types of
 # KGX data files will eventually be added, i.e. 'attributes'(?)
-KGX_FILE_CONTENT_TYPES = ['nodes', 'edges']
+KGX_FILE_CONTENT_TYPES = ['metadata', 'nodes', 'edges', 'archive']
 
 if DEV_MODE:
     # Point to http://localhost:8090 for UI
@@ -260,86 +260,73 @@ async def upload_kge_file(
     
     session = await get_session(request)
     if not session.empty:
-        
+    
         if not kg_id:
             # must not be empty string
             await report_error(request, "upload_kge_file(): empty Knowledge Graph Identifier?")
+
+        if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
+            # must not be empty string
+            await report_error(
+                request,
+                "upload_kge_file(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
+            )
         
+        if upload_mode not in ['content_from_local_file', 'content_from_url']:
+            # Invalid upload mode
+            await report_error(
+                request,
+                "upload_kge_file(): empty or invalid upload_mode: '" + str(upload_mode) + "'?"
+            )
+
         if not content_name:
             # must not be empty string
             await report_error(request, "upload_kge_file(): empty Content Name?")
-        
-        if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
-            # Invalid upload mode
-            await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 
         file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
         
-        uploaded_file_object_key = None
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
         
+        if kgx_file_content in ['nodes', 'edges']:
+            file_set_location = with_subfolder(location=file_set_location, subfolder=kgx_file_content)
+            file_type = KgeFileType.KGX_DATA_FILE
+            
+        elif kgx_file_content == "metadata":
+            # metadata stays in the kg_id 'root' version folder
+            file_type = KgeFileType.KGX_METADATA_FILE
+            
+        elif kgx_file_content == "archive":
+            # TODO this is tricky.. not yet sure how to handle an archive with
+            #      respect to properly persisting it in the S3 bucket...
+            #      Leave it in the kg_id 'root' version folder for now?
+            #      The archive may has metadata too, but the data's the main thing.
+            file_type = KgeFileType.KGX_ARCHIVE
+        
+        uploaded_file_object_key = None
+
         if upload_mode == 'content_from_url':
             
             logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
-            
-            if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
-                await report_error(
-                    request,
-                    "upload_kge_file(): KGX file content type must be set for content transfers from URLs"
-                )
             
             uploaded_file_object_key = transfer_file_from_url(
                 url=content_url,
                 file_name=content_name,
                 bucket=KGEA_APP_CONFIG['bucket'],
-                object_location=with_subfolder(file_set_location, kgx_file_content)
+                object_location=file_set_location
             )
-            
-            file_type = KgeFileType.KGX_DATA_FILE
         
-        else:  # process direct metadata or content file upload
-            
-            # upload_file is a FileField with a file attribute
-            # pointing to the actual data file as a temporary file
-            # Initial approach here will be to user the uploaded_file.file
-            # TODO: check if uploaded_file.file scales to large files
-            
-            if upload_mode == 'content_from_local_file':
-                
-                # KGE Content File for upload?
-                
-                if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
-                    await report_error(
-                        request,
-                        "upload_kge_file(): KGX file content type must be set for uploading content from a local file"
-                    )
+        elif upload_mode == 'content_from_local_file':
+            # process direct metadata or content file upload
 
-                uploaded_file_object_key = upload_file(
-                    # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
-                    data_file=uploaded_file.file,
-                    file_name=content_name,
-                    bucket=KGEA_APP_CONFIG['bucket'],
-                    object_location=with_subfolder(file_set_location, kgx_file_content)
-                )
-                
-                file_type = KgeFileType.KGX_DATA_FILE
-            
-            elif upload_mode == 'metadata':
-                
-                # KGE Metadata File for upload?
-                
-                uploaded_file_object_key = upload_file(
-                    # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
-                    data_file=uploaded_file.file,
-                    file_name=content_name,
-                    bucket=KGEA_APP_CONFIG['bucket'],
-                    object_location=file_set_location
-                )
-                
-                file_type = KgeFileType.KGX_METADATA_FILE
-            
-            else:
-                await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+            uploaded_file_object_key = upload_file(
+                data_file=uploaded_file.file,
+                file_name=content_name,
+                bucket=KGEA_APP_CONFIG['bucket'],
+                object_location=file_set_location
+            )
+
+        else:
+            await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
         
         if uploaded_file_object_key:
             

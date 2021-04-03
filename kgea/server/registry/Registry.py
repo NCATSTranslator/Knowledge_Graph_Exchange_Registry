@@ -73,6 +73,7 @@ class KgeFileType(Enum):
     KGX_UNKNOWN = "unknown file type"
     KGX_METADATA_FILE = "KGX metadata file"
     KGX_DATA_FILE = "KGX data file"
+    KGX_ARCHIVE = "KGX data archive"
 
 
 class KgeaFileSet:
@@ -171,9 +172,13 @@ class KgeaFileSet:
                     self.data_files[object_key]["kgx_compliant"] = True
                 else:
                     self.data_files[object_key]["errors"] = errors
-                    
+
+            elif file_type == KgeFileType.KGX_ARCHIVE:
+                # TODO: not sure how we should properly validate a KGX Data archive?
+                pass
+            
             elif file_type == KgeFileType.KGX_METADATA_FILE:
-                
+
                 errors = await KgxValidator.validate_metadata(file_path=s3_file_url)
                 if not errors:
                     self.metadata_file["kgx_compliant"] = True
@@ -212,6 +217,12 @@ class KgeaFileSet:
         if file_type == KgeFileType.KGX_DATA_FILE:
             input_format = self.data_files[object_key]["input_format"]
             input_compression = self.data_files[object_key]["input_compression"]
+            
+        elif file_type == KgeFileType.KGX_ARCHIVE:
+            # This is probably wrong, but...
+            input_format = self.data_files[object_key]["input_format"]
+            input_compression = self.data_files[object_key]["input_compression"]
+            
         else:
             input_format = input_compression = None
 
@@ -459,6 +470,11 @@ class KgeaRegistry:
                     object_key=object_key,
                     s3_file_url=s3_file_url
                 )
+            
+            elif file_type == KgeFileType.KGX_ARCHIVE:
+                # not sure how best to handle KGX data archives here
+                pass
+            
             elif file_type == KgeFileType.KGX_METADATA_FILE:
                 file_set.set_metadata_file(
                     file_name=file_name,
