@@ -384,7 +384,7 @@ async def publish_kge_file_set(request: web.Request, kg_id):
     if not kg_id:
         await report_not_found(request, "publish_kge_file_set(): unknown KGE File Set '" + kg_id + "'?")
         
-    errors: List = await KgeaRegistry.registry().publish_file_set(request, kg_id)
+    errors: List = await KgeaRegistry.registry().publish_file_set(kg_id)
     
     if DEV_MODE and errors:
         raise report_error(
