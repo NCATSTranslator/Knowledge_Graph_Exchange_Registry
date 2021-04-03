@@ -18,7 +18,12 @@ from aiohttp_session import get_session
 
 from kgea.server.config import get_app_config
 
-from .kgea_session import redirect, with_session, report_error
+from .kgea_session import (
+    redirect,
+    with_session,
+    report_error,
+    report_not_found
+)
 
 from .kgea_file_ops import (
     upload_file,
@@ -470,7 +475,10 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
     :type kg_id: str
 
     """
-    logger.debug("Entering kge_access(kg_id: " + kg_id + ")")
+    logger.debug("Entering kge_access(kg_id: " + str(kg_id) + ")")
+    
+    if not kg_id:
+        await report_not_found(request, "kge_access(): unknown KGE File Set '" + kg_id + "'?")
     
     session = await get_session(request)
     if not session.empty:
