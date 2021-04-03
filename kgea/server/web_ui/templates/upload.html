@@ -123,11 +123,12 @@
 {% include "logout.button" %}
 {% include "home.button" %}
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br> {% endblock %}
+{% block title %}Upload Knowledge Graph '{{kg_name}}'{% endblock %}
+{% block subtitle %}Version: '{{kg_version}}', Submitted by '{{submitter}}'{% endblock %}
 {% block content %}
-<div class="subtitle">Version: '{{kg_version}}', Submitted by '{{submitter}}'</div>
+<div class="subtitle"></div>
 <table>
-    <tr>
+    <!-- tr>
         <td colspan="2">
             <center>
                 <h4>Upload KGX metadata file from computer:</h4>
@@ -137,15 +138,15 @@
                 <button id="metadata" onclick="UploadFile(this)">Upload</button>
             </center>
         </td>
-    </tr>
+    </tr -->
     <tr>
         <td>
             <center>
-                <h4>Upload KGX data file from your computer:</h4>
+                <h4>Upload a (meta-)data file from your computer:</h4>
 
-                <p>Select a single KGX formatted data file at a time for upload</p>
+                <p>Select a single KGX-compliant file at a time for upload:</p>
 
-                <br><label for="content_file"><b>Select Data File:</b></label>
+                <label for="content_file"><b>Select File:</b></label>
                 <input id="content_file"  class="textbox" type="file"/>
                 <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
             </center>
@@ -184,9 +185,9 @@
     <tr>
         <td>
             <center>
-                <h4>Transfer KGX data file from URL endpoint:</h4>
+                <h4>Transfer a KGX-compliant data file from an URL endpoint:</h4>
 
-                <br><label for="content_url"><b>URL to File:</b></label>
+                <label for="content_url"><b>URL to File:</b></label>
                 <input id="content_url" type="text" oninput="GetUrl(this)"/>
                 <br><label for="file_name"><b>File Name:</b></label>
                 <input id="file_name" type="text" onchange="SetFileName(this.value)"/>

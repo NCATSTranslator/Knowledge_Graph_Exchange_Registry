@@ -14,9 +14,10 @@
     <center>
         <p><div id="header">
             <p><img class="banner" src="images/banner.jpg" alt="Translator Banner"/>
+            <p><div class="title">{% block title %}{% endblock %}</div>
+            <p><div class="subtitle">{% block subtitle %}{% endblock %}</div>
             <div class="menu_bar">{% block menu %}{% endblock %}</div>
             <p></p>
-            <p><div class="title">{% block title %}{% endblock %}</div>
         </div>
         <div id="content">
             <p>{% block content %}{% endblock %}
