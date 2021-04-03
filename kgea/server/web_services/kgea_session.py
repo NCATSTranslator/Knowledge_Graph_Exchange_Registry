@@ -183,6 +183,14 @@ async def redirect(request, location, active_session: bool = False):
     )
 
 
+async def report_not_found(request, reason: str, active_session: bool = False):
+    await _process_redirection(
+        request,
+        web.HTTPNotFound(reason=reason),
+        active_session
+    )
+
+
 async def report_error(request, reason: str, active_session: bool = False):
     await _process_redirection(
         request,

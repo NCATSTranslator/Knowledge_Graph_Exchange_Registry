@@ -1,5 +1,6 @@
 from os import getenv
 from pathlib import Path
+from typing import List
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -95,7 +96,7 @@ async def _get_file_set_location(request: web.Request, kg_id: str, version: str 
     
     kge_file_set = KgeaRegistry.registry().get_kge_file_set(kg_id)
     if not kge_file_set:
-        await report_error(request, "_get_file_set_location(): unknown KGE File Set '" + kg_id + "'?")
+        await report_not_found(request, "_get_file_set_location(): unknown KGE File Set '" + kg_id + "'?")
 
     if not version:
         version = kge_file_set.get_version()
@@ -379,7 +380,18 @@ async def publish_kge_file_set(request: web.Request, kg_id):
     :type kg_id: str
 
     """
-    await KgeaRegistry.registry().publish_file_set(kg_id)
+    
+    if not kg_id:
+        await report_not_found(request, "publish_kge_file_set(): unknown KGE File Set '" + kg_id + "'?")
+        
+    errors: List = await KgeaRegistry.registry().publish_file_set(request, kg_id)
+    
+    if DEV_MODE and errors:
+        raise report_error(
+            request,
+            "publish_kge_file_set() errors:\n\t" + "\n\t".join([str(e) for e in errors])
+        )
+        
     await redirect(request, HOME)
 
 
@@ -404,6 +416,10 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
 
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
+    
+    if not kg_id:
+        await report_not_found(request, "kge_meta_knowledge_graph(): unknown KGE File Set '" + kg_id + "'?")
+        
     logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
     
     session = await get_session(request)
@@ -475,11 +491,12 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
     :type kg_id: str
 
     """
-    logger.debug("Entering kge_access(kg_id: " + str(kg_id) + ")")
     
     if not kg_id:
         await report_not_found(request, "kge_access(): unknown KGE File Set '" + kg_id + "'?")
-    
+        
+    logger.debug("Entering kge_access(kg_id: " + kg_id + ")")
+
     session = await get_session(request)
     if not session.empty:
         

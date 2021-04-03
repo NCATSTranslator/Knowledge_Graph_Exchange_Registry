@@ -485,15 +485,20 @@ class KgeaRegistry:
                 raise RuntimeError("Unknown KGE File Set type?")
 
     async def publish_file_set(self, kg_id):
+        
         # TODO: need to fully implement post-processing of the completed
         #       file set (with all files, as uploaded by the client)
+        
         logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"')")
-
+        
+        errors: List = []
+        
         if kg_id in self._kge_file_set_registry:
             
             kge_file_set = self._kge_file_set_registry[kg_id]
             
             # Ensure that the all the files are KGX validated first(?)
+            
             errors: List = []  # await kge_file_set.confirm_file_set_validation()
             
             logger.debug("File set validation() complete for file set '" + kg_id + "')")
@@ -507,7 +512,9 @@ class KgeaRegistry:
             
         else:
             logger.error("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
-
+            errors.append("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
+            
+        return errors
 
 # TODO
 @prepare_test
