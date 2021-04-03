@@ -153,17 +153,18 @@ paths:
                   type: string
                 upload_mode:
                   type: string
-                content_url:
-                  type: string
                 content_name:
+                  type: string
+                content_url:
                   type: string
                 uploaded_file:
                   type: string
                   format: binary
               required:
               - kg_id
-              - content_name
+              - kgx_file_content
               - upload_mode
+              - content_name
             encoding:
               kg_id:
                 contentType: text/plain; charset=utf-8

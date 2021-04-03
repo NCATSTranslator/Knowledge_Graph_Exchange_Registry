@@ -231,9 +231,9 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 async def upload_kge_file(
         request: web.Request,
         kg_id: str,
+        kgx_file_content: str,
         upload_mode: str,
         content_name: str,
-        kgx_file_content:str = None,
         content_url: str = None,
         uploaded_file=None
 ) -> web.Response:
@@ -243,12 +243,12 @@ async def upload_kge_file(
     :type request: web.Request
     :param kg_id:
     :type kg_id: str
+    :param kgx_file_content:
+    :type kgx_file_content: str
     :param upload_mode:
     :type upload_mode: str
     :param content_name:
     :type content_name: str
-    :param kgx_file_content:
-    :type kgx_file_content: str
     :param content_url:
     :type content_url: str
     :param uploaded_file:

@@ -205,9 +205,9 @@ paths:
                   type: string
                 upload_mode:
                   type: string
-                content_url:
-                  type: string
                 content_name:
+                  type: string
+                content_url:
                   type: string
                 uploaded_file:
                   format: binary
@@ -215,6 +215,7 @@ paths:
               required:
               - content_name
               - kg_id
+              - kgx_file_content
               - upload_mode
               type: object
         description: KGE File Set metadata or data file submitted
@@ -606,9 +607,9 @@ components:
           type: string
         upload_mode:
           type: string
-        content_url:
-          type: string
         content_name:
+          type: string
+        content_url:
           type: string
         uploaded_file:
           format: binary
@@ -616,5 +617,6 @@ components:
       required:
       - content_name
       - kg_id
+      - kgx_file_content
       - upload_mode
       type: object

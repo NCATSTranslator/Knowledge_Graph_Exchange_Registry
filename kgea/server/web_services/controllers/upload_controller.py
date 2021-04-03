@@ -22,9 +22,9 @@ async def register_file_set(request: web.Request):
 async def upload_file(
         request: web.Request,
         kg_id: str,
+        kgx_file_content: str,
         upload_mode: str,
         content_name: str,
-        kgx_file_content:str = None,
         content_url: str = None,
         uploaded_file=None
 ) -> web.Response:
@@ -48,12 +48,12 @@ async def upload_file(
     """
     return await upload_kge_file(
         request,
-        kg_id,
-        upload_mode,
-        content_name,
-        kgx_file_content,
-        content_url,
-        uploaded_file
+        kg_id=kg_id,
+        kgx_file_content=kgx_file_content,
+        upload_mode=upload_mode,
+        content_name=content_name,
+        content_url=content_url,
+        uploaded_file=uploaded_file
     )
 
 
