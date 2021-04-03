@@ -115,6 +115,11 @@
     </script>
 {% endblock %}
 {% block menu %}
+<div class="menu_item">
+<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
+    <input type="submit" value="Done Uploading" />
+</form>
+</div>
 {% include "logout.button" %}
 {% include "home.button" %}
 {% endblock %}
@@ -125,19 +130,7 @@
     <tr>
         <td colspan="2">
             <center>
-                <form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
-                    <input type="submit" value="Done Uploading File Set" />
-                </form>
-            </center>
-        </td>
-    </tr>
-    <tr>
-        <td colspan="2">
-            <center>
                 <h4>Upload KGX metadata file from computer:</h4>
-
-                <p>Must be valid KGX metadata generated from your dataset.
-                    Read more <a href="https://github.com/biolink/kgx">here</a>.
 
                 <br><label for="metadata_file"><b>Select Metadata File: </b></label>
                 <input id="metadata_file" class="textbox" type="file"/>
@@ -159,12 +152,33 @@
         </td>
         <td rowspan="2">
             <h4>KGX Content Type</h4>
-            <!-- kgx_file_content are likely invariant almost forever unless new types
-                 of KGX data files will eventually be added, i.e. 'attributes' files(?) -->
+            <input type="radio" id="is_metadata" name="kgx_file_content" value="is_metadata">
+            <div class="tooltip">
+                <label  class="tooltip_target" for="is_metadata">Metadata</label>
+                <span class="tooltiptext">(*) Must be a valid KGX metadata JSON file generated from your dataset.</span>
+            </div><br>
             <input type="radio" id="nodes" name="kgx_file_content" value="nodes" checked>
-            <label for="nodes">Nodes</label><br>
+            <div class="tooltip">
+                <label class="tooltip_target" for="nodes">Nodes</label>
+                <span class="tooltiptext">
+                    (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'nodes' file.</span>
+            </div><br>
             <input type="radio" id="edges" name="kgx_file_content" value="edges">
-            <label for="edges">Edges</label><br>
+            <div class="tooltip">
+                <label class="tooltip_target" for="edges">Edges</label>
+                <span class="tooltiptext">
+                    (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'edges' file.</span>
+            </div><br>
+            <!--  -->
+            <input type="radio" id="kgx_archive" name="kgx_file_content" value="kgx_archive">
+            <div class="tooltip">
+                <label class="tooltip_target" for="kgx_archive">KGX Archive</label>
+                <span class="tooltiptext">If a KGX Archive is given, then the local uploaded file or a transfer
+                 from URL is assumed to be a gzip'd compressed tar file with the name
+                 'kge.tar.gz' containing one of each of KGX-compliant 'nodes.tsv' and
+                 'edges.tsv' files of the knowledge graph, with or without an associated
+                 KGX-compliant 'metadata.json' file.</span>
+            </div>
         </td>
     </tr>
     <tr>
@@ -181,4 +195,8 @@
         </td>
     </tr>
 </table>
+{% endblock %}
+{% block app_footer %}
+(*) Read more about KGX formatted (meta-)data files
+<a href="https://github.com/biolink/kgx/blob/master/data-preparation.md" target="_blank">here</a>
 {% endblock %}
