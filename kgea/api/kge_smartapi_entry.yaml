@@ -37,16 +37,8 @@ tags:
   - name: content
     description: Content metadata for KGX-formatted data files
 paths:
-  /{version}/access:
+  /access:
     get:
-      parameters:
-        - name: version
-          in: path
-          description: >-
-            Version of the given KGE File Set
-          required: true
-          schema:
-            type: string
       tags:
         - provider
       summary: Get KGE File Set provider metadata.
