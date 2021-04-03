@@ -8,7 +8,7 @@ h1 {
 } */
 
 img.banner {
-  max-width: 40%;
+  max-width: 50%;
   height: auto;
 }
 
@@ -16,7 +16,7 @@ img.banner {
   display: block;
   margin-left: auto;
   margin-right: auto;
-  width: 00%;
+  width: 80%;
   padding: 5px;
 }
 
@@ -26,9 +26,10 @@ img.banner {
 }
 
 .title {
+  color: #5e2ca5;
   font-family: Arial, sans-serif;
   font-weight: bold;
-  font-size: large;
+  font-size: x-large;
   text-align: center;
   display: block;
   margin: auto;
@@ -53,8 +54,8 @@ img.banner {
   color: #5e2ca5;
   font-family: Arial, sans-serif;
   font-style: italic;
-  font-weight: lighter;
-  font-size: small;
+  font-weight: bold;
+  font-size: medium;
   text-align: center;
   display: block;
   margin: auto;
@@ -85,11 +86,6 @@ label {
   width: 80%;
 }
 */
-
-.textbox {
-  border: 1px #DDA0DD;
-}
-
 
 .tooltip {
   position: relative;
