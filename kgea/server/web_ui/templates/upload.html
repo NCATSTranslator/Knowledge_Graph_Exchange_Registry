@@ -38,6 +38,13 @@
                 return;
             }
 
+            if(kgx_file_content !== "archive") {
+                window.alert(
+                    "Sorry, KGX 'tar.gz' compressed archives are not " +
+                    "yet fully handled in the interface (coming soon!)");
+                return;
+            }
+
             formData.append("upload_mode", source.id);
 
             if (source.id === 'content_from_url') {
