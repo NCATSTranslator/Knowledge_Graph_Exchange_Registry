@@ -527,3 +527,17 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
         await redirect(request, LANDING)
+
+
+async def download_file_set(request: web.Request, kg_id, kg_version) -> web.Response:
+    """Returns specified KGE File Set as a gzip compressed tar archive
+
+
+
+    :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
+    :type kg_id: str
+    :param kg_version: Version of KGE File Set of the knowledge graph being accessed.
+    :type kg_version: str
+
+    """
+    return web.Response(status=200)

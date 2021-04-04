@@ -94,23 +94,9 @@ paths:
                 type: string
         '400':
           description: >-
-            Bad request. The request is invalid according to this OpenAPI
+            Bad request. Request is invalid according to this OpenAPI
             schema OR a specific parameter is believed to be invalid somehow
-            (not just unrecognized).
-          content:
-            application/json:
-              schema:
-                type: string
-        '500':
-          description: >-
-            Internal server error.
-          content:
-            application/json:
-              schema:
-                type: string
-        '501':
-          description: >-
-            Not implemented.
+            (or not just recognized).
           content:
             application/json:
               schema:
@@ -185,25 +171,18 @@ paths:
             application/json:
               schema:
                 type: string
+        '404':
+          description: >-
+            KGE File Set is unknown (not registered).
+          content:
+            application/json:
+              schema:
+                type: string
         '400':
           description: >-
-            Bad request. The request is invalid according to this OpenAPI
+            Bad request. Request is invalid according to this OpenAPI
             schema OR a specific parameter is believed to be invalid somehow
-            (not just unrecognized).
-          content:
-            application/json:
-              schema:
-                type: string
-        '500':
-          description: >-
-            Internal server error.
-          content:
-            application/json:
-              schema:
-                type: string
-        '501':
-          description: >-
-            Not implemented.
+            (or not just recognized).
           content:
             application/json:
               schema:
@@ -300,8 +279,7 @@ paths:
                 type: string
         '400':
           description: >-
-            Bad request. The request is invalid according to this OpenAPI
-            schema OR knowledge graph identifier is not just recognized.
+            Bad request. Request is invalid according to this OpenAPI schema.
           content:
             application/json:
               schema:
@@ -339,15 +317,59 @@ paths:
                 $ref: '#/components/schemas/MetaKnowledgeGraph'
         '404':
           description: >-
-            KGE File Set was not found.
+            KGE File Set or its requested version was not found.
           content:
             application/json:
               schema:
                 type: string
         '400':
           description: >-
-            Bad request. The request is invalid according to this OpenAPI
-            schema OR KGX knowledge graph identifier is not just unrecognized.
+            Bad request. Request is invalid according to this OpenAPI schema
+          content:
+            application/json:
+              schema:
+                type: string
+  /{kg_id}/{kg_version}/download:
+    get:
+      parameters:
+        - name: kg_id
+          in: path
+          description: >-
+            KGE File Set identifier for the knowledge graph being accessed.
+          required: true
+          schema:
+            type: string
+        - name: kg_version
+          in: path
+          description: >-
+            Version of KGE File Set of the knowledge graph being accessed.
+          required: true
+          schema:
+            type: string
+      tags:
+        - content
+      summary: Returns specified KGE File Set as a gzip compressed tar archive
+      operationId: downloadFileSet
+      responses:
+        '200':
+          description: >-
+            A KGE File Set as a gzip compressed tar archive of
+            KGX compliant files plus an associated metadata json file
+          content:
+            application/gzip:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: >-
+            KGE File Set or its requested version was not found.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. Request is invalid according to this OpenAPI schema
           content:
             application/json:
               schema:
