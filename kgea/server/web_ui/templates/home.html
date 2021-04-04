@@ -1,6 +1,24 @@
 {% extends "layout.html" %}
 {% block scripts %}
     <script>
+
+        // empty catalog... needs to be retrieved from the back end
+        let kgea_catalog = {};
+
+        async function showVersions(selectObject) {
+            let kg_id = selectObject.value;
+            if(kg_id in kgea_catalog) {
+                let versions = kgea_catalog[kg_id].versions;
+                let version_options = '<option value="latest">Latest</option>';
+                versions.forEach((v,_) => {
+                    version_options += '<option value="' + v + '">' + v + '</option>';
+                });
+                document.getElementById('select_kg_version').innerHTML = version_options;
+            } else {
+                document.getElementById('select_kg_version').innerHTML = ""; // no kg_id selected?
+            }
+        }
+
         async function getCatalog() {
             fetch("{{get_catalog}}", { method: "GET",  credentials: "include"})
                 .then(
@@ -8,12 +26,17 @@
                         console.log('getCatalog() HTTP response code:', response.status);
                         response.json()
                             .then(catalog => {
-                                console.log("Catalog: " + JSON.stringify(catalog));
-                                window.alert("Catalog: " + JSON.stringify(catalog))
+                                kgea_catalog = catalog;
+                                // console.log("Catalog: " + JSON.stringify(kgea_catalog));
+                                // window.alert("Catalog: " + JSON.stringify(kgea_catalog))
                                 /* TODO: time here to inject the catalog into
                                          the kg_id/kg_version section of the UI.
-                                         Would JQuery be a useful tool for this?
                                  */
+                                let fs_options = '<option value="">Select...</option>';
+                                Object.entries(kgea_catalog).forEach(([k,v]) => {
+                                    fs_options += '<option value="' + k + '">' + v.name + '</option>';
+                                });
+                                document.getElementById('select_kg_id').innerHTML = fs_options;
                             })
                             .catch(error => {
                                     let err_msg = "getCatalog() response.text promise access ERROR: " + error;
@@ -30,31 +53,41 @@
 
         async function DownloadFile(source)
         {
-            let kg_id = document.getElementById('kg_id').value;
-            let kg_version = document.getElementById('kg_version').value;
+            let kg_id = document.getElementById('select_kg_id').value;
+            let kg_version = document.getElementById('select_kg_version').value;
 
             console.log(
-                "DownloadFile(action: '"+source.id+"', "+
-                "KG Name: '"+kg_name+"')"
+                "DownloadFile(" +
+                    "action: '" + source.id + "', " +
+                    "kg_id: '" + kg_id + "', " +
+                    "kg_version: '" + kg_version + "'" +
+                "')"
             );
+            window.alert(
+                "DownloadFile(" +
+                    "action: '" + source.id+"', " +
+                    "kg_id: '" + kg_id + "', " +
+                    "kg_version: '" + kg_version + "'" +
+                "')"
+            );
+            //
+            // let url = '/archive/' + kg_name + '/' + source.id;
+            //
+            // console.log("Downloading  URL: '"+url+"'");
+            //
+            // let formData = new FormData();
+            //
+            // try {
+            //     // TODO: What happens to the data returned here?
+            //     // TODO: Should this fetch rather be a redirect in a separate tab or window?
+            //    let r = await fetch(url, {method: "GET"});
+            //    console.log('HTTP response code:',r.status);
+            //
+            // } catch(e) {
+            //    console.log('File download error:', e);
+            // }
 
-            let url = '/archive/' + kg_name + '/' + source.id;
-
-            console.log("Downloading  URL: '"+url+"'");
-
-            let formData = new FormData();
-
-            try {
-                // TODO: What happens to the data returned here?
-                // TODO: Should this fetch rather be a redirect in a separate tab or window?
-               let r = await fetch(url, {method: "GET"});
-               console.log('HTTP response code:',r.status);
-
-            } catch(e) {
-               console.log('File download error:', e);
-            }
-
-            // block further propagation of the submit event here?
+            // block further propagation of the event here?
             return false;
         }
     </script>
@@ -82,7 +115,6 @@
             <td>
                 <center>
                     <a href="/register"><button>Register KGE File Set</button></a>
-
                     <!-- Don't need a form here - don't have the session_id anymore.
                          Simple clickable button is better, and is CSS formatted the same.
                          Use it now to avoid the trailing query parameter '?'-->
@@ -91,7 +123,6 @@
                         <input type="submit" value="Register KGE File Set" /><br>
                         <small>This is the first step required for uploading.</small>
                     </form -->
-
                 </center>
             </td>
             <td>
@@ -102,26 +133,18 @@
                          KGE File Sets from which to select (by name) and
                          their associated versions (dynamically presented)-->
 
-                    <!-- This needs to be some kind of type head search? -->
-                    <p><label for="kg_id">Graph:</label>
-                    <select id="kg_id">
-                      <option value="semantic_medline_database">Semantic Medline Database</option>
+                    <!-- TODO: When the catalog gets large, this could
+                               also include a kind of type head search? -->
+                    <p><label for="select_kg_id">Choose a Graph:</label>
+                    <select id="select_kg_id" onchange="showVersions(this)">
                     </select>
-
                     <br>
-
                     <!-- Once the given kg_name is selected, then the set of
                          associated versions need to be dynamically listed here? -->
-                    <label for="kg_version">Choose a Version:</label>
-                    <select id="kg_version">
-                      <option value="latest">Latest</option>
-                      <option value="4.1">4.1</option>
-                      <option value="4.2">4.2</option>
-                      <option value="4.3">4.3</option>
+                    <label for="select_kg_version">Version?</label>
+                    <select id="select_kg_version">
                     </select>
-
                     <br>
-
                     <p>
                     <form id="meta_knowledge_graph" method="get" onsubmit="DownloadFile(this)">
                         <input type="submit" value="Download Meta Knowledge Graph" />
