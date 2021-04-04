@@ -396,72 +396,6 @@ async def publish_kge_file_set(request: web.Request, kg_id):
 
 
 #############################################################
-# Content Metadata Controller Handler
-#
-# Insert import and return call into content_controller.py:
-#
-# from ..kge_handlers import kge_meta_knowledge_graph
-#############################################################
-
-
-async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
-    """Get supported relationships by source and target
-
-    :param request:
-    :type request: web.Request
-    :param kg_id: KGE File Set identifier for the knowledge graph for which graph metadata is being accessed.
-    :type kg_id: str
-    :param kg_version: Version of KGE File Set for a given knowledge graph.
-    :type kg_version: str
-
-    :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
-    """
-    
-    if not kg_id:
-        await report_not_found(request, "kge_meta_knowledge_graph(): unknown KGE File Set '" + kg_id + "'?")
-        
-    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
-    
-    session = await get_session(request)
-    if not session.empty:
-        
-        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=kg_version)
-        
-        # Listings Approach
-        # - Introspect on Bucket
-        # - Create URL per Item Listing
-        # - Send Back URL with Dictionary
-        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-        # TODO: convert into redirect approach with cross-origin scripting?
-        kg_files = kg_files_in_location(
-            bucket_name=KGEA_APP_CONFIG['bucket'],
-            object_location=file_set_location
-        )
-        pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
-            FILES_LOCATION=file_set_location
-        )
-        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-        kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
-                kg_listing)
-        )
-        
-        # logger.debug('knowledge_map urls: %s', kg_urls)
-        # import requests, json
-        # metadata_key = kg_listing[0]
-        # url = create_presigned_url(KGEA_APP_CONFIG['bucket'], metadata_key)
-        # metadata = json.loads(requests.get(url).text)
-        
-        response = web.Response(text=str(kg_urls), status=200)
-        return await with_session(request, response)
-    
-    else:
-        # If session is not active, then just a redirect
-        # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
-
-
-#############################################################
 # Provider Metadata Controller Handler
 #
 # Insert import and return call into provider_controller.py:
@@ -529,11 +463,81 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
         await redirect(request, LANDING)
 
 
-async def download_file_set(request: web.Request, kg_id, kg_version) -> web.Response:
+#############################################################
+# Content Metadata Controller Handler
+#
+# Insert import and return call into content_controller.py:
+#
+# from ..kge_handlers import (
+#    kge_meta_knowledge_graph,
+#    download_kge_file_set
+# )
+#############################################################
+
+
+async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
+    """Get supported relationships by source and target
+
+    :param request:
+    :type request: web.Request
+    :param kg_id: KGE File Set identifier for the knowledge graph for which graph metadata is being accessed.
+    :type kg_id: str
+    :param kg_version: Version of KGE File Set for a given knowledge graph.
+    :type kg_version: str
+
+    :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
+    """
+
+    if not kg_id:
+        await report_not_found(request, "kge_meta_knowledge_graph(): unknown KGE File Set '" + kg_id + "'?")
+
+    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
+
+    session = await get_session(request)
+    if not session.empty:
+
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=kg_version)
+
+        # Listings Approach
+        # - Introspect on Bucket
+        # - Create URL per Item Listing
+        # - Send Back URL with Dictionary
+        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+        # TODO: convert into redirect approach with cross-origin scripting?
+        kg_files = kg_files_in_location(
+            bucket_name=KGEA_APP_CONFIG['bucket'],
+            object_location=file_set_location
+        )
+        pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
+            FILES_LOCATION=file_set_location
+        )
+        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+        kg_urls = dict(
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
+                kg_listing)
+        )
+
+        # logger.debug('knowledge_map urls: %s', kg_urls)
+        # import requests, json
+        # metadata_key = kg_listing[0]
+        # url = create_presigned_url(KGEA_APP_CONFIG['bucket'], metadata_key)
+        # metadata = json.loads(requests.get(url).text)
+
+        response = web.Response(text=str(kg_urls), status=200)
+        return await with_session(request, response)
+
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING)
+
+
+async def download_kge_file_set(request: web.Request, kg_id, kg_version) -> web.Response:
     """Returns specified KGE File Set as a gzip compressed tar archive
 
 
-
+    :param request:
+    :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
     :type kg_id: str
     :param kg_version: Version of KGE File Set of the knowledge graph being accessed.
