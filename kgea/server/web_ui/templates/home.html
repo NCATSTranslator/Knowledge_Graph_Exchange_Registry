@@ -2,10 +2,6 @@
 {% block scripts %}
     <script>
         async function getCatalog() {
-
-            window.alert("Success! getCatalog({{get_catalog}}) function is " +
-                         "being called by the injected body 'onload' attribute!");
-
             fetch("{{get_catalog}}", { method: "GET",  credentials: "include"})
                 .then(
                     response => {
@@ -69,7 +65,6 @@
 {% endblock %}
 {% block title %}KGE Archive{% endblock %}
 {% block content %}
-    <p>What do you want to do?</p>
     <table width="50%">
         <tr>
             <td>
