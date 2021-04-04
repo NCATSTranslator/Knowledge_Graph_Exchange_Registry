@@ -488,8 +488,12 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
 
-    if not kg_id:
-        await report_not_found(request, "kge_meta_knowledge_graph(): unknown KGE File Set '" + kg_id + "'?")
+    if not (kg_id and kg_version):
+        await report_not_found(
+            request,
+            "kge_meta_knowledge_graph(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            " and 'kg_version' has value " + str(kg_version) + "... both must be non-null."
+        )
 
     logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
 
@@ -544,4 +548,31 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version) -> web.
     :type kg_version: str
 
     """
-    return web.Response(status=200)
+    if not (kg_id and kg_version):
+        await report_not_found(
+            request,
+            "download_kge_file_set(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            " and 'kg_version' has value " + str(kg_version) + "... both must be non-null."
+        )
+
+    logger.debug("Entering download_kge_file_set(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
+
+    session = await get_session(request)
+    if not session.empty:
+
+        # It is assumed that the kgx.tar.gz compressed archive
+        # is in the 'root' file of the kg_id kg_version folder
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=kg_version)
+
+        # TODO: need to retrieve the kgx.tar.gz file here, for the given
+        #       kg_version of kg_id identified KGE File Set, from the
+        #       file_set_location, to send back to the caller of /download
+
+        response = web.Response(status=501)
+
+        return await with_session(request, response)
+
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING)
