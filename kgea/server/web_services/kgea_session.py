@@ -7,6 +7,7 @@
 #     return web.Response(text=text)
 
 from os import getenv
+from typing import Dict
 from uuid import uuid4
 
 import asyncio
@@ -113,7 +114,7 @@ class KgeaSession:
         loop.close()
 
 
-async def initialize_user_session(request, uid: str = None):
+async def initialize_user_session(request, uid: str = None, user_attributes: Dict = None):
     try:
         session = await new_session(request)
         
@@ -127,10 +128,14 @@ async def initialize_user_session(request, uid: str = None):
         session.set_new_identity(user_id)
         
         session['user_id'] = user_id
-    
+        
+        if user_attributes:
+            session['user_id'] = user_attributes["user_id"]
+            session['user_name'] = user_attributes["user_name"]
+            session['user_email'] = user_attributes["user_email"]
+
     except RuntimeError as rte:
-        logger.error("initialize_user_session() ERROR: " + str(rte))
-        raise RuntimeError(rte)
+        await report_error(request, "initialize_user_session() ERROR: " + str(rte))
 
 
 async def with_session(request, response):
@@ -144,8 +149,8 @@ async def with_session(request, response):
         session = await get_session(request)
         await KgeaSession.save_session(request, response, session)
     except RuntimeError as rte:
-        logger.error("kgea_session.with_session() RuntimeError: " + str(rte))
-        raise RuntimeError(rte)
+        await report_error(request, "kgea_session.with_session() RuntimeError: " + str(rte))
+
     return response
 
 
@@ -165,8 +170,8 @@ async def _process_redirection(request, response, active_session):
             session = await get_session(request)
             await KgeaSession.save_session(request, response, session)
         except RuntimeError as rte:
-            logger.error("kgea_session._process_redirection() RuntimeError: " + str(rte))
-            raise RuntimeError(rte)
+            await report_error(request, "kgea_session._process_redirection() RuntimeError: " + str(rte))
+
     raise response
 
 
@@ -174,6 +179,14 @@ async def redirect(request, location, active_session: bool = False):
     await _process_redirection(
         request,
         web.HTTPFound(location),
+        active_session
+    )
+
+
+async def report_not_found(request, reason: str, active_session: bool = False):
+    await _process_redirection(
+        request,
+        web.HTTPNotFound(reason=reason),
         active_session
     )
 

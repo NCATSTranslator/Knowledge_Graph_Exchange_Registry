@@ -3,7 +3,7 @@
 {% include "logout.button" %}
 {% include "home.button" %}
 {% endblock %}
-{% block title %}Register your File Set{% endblock %}
+{% block title %}Register your KGE File Set{% endblock %}
 {% block content %}
 <form method="post"
       action="{{registration_action}}"
@@ -13,7 +13,7 @@
     <div style="font-size: smaller">Required fields noted by a
         '<span style="color: red; font-weight: bold">*</span>'.</div>
     <p></p>
-    <label for="kg_name"><span style="color: red; font-weight: bold">*</span>Knowledge Graph Name :</label>
+    <label for="kg_name"><span style="color: red; font-weight: bold">*</span>Knowledge Graph Name:</label>
     <input id="kg_name" class="textbox" type="text" name="kg_name" />
 
     <p>
@@ -22,8 +22,11 @@
         <br>
         For examples of good names, see the <a href="https://smart-api.info/registry">SmartAPI Registry</a>.<br>
     </p>
+    <p></p>
+    <label for="kg_version"><span style="color: red; font-weight: bold">*</span>Release Version (defaults to current date):</label>
+    <input id="kg_version" class="textbox" type="text" name="kg_version" value="{{kg_version}}" />
     <p>
-        <!--    kg_description: detailed description of knowledge graph (multi-lined text)-->
+        <!-- kg_description: detailed description of knowledge graph (multi-lined text)-->
         <h4>Knowledge Graph Description:</h4>
         <textarea id="kg_description" class="textbox" type="text" name="kg_description" rows="4" cols="60">
 Detailed description of knowledge graph.</textarea>

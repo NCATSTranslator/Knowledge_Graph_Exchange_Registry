@@ -1,5 +1,6 @@
 from os import getenv
 from pathlib import Path
+from typing import List
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -18,18 +19,24 @@ from aiohttp_session import get_session
 
 from kgea.server.config import get_app_config
 
-from .kgea_session import redirect, with_session, report_error
+from .kgea_session import (
+    redirect,
+    with_session,
+    report_error,
+    report_not_found
+)
 
 from .kgea_file_ops import (
     upload_file,
-    upload_file_multipart,
+    # upload_file_multipart,
     create_presigned_url,
     # location_available,
     kg_files_in_location,
     # add_to_github,
     # create_smartapi,
     get_object_location,
-    with_timestamp
+    with_version,
+    with_subfolder
 )
 
 from .kgea_stream import transfer_file_from_url
@@ -51,6 +58,10 @@ logger.setLevel(logging.DEBUG)
 # Opaquely access the configuration dictionary
 KGEA_APP_CONFIG = get_app_config()
 
+# This is likely invariant almost forever unless new types of
+# KGX data files will eventually be added, i.e. 'attributes'(?)
+KGX_FILE_CONTENT_TYPES = ['metadata', 'nodes', 'edges', 'archive']
+
 if DEV_MODE:
     # Point to http://localhost:8090 for UI
     UPLOAD_FORM_PATH = "http://localhost:8090/upload"
@@ -69,7 +80,8 @@ else:
 #
 # from ..kge_handlers import (
 #     register_kge_file_set,
-#     upload_kge_file
+#     upload_kge_file,
+#     publish_kge_file_set
 # )
 #############################################################
 
@@ -78,6 +90,20 @@ _known_licenses = {
     "MIT": 'https://opensource.org/licenses/MIT',
     "Apache-2.0": 'https://www.apache.org/licenses/LICENSE-2.0.txt'
 }
+
+
+async def _get_file_set_location(request: web.Request, kg_id: str, version: str = None):
+    
+    kge_file_set = KgeaRegistry.registry().get_kge_file_set(kg_id)
+    if not kge_file_set:
+        await report_not_found(request, "_get_file_set_location(): unknown KGE File Set '" + kg_id + "'?")
+
+    if not version:
+        version = kge_file_set.get_version()
+        
+    file_set_location, assigned_version = with_version(get_object_location, version)(kg_id)
+    
+    return file_set_location, assigned_version
 
 
 async def register_kge_file_set(request: web.Request):  # noqa: E501
@@ -101,10 +127,13 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         
         # kg_name: human readable name of the knowledge graph
         kg_name = data['kg_name']
-        
+
         # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
         kg_description = data['kg_description']
-        
+
+        # kg_version: release version of knowledge graph
+        kg_version = data['kg_version']
+
         # translator_component: Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
         translator_component = data['translator_component']
         
@@ -141,6 +170,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
             "register_kge_file_set() form parameters:\n\t" +
             "\n\tkg_name: " + kg_name +
             "\n\tkg_description: " + kg_description +
+            "\n\tkg_version: " + kg_version +
             "\n\ttranslator_component: " + translator_component +
             "\n\ttranslator_team: " + translator_team +
             "\n\tsubmitter: " + submitter +
@@ -156,8 +186,8 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
         kg_id = KgeaRegistry.normalize_name(kg_name)
-        
-        file_set_location = get_object_location(kg_id)
+
+        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
         
         logger.debug("register_kge_file_set(file_set_location: " + file_set_location + ")")
         
@@ -175,6 +205,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                     file_set_location=file_set_location,
                     kg_name=kg_name,
                     kg_description=kg_description,
+                    kg_version=assigned_version,
                     translator_component=translator_component,
                     translator_team=translator_team,
                     submitter=submitter,
@@ -187,8 +218,8 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 await redirect(request,
                                Template(
                                    UPLOAD_FORM_PATH +
-                                   '?kg_id=$kg_id&kg_name=$kg_name&submitter=$submitter&'
-                               ).substitute(kg_id=kg_id, kg_name=kg_name, submitter=submitter),
+                                   '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter=$submitter'
+                               ).substitute(kg_id=kg_id, kg_name=kg_name, kg_version=kg_version, submitter=submitter),
                                active_session=True
                                )
         #     else:
@@ -205,8 +236,8 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
 async def upload_kge_file(
         request: web.Request,
-        kg_name: str,
-        submitter: str,
+        kg_id: str,
+        kgx_file_content: str,
         upload_mode: str,
         content_name: str,
         content_url: str = None,
@@ -216,10 +247,10 @@ async def upload_kge_file(
 
     :param request:
     :type request: web.Request
-    :param kg_name:
-    :type kg_name: str
-    :param submitter:
-    :type submitter: str
+    :param kg_id:
+    :type kg_id: str
+    :param kgx_file_content:
+    :type kgx_file_content: str
     :param upload_mode:
     :type upload_mode: str
     :param content_name:
@@ -235,32 +266,50 @@ async def upload_kge_file(
     
     session = await get_session(request)
     if not session.empty:
-        
-        if not kg_name:
+    
+        if not kg_id:
             # must not be empty string
-            await report_error(request, "upload_kge_file(): empty Knowledge Graph Name?")
-        
-        if not submitter:
+            await report_error(request, "upload_kge_file(): empty Knowledge Graph Identifier?")
+
+        if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
             # must not be empty string
-            await report_error(request, "upload_kge_file(): empty Submitter?")
+            await report_error(
+                request,
+                "upload_kge_file(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
+            )
         
+        if upload_mode not in ['content_from_local_file', 'content_from_url']:
+            # Invalid upload mode
+            await report_error(
+                request,
+                "upload_kge_file(): empty or invalid upload_mode: '" + str(upload_mode) + "'?"
+            )
+
         if not content_name:
             # must not be empty string
             await report_error(request, "upload_kge_file(): empty Content Name?")
+
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
         
-        if upload_mode not in ['metadata', 'content_from_local_file', 'content_from_url']:
-            # Invalid upload mode
-            await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
-        
-        # Use a normalized version of the knowledge
-        # graph name as the KGE File Set identifier.
-        kg_id = KgeaRegistry.normalize_name(kg_name)
-        
-        content_location, _ = with_timestamp(get_object_location)(kg_id)
-        
-        uploaded_file_object_key = None
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
         
+        if kgx_file_content in ['nodes', 'edges']:
+            file_set_location = with_subfolder(location=file_set_location, subfolder=kgx_file_content)
+            file_type = KgeFileType.KGX_DATA_FILE
+            
+        elif kgx_file_content == "metadata":
+            # metadata stays in the kg_id 'root' version folder
+            file_type = KgeFileType.KGX_METADATA_FILE
+            
+        elif kgx_file_content == "archive":
+            # TODO this is tricky.. not yet sure how to handle an archive with
+            #      respect to properly persisting it in the S3 bucket...
+            #      Leave it in the kg_id 'root' version folder for now?
+            #      The archive may has metadata too, but the data's the main thing.
+            file_type = KgeFileType.KGX_ARCHIVE
+        
+        uploaded_file_object_key = None
+
         if upload_mode == 'content_from_url':
             
             logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
@@ -269,50 +318,21 @@ async def upload_kge_file(
                 url=content_url,
                 file_name=content_name,
                 bucket=KGEA_APP_CONFIG['bucket'],
-                object_location=content_location
+                object_location=file_set_location
             )
-            
-            file_type = KgeFileType.KGX_DATA_FILE
         
-        else:  # process direct metadata or content file upload
-            
-            # upload_file is a FileField with a file attribute
-            # pointing to the actual data file as a temporary file
-            # Initial approach here will be to user the uploaded_file.file
-            # TODO: check if uploaded_file.file scales to large files
-            
-            if upload_mode == 'content_from_local_file':
-                
-                # KGE Content File for upload?
-                
-                uploaded_file_object_key = upload_file(
-                    # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
-                    data_file=uploaded_file.file,
-                    file_name=content_name,
-                    bucket=KGEA_APP_CONFIG['bucket'],
-                    object_location=content_location
-                )
-                
-                file_type = KgeFileType.KGX_DATA_FILE
-            
-            elif upload_mode == 'metadata':
-                
-                # KGE Metadata File for upload?
-                
-                metadata_location = get_object_location(kg_id)
-                
-                uploaded_file_object_key = upload_file(
-                    # TODO: does uploaded_file need to be a 'MultipartReader' or a 'BodyPartReader' here?
-                    data_file=uploaded_file.file,
-                    file_name=content_name,
-                    bucket=KGEA_APP_CONFIG['bucket'],
-                    object_location=metadata_location
-                )
-                
-                file_type = KgeFileType.KGX_METADATA_FILE
-            
-            else:
-                await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+        elif upload_mode == 'content_from_local_file':
+            # process direct metadata or content file upload
+
+            uploaded_file_object_key = upload_file(
+                data_file=uploaded_file.file,
+                file_name=content_name,
+                bucket=KGEA_APP_CONFIG['bucket'],
+                object_location=file_set_location
+            )
+
+        else:
+            await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
         
         if uploaded_file_object_key:
             
@@ -360,70 +380,19 @@ async def publish_kge_file_set(request: web.Request, kg_id):
     :type kg_id: str
 
     """
-    await KgeaRegistry.registry().publish_file_set(kg_id)
     
+    if not kg_id:
+        await report_not_found(request, "publish_kge_file_set(): unknown KGE File Set '" + kg_id + "'?")
+        
+    errors: List = await KgeaRegistry.registry().publish_file_set(kg_id)
+    
+    if DEV_MODE and errors:
+        raise report_error(
+            request,
+            "publish_kge_file_set() errors:\n\t" + "\n\t".join([str(e) for e in errors])
+        )
+        
     await redirect(request, HOME)
-
-
-#############################################################
-# Content Metadata Controller Handler
-#
-# Insert import and return call into content_controller.py:
-#
-# from ..kge_handlers import kge_meta_knowledge_graph
-#############################################################
-
-
-# TODO: get file out of root folder
-async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Response:
-    """Get supported relationships by source and target
-
-    :param request:
-    :type request: web.Request
-    :param kg_id: Name label of KGE File Set whose knowledge graph content metadata is being reported
-    :type kg_id: str
-
-    :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
-    """
-    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ")")
-    
-    session = await get_session(request)
-    if not session.empty:
-        
-        files_location = get_object_location(kg_id)
-        
-        # Listings Approach
-        # - Introspect on Bucket
-        # - Create URL per Item Listing
-        # - Send Back URL with Dictionary
-        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-        # TODO: convert into redirect approach with cross-origin scripting?
-        kg_files = kg_files_in_location(
-            bucket_name=KGEA_APP_CONFIG['bucket'],
-            object_location=files_location
-        )
-        pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
-            FILES_LOCATION=files_location
-        )
-        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-        kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
-                kg_listing)
-        )
-        
-        # logger.debug('knowledge_map urls: %s', kg_urls)
-        # import requests, json
-        # metadata_key = kg_listing[0]
-        # url = create_presigned_url(KGEA_APP_CONFIG['bucket'], metadata_key)
-        # metadata = json.loads(requests.get(url).text)
-        
-        response = web.Response(text=str(kg_urls), status=200)
-        return await with_session(request, response)
-    
-    else:
-        # If session is not active, then just a redirect
-        # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
 
 
 #############################################################
@@ -431,25 +400,57 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str) -> web.Resp
 #
 # Insert import and return call into provider_controller.py:
 #
-# from ..kge_handlers import kge_access
+# from ..kge_handlers import (
+#     get_kge_file_set_catalog,
+#     kge_access
+# )
 #############################################################
-# TODO: get file out from timestamped folders
+
+
+async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
+    """Returns the catalog of available KGE File Sets
+
+    :param request:
+    :type request: web.json_response
+    """
+    # TODO: need to fetch the actual KGE Archive catalog here. This is just a
+    #       mock catalog - see KgeFileSetEntry schema in the kgea_archive.yaml
+    catalog = {
+        "translator_reference_graph": {
+            "name": "Translator Reference Graph",
+            "versions": ["1.0", "2.0", "2.1"]
+        },
+        "semantic_medline_database": {
+            "name": "Semantic Medline Database",
+            "versions": ["4.2", "4.3"]
+        }
+    }
+
+    response = web.json_response(catalog, status=200)
+
+    return await with_session(request, response)
+
+
 async def kge_access(request: web.Request, kg_id: str) -> web.Response:
-    """Get KGE File Sets
+    """Get KGE File Set provider metadata.
 
     :param request:
     :type request: web.Request
-    :param kg_id: Name label of KGE File Set whose files are being accessed
+    :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed
     :type kg_id: str
 
-    :rtype: web.Response( Dict[str, Attribute] )
     """
-    logger.debug("Entering kge_access(kg_id: " + kg_id + ")")
     
+    if not kg_id:
+        await report_not_found(request, "kge_access(): unknown KGE File Set '" + kg_id + "'?")
+        
+    logger.debug("Entering kge_access(kg_id: " + kg_id + ")")
+
     session = await get_session(request)
     if not session.empty:
         
-        files_location = get_object_location(kg_id)
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
+        
         # Listings Approach
         # - Introspect on Bucket
         # - Create URL per Item Listing
@@ -458,9 +459,9 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
         # TODO: convert into redirect approach with cross-origin scripting?
         kg_files = kg_files_in_location(
             bucket_name=KGEA_APP_CONFIG['bucket'],
-            object_location=files_location
+            object_location=file_set_location
         )
-        pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=files_location)
+        pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
             map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
@@ -468,9 +469,125 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
         
         response = web.Response(text=str(kg_urls), status=200)
+        
         return await with_session(request, response)
     
     else:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
+        await redirect(request, LANDING)
+
+
+#############################################################
+# Content Metadata Controller Handler
+#
+# Insert import and return call into content_controller.py:
+#
+# from ..kge_handlers import (
+#    kge_meta_knowledge_graph,
+#    download_kge_file_set
+# )
+#############################################################
+
+
+async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
+    """Get supported relationships by source and target
+
+    :param request:
+    :type request: web.Request
+    :param kg_id: KGE File Set identifier for the knowledge graph for which graph metadata is being accessed.
+    :type kg_id: str
+    :param kg_version: Version of KGE File Set for a given knowledge graph.
+    :type kg_version: str
+
+    :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
+    """
+
+    if not (kg_id and kg_version):
+        await report_not_found(
+            request,
+            "kge_meta_knowledge_graph(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            " and 'kg_version' has value " + str(kg_version) + "... both must be non-null."
+        )
+
+    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
+
+    session = await get_session(request)
+    if not session.empty:
+
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=kg_version)
+
+        # Listings Approach
+        # - Introspect on Bucket
+        # - Create URL per Item Listing
+        # - Send Back URL with Dictionary
+        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+        # TODO: convert into redirect approach with cross-origin scripting?
+        kg_files = kg_files_in_location(
+            bucket_name=KGEA_APP_CONFIG['bucket'],
+            object_location=file_set_location
+        )
+        pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
+            FILES_LOCATION=file_set_location
+        )
+        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+        kg_urls = dict(
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
+                kg_listing)
+        )
+
+        # logger.debug('knowledge_map urls: %s', kg_urls)
+        # import requests, json
+        # metadata_key = kg_listing[0]
+        # url = create_presigned_url(KGEA_APP_CONFIG['bucket'], metadata_key)
+        # metadata = json.loads(requests.get(url).text)
+
+        response = web.Response(text=str(kg_urls), status=200)
+        return await with_session(request, response)
+
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING)
+
+
+async def download_kge_file_set(request: web.Request, kg_id, kg_version) -> web.Response:
+    """Returns specified KGE File Set as a gzip compressed tar archive
+
+
+    :param request:
+    :type request: web.Request
+    :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
+    :type kg_id: str
+    :param kg_version: Version of KGE File Set of the knowledge graph being accessed.
+    :type kg_version: str
+
+    """
+    if not (kg_id and kg_version):
+        await report_not_found(
+            request,
+            "download_kge_file_set(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            " and 'kg_version' has value " + str(kg_version) + "... both must be non-null."
+        )
+
+    logger.debug("Entering download_kge_file_set(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
+
+    session = await get_session(request)
+    if not session.empty:
+
+        # It is assumed that the kgx.tar.gz compressed archive
+        # is in the 'root' file of the kg_id kg_version folder
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=kg_version)
+
+        # TODO: need to retrieve the kgx.tar.gz file here, for the given
+        #       kg_version of kg_id identified KGE File Set, from the
+        #       file_set_location, to send back to the caller of /download
+
+        response = web.Response(status=501)
+
+        return await with_session(request, response)
+
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
         await redirect(request, LANDING)

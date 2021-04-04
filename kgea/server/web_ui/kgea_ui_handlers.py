@@ -1,5 +1,7 @@
 from os import getenv
-from uuid import uuid4
+from typing import List
+
+from datetime import datetime
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -12,16 +14,18 @@ import aiohttp_jinja2
 from aiohttp_session import get_session
 
 from kgea.server.web_services.kgea_session import (
-    initialize_user_session, redirect, with_session
+    initialize_user_session,
+    redirect,
+    with_session,
+    report_error
 )
 
-from ..registry.Registry import  KgeaRegistry
-
-#############################################################
-# Application Configuration
-#############################################################
-
 from kgea.server.config import get_app_config
+from .kgea_users import (
+    authenticate,
+    authenticate_user,
+    logout
+)
 
 import logging
 
@@ -54,31 +58,30 @@ KGEA_APP_CONFIG = get_app_config()
 LANDING = '/'
 HOME = '/home'
 
+
 ARCHIVE_PATH = '/archive/'
 
 if DEV_MODE:
     # Point to http://localhost:8080 for Archive process host for local testing
-    ARCHIVE_REGISTRATION_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"register"
-    UPLOAD_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"upload"
-    PUBLISH_FILE_SET_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"publish"
+    ARCHIVE_PATH = 'http://localhost:8080/archive/'
 else:
     # Production NGINX resolves the relative path otherwise?
-    ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
-    UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
-    PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
+    ARCHIVE_PATH = '/archive/'
+
+GET_CATALOG_URL = ARCHIVE_PATH+"catalog"
+ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
+UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
+PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
 
 
-async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
+async def kge_landing_page(request: web.Request) -> web.Response:
     """Display landing page.
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
 
-    :rtype: str
+    :rtype: login web.Response login page or redirect to authenticated /home page
     """
-
     session = await get_session(request)
     if not session.empty:
         # if active session and no exception raised, then
@@ -90,30 +93,21 @@ async def kge_landing_page(request: web.Request) -> web.Response:  # noqa: E501
         return response
 
 
-async def get_kge_home(request: web.Request, uid: str = None) -> web.Response:  # noqa: E501
+async def get_kge_home(request: web.Request) -> web.Response:
     """Get default landing page
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
-    :param uid:
-    :type uid: str
 
     :rtype: web.Response
     """
-    # Can't seem to get the session cookie via any
-    # redirection so use a URL query string workaround?
-    # uid = request.query.get('uid')
-    # if uid:
     session = await get_session(request)
     if not session.empty:
-        
-        # TODO: verify that all local session data is reloaded?
-        # reconstituting the session
-        # await initialize_user_session(request, uid)
-        
-        response = aiohttp_jinja2.render_template('home.html', request=request, context={})
+        response = aiohttp_jinja2.render_template(
+            'home.html',
+            request=request,
+            context={"get_catalog": GET_CATALOG_URL}
+        )
         return await with_session(request, response)
     else:
         # If session is not active, then just a await redirect
@@ -121,77 +115,39 @@ async def get_kge_home(request: web.Request, uid: str = None) -> web.Response:  
         await redirect(request, LANDING)
 
 
-# hack: short term state dictionary
-_state_cache = []
-
-
 async def kge_client_authentication(request: web.Request):
     """Process client authentication
-
     :param request:
     :type request: web.Request
     """
-    code = request.query['code']
-    state = request.query['state']
-
-    # Establish session here if there
-    # is a valid access code & state variable?
-    if state in _state_cache:
-
-        # state 'secrets' are only got for one request
-        _state_cache.remove(state)
-
-        # now, check the returned code for authorization
-        if code:
-
-            # Let everything through for the initial iteration
-            # Need to tie into AWS Cognito validation
-            # TODO: check AWS authorization token
-            authenticated = True  # stub implementation of validation
-
-            if authenticated:
+    user_attributes = await authenticate_user(request)
     
-                await initialize_user_session(request)
-                
-                # if active session and no exception raised, then
-                # redirect to the home page, with a session cookie
-                await redirect(request, HOME, active_session=True)
+    if user_attributes:
 
-    # If authentication conditions are not met, then
-    # simply redirect back to public landing page
-    await redirect(request, LANDING)
+        await initialize_user_session(request, user_attributes=user_attributes)
+        
+        # if active session and no exception raised, then
+        # redirect to the home page, with a session cookie
+        await redirect(request, HOME, active_session=True)
+    else:
+        # If authentication conditions are not met, then
+        # simply redirect back to public landing page
+        await redirect(request, LANDING)
 
 
-async def kge_login(request: web.Request):  # noqa: E501
+async def kge_login(request: web.Request):
     """Process client user login
-
-     # noqa: E501
-
     :param request:
     :type request: web.Request
     """
-
     if DEV_MODE:
-        
+        # DEV_MODE workaround by-passes full external authentication
         await initialize_user_session(request)
 
         # then redirect to an authenticated home page
         await redirect(request, HOME, active_session=True)
-      
-    state = str(uuid4())
-    _state_cache.append(state)
 
-    login_url = \
-        KGEA_APP_CONFIG['oauth2']['host'] + \
-        '/login?response_type=code' + \
-        '&state=' + state + \
-        '&client_id=' + \
-        KGEA_APP_CONFIG['oauth2']['client_id'] + \
-        '&redirect_uri=' + \
-        KGEA_APP_CONFIG['oauth2']['site_uri'] + \
-        KGEA_APP_CONFIG['oauth2']['login_callback']
-
-    await redirect(request, login_url)
+    await authenticate(request)
 
 
 async def kge_logout(request: web.Request):
@@ -209,18 +165,8 @@ async def kge_logout(request: web.Request):
             # Just bypass the AWS Cognito and directly redirect to
             # the unauthenticated landing page after session deletion
             await redirect(request, LANDING)
-        
         else:
-
-            # ...then redirect to signal logout at the Oauth2 host
-            logout_url = \
-                KGEA_APP_CONFIG['oauth2']['host'] + \
-                '/logout?client_id=' + \
-                KGEA_APP_CONFIG['oauth2']['client_id'] + \
-                '&logout_uri=' + \
-                KGEA_APP_CONFIG['oauth2']['site_uri']
-    
-            await redirect(request, logout_url)
+            await logout(request)
     else:
         # If session is not active, then just a await redirect
         # directly back to unauthenticated landing page
@@ -239,10 +185,8 @@ async def kge_logout(request: web.Request):
 #############################################################
 
 
-async def get_kge_registration_form(request: web.Request) -> web.Response:  # noqa: E501
+async def get_kge_registration_form(request: web.Request) -> web.Response:
     """Get web form for specifying KGE File Set name and submitter
-
-     # noqa: E501
 
     :param request:
     :type request: web.Request
@@ -253,7 +197,8 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:  # no
     if not session.empty:
         #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
         context = {
-            "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION
+            "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION,
+            "kg_version": datetime.now().strftime('%Y-%m-%d')  # defaults to today's date "timestamp"
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
         return await with_session(request, response)
@@ -272,23 +217,31 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
 
-        submitter = request.query.get('submitter', default='')
+        kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
+        kg_version = request.query.get('kg_version', default='')
+        submitter = request.query.get('submitter', default='')
         
-        # Use a normalized version of the knowledge
-        # graph name as the KGE File Set identifier.
-        kg_id = KgeaRegistry.normalize_name(kg_name)
-        
-        # TODO guard against absent kg_name
-        # TODO guard against invalid kg_name (check availability in bucket)
-        # TODO redirect to register_form with given optional param as the entered kg_name
+        missing: List[str] = []
+        if not kg_id:
+            missing.append("kg_id")
+        if not kg_name:
+            missing.append("kg_name")
+        if not kg_version:
+            missing.append("kg_version")
+        if not submitter:
+            missing.append("submitter")
+
+        if missing:
+            await report_error( request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
 
         context = {
-            "upload_action": UPLOAD_FORM_ACTION,
-            "publish_file_set_action": PUBLISH_FILE_SET_ACTION,
-            "kg_name": kg_name,
             "kg_id": kg_id,
-            "submitter": submitter
+            "kg_name": kg_name,
+            "kg_version": kg_version,
+            "submitter": submitter,
+            "upload_action": UPLOAD_FORM_ACTION,
+            "publish_file_set_action": PUBLISH_FILE_SET_ACTION
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
         return await with_session(request, response)

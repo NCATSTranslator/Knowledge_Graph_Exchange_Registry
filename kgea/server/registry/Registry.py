@@ -32,18 +32,16 @@ import asyncio
 import logging
 
 from github import Github
+from github.ContentFile import ContentFile
+from github.GithubException import UnknownObjectException
 
 from kgea.server.config import get_app_config
+from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
 
 from .kgea_kgx import KgxValidator
 
 logger = logging.getLogger(__name__)
-DEBUG = getenv('DEV_MODE', default=False)
-if DEBUG:
-    logger.setLevel(logging.DEBUG)
-
-DEBUG = getenv('DEV_MODE', default=False)
-
+logger.setLevel(logging.DEBUG)
 
 RUN_TESTS = getenv('RUN_TESTS', default=False)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
@@ -75,6 +73,7 @@ class KgeFileType(Enum):
     KGX_UNKNOWN = "unknown file type"
     KGX_METADATA_FILE = "KGX metadata file"
     KGX_DATA_FILE = "KGX data file"
+    KGX_ARCHIVE = "KGX data archive"
 
 
 class KgeaFileSet:
@@ -87,6 +86,7 @@ class KgeaFileSet:
         "file_set_location",
         "kg_name",
         "kg_description",
+        "kg_version",
         "translator_component",
         "translator_team",
         "submitter",
@@ -172,9 +172,13 @@ class KgeaFileSet:
                     self.data_files[object_key]["kgx_compliant"] = True
                 else:
                     self.data_files[object_key]["errors"] = errors
-                    
+
+            elif file_type == KgeFileType.KGX_ARCHIVE:
+                # TODO: not sure how we should properly validate a KGX Data archive?
+                pass
+            
             elif file_type == KgeFileType.KGX_METADATA_FILE:
-                
+
                 errors = await KgxValidator.validate_metadata(file_path=s3_file_url)
                 if not errors:
                     self.metadata_file["kgx_compliant"] = True
@@ -213,6 +217,12 @@ class KgeaFileSet:
         if file_type == KgeFileType.KGX_DATA_FILE:
             input_format = self.data_files[object_key]["input_format"]
             input_compression = self.data_files[object_key]["input_compression"]
+            
+        elif file_type == KgeFileType.KGX_ARCHIVE:
+            # This is probably wrong, but...
+            input_format = self.data_files[object_key]["input_format"]
+            input_compression = self.data_files[object_key]["input_compression"]
+            
         else:
             input_format = input_compression = None
 
@@ -251,6 +261,9 @@ class KgeaFileSet:
             s3_file_url=s3_file_url
         )
 
+    def get_version(self) -> str:
+        return self.parameter.setdefault("kg_version", get_default_date_stamp())
+    
     def get_metadata_file(self) -> Union[Dict, None]:
         """
         :return: a copy of metadata dictionary about the KGE File Set metadata file, if available; None otherwise
@@ -457,6 +470,11 @@ class KgeaRegistry:
                     object_key=object_key,
                     s3_file_url=s3_file_url
                 )
+            
+            elif file_type == KgeFileType.KGX_ARCHIVE:
+                # not sure how best to handle KGX data archives here
+                pass
+            
             elif file_type == KgeFileType.KGX_METADATA_FILE:
                 file_set.set_metadata_file(
                     file_name=file_name,
@@ -467,17 +485,21 @@ class KgeaRegistry:
                 raise RuntimeError("Unknown KGE File Set type?")
 
     async def publish_file_set(self, kg_id):
+        
         # TODO: need to fully implement post-processing of the completed
         #       file set (with all files, as uploaded by the client)
+        
         logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"')")
-
+        
+        errors: List = []
+        
         if kg_id in self._kge_file_set_registry:
             
             kge_file_set = self._kge_file_set_registry[kg_id]
             
             # Ensure that the all the files are KGX validated first(?)
             errors: List = await kge_file_set.confirm_file_set_validation()
-            
+
             logger.debug("File set validation() complete for file set '" + kg_id + "')")
             
             if not errors:
@@ -489,7 +511,9 @@ class KgeaRegistry:
             
         else:
             logger.error("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
-
+            errors.append("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
+            
+        return errors
 
 # TODO
 @prepare_test
@@ -505,6 +529,7 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
 # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
 # - kg_name: human readable name of the knowledge graph
 # - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
+# - kg_version: release version of KGE File Set - simply recorded directly as the Translator SmartAPI entry 'version'
 # - submitter - name of submitter of the KGE file set
 # - submitter_email - contact email of the submitter
 # - license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.
@@ -527,6 +552,7 @@ _TEST_TSE_PARAMETERS = dict(
     almost 300 Audio-Animatronics dolls representing children
     from every corner of the globe as they sing the classic
     anthem to world peace—in their native languages.""",
+    kg_version="1964-04-22",
     translator_component="KP",
     translator_team="Disney Knowledge Provider",
     submitter="Mickey Mouse",
@@ -550,7 +576,7 @@ def test_create_smartapi():
 def add_to_github(
         kg_id: str,
         api_specification: str,
-        repo: str = TRANSLATOR_SMARTAPI_REPO,
+        repo_path: str = TRANSLATOR_SMARTAPI_REPO,
         target_directory: str = KGE_SMARTAPI_DIRECTORY
 ) -> bool:
     
@@ -566,25 +592,38 @@ def add_to_github(
     if gh_token:
         
         logger.debug(
-            "\t### api_specification = '''\n" + str(api_specification)[:60] + "...\n'''\n" +
-            "\t### repo_path = '" + str(repo) + "'\n" +
+            "\n\t### api_specification = '''\n" + str(api_specification)[:60] + "...\n'''\n" +
+            "\t### repo_path = '" + str(repo_path) + "'\n" +
             "\t### target_directory = '" + str(target_directory) + "'"
         )
     
-        if api_specification and repo and target_directory:
+        if api_specification and repo_path and target_directory:
             
             entry_path = target_directory+"/"+kg_id + ".yaml"
             
             logger.debug("\t### gh_url = '" + str(entry_path) + "'")
             
             g = Github(gh_token)
-            repo = g.get_repo(repo)
+            repo = g.get_repo(repo_path)
+
+            try:
+                content_file = repo.get_contents(entry_path)
+            except UnknownObjectException:
+                content_file = None
             
-            repo.create_file(
-                entry_path,
-                "Posting KGE entry  '" + kg_id + "' to Translator SmartAPI Registry.",
-                api_specification,  # API YAML specification as a string
-            )
+            if not content_file:
+                repo.create_file(
+                    entry_path,
+                    "Creating new KGE entry  '" + kg_id + "' in " + repo_path,
+                    api_specification,  # API YAML specification as a string
+                )
+            else:
+                repo.update_file(
+                    entry_path,
+                    "Updating KGE entry  '" + kg_id + "' in " + repo_path,
+                    api_specification,  # API YAML specification as a string
+                    content_file.sha
+                )
             
             outcome = True
 
@@ -602,7 +641,7 @@ def test_add_to_github():
     outcome: bool = add_to_github(
         "kge_test_entry",
         _TEST_TSE,
-        repo=_TEST_SMARTAPI_REPO,
+        repo_path=_TEST_SMARTAPI_REPO,
         target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
     )
     
