@@ -1,9 +1,41 @@
 {% extends "layout.html" %}
 {% block scripts %}
     <script>
+        async function getCatalog() {
+
+            window.alert("Success! getCatalog({{get_catalog}}) function is " +
+                         "being called by the injected body 'onload' attribute!");
+
+            fetch("{{get_catalog}}", { method: "GET",  credentials: "include"})
+                .then(
+                    response => {
+                        console.log('getCatalog() HTTP response code:', response.status);
+                        response.json()
+                            .then(catalog => {
+                                console.log("Catalog: " + catalog);
+                                window.alert("Catalog: " + catalog)
+                                /* TODO: time here to inject the catalog into
+                                         the kg_id/kg_version section of the UI.
+                                         Would JQuery be a useful tool for this?
+                                 */
+                            })
+                            .catch(error => {
+                                    let err_msg = "getCatalog() response.text promise access ERROR: " + error;
+                                    console.log(err_msg);
+                                    window.alert(err_msg);
+                            })
+                })
+                .catch(error => {
+                        let err_msg = "Top level getCatalog() fetch call ERROR: " + error;
+                        console.log(err_msg);
+                        window.alert(err_msg);
+                });
+        }
+
         async function DownloadFile(source)
         {
-            let kg_name = document.getElementById('kg_name').value;
+            let kg_id = document.getElementById('kg_id').value;
+            let kg_version = document.getElementById('kg_version').value;
 
             console.log(
                 "DownloadFile(action: '"+source.id+"', "+
@@ -31,6 +63,7 @@
         }
     </script>
 {% endblock %}
+{% block body %}<body onload="getCatalog()">{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% endblock %}
@@ -68,16 +101,39 @@
             </td>
             <td>
                 <center>
-                    <p><label for="kg_name"><b>Graph Name: </b></label><br>
-                    <input id="kg_name" type="text"/>
+                    <!-- These kg_name and kg_version widgets need to be
+                         replaced with an integrated UI which takes the results
+                         of call to /catalog, to give the user a list of available
+                         KGE File Sets from which to select (by name) and
+                         their associated versions (dynamically presented)-->
+
+                    <!-- This needs to be some kind of type head search? -->
+                    <p><label for="kg_id">Graph:</label>
+                    <select id="kg_id">
+                      <option value="semantic_medline_database">Semantic Medline Database</option>
+                    </select>
+
+                    <br>
+
+                    <!-- Once the given kg_name is selected, then the set of
+                         associated versions need to be dynamically listed here? -->
+                    <label for="kg_version">Choose a Version:</label>
+                    <select id="kg_version">
+                      <option value="latest">Latest</option>
+                      <option value="4.1">4.1</option>
+                      <option value="4.2">4.2</option>
+                      <option value="4.3">4.3</option>
+                    </select>
+
+                    <br>
 
                     <p>
-                    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">
-                        <input type="submit" value="Download Metadata" />
+                    <form id="meta_knowledge_graph" method="get" onsubmit="DownloadFile(this)">
+                        <input type="submit" value="Download Meta Knowledge Graph" />
                     </form>
 
-                    <form id="access" method="get" onsubmit="DownloadFile(this)">
-                        <input type="submit" value="Download Data File(s)" />
+                    <form id="download" method="get" onsubmit="DownloadFile(this)">
+                        <input type="submit" value="Download KGE Data Archive" />
                     </form>
                 </center>
             </td>

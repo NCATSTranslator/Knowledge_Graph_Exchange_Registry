@@ -411,9 +411,20 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     """Returns the catalog of available KGE File Sets
 
     :param request:
-    :type request: web.Request
+    :type request: web.json_response
     """
-    return web.Response(status=200)
+    # TODO: need to fetch the actual KGE Archive catalog here. This is just a
+    #       mock catalog - see KgeFileSetEntry schema in the kgea_archive.yaml
+    catalog = {
+        "semantic_medline_database": {
+            "name": "Semantic Medline Database",
+            "versions": ["4.2", "4.3"]
+        }
+    }
+
+    response = web.json_response(catalog, status=200)
+
+    return await with_session(request, response)
 
 
 async def kge_access(request: web.Request, kg_id: str) -> web.Response:

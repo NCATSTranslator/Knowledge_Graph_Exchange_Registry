@@ -58,18 +58,20 @@ KGEA_APP_CONFIG = get_app_config()
 LANDING = '/'
 HOME = '/home'
 
+
 ARCHIVE_PATH = '/archive/'
 
 if DEV_MODE:
     # Point to http://localhost:8080 for Archive process host for local testing
-    ARCHIVE_REGISTRATION_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"register"
-    UPLOAD_FORM_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"upload"
-    PUBLISH_FILE_SET_ACTION = 'http://localhost:8080'+ARCHIVE_PATH+"publish"
+    ARCHIVE_PATH = 'http://localhost:8080/archive/'
 else:
     # Production NGINX resolves the relative path otherwise?
-    ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
-    UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
-    PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
+    ARCHIVE_PATH = '/archive/'
+
+GET_CATALOG_URL = ARCHIVE_PATH+"catalog"
+ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
+UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
+PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
 
 
 async def kge_landing_page(request: web.Request) -> web.Response:
@@ -101,7 +103,11 @@ async def get_kge_home(request: web.Request) -> web.Response:
     """
     session = await get_session(request)
     if not session.empty:
-        response = aiohttp_jinja2.render_template('home.html', request=request, context={})
+        response = aiohttp_jinja2.render_template(
+            'home.html',
+            request=request,
+            context={"get_catalog": GET_CATALOG_URL}
+        )
         return await with_session(request, response)
     else:
         # If session is not active, then just a await redirect

@@ -215,19 +215,17 @@ paths:
       responses:
         '200':
           description: >-
-            Catalog of available KGE File Sets and their versions.
+            Catalog of available KGE File Sets, their name and their versions.
           content:
             application/json:
               schema:
                 description: >-
-                  Dictionary of available KGE File Sets,
-                  with a list of (at least one) version.
+                  Dictionary of available KGE File Sets, with a list of
+                  (at least one) version. The keys of the dictionary are the
+                  internal normalized identifiers ('kg_id') of the file sets.
                 type: object
                 additionalProperties:
-                  type: array
-                  items:
-                    type: string
-                  minItems: 1
+                  $ref: '#/components/schemas/KgeFileSetEntry'
   /{kg_id}/access:
     get:
       parameters:
@@ -376,6 +374,22 @@ paths:
                 type: string
 components:
   schemas:
+    KgeFileSetEntry:
+      description: >-
+        Basic KGE Archive catalog entry indexing a KGE File Set.
+      type: object
+      properties:
+        name:
+          description: Human readable KGE File Set name ('kg_name')
+          type: string
+          example: "Semantic Medline Database"
+        versions:
+          description: List of versions ('kg_version') of a KGE File Set
+          type: array
+          items:
+            type: string
+          minItems: 1
+          example: ["4.1", "4.2", "4.3"]
     BiolinkEntity:
       description: >-
         Compact URI (CURIE) for a Biolink class, biolink:NamedThing
