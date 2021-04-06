@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  version: "${kg_version}"
+  version: 1.0.0
   title: >-
     ${kg_name} Knowledge Graph eXchange File Set.
   description: >-
@@ -17,6 +17,8 @@ info:
     component: "${translator_component}"
     team:
     - "${translator_team}"
+  x-kge:
+    version: "${kg_version}"
 servers:
   - url: "https://kge.starinformatics.ca/${kg_id}"
     description: "KGE Archive Entry base url for ${kg_name}"
@@ -27,71 +29,140 @@ externalDocs:
   url: https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
 tags:
   - name: translator
+    description: NCATS Biomedical Data Translator component API
+  - name: kge
+    description: Translator Knowledge Graph eXchange (KGE) File Set SmartAPI entry
   - name: provider
     description: Provider metadata for KGX-formatted data files
-    externalDocs:
-      description: Documentation relating to KGX-formatted data file access
   - name: content
     description: Content metadata for KGX-formatted data files
-    externalDocs:
-      description: >-
-        Documentation of Knowledge Graph Exchange content metadata
 paths:
   /access:
     get:
       tags:
         - provider
       summary: Get KGE File Set provider metadata.
+      operationId: access
       responses:
         '200':
           description: >-
-            Name label of KGE File Set whose
-            provider metadata is being reported
+            Catalog of available KGE File Set versions and their file contents.
           content:
             application/json:
               schema:
                 description: >-
-                  Provider metadata describing the
-                  location and inventory of KGE files
+                  Dictionary of details about available versions for a given KGE File Set.
                 type: object
                 additionalProperties:
+                  type: array
                   description: >-
-                     Provider metadata attributes
-                  $$ref: '#/components/schemas/Attribute'
-  /meta_knowledge_graph:
+                    List of file names and sizes for a given KGE File Set version
+                  items:
+                    type: object
+                    properties:
+                      file_name:
+                        description: original name of file (as uploaded)
+                        type: string
+                      file_type:
+                        description: designates if the file is meta-, node or edge data
+                        type: string
+                      file_size:
+                        description: size of file in megabytes
+                        type: number
+                        format: float
+        '404':
+          description: >-
+            Specified KGE File Set was not found.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR knowledge graph identifier is not just recognized.
+          content:
+            application/json:
+              schema:
+                type: string
+  /{kg_version}/meta_knowledge_graph:
     get:
+      parameters:
+        - name: kg_version
+          in: path
+          description: >-
+            Version of KGE File Set for a given knowledge graph.
+          required: true
+          schema:
+            type: string
       tags:
         - content
       summary: Meta knowledge graph representation of this KGX knowledge graph.
+      operationId: metaKnowledgeGraph
       responses:
         '200':
           description: >-
-            Returns meta knowledge graph representation of
-            this KGX knowledge graph.
+            Returns meta knowledge graph representation
+            of this KGX knowledge graph.
           content:
             application/json:
               schema:
                 $$ref: '#/components/schemas/MetaKnowledgeGraph'
+        '404':
+          description: >-
+            KGE File Set was not found.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. The request is invalid according to this OpenAPI
+            schema OR KGX knowledge graph identifier is not just unrecognized.
+          content:
+            application/json:
+              schema:
+                type: string
+/{kg_version}/download:
+    get:
+      parameters:
+        - name: kg_version
+          in: path
+          description: >-
+            Version of KGE File Set of the knowledge graph being accessed.
+          required: true
+          schema:
+            type: string
+      tags:
+        - content
+      summary: Returns specified KGE File Set as a gzip compressed tar archive
+      operationId: downloadFileSet
+      responses:
+        '200':
+          description: >-
+            A KGE File Set as a gzip compressed tar archive of
+            KGX compliant files plus an associated metadata json file
+          content:
+            application/gzip:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: >-
+            KGE File Set or its requested version was not found.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. Request is invalid according to this OpenAPI schema
+          content:
+            application/json:
+              schema:
+                type: string
 components:
   schemas:
-    Attribute:
-      type: object
-      description: Generic metadata attribute.
-      properties:
-        type:
-          type: string
-          description: >-
-            Type of the metadata attribute, from the Translator Registry metadata dictionary.
-          example: "submitter"
-        value:
-          type: string
-          description: >-
-            Value of the attribute, encoded as a string.
-          example: "Abraham Lincoln"
-      required:
-          - type
-          - value
-      additionalProperties: false
     BiolinkEntity:
       description: >-
         Compact URI (CURIE) for a Biolink class, biolink:NamedThing

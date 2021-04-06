@@ -16,7 +16,7 @@ img.banner {
   display: block;
   margin-left: auto;
   margin-right: auto;
-  width: 50%;
+  width: 80%;
   padding: 5px;
 }
 
@@ -26,9 +26,23 @@ img.banner {
 }
 
 .title {
+  color: #5e2ca5;
   font-family: Arial, sans-serif;
   font-weight: bold;
   font-size: x-large;
+  text-align: center;
+  display: block;
+  margin: auto;
+  width: 80%;
+  padding: 5px;
+}
+
+.subtitle {
+  color: #5e2ca5;
+  font-family: Arial, sans-serif;
+  font-style: italic;
+  font-weight: lighter;
+  font-size: medium;
   text-align: center;
   display: block;
   margin: auto;
@@ -40,8 +54,8 @@ img.banner {
   color: #5e2ca5;
   font-family: Arial, sans-serif;
   font-style: italic;
-  font-weight: lighter;
-  font-size: small;
+  font-weight: bold;
+  font-size: medium;
   text-align: center;
   display: block;
   margin: auto;
@@ -72,3 +86,37 @@ label {
   width: 80%;
 }
 */
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 260px;
+  background-color: #5e2ca5;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: smaller;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+  top: -5px;
+  right: 125%;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+.tooltip_target {
+  color: #5e2ca5;
+  font-style: oblique;
+}

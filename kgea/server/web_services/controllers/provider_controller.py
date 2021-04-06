@@ -1,17 +1,17 @@
 from aiohttp import web
 
-from ..kgea_handlers import (
+from ..kgea_handlers import  (
+    kge_access,
     get_kge_file_set_catalog,
-    kge_access
 )
 
 
 async def access(request: web.Request, kg_id: str) -> web.Response:
-    """Get KGE File Sets
+    """Get KGE File Set provider metadata.
 
     :param request:
     :type request: web.Request
-    :param kg_id: Name label of KGE File Set, the knowledge graph for which data files are being accessed
+    :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed
     :type kg_id: str
 
     """

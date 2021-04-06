@@ -26,16 +26,33 @@
             console.log("UploadFile(upload_mode: '" + source.id + "')");
 
             let formData = new FormData();
+
             formData.append("kg_id", "{{kg_id}}");
+
+            let kfc_radio = document.querySelector("input[name=kgx_file_content]:checked");
+            let kgx_file_content = kfc_radio ? kfc_radio.value : "";
+            formData.append("kgx_file_content", kgx_file_content);
+
+            if(!kgx_file_content) {
+                window.alert("Please select KGX content type to be uploaded.");
+                return;
+            }
+
+            if(kgx_file_content === "archive") {
+                window.alert(
+                    "Sorry, KGX 'tar.gz' compressed archives are not " +
+                    "yet fully handled in the interface (coming soon!)");
+                return;
+            }
+
             formData.append("upload_mode", source.id);
 
-            let file_type = '';
-
             if (source.id === 'content_from_url') {
+
                 // Transfer file from REST URL endpoint
                 let content_url = document.getElementById('content_url').value;
 
-                if(content_url)   {
+                if(content_url) {
                     console.log("Content URL: '" + content_url + "')");
                     formData.append("content_url", content_url);
                 } else  {
@@ -43,35 +60,22 @@
                     window.alert("KGX content file URL is undefined");
                     return;
                 }
-                file_type = 'data';
-            } else if (source.id === 'metadata') {
-                let uploaded_file = document.getElementById('metadata_file').files[0];
-                content_name = uploaded_file.name;
-
-                if(uploaded_file) {
-                    console.log("KGX metadata file being uploaded: '" +  + "'");
-                    formData.append("uploaded_file", uploaded_file);
-                } else  {
-                    console.log("KGX metadata file is undefined?");
-                    window.alert("KGX metadata file is undefined");
-                    return;
-                }
-                file_type = 'metadata';
 
             } else if (source.id === 'content_from_local_file') {
+
                 let uploaded_file = document.getElementById('content_file').files[0];
                 content_name = uploaded_file.name;
 
                 if(uploaded_file) {
-                    console.log("KGX data file being uploaded: '" + uploaded_file.name + "'");
+                    console.log("KGX "+kgx_file_content+" file being uploaded: '" + uploaded_file.name + "'");
                     formData.append("uploaded_file", uploaded_file);
                 } else  {
-                    console.log("KGX data file is undefined?");
-                    window.alert("KGX data file is undefined");
+                    console.log("KGX "+kgx_file_content+" file is undefined?");
+                    window.alert("KGX "+kgx_file_content+" file is undefined");
                     return;
                 }
-                file_type = 'data';
             }
+
             formData.append("content_name", content_name);
 
             fetch(
@@ -88,20 +92,20 @@
                         ).then(
                             name => {
                                 window.alert(
-                                    "Successfully uploaded '" + file_type + "' file\n'" + content_name +
-                                    "'\n for knowledge graph '{{kg_name}}'\n(KGE File Set ID: '" + name + "')!"
+                                    "Successfully uploaded " + kgx_file_content + " file\n'" + content_name +
+                                    "'\n for knowledge graph '{{kg_name}}'!"
                                 );
                             }
                         ).catch(error => {
                             let err_msg =
-                                "Error accessing KGE File Set ID\nfor '" + file_type + "' file '" + content_name +
+                                "Error accessing KGE File Set ID\nfor " + kgx_file_content + " file '" + content_name +
                                 "'\nfor knowledge graph '{{kg_name}}: " + error;
                             console.log(err_msg);
                             window.alert(err_msg);
                         })
                 }).catch(error => {
                     let err_msg =
-                            "File upload error encountered\nfor '" + file_type + "' file '" + content_name +
+                            "File upload error encountered\nfor " + kgx_file_content + " file '" + content_name +
                             "'\nfor knowledge graph '{{kg_name}}: " + error;
                     console.log(err_msg);
                     window.alert(err_msg);
@@ -112,43 +116,67 @@
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
+<div class="menu_item">
+<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
+    <input type="submit" value="Done Uploading" />
+</form>
+</div>
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>(Version: '{{kg_version}}') {% endblock %}
+{% block title %}Upload Knowledge Graph '{{kg_name}}'{% endblock %}
+{% block subtitle %}Version: '{{kg_version}}', Submitted by '{{submitter}}'{% endblock %}
 {% block content %}
-<h4>Submitted by '{{submitter}}'</h4>
+<div class="subtitle"></div>
 <table>
     <tr>
-        <td colspan="2">
+        <td rowspan="2">
+            <h4>KGX Content Type</h4>
+            <input type="radio" id="metadata" name="kgx_file_content" value="metadata">
+            <div class="tooltip">
+                <label  class="tooltip_target" for="metadata">Metadata</label>
+                <span class="tooltiptext">(*) Must be a valid KGX metadata JSON file generated from your dataset.</span>
+            </div><br>
+            <input type="radio" id="nodes" name="kgx_file_content" value="nodes">
+            <div class="tooltip">
+                <label class="tooltip_target" for="nodes">Nodes</label>
+                <span class="tooltiptext">
+                    (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'nodes' file.</span>
+            </div><br>
+            <input type="radio" id="edges" name="kgx_file_content" value="edges">
+            <div class="tooltip">
+                <label class="tooltip_target" for="edges">Edges</label>
+                <span class="tooltiptext">
+                    (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'edges' file.</span>
+            </div><br>
+            <!--  -->
+            <input type="radio" id="archive" name="kgx_file_content" value="archive">
+            <div class="tooltip">
+                <label class="tooltip_target" for="archive">KGX Archive</label>
+                <span class="tooltiptext">If a KGX Archive is given, then the local
+                    uploaded file or a transfer from URL is assumed to be a gzip'd
+                    compressed tar file with the name 'kge.tar.gz' containing one
+                    of each of both a KGX-compliant 'nodes.tsv' and 'edges.tsv'
+                    file for the knowledge graph, with or without an associated
+                    KGX-compliant 'metadata.json' file.</span>
+            </div>
+        </td>
+        <td>
             <center>
-                <h4>Upload KGX metadata file from computer:</h4>
+                <h4>Upload a (meta-)data file from your computer:</h4>
 
-                <p>Must be valid KGX metadata generated from your dataset.
-                    Read more <a href="https://github.com/biolink/kgx">here</a>.
+                <p>Select a single KGX-compliant file at a time for upload:</p>
 
-                <br><label for="metadata_file"><b>Select Metadata File: </b></label>
-                <input id="metadata_file" class="textbox" type="file"/>
-                <button id="metadata" onclick="UploadFile(this)">Upload</button>
+                <label for="content_file"><b>Select File:</b></label>
+                <input id="content_file"  class="textbox" type="file"/>
+                <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
             </center>
         </td>
     </tr>
     <tr>
         <td>
             <center>
-                <h4>Upload KGX data file from your computer:</h4>
+                <h4>Transfer a KGX-compliant data file from an URL endpoint:</h4>
 
-                <p>Select a single KGX formatted data file at a time for upload</p>
-
-                <br><label for="content_file"><b>Select Data File:</b></label>
-                <input id="content_file"  class="textbox" type="file"/>
-                <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
-            </center>
-        </td>
-        <td>
-            <center>
-
-                <h4>Transfer KGX data file from URL endpoint:</h4>
-
-                <br><label for="content_url"><b>URL to File:</b></label>
+                <label for="content_url"><b>URL to File:</b></label>
                 <input id="content_url" type="text" oninput="GetUrl(this)"/>
                 <br><label for="file_name"><b>File Name:</b></label>
                 <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
@@ -156,14 +184,9 @@
             </center>
         </td>
     </tr>
-    <tr>
-        <td colspan="2">
-            <center>
-                <form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
-                    <input type="submit" value="Done Uploading File Set" />
-                </form>
-            </center>
-        </td>
-    </tr>
 </table>
+{% endblock %}
+{% block app_footer %}
+(*) Read more about KGX formatted (meta-)data files
+<a href="https://github.com/biolink/kgx/blob/master/data-preparation.md" target="_blank">here</a>
 {% endblock %}

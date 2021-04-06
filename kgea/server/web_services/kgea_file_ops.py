@@ -108,12 +108,18 @@ def with_version(func, version=get_default_date_stamp()):
     return wrapper
 
 
+def with_subfolder(location: str, subfolder: str):
+    if subfolder:
+        location += subfolder + '/'
+    return location
+
+
 def location_available(bucket_name, object_key):
     """
     Guarantee that we can write to the location of the object without overriding everything
 
-    :param bucket: The bucket
-    :param object: The object in the bucket
+    :param bucket_name: The bucket
+    :param object_key: The object in the bucket
     :return: True if the object is not in the bucket, False if it is already in the bucket
     """
     s3 = boto3.resource('s3')

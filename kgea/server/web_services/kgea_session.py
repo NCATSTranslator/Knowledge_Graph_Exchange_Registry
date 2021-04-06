@@ -130,12 +130,12 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
         session['user_id'] = user_id
         
         if user_attributes:
-            session['username'] = user_attributes["cognito:username"]
-            session['user_email'] = user_attributes["email"]
-    
+            session['user_id'] = user_attributes["user_id"]
+            session['user_name'] = user_attributes["user_name"]
+            session['user_email'] = user_attributes["user_email"]
+
     except RuntimeError as rte:
-        logger.error("initialize_user_session() ERROR: " + str(rte))
-        raise RuntimeError(rte)
+        await report_error(request, "initialize_user_session() ERROR: " + str(rte))
 
 
 async def with_session(request, response):
@@ -149,8 +149,8 @@ async def with_session(request, response):
         session = await get_session(request)
         await KgeaSession.save_session(request, response, session)
     except RuntimeError as rte:
-        logger.error("kgea_session.with_session() RuntimeError: " + str(rte))
-        raise RuntimeError(rte)
+        await report_error(request, "kgea_session.with_session() RuntimeError: " + str(rte))
+
     return response
 
 
@@ -170,8 +170,8 @@ async def _process_redirection(request, response, active_session):
             session = await get_session(request)
             await KgeaSession.save_session(request, response, session)
         except RuntimeError as rte:
-            logger.error("kgea_session._process_redirection() RuntimeError: " + str(rte))
-            raise RuntimeError(rte)
+            await report_error(request, "kgea_session._process_redirection() RuntimeError: " + str(rte))
+
     raise response
 
 
@@ -179,6 +179,14 @@ async def redirect(request, location, active_session: bool = False):
     await _process_redirection(
         request,
         web.HTTPFound(location),
+        active_session
+    )
+
+
+async def report_not_found(request, reason: str, active_session: bool = False):
+    await _process_redirection(
+        request,
+        web.HTTPNotFound(reason=reason),
         active_session
     )
 
