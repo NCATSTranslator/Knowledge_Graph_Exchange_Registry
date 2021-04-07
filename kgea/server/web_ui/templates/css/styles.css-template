@@ -74,7 +74,7 @@ img.banner {
   padding: 5px;
 }
 
-label {
+.label{
   font-weight: bold;
 }
 
@@ -118,5 +118,5 @@ label {
 
 .tooltip_target {
   color: #5e2ca5;
-  font-style: oblique;
+  font-weight: bold;
 }

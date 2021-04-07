@@ -1,5 +1,5 @@
 from os import getenv
-from typing import List
+from typing import List, Dict
 
 from datetime import datetime
 
@@ -141,8 +141,14 @@ async def kge_login(request: web.Request):
     :type request: web.Request
     """
     if DEV_MODE:
+        # Stub implementation of user_attributes, to fake authentication
+        user_attributes: Dict = dict()
+        user_attributes["user_id"] = 'translator'  # cognito:username?
+        user_attributes["user_name"] = 'Mr. Trans L. Tor'  # not sure how to get this value(?)
+        user_attributes["user_email"] = 'translator@ncats.nih.gov'
+
         # DEV_MODE workaround by-passes full external authentication
-        await initialize_user_session(request)
+        await initialize_user_session(request,user_attributes=user_attributes)
 
         # then redirect to an authenticated home page
         await redirect(request, HOME, active_session=True)
@@ -198,7 +204,15 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:
         #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
         context = {
             "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION,
-            "kg_version": datetime.now().strftime('%Y-%m-%d')  # defaults to today's date "timestamp"
+            # initial kg_version defaults to today's date. but
+            # the user can revise it in the registration form
+            "kg_version": datetime.now().strftime('%Y-%m-%d'),
+            
+            # Now going to 'hard code' these to the
+            # authenticated user values captured
+            # in the 'authenticate' handler above
+            "submitter": session['user_name'],
+            "submitter_email": session['user_email']
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
         return await with_session(request, response)
