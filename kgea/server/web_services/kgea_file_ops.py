@@ -16,6 +16,8 @@ from botocore.exceptions import ClientError
 from os.path import abspath, splitext
 from pathlib import Path
 
+import tarfile
+
 import random
 from string import Template
 from datetime import datetime
@@ -189,15 +191,6 @@ def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
         raise AssertionError(e)
     return True
 
-# def lll():
-#     s3_client.list_objects()
-#     pass
-#
-# @prepare_test
-# def test_lll():
-#     pass
-
-
 # TODO: clarify expiration time - default to 1 day (in seconds)
 def create_presigned_url(bucket, object_key, expiration=86400):
     """Generate a pre-signed URL to share an S3 object
@@ -234,6 +227,76 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME
         logger.error(e)
         return False
     return True
+
+
+def tardir(path, file_name):
+    tar_name = Template("$FILENAME.tar.gz").substitute(FILENAME=file_name)
+    with tarfile.open(tar_name, "w:gz") as tar_handle:
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                tar_handle.add(os.path.join(root, file))
+    return Path(tar_name)
+
+def kg_filepath(kg_id, kg_version, root_directory=TEST_FILE_DIR):
+    return Template("$DIRECTORY/$KG_ID/$KG_VERSION").substitute(
+        DIRECTORY=root_directory,
+        KG_ID=kg_id,
+        KG_VERSION=kg_version
+    )
+
+def package_file(kg_id, kg_version):
+    return tardir(
+        kg_filepath(kg_id, kg_version),                         # the source of files to zip up
+        kg_filepath(kg_id, kg_version)+kg_id+'_'+kg_version     # the path and filename for the new archive
+    )
+
+@prepare_test
+def test_tardir():
+    try:
+        tar_path = tardir(TEST_FILE_DIR, 'TestData')
+        assert(len(tarfile.open(tar_path).getmembers()) > 0)
+    except FileNotFoundError as e:
+        logger.error("Test is malformed!")
+        logger.error(e)
+        return False
+    except AssertionError as e:
+        logger.error('The packaging function failed to create a valid tarfile!')
+        logger.error(e)
+        return False
+    return True
+
+def package_file_manifest(tar_path):
+    with tarfile.open(tar_path, 'r:gz') as tar:
+        manifest = dict()
+        for tarinfo in tar:
+            print(tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
+            if tarinfo.isreg():
+                print("a regular file.")
+            elif tarinfo.isdir():
+                print("a directory.")
+            else:
+                print("something else.")
+            manifest[tarinfo.name] = {
+                "raw": tarinfo,
+                "name": tarinfo.name,
+                "type": tarinfo.type,
+                "size": tarinfo.size
+            }
+        return manifest
+
+@prepare_test
+def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+    try:
+        with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+            tar_path = tardir(Path(test_file.name).parent, Path(test_file.name).stem)
+            manifest = package_file_manifest(tar_path)
+            assert(len(manifest) > 0)
+    except AssertionError as e:
+        logger.error('The manifest failed to be created properly (since we have files in the testfiles directory)')
+        logger.error(e)
+        return False
+    return True
+
 
 def upload_file(data_file, file_name, bucket, object_location, config=None):
     """Upload a file to an S3 bucket
@@ -307,7 +370,8 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
-            object_key = upload_file(test_file, test_file.name, test_bucket, content_location)
+            packaged_file = package_file(test_file.name, test_file)
+            object_key = upload_file(packaged_file, test_file.name, test_bucket, content_location)
             assert (object_key in kg_files_in_location(test_bucket, content_location))
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -387,7 +451,6 @@ def download_file(bucket, object_key, open_file=False):
         return download_url, webbrowser.open_new_tab(download_url)
     return download_url
 
-
 @prepare_test
 # @prepare_test_random_object_location
 def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
@@ -437,6 +500,12 @@ if __name__ == '__main__':
 
     assert (test_create_presigned_url())
     print("test_create_presigned_url passed")
+
+    assert (test_tardir())
+    print("test_tardir passed")
+
+    assert (test_package_manifest())
+    print("test_package_manifest passed")
 
     # assert (test_upload_file())
     # print("test_upload_file passed")

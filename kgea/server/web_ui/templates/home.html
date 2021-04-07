@@ -3,26 +3,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA==" crossorigin="anonymous"></script>
     <script>
-<<<<<<< HEAD
-
-
-
-        function DownloadFile(source, action)
-        {
-            let kg_name = document.getElementById('kg_name').value;
-
-            console.log(
-                "DownloadFile(action: '"+action+"', "+
-                "KG Name: '"+kg_name+"')"
-            );
-
-            let url = 'http://localhost:8080' + '/archive/' + kg_name + '/' + action;
-=======
-
         // empty catalog... needs to be retrieved from the back end
         let kgea_catalog = {};
->>>>>>> bde86ec4cf0579118653dcba18ad042ceb15e78a
-
         async function showVersions(selectObject) {
             let kg_id = selectObject.value;
             if(kg_id in kgea_catalog) {
@@ -69,19 +51,10 @@
                 });
         }
 
-<<<<<<< HEAD
-            try {
-                // TODO: What happens to the data returned here?
-                // TODO: Should this fetch rather be a redirect in a separate tab or window?
-               let r = fetch(url, { method: "GET", mode: 'no-cors' });
-               console.log('HTTP response code:',r.status);
-=======
         async function DownloadFile(source)
         {
             let kg_id = document.getElementById('select_kg_id').value;
             let kg_version = document.getElementById('select_kg_version').value;
->>>>>>> bde86ec4cf0579118653dcba18ad042ceb15e78a
-
             console.log(
                 "DownloadFile(" +
                     "action: '" + source.id + "', " +
@@ -150,19 +123,19 @@
     <table width="50%">
         <tr>
             <td>
-                <center>
+                <div style="text-align: center;">
                     <h3>Upload a Knowledge Graph</h3>
-                </center>
+                </div>
             </td>
             <td>
-                <center>
+                <div style="text-align: center;">
                     <h3>Access a Knowledge Graph</h3>
-                </center>
+                </div>
             </td>
         </tr>
         <tr>
             <td>
-                <center>
+                <div style="text-align: center;">
                     <a href="/register"><button>Register KGE File Set</button></a>
                     <!-- Don't need a form here - don't have the session_id anymore.
                          Simple clickable button is better, and is CSS formatted the same.
@@ -172,22 +145,17 @@
                         <input type="submit" value="Register KGE File Set" /><br>
                         <small>This is the first step required for uploading.</small>
                     </form -->
-                </center>
+                </div>
             </td>
             <td>
-                <center>
-<<<<<<< HEAD
+                <div style="text-align: center;">
                     <p><label for="kg_name"><b>Graph Name</b></label><br>
-
                     <input id="kg_name" type="text"/>
-=======
                     <!-- These kg_name and kg_version widgets need to be
                          replaced with an integrated UI which takes the results
                          of call to /catalog, to give the user a list of available
                          KGE File Sets from which to select (by name) and
                          their associated versions (dynamically presented)-->
->>>>>>> bde86ec4cf0579118653dcba18ad042ceb15e78a
-
                     <!-- TODO: When the catalog gets large, this could
                                also include a kind of type head search? -->
                     <p><label for="select_kg_id">Choose a Graph:</label>
@@ -201,7 +169,6 @@
                     </select>
                     <br>
                     <p>
-<<<<<<< HEAD
 {#                    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">#}
 {#                        <input type="submit" value="Download Metadata" />#}
 {#                    </form>#}
@@ -214,18 +181,7 @@
 {#                    </form>#}
 
                     <button id="access">Download Data File(s)</button>
-
-
-=======
-                    <form id="meta_knowledge_graph" method="get" onsubmit="DownloadFile(this)">
-                        <input type="submit" value="Download Meta Knowledge Graph" />
-                    </form>
-
-                    <form id="download" method="get" onsubmit="DownloadFile(this)">
-                        <input type="submit" value="Download KGE Data Archive" />
-                    </form>
->>>>>>> bde86ec4cf0579118653dcba18ad042ceb15e78a
-                </center>
+                </div>
             </td>
         </tr>
     </table>
