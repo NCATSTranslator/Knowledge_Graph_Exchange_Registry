@@ -434,29 +434,36 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
 
     # transform the kg_files into KgeFileSetEntry objects
     def kg_file_to_entry(kg_file):
+        root_path = str(list(Path(kg_file).parents)[-2])    # get the root directory (not local)
+        stem_path = str(Path(kg_file).name)
 
-        root_path = Path(kg_file).parents[-1]
-        stem_path = Path(kg_file).name
-
-        entry_string = ''
+        entry_string = str(Path(kg_file))   # normalize delimiters
         for i in [root_path, stem_path, 'node', 'edge']:
             entry_string = entry_string.replace(i, '')
 
-        _kg_id = entry_string.split('/')[0]
-        _kg_version = entry_string.split('/')[1]
+        import os
+        kg_info = list(entry_string.split(os.sep))
+        while '' in kg_info:
+            kg_info.remove('')
+
+        _kg_id = kg_info[0]
+        _kg_version = kg_info[1]
 
         return _kg_id, _kg_version
 
     versions_per_kg = {}
-    version_kg_pairs = [kg_file_to_entry(kg_file) for kg_file in kg_files]
-    for kg_id, kg_version in version_kg_pairs:
-        versions_per_kg[kg_id] = [] if kg_id not in versions_per_kg else versions_per_kg[kg_id]
-        versions_per_kg[kg_id] = versions_per_kg[kg_id].append(kg_version)
+    version_kg_pairs = set(kg_file_to_entry(kg_file) for kg_file in kg_files)
+
+    import itertools
+    for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
+        versions_per_kg[key] = []
+        for thing in group:
+            versions_per_kg[key].append(thing[1])
 
     catalog = {}
-    for kg_id, kg_versions in versions_per_kg:
+    for kg_id, kg_versions in versions_per_kg.items():
         catalog[kg_id] = {
-            "name": kg_id, # TODO: name
+            "name": kg_id,  # TODO: name
             "versions": kg_versions
         }
 
