@@ -463,7 +463,7 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     catalog = {}
     for kg_id, kg_versions in versions_per_kg.items():
         catalog[kg_id] = {
-            "name": kg_id,  # TODO: name
+            "name": kg_id,  # TODO: name <- registration
             "versions": kg_versions
         }
 
@@ -496,7 +496,7 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
         # - Create URL per Item Listing
         # - Send Back URL with Dictionary
         # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-        # TODO: convert into redirect approach with cross-origin scripting?
+
         kg_files = kg_files_in_location(
             bucket_name=KGEA_APP_CONFIG['bucket'],
             object_location=file_set_location
@@ -505,8 +505,9 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
             map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
-                kg_listing))
-        # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
+                kg_listing)
+        )
+        logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
 
         response = web.Response(text=str(kg_urls), status=200)
 
@@ -571,28 +572,14 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
         kg_files = kg_files_in_location(
             bucket_name=KGEA_APP_CONFIG['bucket'],
         )
-        # regex
-        # - match on
-        # TODO: bad
+
         kg_names = [kg_name.split('/')[1] for kg_name in kg_files]
 
-        # kg_listing = kg_files
-        # kg_urls = dict(
-        #     map(
-        #         lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
-        #         kg_listing
-        #     )
-        # )
-
-        # logger.debug('knowledge_map urls: %s', kg_urls)
-        # import requests, json
-        # metadata_key = kg_listing[0]
-        # url = create_presigned_url(KGEA_APP_CONFIG['bucket'], metadata_key)
-        # metadata = json.loads(requests.get(url).text)
+        logger.debug('knowledge_map names: %s', kg_names)
 
         response = web.Response(text=str(kg_names), status=200)
 
-
+        # TODO
         return response
         # else:
         #     # If session is not active, then just a redirect
@@ -638,7 +625,8 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version) -> web.
         #       kg_version of kg_id identified KGE File Set, from the
         #       file_set_location, to send back to the caller of /download
 
-        response = web.Response(status=501)
+
+        response = web.Response(text=str(file_set_location, assigned_version), status=200)
 
         return await with_session(request, response)
 

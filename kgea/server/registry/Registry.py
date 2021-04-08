@@ -433,6 +433,7 @@ class KgeaRegistry:
         if kg_id in self._kge_file_set_registry:
             return self._kge_file_set_registry[kg_id]
         else:
+            # query for it directly as fallback
             return None
 
     # TODO: probably need to somehow factor in timestamps

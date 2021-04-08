@@ -61,7 +61,9 @@ TEST_KG_NAME = 'test_kg'
 TEST_FILE_DIR='kgea/server/test/data/'
 TEST_FILE_NAME='somedata.csv'
 
+from functools import wraps
 def prepare_test(func):
+    @wraps(func)
     def wrapper():
         TEST_BUCKET = 'kgea-test-bucket'
         TEST_KG_NAME = 'test_kg'
@@ -71,6 +73,7 @@ def prepare_test(func):
 
 
 def prepare_test_random_object_location(func):
+    @wraps(func)
     def wrapper(object_key=_random_alpha_string()):
         s3_client.put_object(
             Bucket='kgea-test-bucket',
@@ -106,7 +109,6 @@ def get_default_date_stamp():
 def with_version(func, version=get_default_date_stamp()):
     def wrapper(kg_name):
         return func(kg_name + '/' + version), version
-
     return wrapper
 
 
@@ -480,6 +482,17 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
+import time
+def run_test(test_func):
+    try:
+        start = time.time()
+        assert(test_func())
+        end = time.time()
+        print("{} passed: {} seconds".format(test_func.__name__, end - start))
+    except Exception as e:
+        logger.error("{} failed!".format(test_func.__name__))
+        logger.error(e)
+
 if __name__ == '__main__':
 
     import sys
@@ -489,34 +502,13 @@ if __name__ == '__main__':
         TEST_FILE_NAME = args[1]
         print(TEST_FILE_NAME, os.path.getsize(abspath(TEST_FILE_DIR + TEST_FILE_NAME)), 'bytes')
 
-    assert (test_kg_files_in_location())
-    print("test_kg_files_in_location passed")
-
-    assert (test_is_location_available())
-    print("test_is_location_available passed")
-
-    assert (test_is_not_location_available())
-    print("test_is_not_location_available passed")
-
-    assert (test_create_presigned_url())
-    print("test_create_presigned_url passed")
-
-    assert (test_tardir())
-    print("test_tardir passed")
-
-    assert (test_package_manifest())
-    print("test_package_manifest passed")
-
-    # assert (test_upload_file())
-    # print("test_upload_file passed")
-
-    assert (test_upload_file_multipart())
-    print("test_upload_multipart passed")
-
-    # assert (test_upload_file_timestamp())
-    # print("test_upload_file_timestamp passed")
-
-    assert (test_download_file())
-    print("test_download_file passed")
+    run_test(test_kg_files_in_location)
+    run_test(test_is_location_available)
+    run_test(test_is_not_location_available)
+    run_test(test_create_presigned_url)
+    run_test(test_tardir)
+    run_test(test_package_manifest)
+    run_test(test_upload_file_multipart)
+    run_test(test_download_file)
 
     print("all file ops tests passed")
