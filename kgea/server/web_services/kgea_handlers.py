@@ -37,6 +37,8 @@ from .kgea_file_ops import (
     # add_to_github,
     # create_smartapi,
     get_object_location,
+    get_kg_versions_available,
+
     with_version,
     with_subfolder
 )
@@ -429,36 +431,7 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
         }
     }
     """
-
-    kg_files = kg_files_in_location(KGEA_APP_CONFIG['bucket'])
-
-    # transform the kg_files into KgeFileSetEntry objects
-    def kg_file_to_entry(kg_file):
-        root_path = str(list(Path(kg_file).parents)[-2])    # get the root directory (not local)
-        stem_path = str(Path(kg_file).name)
-
-        entry_string = str(Path(kg_file))   # normalize delimiters
-        for i in [root_path, stem_path, 'node', 'edge']:
-            entry_string = entry_string.replace(i, '')
-
-        import os
-        kg_info = list(entry_string.split(os.sep))
-        while '' in kg_info:
-            kg_info.remove('')
-
-        _kg_id = kg_info[0]
-        _kg_version = kg_info[1]
-
-        return _kg_id, _kg_version
-
-    versions_per_kg = {}
-    version_kg_pairs = set(kg_file_to_entry(kg_file) for kg_file in kg_files)
-
-    import itertools
-    for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
-        versions_per_kg[key] = []
-        for thing in group:
-            versions_per_kg[key].append(thing[1])
+    versions_per_kg = get_kg_versions_available(KGEA_APP_CONFIG['bucket'])
 
     catalog = {}
     for kg_id, kg_versions in versions_per_kg.items():
@@ -467,9 +440,10 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
             "versions": kg_versions
         }
 
-    # return await with_session(request, response)
     response = web.json_response(catalog, status=200)
     return response
+    # return await with_session(request, response)
+
 
 async def kge_access(request: web.Request, kg_id: str) -> web.Response:
     """Get KGE File Set provider metadata.
@@ -625,8 +599,9 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version) -> web.
         #       kg_version of kg_id identified KGE File Set, from the
         #       file_set_location, to send back to the caller of /download
 
+        print(str(file_set_location), str(assigned_version))
 
-        response = web.Response(text=str(file_set_location, assigned_version), status=200)
+        response = web.Response(text=str(file_set_location)+str(assigned_version), status=200)
 
         return await with_session(request, response)
 

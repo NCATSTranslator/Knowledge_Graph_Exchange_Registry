@@ -36,7 +36,7 @@ from github.ContentFile import ContentFile
 from github.GithubException import UnknownObjectException
 
 from kgea.server.config import get_app_config
-from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
+from kgea.server.web_services.kgea_file_ops import get_default_date_stamp, kg_files_in_location
 
 from .kgea_kgx import KgxValidator
 
@@ -433,7 +433,6 @@ class KgeaRegistry:
         if kg_id in self._kge_file_set_registry:
             return self._kge_file_set_registry[kg_id]
         else:
-            # query for it directly as fallback
             return None
 
     # TODO: probably need to somehow factor in timestamps

@@ -72,7 +72,8 @@ GET_CATALOG_URL = ARCHIVE_PATH+"catalog"
 ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
 UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
 PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
-
+DOWNLOAD_ARCHIVE = ARCHIVE_PATH+"download"
+DOWNLOAD_METADATA = ARCHIVE_PATH+"meta_knowledge_graph"
 
 async def kge_landing_page(request: web.Request) -> web.Response:
     """Display landing page.
@@ -106,7 +107,7 @@ async def get_kge_home(request: web.Request) -> web.Response:
         response = aiohttp_jinja2.render_template(
             'home.html',
             request=request,
-            context={"get_catalog": GET_CATALOG_URL}
+            context={"get_catalog": GET_CATALOG_URL, "download": DOWNLOAD_ARCHIVE, "meta_knowledge_graph": DOWNLOAD_METADATA}
         )
         return await with_session(request, response)
     else:

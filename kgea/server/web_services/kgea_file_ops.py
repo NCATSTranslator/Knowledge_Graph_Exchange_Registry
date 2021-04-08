@@ -58,10 +58,12 @@ Test Parameters + Decorator
 """
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
-TEST_FILE_DIR='kgea/server/test/data/'
-TEST_FILE_NAME='somedata.csv'
+TEST_FILE_DIR = 'kgea/server/test/data/'
+TEST_FILE_NAME = 'somedata.csv'
 
 from functools import wraps
+
+
 def prepare_test(func):
     @wraps(func)
     def wrapper():
@@ -109,6 +111,7 @@ def get_default_date_stamp():
 def with_version(func, version=get_default_date_stamp()):
     def wrapper(kg_name):
         return func(kg_name + '/' + version), version
+
     return wrapper
 
 
@@ -164,8 +167,8 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
     * close/delete dir
     """
     try:
-        isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=test_object_location)
-        assert (isRandomLocationAvailable is not True)
+        is_random_location_available = location_available(bucket_name=test_bucket, object_key=test_object_location)
+        assert (is_random_location_available is not True)
     except AssertionError as e:
         logger.error("ERROR: created location was not found")
         logger.error(e)
@@ -192,6 +195,52 @@ def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
     except AssertionError as e:
         raise AssertionError(e)
     return True
+
+
+def get_kg_versions_available(bucket_name, kg_id=None):
+    kg_files = kg_files_in_location(bucket_name)
+
+    def kg_id_to_versions(kg_file):
+        root_path = str(list(Path(kg_file).parents)[-2])    # get the root directory (not local/`.`)
+        stem_path = str(Path(kg_file).name)
+
+        entry_string = str(Path(kg_file))   # normalize delimiters
+        for i in [root_path, stem_path, 'node', 'edge']:
+            entry_string = entry_string.replace(i, '')
+
+        import os
+        kg_info = list(entry_string.split(os.sep))
+        while '' in kg_info:
+            kg_info.remove('')
+
+        _kg_id = kg_info[0]
+        _kg_version = kg_info[1]
+
+        return _kg_id, _kg_version
+
+    versions_per_kg = {}
+    version_kg_pairs = set(kg_id_to_versions(kg_file) for kg_file in kg_files if kg_id and kg_file[0] is kg_id or True)
+
+    import itertools
+    for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
+        versions_per_kg[key] = []
+        for thing in group:
+            versions_per_kg[key].append(thing[1])
+
+    return versions_per_kg
+
+
+@prepare_test
+@prepare_test_random_object_location
+def test_get_kg_versions_available(test_object_location, test_bucket=TEST_BUCKET):
+    try:
+        kg_version_map = get_kg_versions_available(bucket_name=test_bucket)
+        print(kg_version_map)
+        assert (kg_version_map is dict and len(kg_version_map) > 0)
+    except AssertionError as e:
+        raise AssertionError(e)
+    return True
+
 
 # TODO: clarify expiration time - default to 1 day (in seconds)
 def create_presigned_url(bucket, object_key, expiration=86400):
@@ -239,6 +288,7 @@ def tardir(path, file_name):
                 tar_handle.add(os.path.join(root, file))
     return Path(tar_name)
 
+
 def kg_filepath(kg_id, kg_version, root_directory=TEST_FILE_DIR):
     return Template("$DIRECTORY/$KG_ID/$KG_VERSION").substitute(
         DIRECTORY=root_directory,
@@ -246,17 +296,19 @@ def kg_filepath(kg_id, kg_version, root_directory=TEST_FILE_DIR):
         KG_VERSION=kg_version
     )
 
+
 def package_file(kg_id, kg_version):
     return tardir(
-        kg_filepath(kg_id, kg_version),                         # the source of files to zip up
-        kg_filepath(kg_id, kg_version)+kg_id+'_'+kg_version     # the path and filename for the new archive
+        kg_filepath(kg_id, kg_version),  # the source of files to zip up
+        kg_filepath(kg_id, kg_version) + kg_id + '_' + kg_version  # the path and filename for the new archive
     )
+
 
 @prepare_test
 def test_tardir():
     try:
         tar_path = tardir(TEST_FILE_DIR, 'TestData')
-        assert(len(tarfile.open(tar_path).getmembers()) > 0)
+        assert (len(tarfile.open(tar_path).getmembers()) > 0)
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
@@ -267,11 +319,12 @@ def test_tardir():
         return False
     return True
 
+
 def package_file_manifest(tar_path):
     with tarfile.open(tar_path, 'r:gz') as tar:
         manifest = dict()
         for tarinfo in tar:
-            print(tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
+            print("\t", tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
             if tarinfo.isreg():
                 print("a regular file.")
             elif tarinfo.isdir():
@@ -286,13 +339,14 @@ def package_file_manifest(tar_path):
             }
         return manifest
 
+
 @prepare_test
 def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             tar_path = tardir(Path(test_file.name).parent, Path(test_file.name).stem)
             manifest = package_file_manifest(tar_path)
-            assert(len(manifest) > 0)
+            assert (len(manifest) > 0)
     except AssertionError as e:
         logger.error('The manifest failed to be created properly (since we have files in the testfiles directory)')
         logger.error(e)
@@ -322,7 +376,7 @@ def upload_file(data_file, file_name, bucket, object_location, config=None):
         else:
             s3_client.upload_fileobj(data_file, bucket, object_key, Config=config)
     except Exception as exc:
-        logger.error("kgea file ops: upload_file() exception: "+str(exc))
+        logger.error("kgea file ops: upload_file() exception: " + str(exc))
         raise exc
 
     return object_key
@@ -453,6 +507,7 @@ def download_file(bucket, object_key, open_file=False):
         return download_url, webbrowser.open_new_tab(download_url)
     return download_url
 
+
 @prepare_test
 # @prepare_test_random_object_location
 def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
@@ -486,25 +541,37 @@ import time
 def run_test(test_func):
     try:
         start = time.time()
-        assert(test_func())
+        assert (test_func())
         end = time.time()
         print("{} passed: {} seconds".format(test_func.__name__, end - start))
     except Exception as e:
         logger.error("{} failed!".format(test_func.__name__))
         logger.error(e)
 
+
 if __name__ == '__main__':
 
     import sys
     import os
+
     args = sys.argv[1:]
     if len(args) == 2 and args[0] == '--testFile':
         TEST_FILE_NAME = args[1]
         print(TEST_FILE_NAME, os.path.getsize(abspath(TEST_FILE_DIR + TEST_FILE_NAME)), 'bytes')
 
+    print(
+        "Test Preconditions:\n\t{} {}\n\t{} {}\n\t{} {}\n\t{} {}".format(
+            "TEST_BUCKET", TEST_BUCKET,
+            "TEST_KG_NAME", TEST_KG_NAME,
+            "TEST_FILE_DIR", TEST_FILE_DIR,
+            "TEST_FILE_NAME", TEST_FILE_NAME
+        )
+    )
+
     run_test(test_kg_files_in_location)
     run_test(test_is_location_available)
     run_test(test_is_not_location_available)
+    run_test(test_get_kg_versions_available)
     run_test(test_create_presigned_url)
     run_test(test_tardir)
     run_test(test_package_manifest)

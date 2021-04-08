@@ -9,7 +9,7 @@
             let kg_id = selectObject.value;
             if(kg_id in kgea_catalog) {
                 let versions = kgea_catalog[kg_id].versions;
-                let version_options = '<option value="latest">Latest</option>';
+                let version_options = ''//'<option value="latest">Latest</option>';
                 versions.forEach((v,_) => {
                     version_options += '<option value="' + v + '">' + v + '</option>';
                 });
@@ -57,34 +57,37 @@
             let kg_version = document.getElementById('select_kg_version').value;
             console.log(
                 "DownloadFile(" +
-                    "action: '" + source.id + "', " +
+                    "action: '" + source.target.id + "', " +
                     "kg_id: '" + kg_id + "', " +
                     "kg_version: '" + kg_version + "'" +
                 "')"
             );
             window.alert(
                 "DownloadFile(" +
-                    "action: '" + source.id+"', " +
+                    "action: '" + source.target.id+"', " +
                     "kg_id: '" + kg_id + "', " +
                     "kg_version: '" + kg_version + "'" +
                 "')"
             );
-            //
-            // let url = '/archive/' + kg_name + '/' + source.id;
-            //
-            // console.log("Downloading  URL: '"+url+"'");
-            //
-            // let formData = new FormData();
-            //
-            // try {
-            //     // TODO: What happens to the data returned here?
-            //     // TODO: Should this fetch rather be a redirect in a separate tab or window?
-            //    let r = await fetch(url, {method: "GET"});
-            //    console.log('HTTP response code:',r.status);
-            //
-            // } catch(e) {
-            //    console.log('File download error:', e);
-            // }
+
+
+
+            let kg_name = kg_id + '/' + kg_version
+            let url = '/archive/' + kg_name + '/' + source.target.id;
+
+            console.log("Downloading  URL: '"+url+"'");
+
+            let formData = new FormData();
+
+            try {
+                 // TODO: What happens to the data returned here?
+                 // TODO: Should this fetch rather be a redirect in a separate tab or window?
+                let r = await fetch(url, { method: "GET" });
+                console.log('HTTP response code:',r.status);
+
+            } catch(e) {
+               console.log('File download error:', e);
+            }
 
             // block further propagation of the event here?
             return false;
@@ -92,11 +95,16 @@
 
         let self = this;
         $(document).ready(function () {
+
             $('#kg_name').autocomplete({
                 minChars: 0,
                 source: async function( request, response ) {
-                    return await fetch("http://localhost:8080/archive/catalog")
-                        .then(body => body.text())
+                    return await fetch("{{get_catalog}}")
+                        .then(body => body.json())
+                        .then(text => {
+                            console.log(text)
+                            return text
+                        })
                         .then(text =>
                             Array.from(new Set(
                                 text.replaceAll(/[\[\]]/g, '', ).split(', ')
@@ -107,8 +115,8 @@
                 }
             });
 
-            $('#meta_knowledge_graph').on('click', _ => DownloadFile(self, 'meta_knowledge_graph'));
-            $('#access').on('click', _ => DownloadFile(self, 'access'));
+            $('#meta_knowledge_graph').on('click', DownloadFile);
+            $('#download').on('click', DownloadFile);
 
         })
 
@@ -148,40 +156,38 @@
                 </div>
             </td>
             <td>
-                <div style="text-align: center;">
-                    <p><label for="kg_name"><b>Graph Name</b></label><br>
-                    <input id="kg_name" type="text"/>
-                    <!-- These kg_name and kg_version widgets need to be
-                         replaced with an integrated UI which takes the results
-                         of call to /catalog, to give the user a list of available
-                         KGE File Sets from which to select (by name) and
-                         their associated versions (dynamically presented)-->
-                    <!-- TODO: When the catalog gets large, this could
-                               also include a kind of type head search? -->
-                    <p><label for="select_kg_id">Choose a Graph:</label>
-                    <select id="select_kg_id" onchange="showVersions(this)">
-                    </select>
-                    <br>
-                    <!-- Once the given kg_name is selected, then the set of
-                         associated versions need to be dynamically listed here? -->
-                    <label for="select_kg_version">Version?</label>
-                    <select id="select_kg_version">
-                    </select>
-                    <br>
-                    <p>
+                <p><label for="kg_name"><b>Graph Name</b></label>
+                <input id="kg_name" type="text"/>
+                <!-- These kg_name and kg_version widgets need to be
+                     replaced with an integrated UI which takes the results
+                     of call to /catalog, to give the user a list of available
+                     KGE File Sets from which to select (by name) and
+                     their associated versions (dynamically presented)-->
+                <!-- TODO: When the catalog gets large, this could
+                           also include a kind of type head search? -->
+                <p><label for="select_kg_id">Choose a Graph</label>
+                <select id="select_kg_id" onchange="showVersions(this)">
+                </select>
+                <br>
+                <!-- Once the given kg_name is selected, then the set of
+                     associated versions need to be dynamically listed here? -->
+                <label for="select_kg_version">Version</label>
+                <select id="select_kg_version">
+                </select>
+                <br>
+                <p>
 {#                    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">#}
 {#                        <input type="submit" value="Download Metadata" />#}
 {#                    </form>#}
 
-                    <button id="meta_knowledge_graph">Download Metadata</button>
+                <button id="meta_knowledge_graph">Download Metadata</button>
 
 
 {#                    <form id="access" method="get" onsubmit="DownloadFile(this)">#}
 {#                        <input type="submit" value="Download Data File(s)" />#}
 {#                    </form>#}
 
-                    <button id="access">Download Data File(s)</button>
-                </div>
+                <button id="download">Download Data File(s)</button>
             </td>
         </tr>
     </table>

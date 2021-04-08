@@ -150,7 +150,7 @@
             <!--  -->
             <input type="radio" id="archive" name="kgx_file_content" value="archive">
             <div class="tooltip">
-                <label class="tooltip_target" for="archive">KGX Archive</label>
+                <label class="tooltip_target" for="archive">Archive</label>
                 <span class="tooltiptext">If a KGX Archive is given, then the local
                     uploaded file or a transfer from URL is assumed to be a gzip'd
                     compressed tar file with the name 'kge.tar.gz' containing one
@@ -160,28 +160,24 @@
             </div>
         </td>
         <td>
-            <center>
-                <h4>Upload a (meta-)data file from your computer:</h4>
+            <h4>Upload from your computer</h4>
 
-                <p>Select a single KGX-compliant file at a time for upload:</p>
+            <p>Choose a KGX content type for uploading</p>
 
-                <label for="content_file"><b>Select File:</b></label>
-                <input id="content_file"  class="textbox" type="file"/>
-                <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
-            </center>
+            <label for="content_file"><b>Select File</b></label>
+            <input id="content_file"  class="textbox" type="file"/>
+            <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
         </td>
     </tr>
     <tr>
         <td>
-            <center>
-                <h4>Transfer a KGX-compliant data file from an URL endpoint:</h4>
+            <h4>Transfer from a URL</h4>
 
-                <label for="content_url"><b>URL to File:</b></label>
-                <input id="content_url" type="text" oninput="GetUrl(this)"/>
-                <br><label for="file_name"><b>File Name:</b></label>
-                <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
-                <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
-            </center>
+            <label for="content_url"><b>URL to File</b></label>
+            <input id="content_url" type="text" oninput="GetUrl(this)"/>
+            <br><label for="file_name"><b>File Name</b></label>
+            <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
+            <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
         </td>
     </tr>
 </table>
