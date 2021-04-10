@@ -29,9 +29,12 @@ from .kgea_session import (
 )
 
 from .kgea_file_ops import (
+    # upload_file,
+    # upload_file_multipart
     upload_file,
-    # upload_file_multipart,
+    download_file,
     create_presigned_url,
+    compress_file_to_archive,
     # location_available,
     kg_files_in_location,
     # add_to_github,
@@ -40,7 +43,7 @@ from .kgea_file_ops import (
     get_kg_versions_available,
 
     with_version,
-    with_subfolder
+    with_subfolder, kg_filepath
 )
 
 from .kgea_stream import transfer_file_from_url
@@ -326,8 +329,10 @@ async def upload_kge_file(
             )
 
         elif upload_mode == 'content_from_local_file':
-            # process direct metadata or content file upload
+            # archive before uploading to file
 
+
+            # process direct metadata or content file upload
             uploaded_file_object_key = upload_file(
                 data_file=uploaded_file.file,
                 file_name=content_name,
@@ -567,7 +572,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
         await redirect(request, LANDING)
 
 
-async def download_kge_file_set(request: web.Request, kg_id, kg_version) -> web.Response:
+async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive=False) -> web.Response:
     """Returns specified KGE File Set as a gzip compressed tar archive
 
 
@@ -593,18 +598,24 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version) -> web.
 
         # It is assumed that the kgx.tar.gz compressed archive
         # is in the 'root' file of the kg_id kg_version folder
-        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=kg_version)
 
-        # TODO: need to retrieve the kgx.tar.gz file here, for the given
-        #       kg_version of kg_id identified KGE File Set, from the
-        #       file_set_location, to send back to the caller of /download
+        kg_files_for_version = kg_files_in_location(
+            KGEA_APP_CONFIG['bucket'],
+            kg_filepath(kg_id, kg_version)
+        )
 
-        print(str(file_set_location), str(assigned_version))
+        maybe_archive = [kg_file for kg_file in kg_files_for_version if ".tar.gz" in kg_file][0]
 
-        response = web.Response(text=str(file_set_location)+str(assigned_version), status=200)
-
-        return await with_session(request, response)
-
+        if len(maybe_archive) is 1:
+            download_link = download_file(KGEA_APP_CONFIG['bucket'], maybe_archive)
+            response = web.Response(text=str(download_link), status=200)
+            return await with_session(request, response)
+        else:
+            """
+            Create an archive
+            """
+            for object_key in kg_files_for_version:
+                download_file(KGEA_APP_CONFIG['bucket'], object_key, open_file=True)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page

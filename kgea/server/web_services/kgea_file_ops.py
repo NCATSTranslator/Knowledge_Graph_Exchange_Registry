@@ -279,30 +279,133 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME
         return False
     return True
 
+# https://gist.github.com/chipx86/9598b1e4a9a1a7831054
+# TODO: disk or memory?
+def compress_file_to_archive(file, archive):
+    from io import BytesIO
 
-def tardir(path, file_name):
-    tar_name = Template("$FILENAME.tar.gz").substitute(FILENAME=file_name)
-    with tarfile.open(tar_name, "w:gz") as tar_handle:
+    class FileStream(object):
+        def __init__(self):
+            self.buffer = BytesIO()
+            self.offset = 0
+
+        def write(self, s):
+            self.buffer.write(s)
+            self.offset += len(s)
+
+        def tell(self):
+            return self.offset
+
+        def close(self):
+            self.buffer.close()
+
+        def pop(self):
+            s = self.buffer.getvalue()
+            self.buffer.close()
+
+            self.buffer = BytesIO()
+
+            return s
+
+    def stream_build_tar(in_filename, streaming_fp):
+        tar = tarfile.TarFile.open(out_filename, 'w|gz', streaming_fp)
+
+        stat = os.stat(in_filename)
+
+        tar_info = tarfile.TarInfo('outfile')
+
+        # Note that you can get this information from the storage backend,
+        # but it's valid for either to raise a NotImplementedError, so it's
+        # important to check.
+        #
+        # Things like the mode or ownership won't be available.
+        tar_info.mtime = stat.st_mtime
+        tar_info.size = stat.st_size
+
+        # Note that we don't pass a fileobj, so we don't write any data
+        # through addfile. We'll do this ourselves.
+        tar.addfile(tar_info)
+
+        yield
+
+        with open(in_filename, 'rb') as in_fp:
+            total_size = 0
+
+            while True:
+                s = in_fp.read(BLOCK_SIZE)
+
+                if len(s) > 0:
+                    tar.fileobj.write(s)
+
+                    yield
+
+                if len(s) < BLOCK_SIZE:
+                    blocks, remainder = divmod(tar_info.size, tarfile.BLOCKSIZE)
+
+                    if remainder > 0:
+                        tar.fileobj.write(tarfile.NUL *
+                                          (tarfile.BLOCKSIZE - remainder))
+
+                        yield
+
+                        blocks += 1
+
+                    tar.offset += blocks * tarfile.BLOCKSIZE
+                    break
+
+        tar.close()
+
+        yield
+
+    BLOCK_SIZE = 4096
+
+    if len(sys.argv) != 3:
+        print('Usage: %s in_filename out_filename' % sys.argv[0])
+        sys.exit(1)
+
+    in_filename = sys.argv[1]
+    out_filename = sys.argv[2]
+
+    streaming_fp = FileStream()
+    with open(out_filename, 'wb') as out_fp:
+        for i in stream_build_tar(in_filename, streaming_fp):
+            s = streaming_fp.pop()
+
+            if len(s) > 0:
+                print('Writing %d bytes...' % len(s))
+                out_fp.write(s)
+                out_fp.flush()
+
+    print('Wrote tar file to %s' % out_filename)
+    return out_filename
+
+def tardir(path, archive_path):
+    tar_name = Template("$FILEPATH.tar.gz").substitute(FILEPATH=archive_path)
+    with tarfile.open(tar_name, "w|gz") as tar_handle:
         for root, dirs, files in os.walk(path):
             for file in files:
                 tar_handle.add(os.path.join(root, file))
     return Path(tar_name)
 
-
-def kg_filepath(kg_id, kg_version, root_directory=TEST_FILE_DIR):
-    return Template("$DIRECTORY/$KG_ID/$KG_VERSION").substitute(
-        DIRECTORY=root_directory,
+def kg_filepath(kg_id, kg_version, root='', subdir='', attachment=''):
+    return Template("$ROOT/$KG_ID/$KG_VERSION$SUB_DIR$ATTACHMENT").substitute(
+        ROOT=root,
         KG_ID=kg_id,
-        KG_VERSION=kg_version
+        KG_VERSION=kg_version,
+        SUB_DIR=subdir+'/',
+        ATTACHMENT=attachment
     )
 
-
-def package_file(kg_id, kg_version):
-    return tardir(
-        kg_filepath(kg_id, kg_version),  # the source of files to zip up
-        kg_filepath(kg_id, kg_version) + kg_id + '_' + kg_version  # the path and filename for the new archive
-    )
-
+# TODO
+def package_file(kg_id, kg_version, file):
+    package_path = kg_filepath(kg_id, kg_version, root=TEST_BUCKET, attachment=kg_id + '_' + kg_version)
+    package_available = location_available(package_path)
+    if package_available:
+        # create archive
+        package_path_obj = tardir(
+            kg_filepath(kg_id, kg_version),  # the source of files to zip up
+            package_available                     # the path and filename for the new archive
+        )
 
 @prepare_test
 def test_tardir():

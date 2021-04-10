@@ -420,6 +420,7 @@ class KgeaRegistry:
         # For now, a given graph is only submitted once for a given submitter
         # TODO: should we accept any resubmissions or changes?
         if kg_id not in self._kge_file_set_registry:
+            print('adding to registry')
             self._kge_file_set_registry[kg_id] = KgeaFileSet(kg_id, **kwargs)
         
         return self._kge_file_set_registry[kg_id]
