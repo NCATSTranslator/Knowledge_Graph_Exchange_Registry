@@ -58,20 +58,17 @@ KGEA_APP_CONFIG = get_app_config()
 LANDING = '/'
 HOME = '/home'
 
-
 ARCHIVE_PATH = '/archive/'
-
 if DEV_MODE:
     # Point to http://localhost:8080 for Archive process host for local testing
+    # TODO: take from config
     ARCHIVE_PATH = 'http://localhost:8080/archive/'
-else:
-    # Production NGINX resolves the relative path otherwise?
-    ARCHIVE_PATH = '/archive/'
 
 GET_CATALOG_URL = ARCHIVE_PATH+"catalog"
 ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
 UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
 PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
+
 DOWNLOAD_ARCHIVE = ARCHIVE_PATH+"download"
 DOWNLOAD_METADATA = ARCHIVE_PATH+"meta_knowledge_graph"
 
@@ -107,7 +104,10 @@ async def get_kge_home(request: web.Request) -> web.Response:
         response = aiohttp_jinja2.render_template(
             'home.html',
             request=request,
-            context={"get_catalog": GET_CATALOG_URL, "download": DOWNLOAD_ARCHIVE, "meta_knowledge_graph": DOWNLOAD_METADATA}
+            context={
+                "get_catalog": GET_CATALOG_URL,
+                "archive_path": ARCHIVE_PATH,
+            }
         )
         return await with_session(request, response)
     else:

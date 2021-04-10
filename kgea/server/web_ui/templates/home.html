@@ -73,7 +73,7 @@
 
 
             let kg_name = kg_id + '/' + kg_version
-            let url = '/archive/' + kg_name + '/' + source.target.id;
+            let url = '{{ archive_path }}' + kg_name + '/' + source.target.id;
 
             console.log("Downloading  URL: '"+url+"'");
 
@@ -82,7 +82,10 @@
             try {
                  // TODO: What happens to the data returned here?
                  // TODO: Should this fetch rather be a redirect in a separate tab or window?
-                let r = await fetch(url, { method: "GET" });
+                let r = await fetch(url, {
+                    method: "GET",
+                    credentials: "include"
+                });
                 console.log('HTTP response code:',r.status);
 
             } catch(e) {
