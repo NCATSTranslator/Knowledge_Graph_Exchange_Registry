@@ -1,4 +1,13 @@
 {% extends "layout.html" %}
+{% block scripts %}
+    <script>
+        function help(msg)  {
+            if(msg) {
+                window.alert(msg);
+            }
+        }
+    </script>
+{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
@@ -10,11 +19,13 @@
       enctype="application/x-www-form-urlencoded"
       accept-charset="utf-8"
 >
-    <p></p><div style="font-size: smaller">Required fields noted by a '<span style="color: red; font-weight: bold">*</span>'.</div>
+    <p></p><div style="font-size: smaller">Mandatory fields noted by a '<span style="color: red; font-weight: bold">*</span>'.</div>
     <p></p>
-    </p><h5>Researcher or institution submitting the dataset:</h5><br>
+    </p><h5>Researcher or institution submitting the<br>Knowledge Graph KGX File Set:</h5><br>
     <span class="label">Submitter:</span> {{submitter}} |
     <span class="label">Email:</span> {{submitter_email}}
+    <input id="submitter" type="hidden" name="submitter" value="{{submitter}}" />
+    <input id="submitter_email" type="hidden" name="submitter_email" value="{{submitter_email}}" />
     <p></p>
         <p>
         <!--    translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)-->
@@ -32,42 +43,47 @@
         <label  class="label" for="translator_team"><span style="color: red; font-weight: bold">*</span>Translator Team:</label>
         <input id="translator_team" class="textbox" type="text" name="translator_team" />
     </p>
-    <span style="color: red; font-weight: bold">*</span>
+
+    <label class="label" for="kg_name">
+        <span style="color: red; font-weight: bold">*</span>Knowledge Graph Name:
+    </label>
+    <input id="kg_name" class="textbox" type="text" name="kg_name" />
     <div class="tooltip">
-        <label  class="tooltip_target" for="kg_name">Knowledge Graph Name:</label>
+        <img class="tooltip_target" src="images/help-icon.png"/>
         <span class="tooltiptext">
                 (*) A short name that identifies and describes your knowledge graph.<br>
                 Alphanumeric characters only. Do not use special characters.
         </span>
     </div>
-    <input id="kg_name" class="textbox" type="text" name="kg_name" />
+    <p></p>
     <label  class="label" for="kg_version"><span style="color: red; font-weight: bold">*</span> Version:</label>
     <input id="kg_version" class="textbox" type="text" name="kg_version" value="{{kg_version}}" />
+
     <p>
         <!-- kg_description: detailed description of knowledge graph (multi-lined text)-->
         <h4>Knowledge Graph Description:</h4>
         <textarea id="kg_description" class="textbox" type="text" name="kg_description" rows="4" cols="60">
 Detailed description of knowledge graph.</textarea>
-    <p>
-        <!--    license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.-->
-        <div class="tooltip">
-            <label  class="tooltip_target" for="license_name">License:</label>
-            <span class="tooltiptext">
+    <p></p>
+    <!--    license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.-->
+    <label  class="label" for="license_name">License:</label>
+    <select name="license_name" id="license_name">
+          <option value="Creative-Commons-4.0" selected>Creative Commons</option>
+          <option value="MIT">MIT</option>
+          <option value="Apache-2.0">Apache 2.0</option>
+          <option value="Other">Other</option>
+    </select>
+    <div class="tooltip">
+        <img class="tooltip_target" src="images/help-icon.png"/>
+        <span class="tooltiptext">
                     Select data access license; if "Other" license,
                     please specify licensing URL location.
-            </span>
-        </div>
-            <select name="license_name" id="license_name">
-              <option value="Creative-Commons-4.0" selected>Creative Commons</option>
-              <option value="MIT">MIT</option>
-              <option value="Apache-2.0">Apache 2.0</option>
-              <option value="Other">Other</option>
-            </select>
-
+        </span>
+    </div>
+    <p></p>
         <!--    license_url - web site link to project license-->
         <label  class="label" for="license_url">License URL:</label>
         <input id="license_url" class="textbox" type="text" name="license_url" />
-    </p>
     <p></p>
     <p>
         <!--    terms_of_service - specifically relating to the project, beyond the licensing-->
