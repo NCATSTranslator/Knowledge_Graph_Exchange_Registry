@@ -604,12 +604,14 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
             kg_filepath(kg_id, kg_version)
         )
 
-        maybe_archive = [kg_file for kg_file in kg_files_for_version if ".tar.gz" in kg_file][0]
+        maybe_archive = [kg_file for kg_file in kg_files_for_version if "{}_{}.tar.gz".format(kg_id, kg_version) in kg_file]
 
-        if len(maybe_archive) is 1:
-            download_link = download_file(KGEA_APP_CONFIG['bucket'], maybe_archive)
-            response = web.Response(text=str(download_link), status=200)
-            return await with_session(request, response)
+        if len(maybe_archive) == 1:
+            archive_key = maybe_archive[0]
+            download_url = download_file(KGEA_APP_CONFIG['bucket'], archive_key)
+            # response = web.Response(text=str(download_url), status=200)
+            # return await with_session(request, response)
+            await redirect(request, download_url)
         else:
             """
             Create an archive
