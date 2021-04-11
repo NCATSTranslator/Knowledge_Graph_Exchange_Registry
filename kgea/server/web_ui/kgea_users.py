@@ -1,6 +1,7 @@
 """
 KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cognito)
 """
+from os import getenv
 from typing import Dict
 from uuid import uuid4
 
@@ -11,10 +12,13 @@ from aiohttp import web
 from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_session import (
     redirect,
-    report_error
+    report_error, KgeaSession
 )
 
 logger = logging.getLogger(__name__)
+
+# Master flag for simplified local development
+DEV_MODE = getenv('DEV_MODE', default=False)
 
 KGEA_APP_CONFIG = get_app_config()
 
@@ -38,18 +42,27 @@ async def authenticate(request: web.Request):
         KGEA_APP_CONFIG['oauth2']['host'] + \
         '/login?response_type=code' + \
         '&state=' + state + \
-        '&client_id=' + \
-        KGEA_APP_CONFIG['oauth2']['client_id'] + \
-        '&redirect_uri=' + \
-        KGEA_APP_CONFIG['oauth2']['site_uri'] + \
-        KGEA_APP_CONFIG['oauth2']['login_callback']
+        '&client_id=' + KGEA_APP_CONFIG['oauth2']['client_id'] + \
+        '&redirect_uri=' + KGEA_APP_CONFIG['oauth2']['site_uri'] + KGEA_APP_CONFIG['oauth2']['login_callback']
     
     await redirect(request, login_url)
 
 
-async def _get_authenticated_user_token(code: str) -> Dict:
-    logger.debug("Entering _get_authorization(code: "+code+")")
+async def _get_authenticated_user_token(request: web.Request, code: str) -> Dict:
+    if not code:
+        await report_error(request, "Invalid empty 'code' parameter to _get_authenticated_user_token()?")
+
+    logger.debug("Entering _get_authorization(code: "+str(code)+")")
+
     user_attributes: Dict = dict()
+
+    if DEV_MODE:
+        # Stub implementation in DEV_MODE
+        user_attributes["user_id"] = 'translator'  # cognito:username?
+        user_attributes["user_name"] = 'Mr. Trans L. Tor'  # not sure how to get this value(?)
+        user_attributes["user_email"] = 'translator@ncats.nih.gov'
+
+        return user_attributes
     #
     # See https://aws.amazon.com/blogs/mobile/how-to-use-cognito-pre-token-generators-to-customize-claims-in-id-tokens/
     #
@@ -64,10 +77,27 @@ async def _get_authenticated_user_token(code: str) -> Dict:
     #   code=8a24d2df-07b9-41e1-bb5c-c269e87838df&
     #   redirect_uri=http://localhost&
     #   client_id=55pb79dl8gm0i1ho9hdrXXXXXX&scope=openid%20email' \
-    #   -H 'Accept-Encoding: gzip, deflate' \
-    #   -H 'Authorization: Basic NTVwYj......HNXXXXXXX' \
-    #   -H 'Content-Type: application/x-www-form-urlencoded'
     #
+    token_url = \
+        KGEA_APP_CONFIG['oauth2']['host'] + \
+        '/oauth2/token?grant_type=authorization_code&code=' + code + \
+        '&redirect_uri=' + KGEA_APP_CONFIG['oauth2']['site_uri'] + \
+        '&client_id=' + KGEA_APP_CONFIG['oauth2']['client_id'] + KGEA_APP_CONFIG['oauth2']['login_callback'] +  \
+        '&scope=openid%20profile'
+
+    #   -H 'Accept-Encoding: gzip, deflate' \
+    #   -H 'Authorization: Basic NTVwYj......HNXXXXXXX' \ # client_secret
+    #   -H 'Content-Type: application/x-www-form-urlencoded'
+    headers = {
+        'Accept-Encoding': 'gzip, deflate',
+        'Authorization': 'Basic ' + KGEA_APP_CONFIG['oauth2']['client_secret'],
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    # Not sure if the scope needed here?
+    async with KgeaSession.get_global_session().post(token_url, headers=headers) as resp:
+        data = await resp.json()
+
     # Ssh
     #
     # We would need to set the Authorization header for this request as
@@ -102,11 +132,6 @@ async def _get_authenticated_user_token(code: str) -> Dict:
     #     "email": "test-user@amazon.com“
     # }
     #
-    
-    # Stub implementation
-    user_attributes["user_id"] = 'translator'  # cognito:username?
-    user_attributes["user_name"] = 'Mr. Trans L. Tor'  # not sure how to get this value(?)
-    user_attributes["user_email"] = 'translator@ncats.nih.gov'
 
     return user_attributes
 
@@ -136,7 +161,7 @@ async def authenticate_user(request: web.Request):
         
         # now, check the returned code for authorization
         if code:
-            user_attributes = await _get_authenticated_user_token(code)
+            user_attributes = await _get_authenticated_user_token(request, code)
             return user_attributes
             
     return None
