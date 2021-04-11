@@ -118,21 +118,18 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
     try:
         session = await new_session(request)
         
-        if uid:
-            user_id = uid
-        else:
-            user_id = uuid4().hex
+        if not uid:
+            uid = uuid4().hex
         
-        # the identifier field value doesn't seem to be
-        # propagated (in aiohttp 3.6 - review status in 3.7)
-        session.set_new_identity(user_id)
+        # TODO: the identifier field value doesn't seem to be propagated (in aiohttp 3.6 - review status in 3.7)
+        session.set_new_identity(uid)
         
-        session['user_id'] = user_id
+        session['uid'] = uid
         
         if user_attributes:
-            session['user_id'] = user_attributes["user_id"]
-            session['user_name'] = user_attributes["user_name"]
-            session['user_email'] = user_attributes["user_email"]
+            session['username'] = user_attributes.setdefault("preferred_username", 'anonymous')
+            session['fullname'] = user_attributes.setdefault("name", 'anonymous')
+            session['email'] = user_attributes.setdefault("email", '')
 
     except RuntimeError as rte:
         await report_error(request, "initialize_user_session() ERROR: " + str(rte))

@@ -3,7 +3,9 @@ KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cogn
 """
 from os import getenv
 from typing import Dict
-from base64  import b64encode
+import json
+
+from base64  import b64encode, b64decode
 from uuid import uuid4
 
 import logging
@@ -13,8 +15,9 @@ from aiohttp import web
 from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_session import KgeaSession
 
-
 logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.DEBUG)
 
 # Master flag for simplified local development
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -48,9 +51,9 @@ async def login_url(request: web.Request) -> str:
 def mock_user_attributes() -> Dict:
     # Stub implementation in DEV_MODE
     user_attributes: Dict = dict()
-    user_attributes["user_id"] = 'translator'  # cognito:username?
-    user_attributes["user_name"] = 'Mr. Trans L. Tor'  # not sure how to get this value(?)
-    user_attributes["user_email"] = 'translator@ncats.nih.gov'
+    user_attributes["preferred_username"] = 'translator'
+    user_attributes["name"] = 'Mr. Trans L. Tor'
+    user_attributes["email"] = 'translator@ncats.nih.gov'
     return user_attributes
 
 
@@ -59,18 +62,19 @@ async def _get_user_attributes(request: web.Request, code: str) -> Dict:
     # AWS Cognito via retrieval
     # of the OAuth2 ID Token
 
-    logger.debug("Entering _get_authorization(code: "+str(code)+")")
+    logger.debug("Entering _get_user_attributes(code: "+str(code)+")")
 
     user_attributes: Dict = dict()
 
     # short term override of the Work-In-Progress code
     if DEV_MODE:
         user_attributes = mock_user_attributes()
+
     else:
+        # See the AWS Cognito documentation about ID tokens:
+        # https://aws.amazon.com/blogs/mobile/how-to-use-cognito-pre-token-generators-to-customize-claims-in-id-tokens/
         #
-        # See https://aws.amazon.com/blogs/mobile/how-to-use-cognito-pre-token-generators-to-customize-claims-in-id-tokens/
-        #
-        # got the authorization code Query parameter, the next step is to exchange it
+        # Given the authorization code Query parameter, the next step is to exchange it
         # for user pool tokens. The exchange occurs by submitting a POST request with
         # code Query parameter, client Id and Authorization Header like below.
         #
@@ -93,6 +97,8 @@ async def _get_user_attributes(request: web.Request, code: str) -> Dict:
             '&redirect_uri=' + redirect_uri + \
             '&client_id=' + client_id
 
+        logger.debug("_get_user_attributes(): token_url: "+token_url)
+
         # See https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html
         #
         #   -H 'Accept-Encoding: gzip, deflate' \
@@ -105,43 +111,96 @@ async def _get_user_attributes(request: web.Request, code: str) -> Dict:
         #
         credentials = client_id+':'+client_secret
         authorization = b64encode(credentials.encode('utf-8')).decode('utf-8')
-        headers = {
+        token_headers = {
             'Accept-Encoding': 'gzip, deflate',
             'Authorization': 'Basic ' + authorization,
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        async with KgeaSession.get_global_session().post(token_url, headers=headers) as resp:
-            data = await resp.json()
+        logger.debug("_get_user_attributes(): Authorization: " + authorization)
 
-        # Once the POST Request is successful we should get a response with id_token, access_token and refresh_token.
-        #
-        # {
-        #     "id_token":"XXXXXXx.....XXXXXXX",
-        #     "access_token":"XXXXXXx.....XXXXXXX",
-        #     "refresh_token":"XXXXXXx.....XXXXXXX",
-        #     "expires_in": 3600,
-        #     "token_type": "Bearer"
-        # }
-        #
-        # JSON
-        #
-        # Decoding the JWT ID Token will yield the following results with custom claim pet_preference added to the Id Token.
-        #
-        # {
-        #     "at_hash": "4FNVgmQsm5m_h9VC_OFFuQ",
-        #     "sub": "472ff4cd-9b09-46b5-8680-e8c5d6025d38",
-        #     "aud": "55pb79dl8gm0i1ho9hdre91r3k",
-        #     "token_use": "id",
-        #     "auth_time": 1576816174,
-        #     "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_qyS1sSLiQ",
-        #     "pet_preference": "dogs",
-        #     "cognito:username": "test-user",
-        #     "exp": 1576819774,
-        #     "iat": 1576816174,
-        #     "email": "test-user@amazon.com“
-        # }
-        #
+        logger.debug("_get_user_attributes(): POSTing to /oauth2/token ...")
+
+        async with KgeaSession.get_global_session().post(token_url, headers=token_headers) as resp:
+            # Once the POST Request is successful we should get a
+            # response with id_token, access_token and refresh_token.
+            #
+            # {
+            #     "id_token":"XXXXXXx.....XXXXXXX",
+            #     "access_token":"XXXXXXx.....XXXXXXX",
+            #     "refresh_token":"XXXXXXx.....XXXXXXX",
+            #     "expires_in": 3600,
+            #     "token_type": "Bearer"
+            # }
+            #
+            encoded_data = await resp.json()
+
+            logger.debug("\t... returned:\n\n"+str(encoded_data))
+
+            # The access and refresh tokens with metadata are
+            # directly returned among the user attributes
+            user_attributes["access_token"] = encoded_data['access_token']
+
+            # TODO: how do I need to handle access_token refresh after expiration?
+            user_attributes["refresh_token"] = encoded_data['refresh_token']
+            user_attributes["expires_in"] = encoded_data['expires_in']
+            user_attributes["token_type"] = encoded_data['token_type']
+
+            #
+            # Hmm... perhaps I don't care about the ID token per say, but
+            # actually need to access the /oauth2/userInfo endpoint
+            # to get the actual user attributes of interest
+            #
+            # Then by decoding the JWT ID Token, we will get at the actual
+            # user attributes and associated metadata, like the following:
+            #
+            # {
+            #     "at_hash": "4FNVgmQsm5m_h9VC_OFFuQ",
+            #     "sub": "472ff4cd-9b09-46b5-8680-e8c5d6025d38",
+            #     "aud": "55pb79dl8gm0i1ho9hdre91r3k",
+            #     "token_use": "id",
+            #     "auth_time": 1576816174,
+            #     "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_qyS1sSLiQ",
+            #     "cognito:username": "test-user",
+            #     "exp": 1576819774,
+            #     "iat": 1576816174,
+            #     "email": "test-user@amazon.com“
+            # }
+            #
+            # jwt_id_token = encoded_data['id_token']
+            # decoded_jwt_id_token: str = b64decode(jwt_id_token).decode('utf-8')
+            # user_data: Dict = json.loads(decoded_jwt_id_token)
+            #
+            # logger.debug("\twith decoded user data:\n\n"+str(user_data))
+
+        #  GET https://<your-user-pool-domain>/oauth2/userInfo
+        # Authorization: Bearer <access_token>
+        user_info_url = host + '/oauth2/token'
+        user_info_headers = {
+            "Authorization": 'Bearer ' + user_attributes["access_token"]
+        }
+
+        async with KgeaSession.get_global_session().get(user_info_url, headers=user_info_headers) as resp:
+            # Should GET something ike the following response:
+            #
+            # HTTP/1.1 200 OK
+            # Content-Type: application/json;charset=UTF-8
+            # {
+            #    "sub": "248289761001",
+            #    "name": "Jane Doe",
+            #    "given_name": "Jane",
+            #    "family_name": "Doe",
+            #    "preferred_username": "j.doe",
+            #    "email": "janedoe@example.com"
+            # }
+            #
+            user_data = await resp.json()
+
+            logger.debug("_get_user_attributes(): GETing oauth2/userInfo ...")
+            logger.debug("\t... returned:\n\n" + str(user_data))
+
+            for key, value in user_data:
+                user_attributes[key] = value
 
     return user_attributes
 

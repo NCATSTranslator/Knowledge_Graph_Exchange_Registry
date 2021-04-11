@@ -219,8 +219,8 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:
             # Now going to 'hard code' these to the
             # authenticated user values captured
             # in the 'kge_login' handler above
-            "submitter": session['user_name'],
-            "submitter_email": session['user_email']
+            "submitter": session['fullname'],
+            "submitter_email": session['email']
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
         return await with_session(request, response)
