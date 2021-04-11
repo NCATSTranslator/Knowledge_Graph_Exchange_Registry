@@ -180,7 +180,7 @@ async def kge_logout(request: web.Request):
             # the unauthenticated landing page after session deletion
             await redirect(request, LANDING)
         else:
-            await  await redirect(request, logout_url())
+            await redirect(request, logout_url())
     else:
         # If session is not active, then just a await redirect
         # directly back to unauthenticated landing page
