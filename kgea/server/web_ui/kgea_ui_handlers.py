@@ -22,9 +22,10 @@ from kgea.server.web_services.kgea_session import (
 
 from kgea.server.config import get_app_config
 from .kgea_users import (
-    authenticate,
+    login_url,
+    logout_url,
     authenticate_user,
-    logout, KgeaLoginError
+    mock_user_attributes
 )
 
 import logging
@@ -131,13 +132,9 @@ async def kge_client_authentication(request: web.Request):
     if not (code and state):
         await report_error(request, "User not authenticated. Reason: no authorization code returned?")
 
-    try:
-        user_attributes = await authenticate_user(code, state)
-    except KgeaLoginError as kle:
-        await report_error(request, str(kle))
+    user_attributes: Dict = await authenticate_user(code, state)
     
     if user_attributes:
-
         await initialize_user_session(request, user_attributes=user_attributes)
         
         # if active session and no exception raised, then
@@ -154,24 +151,21 @@ async def kge_login(request: web.Request):
     :param request:
     :type request: web.Request
     """
+    # DEV_MODE workaround by-passes full external authentication
     if DEV_MODE:
         # Stub implementation of user_attributes, to fake authentication
-        user_attributes: Dict = dict()
-        user_attributes["user_id"] = 'translator'  # cognito:username?
-        user_attributes["user_name"] = 'Mr. Trans L. Tor'  # not sure how to get this value(?)
-        user_attributes["user_email"] = 'translator@ncats.nih.gov'
+        user_attributes: Dict = mock_user_attributes()
 
-        # DEV_MODE workaround by-passes full external authentication
         await initialize_user_session(request,user_attributes=user_attributes)
 
-        # then redirect to an authenticated home page
+        # then redirects to an authenticated home page
         await redirect(request, HOME, active_session=True)
 
-    await authenticate(request)
+    await redirect(request, login_url())
 
 
 async def kge_logout(request: web.Request):
-    """Process client user logout
+    """Process client user logout_url
 
     :param request:
     :type request: web.Request
@@ -186,7 +180,7 @@ async def kge_logout(request: web.Request):
             # the unauthenticated landing page after session deletion
             await redirect(request, LANDING)
         else:
-            await logout(request)
+            await  await redirect(request, logout_url())
     else:
         # If session is not active, then just a await redirect
         # directly back to unauthenticated landing page
@@ -224,7 +218,7 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:
             
             # Now going to 'hard code' these to the
             # authenticated user values captured
-            # in the 'authenticate' handler above
+            # in the 'kge_login' handler above
             "submitter": session['user_name'],
             "submitter_email": session['user_email']
         }

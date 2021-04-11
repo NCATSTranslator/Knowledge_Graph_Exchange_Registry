@@ -131,7 +131,9 @@ Basic operation of the AWS Cognito hosted login UI is obtained by going to the f
 https://<Login_Associated_Domain>/login?response_type=code&client_id=<your_app_client_id>&redirect_uri=<your_callback_url>
 ```
 
-This GET call to AWS Cognito login application is implemented in  the `kgea.server.web_ui.kgea_users` (`kgea_users`) module in the `authenticate`  function. See Step 4 below for further details.
+This URL is wrapped by the `login_url` function in the `kgea.server.web_ui.kgea_users` (`kgea_users`) module in the `login_url`  function, called by the `kge_login` handler. 
+
+See Step 4 below for further details about subsequent authorization steps.
 
 ## Step 3 - Create an Identity Pool
 
