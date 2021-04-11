@@ -92,7 +92,7 @@ Not initially done but Production Archive needs should be reviewed.
 
 ### App Clients
 
-None initially configured.
+None initially configured. See separate app client configuration step below.
 
 ### Triggers
 
@@ -109,9 +109,13 @@ The [AWS Cognito procedure for creating a client app login](https://docs.aws.ama
 
 ### App Client Creation
 
+#### Client Secret
+
+Full access to the AWS Cognito managed ID token for a user (and  its attributes) will require a server-side managed  'client secret' to select for this.
+
 #### Sign in and sign out URLs
 
-A suitably active https-secured web server host needs to be deployed, live and visible. We point the `Callback URL` and `Sign out URL` to that host.
+A suitably active https-secured web server host needs to be deployed, live and visible, perhaps something like "**https://kgea.translator.ncats.io**" We point the `Callback URL` and `Sign out URL` to that host.
 
 #### Configure a Login Associated Domain
 
@@ -127,6 +131,8 @@ Basic operation of the AWS Cognito hosted login UI is obtained by going to the f
 https://<Login_Associated_Domain>/login?response_type=code&client_id=<your_app_client_id>&redirect_uri=<your_callback_url>
 ```
 
+This GET call to AWS Cognito login application is implemented in  the `kgea.server.web_ui.kgea_users` (`kgea_users`) module in the `authenticate`  function. See Step 4 below for further details.
+
 ## Step 3 - Create an Identity Pool
 
 [Creating an AWS Cognito Identity Pool](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-identity.html)
@@ -137,4 +143,4 @@ T.B.A.
 
 ## Step 4 - Client Authorized Access to Site Resources
 
-T.B.A.
+After the user provides their [credentials to the AWS Cognito managed login dialog](#using-the-login-interface), then Cognito returns an authorization 'code' back to the `redirect_uri` noted above.  This URL is processed in the   `kge_client_authentication` handler in the `kgea.server.web_ui.kgea_ui_handlers` (`kgea_ui_handlers`) module, which in turn, delegates to the `authenticate_user` function  in `kgea_users`  to retrieve the User ID Token user attributes.

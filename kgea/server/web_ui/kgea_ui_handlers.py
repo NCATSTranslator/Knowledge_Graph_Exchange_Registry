@@ -24,7 +24,7 @@ from kgea.server.config import get_app_config
 from .kgea_users import (
     authenticate,
     authenticate_user,
-    logout
+    logout, KgeaLoginError
 )
 
 import logging
@@ -120,7 +120,21 @@ async def kge_client_authentication(request: web.Request):
     :param request:
     :type request: web.Request
     """
-    user_attributes = await authenticate_user(request)
+    error = request.query.get('error', default='')
+    if error:
+        error_description = request.query.get('error_description', default='')
+        await report_error(request, "User not authenticated. Reason: " + str(error_description))
+
+    code = request.query.get('code', default='')
+    state = request.query.get('state', default='')
+
+    if not (code and state):
+        await report_error(request, "User not authenticated. Reason: no authorization code returned?")
+
+    try:
+        user_attributes = await authenticate_user(code, state)
+    except KgeaLoginError as kle:
+        await report_error(request, str(kle))
     
     if user_attributes:
 

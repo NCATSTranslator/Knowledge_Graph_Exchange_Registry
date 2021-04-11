@@ -12,8 +12,13 @@ from aiohttp import web
 from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_session import (
     redirect,
-    report_error, KgeaSession
+    KgeaSession
 )
+
+
+class KgeaLoginError(RuntimeError):
+    pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +55,7 @@ async def authenticate(request: web.Request):
 
 async def _get_authenticated_user_token(request: web.Request, code: str) -> Dict:
     if not code:
-        await report_error(request, "Invalid empty 'code' parameter to _get_authenticated_user_token()?")
+        raise KgeaLoginError("Invalid empty 'code' parameter to _get_authenticated_user_token()?")
 
     logger.debug("Entering _get_authorization(code: "+str(code)+")")
 
@@ -86,7 +91,7 @@ async def _get_authenticated_user_token(request: web.Request, code: str) -> Dict
         '&scope=openid%20profile'
 
     #   -H 'Accept-Encoding: gzip, deflate' \
-    #   -H 'Authorization: Basic NTVwYj......HNXXXXXXX' \ # client_secret
+    #   -H 'Authorization: Basic NTVwYj......HNXXXXXXX' \ # AWS Cognito App Client 'client_secret'
     #   -H 'Content-Type: application/x-www-form-urlencoded'
     headers = {
         'Accept-Encoding': 'gzip, deflate',
@@ -94,7 +99,6 @@ async def _get_authenticated_user_token(request: web.Request, code: str) -> Dict
         'Content-Type': 'application/x-www-form-urlencoded'
     }
 
-    # Not sure if the scope needed here?
     async with KgeaSession.get_global_session().post(token_url, headers=headers) as resp:
         data = await resp.json()
 
@@ -136,23 +140,13 @@ async def _get_authenticated_user_token(request: web.Request, code: str) -> Dict
     return user_attributes
 
 
-async def authenticate_user(request: web.Request):
+async def authenticate_user(code: str, state: str):
     """
-    :param request: from Oauth2 callback request endpoint handler
-    :return: dictionary of identity token attributes obtained for an authenticate user; None if unsuccessful
+    :param code: value from Oauth2 authenticated callback request endpoint handler
+    :param state: value from Oauth2 authenticated callback request endpoint handler
+    :return: dictionary of AWS Cognito OAuth2 ID token attributes obtained for an authenticate user; None if unsuccessful
     """
-    
-    error = request.query.get('error', default='')
-    if error:
-        error_description = request.query.get('error_description', default='')
-        await report_error(request, "User not authenticated. Reason: " + str(error_description))
-    
-    code = request.query.get('code', default='')
-    state = request.query.get('state', default='')
-    
-    if not (code and state):
-        await report_error(request, "User not authenticated. Reason: no authorization code returned?")
-    
+
     # Establish session here if there is a valid access code & state variable?
     if state in _state_cache:
         
@@ -161,7 +155,7 @@ async def authenticate_user(request: web.Request):
         
         # now, check the returned code for authorization
         if code:
-            user_attributes = await _get_authenticated_user_token(request, code)
+            user_attributes = await _get_authenticated_user_token(code)
             return user_attributes
             
     return None
