@@ -1,6 +1,7 @@
 """
 KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cognito)
 """
+import sys
 from os import getenv
 from typing import Dict
 import json
@@ -48,7 +49,7 @@ def login_url() -> str:
         '&redirect_uri=' + redirect_uri + '&state=' + state + \
         '&scope=openid+profile+aws.cognito.signin.user.admin'
 
-    logger.debug("login_url(): "+url)
+    print("login_url(): "+url, file=sys.stderr)
 
     return url
 
