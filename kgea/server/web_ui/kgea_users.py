@@ -28,7 +28,7 @@ KGEA_APP_CONFIG = get_app_config()
 _state_cache = []
 
 
-async def login_url(request: web.Request) -> str:
+async def login_url() -> str:
     """
     Sends an authentication request to specified
     OAuth2 login service (i.e. AWS Cognito)
@@ -209,7 +209,7 @@ async def authenticate_user(code: str, state: str):
     """
     :param code: value from Oauth2 authenticated callback request endpoint handler
     :param state: value from Oauth2 authenticated callback request endpoint handler
-    :return: dictionary of AWS Cognito OAuth2 ID token attributes obtained for an login_url user; None if unsuccessful
+    :return: dictionary of user attributes obtained for an authenticated user; None if unsuccessful
     """
 
     # Establish session here if there is a valid access code & state variable?
@@ -226,7 +226,7 @@ async def authenticate_user(code: str, state: str):
     return None
 
 
-async def logout_url(request: web.Request) -> str:
+async def logout_url() -> str:
     """
     Redirection to signal logout_url at the Oauth2 host
     :param request:
