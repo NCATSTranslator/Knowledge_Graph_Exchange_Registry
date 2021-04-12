@@ -107,21 +107,33 @@ None initially configured. To be reviewed at a later date. Available options are
 
 The [AWS Cognito procedure for creating a client app login](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-app-integration.html) is our initial guide here.
 
-### App Client Creation
+### App Client Integration
 
-#### Client Secret
+#### Enabled Identity Providers
 
-Full access to the AWS Cognito managed ID token for a user (and  its attributes) will require a server-side managed  'client secret' to select for this.
+Should select **Cognito User Pool**.
 
 #### Sign in and sign out URLs
 
 A suitably active https-secured web server host needs to be deployed, live and visible, perhaps something like "**https://kgea.translator.ncats.io**" We point the `Callback URL` and `Sign out URL` to that host.
+
+#### Allowed OAuth Flows 
+
+Select `Authorization code grant`.
+
+#### Allowed OAuth Scopes
+
+Select `email`, `openid`, `aws.cognito.signin.user.admin` and `profile`.
 
 #### Configure a Login Associated Domain
 
 After setting up an app client, one can configure the address of one's sign-up and sign-in webpages. One can use an Amazon Cognito hosted domain and choose an available domain prefix (which added to one of the regio-specific AWS Cognito hostnames, becomes the "_Login Associated Domain_"), or one can use one's own web address as a custom domain (set as the "_Login Associated Domain_").  
 
 In principle, the specified hostname of the live (https-secured) KGE Archive server will be designated in the future as a custom domain, following directives to obtain and record an associated certificate in the AWS Certificate Manager (ACM) and to add an alias record to the domain’s hosted zone after it’s associated with the given user pool.   However, for testing purposes, a request can be made to register and use an available AWS Cognito prefixed domain name prefix (connected with a the regio-specific AWS Cognito hostname).
+
+#### Client Secret
+
+Full access to the AWS Cognito managed ID token for a user (and  its attributes) will require a server-side managed  'client secret' to select for this.
 
 #### Using the login interface
 

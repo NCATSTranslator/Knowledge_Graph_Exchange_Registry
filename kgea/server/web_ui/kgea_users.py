@@ -63,7 +63,7 @@ def mock_user_attributes() -> Dict:
     return user_attributes
 
 
-async def _get_user_attributes(request: web.Request, code: str) -> Dict:
+async def _get_user_attributes(code: str) -> Dict:
     # Return user attributes from
     # AWS Cognito via retrieval
     # of the OAuth2 ID Token
