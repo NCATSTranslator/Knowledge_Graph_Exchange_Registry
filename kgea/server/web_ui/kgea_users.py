@@ -103,7 +103,7 @@ async def _get_user_attributes(code: str) -> Dict:
             '&redirect_uri=' + redirect_uri + \
             '&client_id=' + client_id
 
-        logger.debug("_get_user_attributes(): token_url: "+token_url)
+        print("_get_user_attributes(): token_url: "+token_url, file=sys.stderr)
 
         # See https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html
         #
@@ -123,9 +123,9 @@ async def _get_user_attributes(code: str) -> Dict:
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        logger.debug("_get_user_attributes(): Authorization: " + authorization)
+        print("_get_user_attributes(): Authorization: " + authorization, file=sys.stderr)
 
-        logger.debug("_get_user_attributes(): POSTing to /oauth2/token ...")
+        print("_get_user_attributes(): POSTing to /oauth2/token ...", file=sys.stderr)
 
         async with KgeaSession.get_global_session().post(token_url, headers=token_headers) as resp:
             # Once the POST Request is successful we should get a
@@ -143,7 +143,7 @@ async def _get_user_attributes(code: str) -> Dict:
                 # encoded_data = await resp.json()
                 encoded_data = await resp.text()
 
-                logger.debug("\t... returned:\n\n"+str(encoded_data))
+                print("\t... returned:\n\n"+str(encoded_data), file=sys.stderr)
 
                 # The access and refresh tokens with metadata are
                 # directly returned among the user attributes
