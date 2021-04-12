@@ -103,7 +103,7 @@ async def _get_user_attributes(code: str) -> Dict:
             '&redirect_uri=' + redirect_uri + \
             '&client_id=' + client_id
 
-        print("_get_user_attributes(): token_url: "+token_url, file=sys.stderr)
+        # print("_get_user_attributes(): token_url: "+token_url, file=sys.stderr)
 
         # See https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html
         #
@@ -123,9 +123,9 @@ async def _get_user_attributes(code: str) -> Dict:
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        print("_get_user_attributes(): Authorization: " + authorization, file=sys.stderr)
-
-        print("_get_user_attributes(): POSTing to /oauth2/token ...", file=sys.stderr)
+        # print("_get_user_attributes(): Authorization: " + authorization, file=sys.stderr)
+        #
+        # print("_get_user_attributes(): POSTing to /oauth2/token ...", file=sys.stderr)
 
         async with KgeaSession.get_global_session().post(token_url, headers=token_headers) as resp:
             # Once the POST Request is successful we should get a
@@ -183,9 +183,10 @@ async def _get_user_attributes(code: str) -> Dict:
                 # logger.debug("\twith decoded user data:\n\n"+str(user_data))
             else:
                 # Unexpected response code?
+                errmsg = await resp.text(encoding='utf-8')
                 raise RuntimeError(
                     "/oauth2/token POST\n\tHTTP Status: " + str(resp.status) +
-                    "\n\tResponse:" + resp.text(encoding='utf-8')
+                    "\n\tResponse:" + errmsg
                 )
 
         #  GET https://<your-user-pool-domain>/oauth2/userInfo
@@ -212,8 +213,10 @@ async def _get_user_attributes(code: str) -> Dict:
             data = await resp.text()
             user_data: Dict = json.loads(data)
 
-            logger.debug("_get_user_attributes(): GETing oauth2/userInfo ...")
-            logger.debug("\t... returned:\n\n" + str(user_data))
+            print(
+                "_get_user_attributes(): GETing oauth2/userInfo ...\n" +
+                "\t... returned:\n\n" + str(user_data), file=sys.stderr
+            )
 
             for key, value in user_data.items():
                 user_attributes[key] = value
