@@ -35,8 +35,7 @@ import logging
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 logger = logging.getLogger(__name__)
-if DEV_MODE:
-    logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
 KGEA_APP_CONFIG = get_app_config()
@@ -59,7 +58,6 @@ KGEA_APP_CONFIG = get_app_config()
 # should match the API path spec
 LANDING = '/'
 HOME = '/home'
-
 
 ARCHIVE_PATH = '/archive/'
 
