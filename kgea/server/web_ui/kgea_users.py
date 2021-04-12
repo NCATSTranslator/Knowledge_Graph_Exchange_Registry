@@ -1,7 +1,12 @@
 """
 KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cognito)
 """
+import sys
+from os import getenv
 from typing import Dict
+import json
+
+from base64  import b64encode, b64decode
 from uuid import uuid4
 
 import logging
@@ -9,12 +14,14 @@ import logging
 from aiohttp import web
 
 from kgea.server.config import get_app_config
-from kgea.server.web_services.kgea_session import (
-    redirect,
-    report_error
-)
+from kgea.server.web_services.kgea_session import KgeaSession
 
 logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.DEBUG)
+
+# Master flag for simplified local development
+DEV_MODE = getenv('DEV_MODE', default=False)
 
 KGEA_APP_CONFIG = get_app_config()
 
@@ -22,7 +29,7 @@ KGEA_APP_CONFIG = get_app_config()
 _state_cache = []
 
 
-async def authenticate(request: web.Request):
+def login_url() -> str:
     """
     Sends an authentication request to specified
     OAuth2 login service (i.e. AWS Cognito)
@@ -33,101 +40,188 @@ async def authenticate(request: web.Request):
     """
     state = str(uuid4())
     _state_cache.append(state)
-    
-    login_url = \
-        KGEA_APP_CONFIG['oauth2']['host'] + \
-        '/login?response_type=code' + \
-        '&state=' + state + \
-        '&client_id=' + \
-        KGEA_APP_CONFIG['oauth2']['client_id'] + \
-        '&redirect_uri=' + \
-        KGEA_APP_CONFIG['oauth2']['site_uri'] + \
-        KGEA_APP_CONFIG['oauth2']['login_callback']
-    
-    await redirect(request, login_url)
+
+    host = KGEA_APP_CONFIG['oauth2']['host']
+    client_id = KGEA_APP_CONFIG['oauth2']['client_id']
+    redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + KGEA_APP_CONFIG['oauth2']['login_callback']
+
+    url = host + '/login?response_type=code&client_id=' + client_id + \
+        '&redirect_uri=' + redirect_uri + '&state=' + state + \
+        '&scope=openid+profile+aws.cognito.signin.user.admin'
+
+    print("login_url(): "+url, file=sys.stderr)
+
+    return url
 
 
-async def _get_authenticated_user_token(code: str) -> Dict:
-    logger.debug("Entering _get_authorization(code: "+code+")")
+def mock_user_attributes() -> Dict:
+    # Stub implementation in DEV_MODE
     user_attributes: Dict = dict()
-    #
-    # See https://aws.amazon.com/blogs/mobile/how-to-use-cognito-pre-token-generators-to-customize-claims-in-id-tokens/
-    #
-    # got the authorization code Query parameter, the next step is to exchange it
-    # for user pool tokens. The exchange occurs by submitting a POST request with
-    # code Query parameter, client Id and Authorization Header like below.
-    #
-    # # HTTP Request (including valid token with "email" scope)
-    # $ curl -X POST \
-    #   'https://<Cognito User Pool Domain>/oauth2/token?
-    #   grant_type=authorization_code&
-    #   code=8a24d2df-07b9-41e1-bb5c-c269e87838df&
-    #   redirect_uri=http://localhost&
-    #   client_id=55pb79dl8gm0i1ho9hdrXXXXXX&scope=openid%20email' \
-    #   -H 'Accept-Encoding: gzip, deflate' \
-    #   -H 'Authorization: Basic NTVwYj......HNXXXXXXX' \
-    #   -H 'Content-Type: application/x-www-form-urlencoded'
-    #
-    # Ssh
-    #
-    # We would need to set the Authorization header for this request as
-    # Basic BASE64(CLIENT_ID:CLIENT_SECRET), where BASE64(CLIENT_ID:CLIENT_SECRET)
-    # is the base64 representation of the app client ID and app client secret, concatenated with a colon.
-    #
-    # Once the POST Request is successful we should get a response with id_token, access_token and refresh_token.
-    #
-    # {
-    #     "id_token":"XXXXXXx.....XXXXXXX",
-    #     "access_token":"XXXXXXx.....XXXXXXX",
-    #     "refresh_token":"XXXXXXx.....XXXXXXX",
-    #     "expires_in": 3600,
-    #     "token_type": "Bearer"
-    # }
-    #
-    # JSON
-    #
-    # Decoding the JWT ID Token will yield the following results with custom claim pet_preference added to the Id Token.
-    #
-    # {
-    #     "at_hash": "4FNVgmQsm5m_h9VC_OFFuQ",
-    #     "sub": "472ff4cd-9b09-46b5-8680-e8c5d6025d38",
-    #     "aud": "55pb79dl8gm0i1ho9hdre91r3k",
-    #     "token_use": "id",
-    #     "auth_time": 1576816174,
-    #     "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_qyS1sSLiQ",
-    #     "pet_preference": "dogs",
-    #     "cognito:username": "test-user",
-    #     "exp": 1576819774,
-    #     "iat": 1576816174,
-    #     "email": "test-user@amazon.com“
-    # }
-    #
-    
-    # Stub implementation
-    user_attributes["user_id"] = 'translator'  # cognito:username?
-    user_attributes["user_name"] = 'Mr. Trans L. Tor'  # not sure how to get this value(?)
-    user_attributes["user_email"] = 'translator@ncats.nih.gov'
+    user_attributes["preferred_username"] = 'translator'
+    user_attributes["name"] = 'Mr. Trans L. Tor'
+    user_attributes["email"] = 'translator@ncats.nih.gov'
+    return user_attributes
+
+
+async def _get_user_attributes(code: str) -> Dict:
+    """ Return user attributes from AWS Cognito via
+    /oauth2/token and /oauth2/userinfo calls"""
+
+    user_attributes: Dict = dict()
+
+    # short term override of the Work-In-Progress code
+    if DEV_MODE:
+        user_attributes = mock_user_attributes()
+
+    else:
+        # See the AWS Cognito documentation about ID tokens:
+        # https://aws.amazon.com/blogs/mobile/how-to-use-cognito-pre-token-generators-to-customize-claims-in-id-tokens/
+        #
+        # Given the authorization code Query parameter, the next step is to exchange it
+        # for user pool tokens. The exchange occurs by submitting a POST request with
+        # code Query parameter, client Id and Authorization Header like below.
+        #
+        # # HTTP Request (including valid token with "email" scope)
+        # $ curl -X POST \
+        #   'https://<Cognito User Pool Domain>/oauth2/token?
+        #   grant_type=authorization_code&
+        #   code=8a24d2df-07b9-41e1-bb5c-c269e87838df&
+        #   redirect_uri=http://localhost&
+        #   client_id=55pb79dl8gm0i1ho9hdrXXXXXX&scope=openid%20email' \
+        #
+
+        host = KGEA_APP_CONFIG['oauth2']['host']
+        redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + KGEA_APP_CONFIG['oauth2']['login_callback']
+        client_id = KGEA_APP_CONFIG['oauth2']['client_id']
+        client_secret = KGEA_APP_CONFIG['oauth2']['client_secret']
+
+        token_url = host + '/oauth2/token?' + \
+            'grant_type=authorization_code&code=' + code + \
+            '&redirect_uri=' + redirect_uri + \
+            '&client_id=' + client_id
+
+        # See https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html
+        #
+        #   -H 'Accept-Encoding: gzip, deflate' \
+        #   -H 'Authorization: Basic ' + Base64Encode(client_id:client_secret)
+        #   -H 'Content-Type: application/x-www-form-urlencoded'
+        #
+        # One needs to set the Authorization header for this request as
+        # Basic BASE64(CLIENT_ID:CLIENT_SECRET), where BASE64(CLIENT_ID:CLIENT_SECRET)
+        # is the base64 representation of the app client ID and app client secret, concatenated with a colon.
+        #
+        credentials = client_id+':'+client_secret
+        authorization = b64encode(credentials.encode('utf-8')).decode('utf-8')
+        token_headers = {
+            'Accept-Encoding': 'gzip, deflate',
+            'Authorization': 'Basic ' + authorization,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+
+        async with KgeaSession.get_global_session().post(token_url, headers=token_headers) as resp:
+            # Once the POST Request is successful we should get a
+            # response with id_token, access_token and refresh_token.
+            #
+            # {
+            #     "id_token":"XXXXXXx.....XXXXXXX",
+            #     "access_token":"XXXXXXx.....XXXXXXX",
+            #     "refresh_token":"XXXXXXx.....XXXXXXX",
+            #     "expires_in": 3600,
+            #     "token_type": "Bearer"
+            # }
+            #
+            if resp.status == 200:
+                # encoded_data = await resp.json()
+                data = await resp.text()
+                encoded_data = json.loads(data)
+
+                # The access and refresh tokens with metadata are
+                # directly returned among the user attributes
+                user_attributes["access_token"] = encoded_data['access_token']
+
+                # TODO: how do I need to handle access_token refresh after expiration?
+                user_attributes["refresh_token"] = encoded_data['refresh_token']
+                user_attributes["expires_in"] = encoded_data['expires_in']
+                user_attributes["token_type"] = encoded_data['token_type']
+
+                #
+                # Hmm... perhaps I don't care about the ID token per say, but
+                # actually need to access the /oauth2/userInfo endpoint
+                # to get the actual user attributes of interest
+                #
+                # Then by decoding the JWT ID Token, we will get at the actual
+                # user attributes and associated metadata, like the following:
+                #
+                # {
+                #     "at_hash": "4FNVgmQsm5m_h9VC_OFFuQ",
+                #     "sub": "472ff4cd-9b09-46b5-8680-e8c5d6025d38",
+                #     "aud": "55pb79dl8gm0i1ho9hdre91r3k",
+                #     "token_use": "id",
+                #     "auth_time": 1576816174,
+                #     "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_qyS1sSLiQ",
+                #     "cognito:username": "test-user",
+                #     "exp": 1576819774,
+                #     "iat": 1576816174,
+                #     "email": "test-user@amazon.com“
+                # }
+                #
+                # jwt_id_token = encoded_data['id_token']
+                # decoded_jwt_id_token: str = b64decode(jwt_id_token).decode('utf-8')
+                # user_data: Dict = json.loads(decoded_jwt_id_token)
+                #
+                # logger.debug("\twith decoded user data:\n\n"+str(user_data))
+            else:
+                # Unexpected response code?
+                errmsg = await resp.text(encoding='utf-8')
+                raise RuntimeError(
+                    "/oauth2/token POST\n\tHTTP Status: " + str(resp.status) +
+                    "\n\tResponse:" + errmsg
+                )
+
+        #  GET https://<your-user-pool-domain>/oauth2/userInfo
+        # Authorization: Bearer <access_token>
+        user_info_url = host + '/oauth2/userInfo'
+        user_info_headers = {
+            "Authorization": 'Bearer ' + user_attributes["access_token"]
+        }
+
+        async with KgeaSession.get_global_session().get(user_info_url, headers=user_info_headers) as resp:
+            # Should GET something ike the following response:
+            #
+            # HTTP/1.1 200 OK
+            # Content-Type: application/json;charset=UTF-8
+            # {
+            #    "sub": "248289761001",
+            #    "name": "Jane Doe",
+            #    "given_name": "Jane",
+            #    "family_name": "Doe",
+            #    "preferred_username": "j.doe",
+            #    "email": "janedoe@example.com"
+            # }
+            #
+            if resp.status == 200:
+                data = await resp.text()
+                user_data: Dict = json.loads(data)
+                for key, value in user_data.items():
+                    user_attributes[key] = value
+            else:
+                # Unexpected response code?
+                errmsg = await resp.text(encoding='utf-8')
+                raise RuntimeError(
+                    "/oauth2/userinfo POST\n\tHTTP Status: " + str(resp.status) +
+                    "\n\tResponse:" + errmsg
+                )
 
     return user_attributes
 
 
-async def authenticate_user(request: web.Request):
+async def authenticate_user(code: str, state: str):
     """
-    :param request: from Oauth2 callback request endpoint handler
-    :return: dictionary of identity token attributes obtained for an authenticate user; None if unsuccessful
+    :param code: value from Oauth2 authenticated callback request endpoint handler
+    :param state: value from Oauth2 authenticated callback request endpoint handler
+    :return: dictionary of user attributes obtained for an authenticated user; None if unsuccessful
     """
-    
-    error = request.query.get('error', default='')
-    if error:
-        error_description = request.query.get('error_description', default='')
-        await report_error(request, "User not authenticated. Reason: " + str(error_description))
-    
-    code = request.query.get('code', default='')
-    state = request.query.get('state', default='')
-    
-    if not (code and state):
-        await report_error(request, "User not authenticated. Reason: no authorization code returned?")
-    
+
     # Establish session here if there is a valid access code & state variable?
     if state in _state_cache:
         
@@ -136,23 +230,21 @@ async def authenticate_user(request: web.Request):
         
         # now, check the returned code for authorization
         if code:
-            user_attributes = await _get_authenticated_user_token(code)
+            user_attributes = await _get_user_attributes(code)
             return user_attributes
             
     return None
 
 
-async def logout(request: web.Request):
+def logout_url() -> str:
     """
-    Redirection to signal logout at the Oauth2 host
+    Redirection to signal logout_url at the Oauth2 host
     :param request:
     :return: redirection exception to OAuth2 service
     """
-    logout_url = \
-        KGEA_APP_CONFIG['oauth2']['host'] + \
-        '/logout?client_id=' + \
+    url = KGEA_APP_CONFIG['oauth2']['host'] + \
+        '/logout_url?client_id=' + \
         KGEA_APP_CONFIG['oauth2']['client_id'] + \
         '&logout_uri=' + \
         KGEA_APP_CONFIG['oauth2']['site_uri']
-    
-    await redirect(request, logout_url)
+    return url

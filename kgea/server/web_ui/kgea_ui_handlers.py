@@ -1,5 +1,6 @@
+import sys
 from os import getenv
-from typing import List
+from typing import List, Dict
 
 from datetime import datetime
 
@@ -22,9 +23,10 @@ from kgea.server.web_services.kgea_session import (
 
 from kgea.server.config import get_app_config
 from .kgea_users import (
-    authenticate,
+    login_url,
+    logout_url,
     authenticate_user,
-    logout
+    mock_user_attributes
 )
 
 import logging
@@ -33,8 +35,7 @@ import logging
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 logger = logging.getLogger(__name__)
-if DEV_MODE:
-    logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
 KGEA_APP_CONFIG = get_app_config()
@@ -57,7 +58,6 @@ KGEA_APP_CONFIG = get_app_config()
 # should match the API path spec
 LANDING = '/'
 HOME = '/home'
-
 
 ARCHIVE_PATH = '/archive/'
 
@@ -120,9 +120,22 @@ async def kge_client_authentication(request: web.Request):
     :param request:
     :type request: web.Request
     """
-    user_attributes = await authenticate_user(request)
+    error = request.query.get('error', default='')
+    if error:
+        error_description = request.query.get('error_description', default='')
+        await report_error(request, "User not authenticated. Reason: " + str(error_description))
+
+    code = request.query.get('code', default='')
+    state = request.query.get('state', default='')
+
+    if not (code and state):
+        await report_error(request, "User not authenticated. Reason: no authorization code returned?")
+
+    user_attributes: Dict = await authenticate_user(code, state)
     
     if user_attributes:
+
+        print('kge_client_authentication(): user_attributes are:\n'+str(user_attributes))
 
         await initialize_user_session(request, user_attributes=user_attributes)
         
@@ -140,18 +153,21 @@ async def kge_login(request: web.Request):
     :param request:
     :type request: web.Request
     """
+    # DEV_MODE workaround by-passes full external authentication
     if DEV_MODE:
-        # DEV_MODE workaround by-passes full external authentication
-        await initialize_user_session(request)
+        # Stub implementation of user_attributes, to fake authentication
+        user_attributes: Dict = mock_user_attributes()
 
-        # then redirect to an authenticated home page
+        await initialize_user_session(request,user_attributes=user_attributes)
+
+        # then redirects to an authenticated home page
         await redirect(request, HOME, active_session=True)
 
-    await authenticate(request)
+    await redirect(request, login_url())
 
 
 async def kge_logout(request: web.Request):
-    """Process client user logout
+    """Process client user logout_url
 
     :param request:
     :type request: web.Request
@@ -166,7 +182,7 @@ async def kge_logout(request: web.Request):
             # the unauthenticated landing page after session deletion
             await redirect(request, LANDING)
         else:
-            await logout(request)
+            await redirect(request, logout_url())
     else:
         # If session is not active, then just a await redirect
         # directly back to unauthenticated landing page
@@ -198,7 +214,15 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:
         #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
         context = {
             "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION,
-            "kg_version": datetime.now().strftime('%Y-%m-%d')  # defaults to today's date "timestamp"
+            # initial kg_version defaults to today's date. but
+            # the user can revise it in the registration form
+            "kg_version": datetime.now().strftime('%Y-%m-%d'),
+            
+            # Now going to 'hard code' these to the
+            # authenticated user values captured
+            # in the 'kge_login' handler above
+            "submitter": session['name'],
+            "submitter_email": session['email']
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
         return await with_session(request, response)

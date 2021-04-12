@@ -29,7 +29,7 @@ class KgxValidator:
             # use the self.validator ... maybe? or need something else for KGX metadata JSON?
             return []
         else:
-            return ["Empty file source"]
+            return ["No file name provided - nothing to validate"]
     
     async def validate_data_file(
             self,

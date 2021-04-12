@@ -1,7 +1,10 @@
 # AWS Cognito OAuth2 transaction parameters
+# These parameters should match those set as 'app client' parameters in Cognito
+# i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
 oauth2:
   host:      ''
   client_id: ''
+  client_secret: ''
   site_uri:  ''
   login_callback:  '/oauth2callback'
 

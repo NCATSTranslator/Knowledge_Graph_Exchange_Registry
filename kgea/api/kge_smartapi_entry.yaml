@@ -20,7 +20,7 @@ info:
   x-kge:
     version: "${kg_version}"
 servers:
-  - url: "https://kge.starinformatics.ca/${kg_id}"
+  - url: "https://kge.starinformatics.ca/archive/${kg_id}"
     description: "KGE Archive Entry base url for ${kg_name}"
 externalDocs:
   description: >-
