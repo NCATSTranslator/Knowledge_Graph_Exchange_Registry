@@ -190,7 +190,7 @@ async def _get_user_attributes(code: str) -> Dict:
 
         #  GET https://<your-user-pool-domain>/oauth2/userInfo
         # Authorization: Bearer <access_token>
-        user_info_url = host + '/oauth2/token'
+        user_info_url = host + '/oauth2/userInfo'
         user_info_headers = {
             "Authorization": 'Bearer ' + user_attributes["access_token"]
         }
@@ -209,7 +209,8 @@ async def _get_user_attributes(code: str) -> Dict:
             #    "email": "janedoe@example.com"
             # }
             #
-            user_data = await resp.json()
+            data = await resp.text()
+            user_data = json.loads(data)
 
             logger.debug("_get_user_attributes(): GETing oauth2/userInfo ...")
             logger.debug("\t... returned:\n\n" + str(user_data))
