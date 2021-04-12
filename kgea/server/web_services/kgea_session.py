@@ -28,7 +28,6 @@ logger.setLevel(logging.DEBUG)
 
 
 class KgeaSession:
-    
     _session_storage: AbstractStorage
     _event_loop: AbstractEventLoop
     _client_session: ClientSession
@@ -38,13 +37,13 @@ class KgeaSession:
         """
         Initialize a global KGE Archive Client Session
         """
-    
+
         if app:
             storage = cls.get_storage()
             setup(app, storage)
         else:
             raise RuntimeError("Invalid web application?")
-    
+
         cls._event_loop = asyncio.get_event_loop()
         cls._client_session = ClientSession(loop=cls._event_loop)
 
@@ -61,7 +60,7 @@ class KgeaSession:
             from aiohttp_session.memcached_storage import MemcachedStorage
             mc = aiomcache.Client("memcached", 11211)
             cls._session_storage = MemcachedStorage(mc)
-    
+
     @classmethod
     def get_storage(cls) -> AbstractStorage:
         try:
@@ -71,13 +70,13 @@ class KgeaSession:
             # be called more than twice... some
             # async contexts may call it more often?
             cls._initialize_storage()
-            
+
         return cls._session_storage
 
     @classmethod
     def get_event_loop(cls) -> AbstractEventLoop:
         return cls._event_loop
-    
+
     @classmethod
     async def save_session(cls, request, response, session):
         storage = cls.get_storage()
@@ -102,32 +101,33 @@ class KgeaSession:
         # The main event_loop is already closed in
         # the web.run_app() so I retrieve a new one?
         loop = asyncio.get_event_loop()
-        
+
         # Close the global Client Session
         loop.run_until_complete(cls._close_kgea_global_session())
-        
+
         # see https://docs.aiohttp.org/en/v3.7.4.post0/client_advanced.html#graceful-shutdown
         # Zero-sleep to allow underlying connections to close
         loop.run_until_complete(asyncio.sleep(0))
-        
+
         loop.close()
 
 
 async def initialize_user_session(request, uid: str = None, user_attributes: Dict = None):
     try:
         session = await new_session(request)
-        
+
         if not uid:
             uid = uuid4().hex
-        
+
         # TODO: the identifier field value doesn't seem to be propagated (in aiohttp 3.6 - review status in 3.7)
         session.set_new_identity(uid)
-        
+
         session['uid'] = uid
-        
+
         if user_attributes:
             session['username'] = user_attributes.setdefault("preferred_username", 'anonymous')
-            session['fullname'] = user_attributes.setdefault("name", 'anonymous')
+            session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
+                              user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
 
     except RuntimeError as rte:
@@ -172,7 +172,7 @@ async def _process_redirection(request, response, active_session):
 
 
 async def redirect(request, location: str, active_session: bool = False):
-    logger.debug('redirect() to location: '+str(location))
+    logger.debug('redirect() to location: ' + str(location))
     await _process_redirection(
         request,
         web.HTTPFound(location),

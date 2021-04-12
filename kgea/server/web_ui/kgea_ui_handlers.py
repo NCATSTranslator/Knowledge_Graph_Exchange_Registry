@@ -135,7 +135,7 @@ async def kge_client_authentication(request: web.Request):
     
     if user_attributes:
 
-        print('kge_client_authentication(): user_attributes are:\n'+str(user_attributes), file=sys.stderr)
+        print('kge_client_authentication(): user_attributes are:\n'+str(user_attributes))
 
         await initialize_user_session(request, user_attributes=user_attributes)
         
@@ -221,7 +221,7 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:
             # Now going to 'hard code' these to the
             # authenticated user values captured
             # in the 'kge_login' handler above
-            "submitter": session['fullname'],
+            "submitter": session['name'],
             "submitter_email": session['email']
         }
         response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
