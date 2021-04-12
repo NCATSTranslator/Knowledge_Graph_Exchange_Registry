@@ -28,7 +28,7 @@ KGEA_APP_CONFIG = get_app_config()
 _state_cache = []
 
 
-async def login_url() -> str:
+def login_url() -> str:
     """
     Sends an authentication request to specified
     OAuth2 login service (i.e. AWS Cognito)
@@ -227,7 +227,7 @@ async def authenticate_user(code: str, state: str):
     return None
 
 
-async def logout_url() -> str:
+def logout_url() -> str:
     """
     Redirection to signal logout_url at the Oauth2 host
     :param request:
