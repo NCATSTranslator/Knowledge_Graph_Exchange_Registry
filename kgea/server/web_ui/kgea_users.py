@@ -44,8 +44,12 @@ def login_url() -> str:
     client_id = KGEA_APP_CONFIG['oauth2']['client_id']
     redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + KGEA_APP_CONFIG['oauth2']['login_callback']
 
-    url = host + '/login?response_type=code&state=' + state + \
-        '&client_id=' + client_id + '&redirect_uri=' + redirect_uri
+    url = host + '/login?response_type=code&client_id=' + client_id + \
+        '&redirect_uri=' + redirect_uri + '&state=' + state + \
+        '&scope=openid+profile+aws.cognito.signin.user.admin'
+
+    logger.debug("login_url(): "+url)
+
     return url
 
 
