@@ -1,3 +1,4 @@
+import sys
 from os import getenv
 from typing import List, Dict
 
@@ -135,6 +136,9 @@ async def kge_client_authentication(request: web.Request):
     user_attributes: Dict = await authenticate_user(code, state)
     
     if user_attributes:
+
+        print('kge_client_authentication(): user_attributes are:\n'+str(user_attributes), file=sys.stderr)
+
         await initialize_user_session(request, user_attributes=user_attributes)
         
         # if active session and no exception raised, then
