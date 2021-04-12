@@ -210,12 +210,12 @@ async def _get_user_attributes(code: str) -> Dict:
             # }
             #
             data = await resp.text()
-            user_data = json.loads(data)
+            user_data: Dict = json.loads(data)
 
             logger.debug("_get_user_attributes(): GETing oauth2/userInfo ...")
             logger.debug("\t... returned:\n\n" + str(user_data))
 
-            for key, value in user_data:
+            for key, value in user_data.items():
                 user_attributes[key] = value
 
     return user_attributes
