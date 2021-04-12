@@ -140,7 +140,8 @@ async def _get_user_attributes(code: str) -> Dict:
             # }
             #
             if resp.status == 200:
-                encoded_data = await resp.json()
+                # encoded_data = await resp.json()
+                encoded_data = await resp.text()
 
                 logger.debug("\t... returned:\n\n"+str(encoded_data))
 
