@@ -139,45 +139,52 @@ async def _get_user_attributes(code: str) -> Dict:
             #     "token_type": "Bearer"
             # }
             #
-            encoded_data = await resp.json()
+            if resp.status == 200:
+                encoded_data = await resp.json()
 
-            logger.debug("\t... returned:\n\n"+str(encoded_data))
+                logger.debug("\t... returned:\n\n"+str(encoded_data))
 
-            # The access and refresh tokens with metadata are
-            # directly returned among the user attributes
-            user_attributes["access_token"] = encoded_data['access_token']
+                # The access and refresh tokens with metadata are
+                # directly returned among the user attributes
+                user_attributes["access_token"] = encoded_data['access_token']
 
-            # TODO: how do I need to handle access_token refresh after expiration?
-            user_attributes["refresh_token"] = encoded_data['refresh_token']
-            user_attributes["expires_in"] = encoded_data['expires_in']
-            user_attributes["token_type"] = encoded_data['token_type']
+                # TODO: how do I need to handle access_token refresh after expiration?
+                user_attributes["refresh_token"] = encoded_data['refresh_token']
+                user_attributes["expires_in"] = encoded_data['expires_in']
+                user_attributes["token_type"] = encoded_data['token_type']
 
-            #
-            # Hmm... perhaps I don't care about the ID token per say, but
-            # actually need to access the /oauth2/userInfo endpoint
-            # to get the actual user attributes of interest
-            #
-            # Then by decoding the JWT ID Token, we will get at the actual
-            # user attributes and associated metadata, like the following:
-            #
-            # {
-            #     "at_hash": "4FNVgmQsm5m_h9VC_OFFuQ",
-            #     "sub": "472ff4cd-9b09-46b5-8680-e8c5d6025d38",
-            #     "aud": "55pb79dl8gm0i1ho9hdre91r3k",
-            #     "token_use": "id",
-            #     "auth_time": 1576816174,
-            #     "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_qyS1sSLiQ",
-            #     "cognito:username": "test-user",
-            #     "exp": 1576819774,
-            #     "iat": 1576816174,
-            #     "email": "test-user@amazon.com“
-            # }
-            #
-            # jwt_id_token = encoded_data['id_token']
-            # decoded_jwt_id_token: str = b64decode(jwt_id_token).decode('utf-8')
-            # user_data: Dict = json.loads(decoded_jwt_id_token)
-            #
-            # logger.debug("\twith decoded user data:\n\n"+str(user_data))
+                #
+                # Hmm... perhaps I don't care about the ID token per say, but
+                # actually need to access the /oauth2/userInfo endpoint
+                # to get the actual user attributes of interest
+                #
+                # Then by decoding the JWT ID Token, we will get at the actual
+                # user attributes and associated metadata, like the following:
+                #
+                # {
+                #     "at_hash": "4FNVgmQsm5m_h9VC_OFFuQ",
+                #     "sub": "472ff4cd-9b09-46b5-8680-e8c5d6025d38",
+                #     "aud": "55pb79dl8gm0i1ho9hdre91r3k",
+                #     "token_use": "id",
+                #     "auth_time": 1576816174,
+                #     "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_qyS1sSLiQ",
+                #     "cognito:username": "test-user",
+                #     "exp": 1576819774,
+                #     "iat": 1576816174,
+                #     "email": "test-user@amazon.com“
+                # }
+                #
+                # jwt_id_token = encoded_data['id_token']
+                # decoded_jwt_id_token: str = b64decode(jwt_id_token).decode('utf-8')
+                # user_data: Dict = json.loads(decoded_jwt_id_token)
+                #
+                # logger.debug("\twith decoded user data:\n\n"+str(user_data))
+            else:
+                # Unexpected response code?
+                raise RuntimeError(
+                    "/oauth2/token POST\n\tHTTP Status: " + str(resp.status) +
+                    "\n\tResponse:" + resp.text(encoding='utf-8')
+                )
 
         #  GET https://<your-user-pool-domain>/oauth2/userInfo
         # Authorization: Bearer <access_token>
