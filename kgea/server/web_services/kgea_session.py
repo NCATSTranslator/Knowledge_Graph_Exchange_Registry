@@ -24,8 +24,7 @@ import logging
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 logger = logging.getLogger(__name__)
-if DEV_MODE:
-    logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 
 class KgeaSession:
@@ -172,7 +171,8 @@ async def _process_redirection(request, response, active_session):
     raise response
 
 
-async def redirect(request, location, active_session: bool = False):
+async def redirect(request, location: str, active_session: bool = False):
+    logger.debug('redirect() to location: '+str(location))
     await _process_redirection(
         request,
         web.HTTPFound(location),

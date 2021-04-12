@@ -44,8 +44,9 @@ async def login_url() -> str:
     client_id = KGEA_APP_CONFIG['oauth2']['client_id']
     redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + KGEA_APP_CONFIG['oauth2']['login_callback']
 
-    return host + '/login?response_type=code&state=' + state + \
+    url = host + '/login?response_type=code&state=' + state + \
         '&client_id=' + client_id + '&redirect_uri=' + redirect_uri
+    return url
 
 
 def mock_user_attributes() -> Dict:
@@ -232,9 +233,9 @@ async def logout_url() -> str:
     :param request:
     :return: redirection exception to OAuth2 service
     """
-    return \
-        KGEA_APP_CONFIG['oauth2']['host'] + \
+    url = KGEA_APP_CONFIG['oauth2']['host'] + \
         '/logout_url?client_id=' + \
         KGEA_APP_CONFIG['oauth2']['client_id'] + \
         '&logout_uri=' + \
         KGEA_APP_CONFIG['oauth2']['site_uri']
+    return url
