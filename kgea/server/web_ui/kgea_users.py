@@ -64,11 +64,8 @@ def mock_user_attributes() -> Dict:
 
 
 async def _get_user_attributes(code: str) -> Dict:
-    # Return user attributes from
-    # AWS Cognito via retrieval
-    # of the OAuth2 ID Token
-
-    logger.debug("Entering _get_user_attributes(code: "+str(code)+")")
+    """ Return user attributes from AWS Cognito via
+    /oauth2/token and /oauth2/userinfo calls"""
 
     user_attributes: Dict = dict()
 
@@ -103,8 +100,6 @@ async def _get_user_attributes(code: str) -> Dict:
             '&redirect_uri=' + redirect_uri + \
             '&client_id=' + client_id
 
-        # print("_get_user_attributes(): token_url: "+token_url, file=sys.stderr)
-
         # See https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html
         #
         #   -H 'Accept-Encoding: gzip, deflate' \
@@ -123,10 +118,6 @@ async def _get_user_attributes(code: str) -> Dict:
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        # print("_get_user_attributes(): Authorization: " + authorization, file=sys.stderr)
-        #
-        # print("_get_user_attributes(): POSTing to /oauth2/token ...", file=sys.stderr)
-
         async with KgeaSession.get_global_session().post(token_url, headers=token_headers) as resp:
             # Once the POST Request is successful we should get a
             # response with id_token, access_token and refresh_token.
@@ -143,8 +134,6 @@ async def _get_user_attributes(code: str) -> Dict:
                 # encoded_data = await resp.json()
                 data = await resp.text()
                 encoded_data = json.loads(data)
-
-                # print("\t... returned:\n\n"+str(encoded_data), file=sys.stderr)
 
                 # The access and refresh tokens with metadata are
                 # directly returned among the user attributes
@@ -210,16 +199,18 @@ async def _get_user_attributes(code: str) -> Dict:
             #    "email": "janedoe@example.com"
             # }
             #
-            data = await resp.text()
-            user_data: Dict = json.loads(data)
-
-            print(
-                "_get_user_attributes(): GETing oauth2/userInfo ...\n" +
-                "\t... returned:\n\n" + str(user_data), file=sys.stderr
-            )
-
-            for key, value in user_data.items():
-                user_attributes[key] = value
+            if resp.status == 200:
+                data = await resp.text()
+                user_data: Dict = json.loads(data)
+                for key, value in user_data.items():
+                    user_attributes[key] = value
+            else:
+                # Unexpected response code?
+                errmsg = await resp.text(encoding='utf-8')
+                raise RuntimeError(
+                    "/oauth2/userinfo POST\n\tHTTP Status: " + str(resp.status) +
+                    "\n\tResponse:" + errmsg
+                )
 
     return user_attributes
 
