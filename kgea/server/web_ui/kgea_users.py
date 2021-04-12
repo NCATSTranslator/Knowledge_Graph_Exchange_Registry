@@ -141,9 +141,10 @@ async def _get_user_attributes(code: str) -> Dict:
             #
             if resp.status == 200:
                 # encoded_data = await resp.json()
-                encoded_data = await resp.text()
+                data = await resp.text()
+                encoded_data = json.loads(data)
 
-                print("\t... returned:\n\n"+str(encoded_data), file=sys.stderr)
+                # print("\t... returned:\n\n"+str(encoded_data), file=sys.stderr)
 
                 # The access and refresh tokens with metadata are
                 # directly returned among the user attributes
