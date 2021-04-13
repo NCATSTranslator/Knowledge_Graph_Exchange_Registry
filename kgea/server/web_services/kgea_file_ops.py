@@ -27,6 +27,9 @@ import requests
 
 import logging
 
+from io import BytesIO
+import tempfile
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -281,8 +284,7 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME
 
 # https://gist.github.com/chipx86/9598b1e4a9a1a7831054
 # TODO: disk or memory?
-def compress_file_to_archive(file, archive):
-    from io import BytesIO
+def compress_file_to_archive(in_filename, out_filename):
 
     class FileStream(object):
         def __init__(self):
@@ -307,12 +309,13 @@ def compress_file_to_archive(file, archive):
 
             return s
 
-    def stream_build_tar(in_filename, streaming_fp):
-        tar = tarfile.TarFile.open(out_filename, 'w|gz', streaming_fp)
+    def stream_build_tar(_in_filename, _out_filename, streaming, BLOCK_SIZE=4096):
 
-        stat = os.stat(in_filename)
+        tar = tarfile.TarFile.open(_out_filename, 'w|gz', streaming)
 
-        tar_info = tarfile.TarInfo('outfile')
+        stat = os.stat(_in_filename)
+
+        tar_info = tarfile.TarInfo(Path(_in_filename).name)
 
         # Note that you can get this information from the storage backend,
         # but it's valid for either to raise a NotImplementedError, so it's
@@ -328,7 +331,7 @@ def compress_file_to_archive(file, archive):
 
         yield
 
-        with open(in_filename, 'rb') as in_fp:
+        with open(_in_filename, 'rb') as in_fp:
             total_size = 0
 
             while True:
@@ -357,35 +360,19 @@ def compress_file_to_archive(file, archive):
 
         yield
 
-    BLOCK_SIZE = 4096
-
-    if len(sys.argv) != 3:
-        print('Usage: %s in_filename out_filename' % sys.argv[0])
-        sys.exit(1)
-
-    in_filename = sys.argv[1]
-    out_filename = sys.argv[2]
 
     streaming_fp = FileStream()
-    with open(out_filename, 'wb') as out_fp:
-        for i in stream_build_tar(in_filename, streaming_fp):
-            s = streaming_fp.pop()
 
-            if len(s) > 0:
-                print('Writing %d bytes...' % len(s))
-                out_fp.write(s)
-                out_fp.flush()
+    temp = tempfile.NamedTemporaryFile()
+    for i in stream_build_tar(in_filename, temp.name, streaming_fp):
+        s = streaming_fp.pop()
 
-    print('Wrote tar file to %s' % out_filename)
-    return out_filename
-
-def tardir(path, archive_path):
-    tar_name = Template("$FILEPATH.tar.gz").substitute(FILEPATH=archive_path)
-    with tarfile.open(tar_name, "w|gz") as tar_handle:
-        for root, dirs, files in os.walk(path):
-            for file in files:
-                tar_handle.add(os.path.join(root, file))
-    return Path(tar_name)
+        if len(s) > 0:
+            print('Writing {} bytes...'.format(len(s)))
+            temp.write(s)
+            temp.flush()
+    print('Wrote tar file to {}'.format(temp.name))
+    return temp
 
 def kg_filepath(kg_id, kg_version, root='', subdir='', attachment=''):
     return Template("$ROOT/$KG_ID/$KG_VERSION$SUB_DIR$ATTACHMENT").substitute(
@@ -395,17 +382,6 @@ def kg_filepath(kg_id, kg_version, root='', subdir='', attachment=''):
         SUB_DIR=subdir+'/',
         ATTACHMENT=attachment
     )
-
-# TODO
-def package_file(kg_id, kg_version, file):
-    package_path = kg_filepath(kg_id, kg_version, root=TEST_BUCKET, attachment=kg_id + '_' + kg_version)
-    package_available = location_available(package_path)
-    if package_available:
-        # create archive
-        package_path_obj = tardir(
-            kg_filepath(kg_id, kg_version),  # the source of files to zip up
-            package_available                     # the path and filename for the new archive
-        )
 
 @prepare_test
 def test_tardir():
@@ -424,7 +400,7 @@ def test_tardir():
 
 
 def package_file_manifest(tar_path):
-    with tarfile.open(tar_path, 'r:gz') as tar:
+    with tarfile.open(tar_path, 'r|gz') as tar:
         manifest = dict()
         for tarinfo in tar:
             print("\t", tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
@@ -574,6 +550,52 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     return True
 
 
+def upload_file_as_archive(data_file, file_name, bucket, object_location, metadata=None):
+    """
+    Upload function into archive
+
+    * If the archive doesn't exist => create it
+    * If the archive exists => compress into the existing file
+
+    :param data_file:
+    :param file_name:
+    :param bucket:
+    :param object_location:
+    :param metadata:
+    :return:
+    """
+    archive_name = "{}.tar.gz".format(Path(file_name).stem)
+    with compress_file_to_archive(data_file.name, archive_name) as archive:
+        return upload_file_multipart(
+            archive,
+            archive_name,
+            bucket,
+            object_location,
+            metadata
+        )
+
+@prepare_test
+def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+    try:
+        # NOTE: file must be read in binary mode!
+        with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+            content_location, _ = with_version(get_object_location)(test_kg)
+            object_key = upload_file_as_archive(test_file, test_file.name, test_bucket, content_location)
+            assert (object_key in kg_files_in_location(test_bucket, content_location))
+    except FileNotFoundError as e:
+        logger.error("Test is malformed!")
+        logger.error(e)
+        return False
+    except ClientError as e:
+        logger.error('The upload to S3 has failed!')
+        logger.error(e)
+        return False
+    except AssertionError as e:
+        logger.error('The resulting path was not found inside of the knowledge graph folder!')
+        logger.error(e)
+        return False
+    return True
+
 @prepare_test
 def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     """
@@ -678,7 +700,8 @@ if __name__ == '__main__':
     run_test(test_create_presigned_url)
     run_test(test_tardir)
     run_test(test_package_manifest)
-    run_test(test_upload_file_multipart)
+    run_test(test_upload_file_as_archive)
+    # run_test(test_upload_file_multipart)
     run_test(test_download_file)
 
-    print("all file ops tests passed")
+    print("tests complete")

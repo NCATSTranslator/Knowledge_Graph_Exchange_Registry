@@ -32,6 +32,7 @@ from .kgea_file_ops import (
     # upload_file,
     # upload_file_multipart
     upload_file,
+    upload_file_as_archive,
     download_file,
     create_presigned_url,
     compress_file_to_archive,
@@ -329,11 +330,18 @@ async def upload_kge_file(
             )
 
         elif upload_mode == 'content_from_local_file':
-            # archive before uploading to file
 
+            # package_path = kg_filepath(kg_id, kg_version, root=TEST_BUCKET, attachment=kg_id + '_' + kg_version)
+            # package_available = location_available(package_path)
+            # if package_available:
+            #     package_path_obj = tardir(
+            #         kg_filepath(kg_id, kg_version),  # the source of files to zip up
+            #         package_available  # the path and filename for the new archive
+            #     )
+            # else:
+            # package_path = kg_filepath(kg_id, kg_version, root=TEST_BUCKET, attachment=kg_id + '_' + kg_version)
 
-            # process direct metadata or content file upload
-            uploaded_file_object_key = upload_file(
+            uploaded_file_object_key = upload_file_as_archive(
                 data_file=uploaded_file.file,
                 file_name=content_name,
                 bucket=KGEA_APP_CONFIG['bucket'],
@@ -374,10 +382,10 @@ async def upload_kge_file(
         else:
             await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
 
-    else:
-        # If session is not active, then just a redirect
-        # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+    # else:
+    #     # If session is not active, then just a redirect
+    #     # directly back to unauthenticated landing page
+    #     await redirect(request, LANDING)
 
 
 async def publish_kge_file_set(request: web.Request, kg_id):
@@ -614,7 +622,7 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
             await redirect(request, download_url)
         else:
             """
-            Create an archive
+            TODO: Create an archive
             """
             for object_key in kg_files_for_version:
                 download_file(KGEA_APP_CONFIG['bucket'], object_key, open_file=True)

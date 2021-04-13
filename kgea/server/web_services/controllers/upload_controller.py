@@ -46,6 +46,7 @@ async def upload_file(
     :type uploaded_file: FileField
 
     """
+
     return await upload_kge_file(
         request,
         kg_id=kg_id,
