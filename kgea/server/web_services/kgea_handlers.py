@@ -331,15 +331,7 @@ async def upload_kge_file(
 
         elif upload_mode == 'content_from_local_file':
 
-            # package_path = kg_filepath(kg_id, kg_version, root=TEST_BUCKET, attachment=kg_id + '_' + kg_version)
-            # package_available = location_available(package_path)
-            # if package_available:
-            #     package_path_obj = tardir(
-            #         kg_filepath(kg_id, kg_version),  # the source of files to zip up
-            #         package_available  # the path and filename for the new archive
-            #     )
-            # else:
-            # package_path = kg_filepath(kg_id, kg_version, root=TEST_BUCKET, attachment=kg_id + '_' + kg_version)
+            import s3_tar import S3Tar
 
             uploaded_file_object_key = upload_file_as_archive(
                 data_file=uploaded_file.file,

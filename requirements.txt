@@ -9,6 +9,7 @@ aiohttp_cors >= 0.7.0
 # KGE specific
 botocore<1.21.0,>=1.20.12
 boto3 >= 1.17.0
+s3-tar
 pyyaml
 aiohttp<3.7
 aiohttp-session

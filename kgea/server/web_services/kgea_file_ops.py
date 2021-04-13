@@ -15,6 +15,7 @@ from botocore.exceptions import ClientError
 
 from os.path import abspath, splitext
 from pathlib import Path
+from s3_tar import S3Tar
 
 import tarfile
 
@@ -564,6 +565,7 @@ def upload_file_as_archive(data_file, file_name, bucket, object_location, metada
     :param metadata:
     :return:
     """
+
     archive_name = "{}.tar.gz".format(Path(file_name).stem)
     with compress_file_to_archive(data_file.name, archive_name) as archive:
         return upload_file_multipart(
@@ -574,6 +576,31 @@ def upload_file_as_archive(data_file, file_name, bucket, object_location, metada
             metadata
         )
 
+def upload_file_to_archive(data_file, file_name, bucket, object_location):
+    # upload the file
+    object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
+
+    archive_path = "{}/{}.tar.gz".format(
+        Path(object_key).parent,
+        Path(file_name).stem,
+    ).replace('\\', '/')
+
+    # setup an S3 job to compress the file
+    job = S3Tar(
+        test_bucket,
+        archive_name,
+        allow_dups=True
+    )
+
+    # add the file the running archive
+    job.add_file(object_key)
+
+    # execute the job
+    job.tar()
+
+    return archive_path
+
+
 @prepare_test
 def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
@@ -582,6 +609,45 @@ def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
             content_location, _ = with_version(get_object_location)(test_kg)
             object_key = upload_file_as_archive(test_file, test_file.name, test_bucket, content_location)
             assert (object_key in kg_files_in_location(test_bucket, content_location))
+    except FileNotFoundError as e:
+        logger.error("Test is malformed!")
+        logger.error(e)
+        return False
+    except ClientError as e:
+        logger.error('The upload to S3 has failed!')
+        logger.error(e)
+        return False
+    except AssertionError as e:
+        logger.error('The resulting path was not found inside of the knowledge graph folder!')
+        logger.error(e)
+        return False
+    return True
+
+@prepare_test
+def test_upload_file_as_archive2(test_bucket=TEST_BUCKET, test_kg='ng1'):
+    try:
+        # NOTE: file must be read in binary mode!
+        with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+            content_location, _ = with_version(get_object_location)(test_kg)
+            object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
+
+            archive_name = "{}/{}.tar.gz".format(
+                Path(object_key).parent,
+                _random_alpha_string()
+            ).replace('\\', '/')
+
+            job = S3Tar(
+                test_bucket,
+                archive_name,
+                allow_dups=True
+            )
+            job.add_file(object_key)
+            job.tar()
+
+            print(kg_files_in_location(test_bucket), kg_files_in_location(test_bucket, content_location))
+
+            assert (object_key in kg_files_in_location(test_bucket, content_location))
+
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
@@ -701,6 +767,7 @@ if __name__ == '__main__':
     run_test(test_tardir)
     run_test(test_package_manifest)
     run_test(test_upload_file_as_archive)
+    run_test(test_upload_file_as_archive2)
     # run_test(test_upload_file_multipart)
     run_test(test_download_file)
 
