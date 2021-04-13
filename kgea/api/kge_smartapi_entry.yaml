@@ -18,6 +18,8 @@ info:
     team:
     - "${translator_team}"
   x-kge:
+    id: "${kg_id}"
+    name:  "${kg_name}"
     version: "${kg_version}"
 servers:
   - url: "https://kge.starinformatics.ca/archive/${kg_id}"
