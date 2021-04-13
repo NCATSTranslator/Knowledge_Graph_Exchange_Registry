@@ -576,13 +576,13 @@ def upload_file_as_archive(data_file, file_name, bucket, object_location, metada
             metadata
         )
 
-def upload_file_to_archive(data_file, file_name, bucket, object_location):
+def upload_file_to_archive(archive_name, data_file, file_name, bucket, object_location):
     # upload the file
     object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
 
     archive_path = "{}/{}.tar.gz".format(
         Path(object_key).parent,
-        Path(file_name).stem,
+        archive_name,
     ).replace('\\', '/')
 
     # setup an S3 job to compress the file

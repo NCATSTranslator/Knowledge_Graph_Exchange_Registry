@@ -331,13 +331,12 @@ async def upload_kge_file(
 
         elif upload_mode == 'content_from_local_file':
 
-            import s3_tar import S3Tar
-
-            uploaded_file_object_key = upload_file_as_archive(
+            uploaded_file_object_key = upload_file_to_archive(
+                archive_name="{}_kgx".format(kg_id),
                 data_file=uploaded_file.file,
                 file_name=content_name,
                 bucket=KGEA_APP_CONFIG['bucket'],
-                object_location=file_set_location
+                object_location=file_set_location,
             )
 
         else:
@@ -556,16 +555,9 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
 
         logger.debug('knowledge_map names: %s', kg_names)
 
-        response = web.Response(text=str(kg_names), status=200)
+        response =
 
-        # TODO
-        return response
-        # else:
-        #     # If session is not active, then just a redirect
-        #     # directly back to unauthenticated landing page
-        #     await redirect(request, LANDING)
-        #
-        # return web.Response(status=200)
+        return with_session(web.Response(text=str(kg_names), status=200))
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
