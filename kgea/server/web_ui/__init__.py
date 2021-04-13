@@ -6,6 +6,7 @@ from kgea.server.web_services.kgea_session import KgeaSession
 import jinja2
 import aiohttp_jinja2
 from aiohttp import web
+import aiohttp_cors
 
 from .kgea_ui_handlers import (
     kge_landing_page,
@@ -37,7 +38,20 @@ async def make_app():
     app.router.add_static('/css/',
                           path=templates_dir+'/css',
                           name='css')
-    
+
+    # # Enable CORS for all origins.
+    # cors = aiohttp_cors.setup(app, defaults={
+    #     "*": aiohttp_cors.ResourceOptions(
+    #         allow_credentials=True,
+    #         expose_headers="*",
+    #         allow_headers="*",
+    #     )
+    # })
+    #
+    # # Register all routers for CORS.
+    # for route in list(app.router.routes()):
+    #     cors.add(route)
+
     KgeaSession.init(app)
     
     return app

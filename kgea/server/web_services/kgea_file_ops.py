@@ -576,39 +576,16 @@ def upload_file_as_archive(data_file, file_name, bucket, object_location, metada
             metadata
         )
 
-def upload_file_to_archive(archive_name, data_file, file_name, bucket, object_location):
-    # upload the file
-    object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
-
-    archive_path = "{}/{}.tar.gz".format(
-        Path(object_key).parent,
-        archive_name,
-    ).replace('\\', '/')
-
-    # setup an S3 job to compress the file
-    job = S3Tar(
-        test_bucket,
-        archive_name,
-        allow_dups=True
-    )
-
-    # add the file the running archive
-    job.add_file(object_key)
-
-    # execute the job
-    job.tar()
-
-    return archive_path
-
-
 @prepare_test
 def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
+
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
             object_key = upload_file_as_archive(test_file, test_file.name, test_bucket, content_location)
             assert (object_key in kg_files_in_location(test_bucket, content_location))
+
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
@@ -623,30 +600,87 @@ def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+def upload_file_to_archive(archive_name, data_file, file_name, bucket, object_location):
+    # upload the file
+    object_key = upload_file_multipart(data_file, file_name, bucket, object_location)
+
+    archive_path = "{}/{}.tar.gz".format(
+        Path(object_key).parent,
+        archive_name,
+    ).replace('\\', '/')
+
+    # setup an S3 job to compress the file
+    job = S3Tar(
+        bucket,
+        archive_path,
+        allow_dups=True
+    )
+
+    # add the file the running archive
+    job.add_file(object_key)
+
+    # execute the job
+    job.tar()
+
+    return archive_path
+
 @prepare_test
-def test_upload_file_as_archive2(test_bucket=TEST_BUCKET, test_kg='ng1'):
+def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+    """
+    The difference between "upload_file_to_archive" and "upload_file_as_archive":
+        * upload_file_to_archive can upload several files into an archive AT ONCE.
+        * TODO: upload_file_to_archive can upload several files into an archive OVER TIME.
+            * Problem: Gzip compression is non-commutative!
+    """
     try:
-        # NOTE: file must be read in binary mode!
+        # Prepare information used between subtests
+        TEST_ARCHIVE_NAME = _random_alpha_string() # the stem for the filename of the archive
+        CONTENT_LOCATION, _ = with_version(get_object_location)(test_kg)
+
+        """
+        Test 1: Writing files into new archive
+        """
+        print('\ttesting 1')
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            content_location, _ = with_version(get_object_location)(test_kg)
-            object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
-
-            archive_name = "{}/{}.tar.gz".format(
-                Path(object_key).parent,
-                _random_alpha_string()
-            ).replace('\\', '/')
-
-            job = S3Tar(
+            """
+            Test 1a: Write a file to an archive
+            """
+            archive_key = upload_file_to_archive(
+                TEST_ARCHIVE_NAME,
+                test_file,
+                test_file.name,
                 test_bucket,
-                archive_name,
-                allow_dups=True
+                CONTENT_LOCATION
             )
-            job.add_file(object_key)
-            job.tar()
 
-            print(kg_files_in_location(test_bucket), kg_files_in_location(test_bucket, content_location))
 
-            assert (object_key in kg_files_in_location(test_bucket, content_location))
+            """
+            Test 1b: override file 
+            """
+            # concatenate random string to the file
+
+        print('\ttesting 1 successful')
+
+        """
+        Test 2: Writing a new file into the same archive
+        """
+        print('\ttesting 2')
+        with tempfile.NamedTemporaryFile() as test_file:
+
+            test_file.write(bytes(_random_alpha_string(), "UTF-8"))
+
+            archive_key = upload_file_to_archive(
+                TEST_ARCHIVE_NAME,
+                test_file,
+                test_file.name,
+                test_bucket,
+                CONTENT_LOCATION
+            )
+
+            # ASSERT: Archive exists
+            assert (archive_key in kg_files_in_location(test_bucket, CONTENT_LOCATION))
+
+        print('\ttesting 2 successful')
 
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -668,12 +702,14 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     Use the "with_version" wrapper to modify the object location
     """
     try:
+
         test_location, time_created = with_version(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             object_key = upload_file(test_file, test_file.name, test_bucket, test_location)
             assert (object_key in kg_files_in_location(test_bucket, test_location))
             assert (time_created in object_key)
+
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
@@ -691,12 +727,38 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+def infix_string(name, infix, delimiter="."):
+    tokens = name.split(delimiter)
+    *pre_name, end_name = tokens
+    name = ''.join([delimiter.join(pre_name), infix, delimiter, end_name])
+    return name
 
 def download_file(bucket, object_key, open_file=False):
     download_url = create_presigned_url(bucket=bucket, object_key=object_key)
     if open_file:
         return download_url, webbrowser.open_new_tab(download_url)
     return download_url
+
+async def compress_download(bucket, object_key, open_file=False):
+
+    archive_path = "{}archive/{}.tar.gz".format(
+        object_key,
+        Path(object_key).stem,
+    ).replace('\\', '/')
+
+    # setup an S3 job to compress the file
+    job = S3Tar(
+        bucket,
+        archive_path,
+        allow_dups=True,
+    )
+    # add the file the running archive
+    print(kg_files_in_location(bucket, object_key))
+    job.add_files(object_key)
+    # execute the job
+    job.tar()
+
+    return download_file(bucket, archive_path, open_file)
 
 
 @prepare_test
@@ -708,8 +770,9 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
             url = download_file(
                 bucket=test_bucket,
                 object_key=get_object_location(test_kg_name) + TEST_FILE_NAME,
-                open_file=False
+                open_file=True
             )  # open_file=False to affirm we won't trigger a browser action
+            print(url)
             response = requests.get(url)
             assert (response.status_code == 200)
             # TODO: test for equal content from download response
@@ -764,11 +827,14 @@ if __name__ == '__main__':
     run_test(test_is_not_location_available)
     run_test(test_get_kg_versions_available)
     run_test(test_create_presigned_url)
-    run_test(test_tardir)
-    run_test(test_package_manifest)
-    run_test(test_upload_file_as_archive)
-    run_test(test_upload_file_as_archive2)
+
+    # run_test(test_tardir)
+    # run_test(test_package_manifest)
+
     # run_test(test_upload_file_multipart)
+    # run_test(test_upload_file_as_archive)
+
+    run_test(test_upload_file_to_archive)
     run_test(test_download_file)
 
     print("tests complete")

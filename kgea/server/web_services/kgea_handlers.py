@@ -29,12 +29,13 @@ from .kgea_session import (
 )
 
 from .kgea_file_ops import (
-    # upload_file,
-    # upload_file_multipart
     upload_file,
+    upload_file_multipart,
     upload_file_as_archive,
     download_file,
+    compress_download,
     create_presigned_url,
+    infix_string,
     compress_file_to_archive,
     # location_available,
     kg_files_in_location,
@@ -275,6 +276,9 @@ async def upload_kge_file(
     session = await get_session(request)
     if not session.empty:
 
+        """
+        BEGIN Error Handling: checking if parameters passed are sufficient for a well-formed request
+        """
         if not kg_id:
             # must not be empty string
             await report_error(request, "upload_kge_file(): empty Knowledge Graph Identifier?")
@@ -297,8 +301,19 @@ async def upload_kge_file(
             # must not be empty string
             await report_error(request, "upload_kge_file(): empty Content Name?")
 
-        file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
+        """
+        END Error Handling
+        """
 
+
+        """BEGIN Register upload-specific metadata"""
+
+
+        # The final key for the object is dependent on its type
+            # edges -> <file_set_location>/edges/
+            # nodes -> <file_set_location>/nodes/
+            # archive -> <file_set_location>/archive/
+        file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
 
         if kgx_file_content in ['nodes', 'edges']:
@@ -316,7 +331,16 @@ async def upload_kge_file(
             #      The archive may has metadata too, but the data's the main thing.
             file_type = KgeFileType.KGX_ARCHIVE
 
+        """END Register upload-specific metadata"""
+
+
+        """BEGIN File Upload Protocol"""
+
+        # keep track of the final key for testing purposes?
         uploaded_file_object_key = None
+
+        # we modify the filename so that they can be validated by KGX natively by tar.gz
+        content_name = infix_string(content_name, f"_{kgx_file_content}") if kgx_file_content in ['nodes', 'edges'] else content_name
 
         if upload_mode == 'content_from_url':
 
@@ -331,16 +355,25 @@ async def upload_kge_file(
 
         elif upload_mode == 'content_from_local_file':
 
-            uploaded_file_object_key = upload_file_to_archive(
-                archive_name="{}_kgx".format(kg_id),
-                data_file=uploaded_file.file,
-                file_name=content_name,
+            """
+            Although earlier on I experimented with approaches that streamed directly into an archive,
+            it failed for what should have been obvious reasons: gzip is non-commutative, so without unpacking
+            then zipping up consecutively uploaded files I can't add new gzip files to the package after compression.
+            
+            So for now we're just streaming into the bucket, only archiving when required - on download.
+            """
+            uploaded_file_object_key = upload_file_multipart(
+                data_file=uploaded_file.file,      # The raw file object (e.g. as a byte stream)
+                file_name=content_name,            # The new name for the file
                 bucket=KGEA_APP_CONFIG['bucket'],
                 object_location=file_set_location,
             )
 
         else:
             await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+
+        """END File Upload Protocol"""
+
 
         if uploaded_file_object_key:
 
@@ -469,12 +502,6 @@ async def kge_access(request: web.Request, kg_id: str) -> web.Response:
 
         file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
 
-        # Listings Approach
-        # - Introspect on Bucket
-        # - Create URL per Item Listing
-        # - Send Back URL with Dictionary
-        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-
         kg_files = kg_files_in_location(
             bucket_name=KGEA_APP_CONFIG['bucket'],
             object_location=file_set_location
@@ -555,9 +582,8 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
 
         logger.debug('knowledge_map names: %s', kg_names)
 
-        response =
-
-        return with_session(web.Response(text=str(kg_names), status=200))
+        response = web.Response(text=str(kg_names), status=200)
+        return with_session(response)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
@@ -587,29 +613,25 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
 
     session = await get_session(request)
     if not session.empty:
-
-        # It is assumed that the kgx.tar.gz compressed archive
-        # is in the 'root' file of the kg_id kg_version folder
-
+        kg_filepath, _ = with_version(get_object_location, kg_version)(kg_id)
         kg_files_for_version = kg_files_in_location(
             KGEA_APP_CONFIG['bucket'],
-            kg_filepath(kg_id, kg_version)
+            kg_filepath,
         )
 
-        maybe_archive = [kg_file for kg_file in kg_files_for_version if "{}_{}.tar.gz".format(kg_id, kg_version) in kg_file]
+        maybe_archive = [
+            kg_path for kg_path in kg_files_for_version
+                if ".tar.gz" in kg_path
+        ]
 
         if len(maybe_archive) == 1:
             archive_key = maybe_archive[0]
-            download_url = download_file(KGEA_APP_CONFIG['bucket'], archive_key)
-            # response = web.Response(text=str(download_url), status=200)
-            # return await with_session(request, response)
+            download_url = download_file(KGEA_APP_CONFIG['bucket'], archive_key, open_file=True)
             await redirect(request, download_url)
         else:
-            """
-            TODO: Create an archive
-            """
-            for object_key in kg_files_for_version:
-                download_file(KGEA_APP_CONFIG['bucket'], object_key, open_file=True)
+            download_url = await compress_download(KGEA_APP_CONFIG['bucket'], kg_filepath, open_file=True)
+            await redirect(request, download_url)
+
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
