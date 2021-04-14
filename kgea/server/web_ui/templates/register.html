@@ -1,38 +1,34 @@
 {% extends "layout.html" %}
+{% block scripts %}
+    <script>
+        function help(msg)  {
+            if(msg) {
+                window.alert(msg);
+            }
+        }
+    </script>
+{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
 {% endblock %}
-{% block title %}Register your KGE File Set{% endblock %}
+{% block title %}Submitter: {{submitter}}<br>Register your KGE File Set{% endblock %}
 {% block content %}
 <form method="post"
       action="{{registration_action}}"
       enctype="application/x-www-form-urlencoded"
       accept-charset="utf-8"
 >
-    <div style="font-size: smaller">Required fields noted by a
-        '<span style="color: red; font-weight: bold">*</span>'.</div>
-    <p></p>
-    <label for="kg_name"><span style="color: red; font-weight: bold">*</span>Knowledge Graph Name:</label>
-    <input id="kg_name" class="textbox" type="text" name="kg_name" />
-
+    <p></p><div style="font-size: smaller">Mandatory fields noted by a '<span style="color: red; font-weight: bold">*</span>'.</div>
     <p>
-        A short name that identifies and describes your knowledge graph.<br>
-        <em>Alphanumeric characters only. Do not use special characters</em>.
-        <br>
-        For examples of good names, see the <a href="https://smart-api.info/registry">SmartAPI Registry</a>.<br>
+    <span class="label">Email:</span> {{submitter_email}}
     </p>
+    <input id="submitter" type="hidden" name="submitter" value="{{submitter}}" />
+    <input id="submitter_email" type="hidden" name="submitter_email" value="{{submitter_email}}" />
     <p></p>
-    <label for="kg_version"><span style="color: red; font-weight: bold">*</span>Release Version (defaults to current date):</label>
-    <input id="kg_version" class="textbox" type="text" name="kg_version" value="{{kg_version}}" />
-    <p>
-        <!-- kg_description: detailed description of knowledge graph (multi-lined text)-->
-        <h4>Knowledge Graph Description:</h4>
-        <textarea id="kg_description" class="textbox" type="text" name="kg_description" rows="4" cols="60">
-Detailed description of knowledge graph.</textarea>
-    <p>
+        <p>
         <!--    translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)-->
-        <label for="translator_component"><span style="color: red; font-weight: bold">*</span>Translator Component:</label>
+        <label  class="label" for="translator_component"><span style="color: red; font-weight: bold">*</span>Translator Component:</label>
         <select name="translator_component" id="translator_component">
           <option>---- Specify Translator Component ----</option>
           <option value="KP">Knowledge Provider</option>
@@ -43,39 +39,61 @@ Detailed description of knowledge graph.</textarea>
     </p>
     <p>
         <!--    translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider-->
-        <label for="translator_team"><span style="color: red; font-weight: bold">*</span>Translator Team:</label>
+        <label  class="label" for="translator_team"><span style="color: red; font-weight: bold">*</span>Translator Team:</label>
         <input id="translator_team" class="textbox" type="text" name="translator_team" />
     </p>
+
+    <label class="label" for="kg_name">
+        <span style="color: red; font-weight: bold">*</span>Knowledge Graph Name:
+    </label>
+    <input id="kg_name" class="textbox" type="text" name="kg_name" />
+    <div class="tooltip">
+        <img class="tooltip_target" src="images/help-icon.png"/>
+        <span class="tooltiptext">
+                (*) A short name that identifies and describes your knowledge graph.<br>
+                Alphanumeric characters only. Do not use special characters.
+        </span>
+    </div>
+    <p></p>
+    <label  class="label" for="kg_version"><span style="color: red; font-weight: bold">*</span> Version:</label>
+    <input id="kg_version" class="textbox" type="text" name="kg_version" value="{{kg_version}}" />
+
     <p>
-        <label for="submitter"><span style="color: red; font-weight: bold">*</span>Submitter:</label>
-        <input id="submitter" class="textbox" type="text" name="submitter" />
-    </p>
-    <p>The name of the researcher or institution that contributed the dataset.</p>
-    <p>
-        <!--    submitter_email - contact email of the submitter-->
-        <label for="submitter_email"><span style="color: red; font-weight: bold">*</span>Submitter Email:</label>
-        <input id="submitter_email" class="textbox" type="text" name="submitter_email" />
-    </p>
-        <p>Select data access license; if "Other" license, please specify licensing URL location.</p>
-    <p>
-        <!--    license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.-->
-        <label for="license_name">License:</label>
-        <select name="license_name" id="license_name">
+        <!-- kg_description: detailed description of knowledge graph (multi-lined text)-->
+        <h4>Knowledge Graph Description:</h4>
+        <textarea id="kg_description" class="textbox" type="text" name="kg_description" rows="4" cols="60">
+Detailed description of knowledge graph.</textarea>
+    <p></p>
+    <!--    license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.-->
+    <label  class="label" for="license_name">License:</label>
+    <select name="license_name" id="license_name">
           <option value="Creative-Commons-4.0" selected>Creative Commons</option>
           <option value="MIT">MIT</option>
           <option value="Apache-2.0">Apache 2.0</option>
           <option value="Other">Other</option>
-        </select>
+    </select>
+    <div class="tooltip">
+        <img class="tooltip_target" src="images/help-icon.png"/>
+        <span class="tooltiptext">
+                    Select data access license; if "Other" license,
+                    please specify licensing URL location.
+        </span>
+    </div>
+    <p></p>
         <!--    license_url - web site link to project license-->
-        <label for="license_url">License URL:</label>
+        <label  class="label" for="license_url">License URL:</label>
         <input id="license_url" class="textbox" type="text" name="license_url" />
-    </p>
+    <p></p>
     <p>
         <!--    terms_of_service - specifically relating to the project, beyond the licensing-->
-        <label for="terms_of_service">Terms of Service URL:</label>
+        <label  class="label" for="terms_of_service">Terms of Service URL:</label>
         <input id="terms_of_service" class="textbox" type="text" name="terms_of_service" />
     </p>
 
     <p><input type="submit" value="Register"></p>
 </form>
+{% endblock %}
+{% block app_footer %}
+(*) For examples of good Knowledge Graph names,
+see the <a href="https://smart-api.info/registry">SmartAPI Registry</a>.
 {% endblock %}

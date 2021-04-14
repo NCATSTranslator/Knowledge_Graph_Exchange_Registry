@@ -5,8 +5,8 @@ info:
     OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive.
     Although this API is SmartAPI compliant, it will not normally be visible
     in the Translator SmartAPI Registry since it is mainly meant to be
-    accessed through its various contained KGE File Sets (which will have
-    their own distinct entries in the Registry).
+    accessed through Registry indexed KGE File Sets, which will have
+    distinct entries in the Registry.
   description: >-
     OpenAPI for the NCATS Biomedical Translator
     Knowledge Graph Exchange Archive
@@ -33,20 +33,40 @@ externalDocs:
   url: "https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 tags:
   - name: translator
-    description: NCATS Biomedical Data Translator component API
+    description: Designates a NCATS Biomedical Data Translator component API
   - name: kge
-    description: Translator Knowledge Graph eXchange (KGE) system API
+    description: Designates a Translator Knowledge Graph eXchange (KGE) Archive API
+  - name: catalog
+    description: Endpoints to access catalog of KGE file sets
   - name: upload
-    description: KGE file set upload form
-  - name: provider
-    description: Provider "access" metadata for KGE file set
+    description: Endpoints for KGE file set upload
   - name: content
-    description: Content metadata for KGX-formatted data files in a KGE file set.
+    description: Endpoints to access version specific KGE file set content (meta-)data.
 paths:
+  /catalog:
+    get:
+      tags:
+      - catalog
+      summary: Returns the catalog of available KGE File Sets
+      operationId: getFileSetCatalog
+      responses:
+        '200':
+          description: >-
+            Catalog of available KGE File Sets, their name and their versions.
+          content:
+            application/json:
+              schema:
+                description: >-
+                  Dictionary of available KGE File Sets, with a list of
+                  (at least one) version. The keys of the dictionary are the
+                  internal normalized identifiers ('kg_id') of the file sets.
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/KgeFileSetEntry'
   /register:
     post:
       tags:
-        - upload
+        - catalog
       summary: Register core parameters for the KGE File Set upload
       operationId: registerFileSet
       requestBody:
@@ -101,6 +121,25 @@ paths:
             application/json:
               schema:
                 type: string
+  /publish/{kg_id}:
+    get:
+      parameters:
+      - name: kg_id
+        in: path
+        description: >-
+          KGE File Set identifier for the knowledge graph
+          for which data files are being accessed.
+        required: true
+        schema:
+          type: string
+      tags:
+      - catalog
+      summary: Publish a registered File Set
+      operationId: publishFileSet
+      responses:
+        '302':
+          description: >-
+            After KGE File Set publication is triggered, user gets redirected to /home.
   /upload:
     post:
       tags:
@@ -187,87 +226,41 @@ paths:
             application/json:
               schema:
                 type: string
-  /publish/{kg_id}:
+  /{kg_id}/{kg_version}/contents:
     get:
       parameters:
       - name: kg_id
         in: path
         description: >-
           KGE File Set identifier for the knowledge graph
-          for which data files are being accessed.
+          for which data file metadata are being accessed
         required: true
         schema:
           type: string
-      tags:
-      - upload
-      summary: Publish a registered File Set
-      operationId: publishFileSet
-      responses:
-        '302':
-          description: >-
-            After KGE File Set publication is triggered, user gets redirected to /home.
-  /catalog:
-    get:
-      tags:
-      - provider
-      summary: Returns the catalog of available KGE File Sets
-      operationId: getFileSetCatalog
-      responses:
-        '200':
-          description: >-
-            Catalog of available KGE File Sets, their name and their versions.
-          content:
-            application/json:
-              schema:
-                description: >-
-                  Dictionary of available KGE File Sets, with a list of
-                  (at least one) version. The keys of the dictionary are the
-                  internal normalized identifiers ('kg_id') of the file sets.
-                type: object
-                additionalProperties:
-                  $ref: '#/components/schemas/KgeFileSetEntry'
-  /{kg_id}/access:
-    get:
-      parameters:
-      - name: kg_id
+      - name: kg_version
         in: path
         description: >-
-          KGE File Set identifier for the knowledge graph
-          for which data files are being accessed
+          Specific version of KGE File Set for the knowledge graph
+          for which data file metadata are being accessed
         required: true
         schema:
           type: string
       tags:
-        - provider
-      summary: Get metadata about KGE File Set versions and their files.
-      operationId: access
+        - content
+      summary: Get file list and details for a specified KGE File Set version.
+      operationId: getFileSetContents
       responses:
         '200':
           description: >-
-            Catalog of available KGE File Set versions and their file contents.
+            Annotated list of files of for a given version of a specified KGE File Set.
           content:
             application/json:
               schema:
                 description: >-
-                  Dictionary of details about available versions for a given KGE File Set.
-                type: object
-                additionalProperties:
-                  type: array
-                  description: >-
-                    List of file names and sizes for a given KGE File Set version
-                  items:
-                    type: object
-                    properties:
-                      file_name:
-                        description: original name of file (as uploaded)
-                        type: string
-                      file_type:
-                        description: designates if the file is meta-, node or edge data
-                        type: string
-                      file_size:
-                        description: size of file in megabytes
-                        type: number
-                        format: float
+                  Annotated list of file in a given KGE File Set version.
+                type: array
+                items:
+                  $ref: '#/components/schemas/KgeFile'
         '404':
           description: >-
             Specified KGE File Set was not found.
@@ -390,6 +383,21 @@ components:
             type: string
           minItems: 1
           example: ["4.1", "4.2", "4.3"]
+    KgeFile:
+      description: >-
+        Annotated file in a KGE File Set.
+      type: object
+      properties:
+        file_name:
+          description: original name of file (as uploaded)
+          type: string
+        file_type:
+          description: designates if the file is meta-, node or edge data
+          type: string
+        file_size:
+          description: size of file in megabytes
+          type: number
+          format: float
     BiolinkEntity:
       description: >-
         Compact URI (CURIE) for a Biolink class, biolink:NamedThing

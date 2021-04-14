@@ -10,11 +10,23 @@ def main():
         "swagger_ui": True
     }
     specification_dir = path.join(path.dirname(__file__), 'openapi')
-    app = connexion.AioHttpApp(__name__, specification_dir=specification_dir, options=options)
+    app = connexion.AioHttpApp(
+        __name__,
+        specification_dir=specification_dir,
+        options=options,
+        # TODO: abstract this configuration
+        server_args={
+            "client_max_size": 1024**3
+        }
+    )
     
     app.add_api('openapi.yaml',
                 arguments={
-                    'title': 'OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGE) Archive'},
+                    'title': 'OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive. ' +
+                             'Although this API is SmartAPI compliant, it will not normally be visible in the ' +
+                             'Translator SmartAPI Registry since it is mainly meant to be accessed through ' +
+                             'Registry indexed KGE File Sets, which will have distinct entries in the Registry.'
+                },
                 pythonic_params=True,
                 pass_context_arg_name='request')
     

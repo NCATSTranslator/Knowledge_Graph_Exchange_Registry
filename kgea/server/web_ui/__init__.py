@@ -36,8 +36,11 @@ async def make_app():
     app.router.add_get('/upload', get_kge_file_upload_form)
 
     app.router.add_static('/css/',
-                          path=templates_dir+'/css',
+                          path=templates_dir + '/css',
                           name='css')
+    app.router.add_static('/images/',
+                          path=templates_dir + '/images',
+                          name='images')
 
     # # Enable CORS for all origins.
     # cors = aiohttp_cors.setup(app, defaults={

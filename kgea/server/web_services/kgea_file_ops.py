@@ -35,12 +35,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def create_location(bucket, kg_name):
-    return s3_client.put_object(Bucket=bucket, Key=get_object_location(kg_name))
+def create_location(bucket, kg_id):
+    return s3_client.put_object(Bucket=bucket, Key=get_object_location(kg_id))
 
 
-def delete_location(bucket, kg_name):
-    return s3_client.delete(Bucket=bucket, Key=get_object_location(kg_name))
+def delete_location(bucket, kg_id):
+    return s3_client.delete(Bucket=bucket, Key=get_object_location(kg_id))
 
 
 # https://www.askpython.com/python/examples/generate-random-strings-in-python
@@ -66,6 +66,7 @@ TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
 
 from functools import wraps
+
 
 
 def prepare_test(func):
@@ -96,14 +97,14 @@ def prepare_test_random_object_location(func):
     return wrapper
 
 
-def get_object_location(kg_name):
+def get_object_location(kg_id):
     """
     NOTE: Must be kept deterministic. No date times or
     randomness in this method; they may be appended afterwards.
     """
     location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
         DIRECTORY_NAME='kge-data',
-        KG_NAME=kg_name
+        KG_NAME=kg_id
     )
     return location
 
@@ -113,8 +114,8 @@ def get_default_date_stamp():
 
 
 def with_version(func, version=get_default_date_stamp()):
-    def wrapper(kg_name):
-        return func(kg_name + '/' + version), version
+    def wrapper(kg_id):
+        return func(kg_id + '/' + version), version
 
     return wrapper
 
@@ -271,7 +272,7 @@ def create_presigned_url(bucket, object_key, expiration=86400):
 
 
 @prepare_test
-def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
+def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
     try:
         # TODO: write tests
         create_presigned_url(bucket=test_bucket, object_key=get_object_location(TEST_KG_NAME))
@@ -432,7 +433,6 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         logger.error(e)
         return False
     return True
-
 
 def upload_file(data_file, file_name, bucket, object_location, config=None):
     """Upload a file to an S3 bucket
@@ -763,14 +763,14 @@ async def compress_download(bucket, object_key, open_file=False):
 
 @prepare_test
 # @prepare_test_random_object_location
-def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_name=TEST_KG_NAME):
+def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
     try:
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_name))
+            object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_id))
             url = download_file(
                 bucket=test_bucket,
-                object_key=get_object_location(test_kg_name) + TEST_FILE_NAME,
-                open_file=True
+                object_key=get_object_location(test_kg_id) + TEST_FILE_NAME,
+                open_file=False
             )  # open_file=False to affirm we won't trigger a browser action
             print(url)
             response = requests.get(url)
