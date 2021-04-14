@@ -106,7 +106,10 @@ async def get_kge_home(request: web.Request) -> web.Response:
         response = aiohttp_jinja2.render_template(
             'home.html',
             request=request,
-            context={"get_catalog": GET_CATALOG_URL}
+            context={
+                "submitter": session['name'],
+                "get_catalog": GET_CATALOG_URL
+            }
         )
         return await with_session(request, response)
     else:
@@ -241,10 +244,11 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
 
+        submitter = session['name']
+
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
         kg_version = request.query.get('kg_version', default='')
-        submitter = request.query.get('submitter', default='')
         
         missing: List[str] = []
         if not kg_id:
@@ -253,8 +257,6 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             missing.append("kg_name")
         if not kg_version:
             missing.append("kg_version")
-        if not submitter:
-            missing.append("submitter")
 
         if missing:
             await report_error( request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))

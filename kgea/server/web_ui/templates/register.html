@@ -12,7 +12,7 @@
 {% include "logout.button" %}
 {% include "home.button" %}
 {% endblock %}
-{% block title %}Register your KGE File Set{% endblock %}
+{% block title %}Submitter:</span> {{submitter}}<br>Register your KGE File Set{% endblock %}
 {% block content %}
 <form method="post"
       action="{{registration_action}}"
@@ -20,10 +20,9 @@
       accept-charset="utf-8"
 >
     <p></p><div style="font-size: smaller">Mandatory fields noted by a '<span style="color: red; font-weight: bold">*</span>'.</div>
-    <p></p>
-    </p><h5>Researcher or institution submitting the<br>Knowledge Graph KGX File Set:</h5><br>
-    <span class="label">Submitter:</span> {{submitter}} |
+    <p>
     <span class="label">Email:</span> {{submitter_email}}
+    </p>
     <input id="submitter" type="hidden" name="submitter" value="{{submitter}}" />
     <input id="submitter_email" type="hidden" name="submitter_email" value="{{submitter_email}}" />
     <p></p>

@@ -58,7 +58,8 @@ def mock_user_attributes() -> Dict:
     # Stub implementation in DEV_MODE
     user_attributes: Dict = dict()
     user_attributes["preferred_username"] = 'translator'
-    user_attributes["name"] = 'Mr. Trans L. Tor'
+    user_attributes["given_name"] = 'Trans'
+    user_attributes["family_name"] = 'Lator'
     user_attributes["email"] = 'translator@ncats.nih.gov'
     return user_attributes
 
