@@ -57,7 +57,7 @@ paths:
       summary: Returns the catalog of available KGE File Sets
       tags:
       - catalog
-      x-openapi-router-controller: web_services.controllers.catalog_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
   /publish/{kg_id}:
     get:
       operationId: publish_file_set
@@ -78,7 +78,7 @@ paths:
       summary: Publish a registered File Set
       tags:
       - catalog
-      x-openapi-router-controller: web_services.controllers.catalog_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
   /register:
     post:
       operationId: register_file_set
@@ -140,7 +140,7 @@ paths:
       summary: Register core parameters for the KGE File Set upload
       tags:
       - catalog
-      x-openapi-router-controller: web_services.controllers.catalog_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
       x-codegen-request-body-name: body
   /upload:
     post:
@@ -231,7 +231,7 @@ paths:
       summary: Upload processing of KGE File Set file
       tags:
       - upload
-      x-openapi-router-controller: web_services.controllers.upload_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
       x-codegen-request-body-name: body
   /{kg_id}/{kg_version}/contents:
     get:
@@ -281,7 +281,7 @@ paths:
       summary: Get file list and details for a specified KGE File Set version.
       tags:
       - content
-      x-openapi-router-controller: web_services.controllers.content_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
   /{kg_id}/{kg_version}/download:
     get:
       operationId: download_file_set
@@ -326,7 +326,7 @@ paths:
       summary: Returns specified KGE File Set as a gzip compressed tar archive
       tags:
       - content
-      x-openapi-router-controller: web_services.controllers.content_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
   /{kg_id}/{kg_version}/meta_knowledge_graph:
     get:
       operationId: meta_knowledge_graph
@@ -371,7 +371,7 @@ paths:
       summary: Meta knowledge graph representation of this KGX knowledge graph.
       tags:
       - content
-      x-openapi-router-controller: web_services.controllers.content_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
 components:
   requestBodies:
     inline_object_1:
