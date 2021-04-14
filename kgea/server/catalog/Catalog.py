@@ -348,7 +348,7 @@ class KgeaFileSet:
             logger.warning("KGE File Set provider metadata_file not posted?")
         registry_entry = self.generate_translator_registry_entry()
         if not add_to_github(self.kg_id, registry_entry):
-            logger.warning("publish_file_set()L Translator Registry entry not posted. Is gh_token configured?")
+            logger.warning("publish_file_set(): Translator Registry entry not posted. Is gh_token configured?")
 
     @staticmethod
     def format_and_compression(file_name):
