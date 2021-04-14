@@ -9,6 +9,7 @@
 from os import getenv
 from typing import Dict
 from uuid import uuid4
+from urllib.parse import quote_plus
 
 import asyncio
 from asyncio.events import AbstractEventLoop
@@ -172,6 +173,7 @@ async def _process_redirection(request, response, active_session):
 
 
 async def redirect(request, location: str, active_session: bool = False):
+    location = quote_plus(location)
     logger.debug('redirect() to location: ' + str(location))
     await _process_redirection(
         request,

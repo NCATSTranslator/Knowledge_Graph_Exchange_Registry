@@ -19,6 +19,7 @@ This should be reviewed when needed...
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
+from io import BytesIO
 from typing import Dict, Union, Tuple, Set, List
 from enum import Enum
 from string import Template
@@ -35,9 +36,13 @@ from github import Github
 from github.GithubException import UnknownObjectException
 
 from kgea.server.config import get_app_config
-from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
+from kgea.server.web_services.kgea_file_ops import get_default_date_stamp, get_object_location
 
 from .kgea_kgx import KgxValidator
+
+from ..web_services.kgea_file_ops import (
+    upload_file
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -339,9 +344,11 @@ class KgeaFileSet:
         remotely,  in the Translator SmartAPI Registry.
         """
         metadata_file = self.generate_provider_metadata_file()
-        # add_to_archive(metadata_file)
+        if not add_to_archive(self.kg_id, metadata_file):
+            logger.warning("KGE File Set provider metadata_file not posted?")
         registry_entry = self.generate_translator_registry_entry()
-        add_to_github(self.kg_id, registry_entry)
+        if not add_to_github(self.kg_id, registry_entry):
+            logger.warning("publish_file_set()L Translator Registry entry not posted. Is gh_token configured?")
 
     @staticmethod
     def format_and_compression(file_name):
@@ -584,36 +591,57 @@ _TEST_TSE_PARAMETERS = dict(
     license_url="https://opensource.org/licenses/Artistic-2.0",
     terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/"
 )
-_TEST_TSE = 'empty'
+_TEST_TPMF = 'empty'
+_TEST_TRE = 'empty'
 
 
 @prepare_test
-def test_create_provider_metadata_entry():
-    global _TEST_TSE
+def test_create_provider_metadata_file():
+    global _TEST_TPMF
     print("\ntest_create_provider_metadata_entry() test output:\n", file=stderr)
-    _TEST_TSE = _populate_template(
+    _TEST_TPMF = _populate_template(
         filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
         **_TEST_TSE_PARAMETERS
     )
-    print(str(_TEST_TSE), file=stderr)
+    print(str(_TEST_TPMF), file=stderr)
     return True
 
 
 @prepare_test
 def test_create_translator_registry_entry():
-    global _TEST_TSE
+    global _TEST_TRE
     print("\ntest_create_translator_registry_entry() test output:\n", file=stderr)
-    _TEST_TSE = _populate_template(
+    _TEST_TRE = _populate_template(
         filename=TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH,
         **_TEST_TSE_PARAMETERS
     )
-    print(str(_TEST_TSE), file=stderr)
+    print(str(_TEST_TRE), file=stderr)
     return True
+
+
+def add_to_archive(
+        kg_id: str,
+        text: str
+) -> str:
+    uploaded_file_object_key: str = ''
+    if text:
+        bytes = text.encode('utf-8')
+        uploaded_file_object_key = upload_file(
+            data_file=BytesIO(bytes),
+            file_name='provider_metadata.yaml',
+            bucket=_KGEA_APP_CONFIG['bucket'],
+            object_location=get_object_location(kg_id)
+        )
+    else:
+        logger.warning("add_to_archive(): Empty text string argument? Can't archive a vacuum!")
+
+    # could be an empty object key
+    return uploaded_file_object_key
 
 
 def add_to_github(
         kg_id: str,
-        api_specification: str,
+        text: str,
         repo_path: str = TRANSLATOR_SMARTAPI_REPO,
         target_directory: str = KGE_SMARTAPI_DIRECTORY
 ) -> bool:
@@ -622,20 +650,17 @@ def add_to_github(
     
     gh_token = _KGEA_APP_CONFIG['github']['token']
     
-    logger.debug(
-        "Calling Registry.add_to_github(\n"
-        "\t### gh_token = '"+str(gh_token)+"'\n"
-    )
+    logger.debug("Calling Registry.add_to_github(gh_token: '"+str(gh_token)+"')")
     
-    if gh_token:
+    if text and gh_token:
         
         logger.debug(
-            "\n\t### api_specification = '''\n" + str(api_specification)[:60] + "...\n'''\n" +
+            "\n\t### api_specification = '''\n" + text[:60] + "...\n'''\n" +
             "\t### repo_path = '" + str(repo_path) + "'\n" +
             "\t### target_directory = '" + str(target_directory) + "'"
         )
     
-        if api_specification and repo_path and target_directory:
+        if text and repo_path and target_directory:
             
             entry_path = target_directory+"/"+kg_id + ".yaml"
             
@@ -653,19 +678,18 @@ def add_to_github(
                 repo.create_file(
                     entry_path,
                     "Creating new KGE entry  '" + kg_id + "' in " + repo_path,
-                    api_specification,  # API YAML specification as a string
+                    text,  # API YAML specification as a string
                 )
             else:
                 repo.update_file(
                     entry_path,
                     "Updating KGE entry  '" + kg_id + "' in " + repo_path,
-                    api_specification,  # API YAML specification as a string
+                    text,  # API YAML specification as a string
                     content_file.sha
                 )
             
             outcome = True
 
-    logger.debug(")\n")
     return outcome
 
 
@@ -674,15 +698,24 @@ _TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 
 
 @prepare_test
+def test_add_to_archive():
+    outcome: str = add_to_archive(
+        "kge_test_provider_metadata_file",
+        _TEST_TPMF
+    )
+
+    return not outcome == ''
+
+
+@prepare_test
 def test_add_to_github():
-    
     outcome: bool = add_to_github(
-        "kge_test_entry",
-        _TEST_TSE,
+        "kge_test_translator_registry_entry",
+        _TEST_TRE,
         repo_path=_TEST_SMARTAPI_REPO,
         target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
     )
-    
+
     return outcome
 
 
@@ -741,7 +774,8 @@ if __name__ == '__main__':
         # thus we comment out this test to avoid repeated commits to the KGE repo. The 'clean_tests()' below
         # is thus not currently needed either, since it simply removes the github artifacts from add_to_github().
         # This code can be uncommented if these features need to be tested again in the future
-        assert (test_create_provider_metadata_entry())
+        assert (test_create_provider_metadata_file())
+        assert (test_add_to_archive())
         assert (test_create_translator_registry_entry())
         # assert (test_add_to_github())
         

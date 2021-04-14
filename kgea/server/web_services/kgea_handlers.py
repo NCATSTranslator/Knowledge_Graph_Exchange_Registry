@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
-KGEA_APP_CONFIG = get_app_config()
+_KGEA_APP_CONFIG = get_app_config()
 
 # This is likely invariant almost forever unless new types of
 # KGX data files will eventually be added, i.e. 'attributes'(?)
@@ -279,16 +279,14 @@ async def publish_kge_file_set(request: web.Request, kg_id):
 #############################################################
 
 
-async def _get_file_set_location(request: web.Request, kg_id: str, version: str = None):
+async def get_file_set_location(kg_id: str, kg_version: str = None):
     
     kge_file_set = KgeaCatalog.registry().get_kge_file_set(kg_id)
-    if not kge_file_set:
-        await report_not_found(request, "_get_file_set_location(): unknown KGE File Set '" + kg_id + "'?")
 
-    if not version:
-        version = kge_file_set.get_version()
+    if not kg_version:
+        kg_version = kge_file_set.get_version()
         
-    file_set_location, assigned_version = with_version(get_object_location, version)(kg_id)
+    file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
     
     return file_set_location, assigned_version
 
@@ -348,8 +346,10 @@ async def upload_kge_file(
             # must not be empty string
             await report_error(request, "upload_kge_file(): empty Content Name?")
 
-        file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
-        
+        file_set_location, assigned_version = await get_file_set_location(kg_id)
+        if not file_set_location:
+            await report_not_found(request, "upload_kge_file(): unknown KGE File Set '" + kg_id + "'?")
+
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
         
         if kgx_file_content in ['nodes', 'edges']:
@@ -376,7 +376,7 @@ async def upload_kge_file(
             uploaded_file_object_key = transfer_file_from_url(
                 url=content_url,
                 file_name=content_name,
-                bucket=KGEA_APP_CONFIG['bucket'],
+                bucket=_KGEA_APP_CONFIG['bucket'],
                 object_location=file_set_location
             )
         
@@ -386,7 +386,7 @@ async def upload_kge_file(
             uploaded_file_object_key = upload_file(
                 data_file=uploaded_file.file,
                 file_name=content_name,
-                bucket=KGEA_APP_CONFIG['bucket'],
+                bucket=_KGEA_APP_CONFIG['bucket'],
                 object_location=file_set_location
             )
 
@@ -397,7 +397,7 @@ async def upload_kge_file(
             
             try:
                 s3_file_url = create_presigned_url(
-                    bucket=KGEA_APP_CONFIG['bucket'],
+                    bucket=_KGEA_APP_CONFIG['bucket'],
                     object_key=uploaded_file_object_key
                 )
                 
@@ -467,7 +467,9 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
     if not session.empty:
 
         # TODO: need to retrieve metadata by kg_version
-        file_set_location, assigned_version = await _get_file_set_location(request, kg_id)
+        file_set_location, assigned_version = await get_file_set_location(kg_id)
+        if not file_set_location:
+            await report_not_found(request, "get_kge_file_set_contents(): unknown KGE File Set '" + kg_id + "'?")
         
         # Listings Approach
         # - Introspect on Bucket
@@ -476,13 +478,13 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
         # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
         # TODO: convert into redirect approach with cross-origin scripting?
         kg_files = kg_files_in_location(
-            bucket_name=KGEA_APP_CONFIG['bucket'],
+            bucket_name=_KGEA_APP_CONFIG['bucket'],
             object_location=file_set_location
         )
         pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
                 kg_listing))
         # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
         
@@ -521,7 +523,9 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
     session = await get_session(request)
     if not session.empty:
 
-        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=kg_version)
+        file_set_location, assigned_version = await get_file_set_location(kg_id, version=kg_version)
+        if not file_set_location:
+            await report_not_found(request, "kge_meta_knowledge_graph(): unknown KGE File Set '" + kg_id + "'?")
 
         # Listings Approach
         # - Introspect on Bucket
@@ -530,7 +534,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
         # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
         # TODO: convert into redirect approach with cross-origin scripting?
         kg_files = kg_files_in_location(
-            bucket_name=KGEA_APP_CONFIG['bucket'],
+            bucket_name=_KGEA_APP_CONFIG['bucket'],
             object_location=file_set_location
         )
         pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
@@ -538,7 +542,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
         )
         kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
         kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(KGEA_APP_CONFIG['bucket'], kg_file)],
+            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
                 kg_listing)
         )
 
@@ -583,7 +587,9 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version) -> web.
 
         # It is assumed that the kgx.tar.gz compressed archive
         # is in the 'root' file of the kg_id kg_version folder
-        file_set_location, assigned_version = await _get_file_set_location(request, kg_id, version=kg_version)
+        file_set_location, assigned_version = await get_file_set_location(kg_id, version=kg_version)
+        if not file_set_location:
+            await report_not_found(request, "download_kge_file_set(): unknown KGE File Set '" + kg_id + "'?")
 
         # TODO: need to retrieve the kgx.tar.gz file here, for the given
         #       kg_version of kg_id identified KGE File Set, from the
