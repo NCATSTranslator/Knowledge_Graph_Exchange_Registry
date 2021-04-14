@@ -395,7 +395,7 @@ class KgeaFileSet:
         )
 
 
-class KgeaRegistry:
+class KgeaCatalog:
     """
     Knowledge Graph Exchange (KGE) Temporary Registry for
     tracking compilation and validation of complete KGE File Sets
@@ -408,9 +408,9 @@ class KgeaRegistry:
         :return: singleton of KgeaRegistry
         """
         if not cls._initialized:
-            KgeaRegistry._registry = KgeaRegistry()
+            KgeaCatalog._registry = KgeaCatalog()
             cls._initialized = True
-        return KgeaRegistry._registry
+        return KgeaCatalog._registry
     
     def __init__(self):
         # This particular local 'registry' only has 'application runtime' scope
@@ -543,6 +543,7 @@ class KgeaRegistry:
             errors.append("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
             
         return errors
+
 
 # TODO
 @prepare_test

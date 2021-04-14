@@ -41,9 +41,9 @@ from .kgea_file_ops import (
 
 from .kgea_stream import transfer_file_from_url
 
-from ..registry.Registry import (
+from ..catalog.Catalog import (
     KgeFileType,
-    KgeaRegistry
+    KgeaCatalog
 )
 
 import logging
@@ -197,7 +197,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
-        kg_id = KgeaRegistry.normalize_name(kg_name)
+        kg_id = KgeaCatalog.normalize_name(kg_name)
 
         file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
@@ -212,7 +212,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
 
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
-                KgeaRegistry.registry().register_kge_file_set(
+                KgeaCatalog.registry().register_kge_file_set(
                     kg_id,
                     file_set_location=file_set_location,
                     kg_name=kg_name,
@@ -259,7 +259,7 @@ async def publish_kge_file_set(request: web.Request, kg_id):
     if not kg_id:
         await report_not_found(request, "publish_kge_file_set(): unknown KGE File Set '" + kg_id + "'?")
 
-    errors: List = await KgeaRegistry.registry().publish_file_set(kg_id)
+    errors: List = await KgeaCatalog.registry().publish_file_set(kg_id)
 
     if DEV_MODE and errors:
         raise report_error(
@@ -281,7 +281,7 @@ async def publish_kge_file_set(request: web.Request, kg_id):
 
 async def _get_file_set_location(request: web.Request, kg_id: str, version: str = None):
     
-    kge_file_set = KgeaRegistry.registry().get_kge_file_set(kg_id)
+    kge_file_set = KgeaCatalog.registry().get_kge_file_set(kg_id)
     if not kge_file_set:
         await report_not_found(request, "_get_file_set_location(): unknown KGE File Set '" + kg_id + "'?")
 
@@ -404,7 +404,7 @@ async def upload_kge_file(
                 # This action adds a file to a knowledge graph initiating
                 # or continuing a KGE file set registration process.
                 # May raise an Exception if something goes wrong.
-                KgeaRegistry.registry().add_to_kge_file_set(
+                KgeaCatalog.registry().add_to_kge_file_set(
                     kg_id=kg_id,
                     file_type=file_type,
                     file_name=content_name,
