@@ -35,7 +35,7 @@ from github.GithubException import UnknownObjectException
 from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_file_ops import get_default_date_stamp, get_object_location
 from .kgea_kgx import KgxValidator
-from ..web_services.kgea_file_ops import (
+from kgea.server.web_services.kgea_file_ops import (
     upload_file
 )
 
@@ -341,8 +341,8 @@ class KgeaFileSet:
         metadata_file = self.generate_provider_metadata_file()
         if not add_to_archive(self.kg_id, metadata_file):
             logger.warning("KGE File Set provider metadata_file not posted?")
-        registry_entry = self.generate_translator_registry_entry()
-        if not add_to_github(self.kg_id, registry_entry):
+        translator_smartapi_registry_entry = self.generate_translator_registry_entry()
+        if not add_to_github(self.kg_id, translator_smartapi_registry_entry):
             logger.warning("publish_file_set(): Translator Registry entry not posted. Is gh_token configured?")
 
     @staticmethod
@@ -405,22 +405,23 @@ class KgeaCatalog:
     _initialized = False
     
     @classmethod
-    def registry(cls):
+    def catalog(cls):
         """
         :return: singleton of KgeaRegistry
         """
         if not cls._initialized:
-            KgeaCatalog._registry = KgeaCatalog()
+            KgeaCatalog._the_catalog = KgeaCatalog()
             cls._initialized = True
-        return KgeaCatalog._registry
+        return KgeaCatalog._the_catalog
     
     def __init__(self):
-        # This particular local 'registry' only has 'application runtime' scope
+        # This particular local 'catalog' currently only has 'application runtime' scope.
         # and is mainly used during the assembly and initial publication of
         # KGE File Sets. The AWS S3 repository of file sets is persistent
         # in between application sessions... so is the authority on the
         # full catalog of available KGE File Sets, at any point in time.
-        self._kge_file_set_registry: Dict[str, KgeaFileSet] = dict()
+        # TODO: initialize catalog with the metadata of all existing AWS S3 KGE File Sets
+        self._kge_file_set_catalog: Dict[str, KgeaFileSet] = dict()
     
     @staticmethod
     def normalize_name(kg_name: str) -> str:
@@ -447,11 +448,11 @@ class KgeaCatalog:
         
         # For now, a given graph is only submitted once for a given submitter
         # TODO: should we accept any resubmissions or changes?
-        if kg_id not in self._kge_file_set_registry:
-            print('adding to registry')
-            self._kge_file_set_registry[kg_id] = KgeaFileSet(kg_id, **kwargs)
+        if kg_id not in self._kge_file_set_catalog:
+            print('adding to catalog')
+            self._kge_file_set_catalog[kg_id] = KgeaFileSet(kg_id, **kwargs)
         
-        return self._kge_file_set_registry[kg_id]
+        return self._kge_file_set_catalog[kg_id]
     
     def get_kge_file_set(self, kg_id: str) -> Union[KgeaFileSet, None]:
         """
@@ -459,8 +460,8 @@ class KgeaCatalog:
         :param kg_id: input knowledge graph file set identifier
         :return: KgeaFileSet; None, if unknown
         """
-        if kg_id in self._kge_file_set_registry:
-            return self._kge_file_set_registry[kg_id]
+        if kg_id in self._kge_file_set_catalog:
+            return self._kge_file_set_catalog[kg_id]
         else:
             return None
 
@@ -522,9 +523,9 @@ class KgeaCatalog:
         
         errors: List = []
         
-        if kg_id in self._kge_file_set_registry:
+        if kg_id in self._kge_file_set_catalog:
             
-            kge_file_set = self._kge_file_set_registry[kg_id]
+            kge_file_set = self._kge_file_set_catalog[kg_id]
             
             # Ensure that the all the files are KGX validated first(?)
             
@@ -775,7 +776,7 @@ if __name__ == '__main__':
         assert (test_create_translator_registry_entry())
         # assert (test_add_to_github())
         
-        print("all registry tests passed")
+        print("all KGEA Catalog tests passed")
         
     # if CLEAN_TESTS:
     #     clean_tests()

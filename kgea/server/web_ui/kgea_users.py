@@ -11,13 +11,10 @@ from uuid import uuid4
 
 import logging
 
-from aiohttp import web
-
 from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_session import KgeaSession
 
 logger = logging.getLogger(__name__)
-
 logger.setLevel(logging.DEBUG)
 
 # Master flag for simplified local development
