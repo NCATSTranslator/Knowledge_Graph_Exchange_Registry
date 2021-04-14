@@ -22,7 +22,11 @@ def main():
     
     app.add_api('openapi.yaml',
                 arguments={
-                    'title': 'OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGE) Archive'},
+                    'title': 'OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive. ' +
+                             'Although this API is SmartAPI compliant, it will not normally be visible in the ' +
+                             'Translator SmartAPI Registry since it is mainly meant to be accessed through ' +
+                             'Registry indexed KGE File Sets, which will have distinct entries in the Registry.'
+                },
                 pythonic_params=True,
                 pass_context_arg_name='request')
     
@@ -38,9 +42,9 @@ def main():
     # Register all routers for CORS.
     for route in list(app.app.router.routes()):
         cors.add(route)
-    
+
     KgeaSession.init(app.app)
-    
+
     app.run(port=8080)
-    
+
     KgeaSession.close_global_session()

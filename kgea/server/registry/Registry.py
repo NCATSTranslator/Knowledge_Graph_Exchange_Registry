@@ -32,7 +32,6 @@ import asyncio
 import logging
 
 from github import Github
-from github.ContentFile import ContentFile
 from github.GithubException import UnknownObjectException
 
 from kgea.server.config import get_app_config
@@ -333,13 +332,16 @@ class KgeaFileSet:
                 
         return errors
         
-    def translator_registration(self):
+    def publish_file_set(self):
         """
-        Register the current file set in the Translator SmartAPI Registry
-        :return:
+        Publish provider metadata,
+        both locally in the Archive S3 repository and
+        remotely,  in the Translator SmartAPI Registry.
         """
-        api_specification = create_smartapi(kg_id=self.kg_id, **self.parameter)
-        add_to_github(self.kg_id, api_specification)
+        metadata_file = self.generate_provider_metadata_file()
+        # add_to_archive(metadata_file)
+        registry_entry = self.generate_translator_registry_entry()
+        add_to_github(self.kg_id, registry_entry)
 
     @staticmethod
     def format_and_compression(file_name):
@@ -367,6 +369,30 @@ class KgeaFileSet:
             compression = None
         
         return input_format, compression
+
+    # KGE File Set Translator SmartAPI parameters (March 2021 release):
+    # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
+    # - kg_name: human readable name of the knowledge graph
+    # - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
+    # - kg_version: release version of KGE File Set - recorded directly as the Translator SmartAPI entry 'version'
+    # - submitter - name of submitter of the KGE file set
+    # - submitter_email - contact email of the submitter
+    # - license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.
+    # - license_url - web site link to project license
+    # - terms_of_service - specifically relating to the project, beyond the licensing
+    # - translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
+    # - translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider
+    def generate_provider_metadata_file(self, **kwargs) -> str:
+        return _populate_template(
+            filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
+            kg_id=self.kg_id, **self.parameter
+        )
+
+    def generate_translator_registry_entry(self, **kwargs) -> str:
+        return _populate_template(
+            filename=TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH,
+            kg_id=self.kg_id, **self.parameter
+        )
 
 
 class KgeaRegistry:
@@ -504,9 +530,11 @@ class KgeaRegistry:
             logger.debug("File set validation() complete for file set '" + kg_id + "')")
             
             if not errors:
-                # Publish to the Translator SmartAPI Registry after KGX validation and related post-processing
-                logger.debug("Valid KGE File Set being publishing to the Translator Registry")
-                kge_file_set.translator_registration()
+                # After KGX validation and related post-processing is successfully validated,
+                # We publish provider metadata both locally in the Archive S3 repository and
+                # remotely,  in the Translator SmartAPI Registry
+                logger.debug("Publishing validated KGE File Set in the Archive and to the Translator Registry")
+                kge_file_set.publish_file_set()
             else:
                 logger.debug("KGX validation errors encountered:\n" + str(errors))
             
@@ -522,28 +550,21 @@ def test_check_kgx_compliance():
     return True
 
 
+PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
+    abspath(dirname(__file__) + '/../../api/kge_provider_metadata.yaml')
 TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../api/kge_smartapi_entry.yaml')
 
 
-# KGE File Set Translator SmartAPI parameters (March 2021 release) set here are the following string keyword arguments:
-# - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
-# - kg_name: human readable name of the knowledge graph
-# - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
-# - kg_version: release version of KGE File Set - simply recorded directly as the Translator SmartAPI entry 'version'
-# - submitter - name of submitter of the KGE file set
-# - submitter_email - contact email of the submitter
-# - license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.
-# - license_url - web site link to project license
-# - terms_of_service - specifically relating to the project, beyond the licensing
-# - translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
-# - translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider
-def create_smartapi(**kwargs) -> str:
-    with open(TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH, 'r') as template_file:
-        smart_api_template = template_file.read()
+def _populate_template(filename, **kwargs) -> str:
+    """
+    Reads in a string template and populates it with provided named parameter values
+    """
+    with open(filename, 'r') as template_file:
+        template = template_file.read()
         # Inject KG-specific parameters into template
-        smart_api_entry = Template(smart_api_template).substitute(**kwargs)
-        return smart_api_entry
+        populated_template = Template(template).substitute(**kwargs)
+        return populated_template
 
 
 _TEST_TSE_PARAMETERS = dict(
@@ -566,10 +587,25 @@ _TEST_TSE = 'empty'
 
 
 @prepare_test
-def test_create_smartapi():
+def test_create_provider_metadata_entry():
     global _TEST_TSE
-    print("\ntest_create_smartapi() test output:\n", file=stderr)
-    _TEST_TSE = create_smartapi(**_TEST_TSE_PARAMETERS)
+    print("\ntest_create_provider_metadata_entry() test output:\n", file=stderr)
+    _TEST_TSE = _populate_template(
+        filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
+        **_TEST_TSE_PARAMETERS
+    )
+    print(str(_TEST_TSE), file=stderr)
+    return True
+
+
+@prepare_test
+def test_create_translator_registry_entry():
+    global _TEST_TSE
+    print("\ntest_create_translator_registry_entry() test output:\n", file=stderr)
+    _TEST_TSE = _populate_template(
+        filename=TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH,
+        **_TEST_TSE_PARAMETERS
+    )
     print(str(_TEST_TSE), file=stderr)
     return True
 
@@ -700,11 +736,12 @@ if __name__ == '__main__':
         
         print("KGEA Registry modules functions and tests")
         
-        # The create_smartapi() and add_to_github() methods both seem to work, as coded as of 29 March 2021,
+        # The generate_translator_registry_entry() and add_to_github() methods both work as coded as of 29 March 2021,
         # thus we comment out this test to avoid repeated commits to the KGE repo. The 'clean_tests()' below
         # is thus not currently needed either, since it simply removes the github artifacts from add_to_github().
         # This code can be uncommented if these features need to be tested again in the future
-        # assert (test_create_smartapi())
+        assert (test_create_provider_metadata_entry())
+        assert (test_create_translator_registry_entry())
         # assert (test_add_to_github())
         
         print("all registry tests passed")
