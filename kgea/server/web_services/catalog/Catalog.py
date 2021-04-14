@@ -556,9 +556,9 @@ def test_check_kgx_compliance():
 
 
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
-    abspath(dirname(__file__) + '/../../api/kge_provider_metadata.yaml')
+    abspath(dirname(__file__) + '/../../../api/kge_provider_metadata.yaml')
 TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
-    abspath(dirname(__file__) + '/../../api/kge_smartapi_entry.yaml')
+    abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
 
 
 def _populate_template(filename, **kwargs) -> str:
@@ -664,6 +664,9 @@ def add_to_github(
             logger.debug("\t### gh_url = '" + str(entry_path) + "'")
             
             g = Github(gh_token)
+
+            # TODO: should I be explicit somewhere here
+            #       about the repo branch being used? How?
             repo = g.get_repo(repo_path)
 
             try:

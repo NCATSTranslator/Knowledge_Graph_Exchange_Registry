@@ -45,7 +45,7 @@ from .kgea_file_ops import (
 
 from .kgea_stream import transfer_file_from_url
 
-from kgea.server.web_services.catalog import (
+from kgea.server.web_services.catalog.Catalog import (
     KgeFileType,
     KgeaCatalog
 )

@@ -16,13 +16,12 @@ swagger-ui-bundle = "==0.0.6"
 botocore = "<1.21.0,>=1.20.12"
 boto3 = ">=1.17.0"
 pygithub = "*"
+s3-tar = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.9"
 
-[packages.connexion]
-git = "https://github.com/STARInformatics/connexion.git"
-editable = true
-ref = "fix-urlencoded-body-parameter-parsing"
+[packages]
+connexion = {git = "https://github.com/STARInformatics/connexion.git", editable = true, ref = "fix-urlencoded-body-parameter-parsing"}
