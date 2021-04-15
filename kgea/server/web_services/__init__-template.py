@@ -43,7 +43,7 @@ def main():
     for route in list(app.app.router.routes()):
         cors.add(route)
 
-    KgeaSession.init(app.app)
+    KgeaSession.initialize(app.app)
 
     app.run(port=8080)
 

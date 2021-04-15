@@ -1,20 +1,14 @@
 """
 KGE Interface module to the operational management of
 File Sets within Knowledge Graph eXchange (KGX) application.
-Note that this management is short term and doesn't read
-back the contents of the remote storage system (i.e. AWS S3)
-but just keeps an in memory copy of the (meta-)data being
-received from clients to the application, each time the
-application is started up.
 
 Set the RUN_TESTS environment variable to a non-blank value
 whenever you wish to run the unit tests in this module...
 Set the CLEAN_TESTS environment variable to a non-blank value
 to clean up test outputs from RUN_TESTS runs.
 
-The values for the Translator SmartAPI endpoint
-are hard coded in the module for now but may change in the future.
-This should be reviewed when needed...
+The values for the Translator SmartAPI endpoint are hard coded
+in the module for now but may change in the future.
 
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
@@ -45,6 +39,8 @@ from kgea.server.web_services.kgea_file_ops import upload_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+DEV_MODE = getenv('DEV_MODE', default=False)
 
 RUN_TESTS = getenv('RUN_TESTS', default=False)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
@@ -416,25 +412,31 @@ class KgeaCatalog:
     Knowledge Graph Exchange (KGE) Temporary Registry for
     tracking compilation and validation of complete KGE File Sets
     """
-    _initialized = False
+    _the_catalog = None
     
     def __init__(self):
         self._kge_file_set_catalog: Dict[str, KgeaFileSet] = dict()
-        # TODO: initialize catalog with the metadata of all
-        #       existing KGE Archive (AWS S3 stored) KGE File Sets
-        archive_contents = get_archive_contents()
+
+        # Initialize catalog with the metadata of all
+        # existing KGE Archive (AWS S3 stored) KGE File Sets
+        archive_contents = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['bucket'])
         for kg_id, entry in archive_contents:
             self._kge_file_set_catalog[kg_id] = \
                 load_archive_entry(kg_id=kg_id, entry=entry)
+
+    @classmethod
+    def initialize(cls):
+        if not cls._the_catalog:
+            KgeaCatalog._the_catalog = KgeaCatalog()
 
     @classmethod
     def catalog(cls):
         """
         :return: singleton of KgeaRegistry
         """
-        if not cls._initialized:
-            KgeaCatalog._the_catalog = KgeaCatalog()
-            cls._initialized = True
+        if not cls._the_catalog:
+            raise RuntimeError("KGE Archive Catalog is uninitialized?")
+
         return KgeaCatalog._the_catalog
 
     @staticmethod
@@ -562,33 +564,68 @@ class KgeaCatalog:
             
         return errors
 
-    def get_entries(self) -> Dict:
-        # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
-        if RUN_TESTS:
-            # mock catalog
-            catalog = {
-                "translator_reference_graph": {
-                    "kg_name": "Translator Reference Graph",
-                    "kg_versions": ["1.0", "2.0", "2.1"]
-                },
-                "semantic_medline_database": {
-                    "name": "Semantic Medline Database",
-                    "versions": ["4.2", "4.3"]
-                }
-            }
-        else:
-            # The real content of the catalog
-            catalog: Dict[str,  Dict[str, Union[str, List]]] = dict()
-            for kg_id, entry in self._kge_file_set_catalog.items():
-                kg_name = entry.get_name()
-                kg_version = entry.get_version()
-                if kg_id not in catalog:
-                    catalog[kg_id] = dict()
-                    catalog[kg_id]["kg_name"] = kg_name
-                    catalog[kg_id]["kg_versions"] = list()
-                if kg_version not in catalog[kg_id]["kg_versions"]:
-                    catalog[kg_id]["kg_versions"].append(kg_version)
+    @staticmethod
+    def get_entries() -> Dict:
 
+        # TODO: need a major careful reworking of the following Catalog generation code...
+
+        #"""
+        # catalog = {
+        #     "translator_reference_graph": {
+        #         "name": "Translator Reference Graph",
+        #         "versions": ["1.0", "2.0", "2.1"]
+        #     },
+        #     "semantic_medline_database": {
+        #         "name": "Semantic Medline Database",
+        #         "versions": ["4.2", "4.3"]
+        #     }
+        # }
+        # """
+        # versions_per_kg = get_kg_versions_available(_KGEA_APP_CONFIG['bucket'])
+        #
+        # catalog = {}
+        # for kg_id, kg_versions in versions_per_kg.items():
+        #     catalog[kg_id] = {
+        #         "name": kg_id,  # TODO: name <- registration
+        #         "versions": kg_versions
+        #     }
+
+        # # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
+        # if DEV_MODE:
+        #     # mock catalog
+        #     catalog = {
+        #         "translator_reference_graph": {
+        #             "kg_name": "Translator Reference Graph",
+        #             "kg_versions": ["1.0", "2.0", "2.1"]
+        #         },
+        #         "semantic_medline_database": {
+        #             "name": "Semantic Medline Database",
+        #             "versions": ["4.2", "4.3"]
+        #         }
+        #     }
+        # else:
+        #     # The real content of the catalog
+        #     catalog: Dict[str,  Dict[str, Union[str, List]]] = dict()
+        #     for kg_id, entry in self._kge_file_set_catalog.items():
+        #         kg_name = entry.get_name()
+        #         kg_version = entry.get_version()
+        #         if kg_id not in catalog:
+        #             catalog[kg_id] = dict()
+        #             catalog[kg_id]["kg_name"] = kg_name
+        #             catalog[kg_id]["kg_versions"] = list()
+        #         if kg_version not in catalog[kg_id]["kg_versions"]:
+        #             catalog[kg_id]["kg_versions"].append(kg_version)
+
+        catalog = {
+            "translator_reference_graph": {
+                "name": "Translator Reference Graph",
+                "versions": ["1.0", "2.0", "2.1"]
+            },
+            "semantic_medline_database": {
+                "name": "Semantic Medline Database",
+                "versions": ["4.2", "4.3"]
+            }
+        }
         return catalog
 
 

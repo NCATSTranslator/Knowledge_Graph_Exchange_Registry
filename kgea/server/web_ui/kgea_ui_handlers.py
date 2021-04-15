@@ -73,6 +73,7 @@ PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
 DOWNLOAD_ARCHIVE = ARCHIVE_PATH+"download"
 DOWNLOAD_METADATA = ARCHIVE_PATH+"meta_knowledge_graph"
 
+
 async def kge_landing_page(request: web.Request) -> web.Response:
     """Display landing page.
 

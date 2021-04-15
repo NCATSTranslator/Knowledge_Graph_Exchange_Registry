@@ -1,6 +1,6 @@
 from os import getenv
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -97,11 +97,16 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     :param request:
     :type request: web.json_response
     """
-    catalog = KgeaCatalog.catalog().get_entries()
+    catalog: Dict = dict()
 
+    # Paranoia: can't see the catalog without being logged in a user session
+    session = await get_session(request)
+    if not session.empty:
+        catalog = KgeaCatalog.catalog().get_entries()
+
+    # but don't need to propagate the user session to the output
     response = web.json_response(catalog, status=200)
-
-    return await with_session(request, response)
+    return response
 
 
 _known_licenses = {
@@ -467,40 +472,6 @@ async def upload_kge_file(
 #     download_kge_file_set
 # )
 #############################################################
-
-
-async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
-    """Returns the catalog of available KGE File Sets
-
-    :param request:
-    :type request: web.json_response
-    """
-    # TODO: need to fetch the actual KGE Archive catalog here. This is just a
-    #       mock catalog - see KgeFileSetEntry schema in the kgea_archive.yaml
-    """
-    catalog = {
-        "translator_reference_graph": {
-            "name": "Translator Reference Graph",
-            "versions": ["1.0", "2.0", "2.1"]
-        },
-        "semantic_medline_database": {
-            "name": "Semantic Medline Database",
-            "versions": ["4.2", "4.3"]
-        }
-    }
-    """
-    versions_per_kg = get_kg_versions_available(_KGEA_APP_CONFIG['bucket'])
-
-    catalog = {}
-    for kg_id, kg_versions in versions_per_kg.items():
-        catalog[kg_id] = {
-            "name": kg_id,  # TODO: name <- registration
-            "versions": kg_versions
-        }
-
-    response = web.json_response(catalog, status=200)
-    return response
-    # return await with_session(request, response)
 
 
 async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version: str) -> web.Response:

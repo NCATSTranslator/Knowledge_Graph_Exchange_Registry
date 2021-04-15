@@ -1,5 +1,6 @@
 from os import getenv
 from os.path import expanduser, dirname, abspath
+from typing import Dict
 
 import boto3
 from botocore.client import Config
@@ -101,7 +102,7 @@ except Exception as e:
     print(e)
 
 # Exported  'application configuration' dictionary
-_app_config: dict = dict()
+_app_config: Dict = dict()
 
 
 def get_app_config() -> dict:

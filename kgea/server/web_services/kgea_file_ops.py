@@ -7,33 +7,36 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
+from sys import stderr
 from typing import Dict
+from functools import wraps
+from string import Template
+import random
 
-from kgea.server.config import s3_client
-
-import boto3
-from botocore.exceptions import ClientError
+import time
+from datetime import datetime
 
 from os.path import abspath, splitext
+from io import BytesIO
+import tempfile
 from pathlib import Path
-from s3_tar import S3Tar
-
 import tarfile
-
-import random
-from string import Template
-from datetime import datetime
+from s3_tar import S3Tar
 
 import webbrowser
 import requests
 
+import boto3
+from botocore.exceptions import ClientError
+
+from kgea.server.config import s3_client, get_app_config
+
 import logging
-
-from io import BytesIO
-import tempfile
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Opaquely access the configuration dictionary
+_KGEA_APP_CONFIG = get_app_config()
 
 
 def create_location(bucket, kg_id):
@@ -66,8 +69,6 @@ TEST_KG_NAME = 'test_kg'
 TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
 
-from functools import wraps
-
 
 def prepare_test(func):
     @wraps(func)
@@ -77,25 +78,6 @@ def prepare_test(func):
         return func()
 
     return wrapper
-
-
-def get_archive_contents(bucket_name) -> Dict[str, str]:
-    """
-    Guarantee that we can write to the location of the object without overriding everything
-
-    :param bucket_name: The bucket
-    :return: annotated KGE File Set enumerated of the S3 repository
-    """
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(bucket_name)
-    objs = list(bucket.objects)
-
-    contents: Dict = dict()
-    for w in objs:
-        # TODO: some magic here...
-        pass
-
-    return contents
 
 
 def prepare_test_random_object_location(func):
@@ -122,7 +104,7 @@ def get_object_location(kg_id):
     randomness in this method; they may be appended afterwards.
     """
     location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
-        DIRECTORY_NAME='kge-data',
+        DIRECTORY_NAME=_KGEA_APP_CONFIG['bucket'],
         KG_NAME=kg_id
     )
     return location
@@ -806,11 +788,38 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
     return True
 
 
+def get_archive_contents(bucket_name: str) -> Dict[str, str]:
+    """
+    Guarantee that we can write to the location of the object without overriding everything
+
+    :param bucket_name: The bucket
+    :return: annotated KGE File Set enumerated of the S3 repository
+    """
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    objs = []  #list(bucket.objects)
+
+    contents: Dict = dict()
+    for w in objs:
+        # TODO: some magic here...
+        pass
+
+    return contents
+
+
+@prepare_test
+def test_get_archive_contents(test_bucket=TEST_BUCKET):
+    print("\ntest_get_archive_contents() test output:\n", file=stderr)
+    contents = get_archive_contents(test_bucket)
+    print(str(contents), file=stderr)
+
+
 """
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-import time
+
+
 def run_test(test_func):
     try:
         start = time.time()
@@ -855,5 +864,7 @@ if __name__ == '__main__':
 
     run_test(test_upload_file_to_archive)
     run_test(test_download_file)
+
+    run_test(test_get_archive_contents)
 
     print("tests complete")
