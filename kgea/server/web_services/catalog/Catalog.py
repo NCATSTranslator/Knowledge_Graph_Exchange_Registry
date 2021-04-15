@@ -35,7 +35,11 @@ from github import Github
 from github.GithubException import UnknownObjectException
 
 from kgea.server.config import get_app_config
-from kgea.server.web_services.kgea_file_ops import get_default_date_stamp, get_object_location
+from kgea.server.web_services.kgea_file_ops import (
+    get_default_date_stamp,
+    get_object_location,
+    get_archive_contents
+)
 from .kgea_kgx import KgxValidator
 from kgea.server.web_services.kgea_file_ops import upload_file
 
@@ -407,6 +411,13 @@ class KgeaCatalog:
     """
     _initialized = False
     
+    def __init__(self):
+        self._kge_file_set_catalog: Dict[str, KgeaFileSet] = dict()
+        # TODO: initialize catalog with the metadata of all existing AWS S3 KGE File Sets
+        archive_contents = get_archive_contents()
+        for kg_id, entry in archive_contents:
+            self._kge_file_set_catalog[kg_id] = None
+
     @classmethod
     def catalog(cls):
         """
@@ -416,16 +427,7 @@ class KgeaCatalog:
             KgeaCatalog._the_catalog = KgeaCatalog()
             cls._initialized = True
         return KgeaCatalog._the_catalog
-    
-    def __init__(self):
-        # This particular local 'catalog' currently only has 'application runtime' scope.
-        # and is mainly used during the assembly and initial publication of
-        # KGE File Sets. The AWS S3 repository of file sets is persistent
-        # in between application sessions... so is the authority on the
-        # full catalog of available KGE File Sets, at any point in time.
-        # TODO: initialize catalog with the metadata of all existing AWS S3 KGE File Sets
-        self._kge_file_set_catalog: Dict[str, KgeaFileSet] = dict()
-    
+
     @staticmethod
     def normalize_name(kg_name: str) -> str:
         # TODO: need to review graph name normalization and indexing

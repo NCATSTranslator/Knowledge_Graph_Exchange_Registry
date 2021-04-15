@@ -7,6 +7,7 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
+from typing import Dict
 
 from kgea.server.config import s3_client
 
@@ -68,7 +69,6 @@ TEST_FILE_NAME = 'somedata.csv'
 from functools import wraps
 
 
-
 def prepare_test(func):
     @wraps(func)
     def wrapper():
@@ -77,6 +77,25 @@ def prepare_test(func):
         return func()
 
     return wrapper
+
+
+def get_archive_contents(bucket_name) -> Dict[str, str]:
+    """
+    Guarantee that we can write to the location of the object without overriding everything
+
+    :param bucket_name: The bucket
+    :return: annotated KGE File Set enumerated of the S3 repository
+    """
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    objs = list(bucket.objects)
+
+    contents: Dict = dict()
+    for w in objs:
+        # TODO: some magic here...
+        pass
+
+    return contents
 
 
 def prepare_test_random_object_location(func):
