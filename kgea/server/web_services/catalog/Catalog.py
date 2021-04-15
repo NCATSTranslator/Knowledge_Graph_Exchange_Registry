@@ -564,68 +564,46 @@ class KgeaCatalog:
             
         return errors
 
-    @staticmethod
-    def get_entries() -> Dict:
+    def get_entries(self) -> Dict:
 
-        # TODO: need a major careful reworking of the following Catalog generation code...
-
-        #"""
-        # catalog = {
-        #     "translator_reference_graph": {
-        #         "name": "Translator Reference Graph",
-        #         "versions": ["1.0", "2.0", "2.1"]
-        #     },
-        #     "semantic_medline_database": {
-        #         "name": "Semantic Medline Database",
-        #         "versions": ["4.2", "4.3"]
-        #     }
-        # }
-        # """
-        # versions_per_kg = get_kg_versions_available(_KGEA_APP_CONFIG['bucket'])
-        #
-        # catalog = {}
-        # for kg_id, kg_versions in versions_per_kg.items():
-        #     catalog[kg_id] = {
-        #         "name": kg_id,  # TODO: name <- registration
-        #         "versions": kg_versions
-        #     }
-
-        # # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
-        # if DEV_MODE:
-        #     # mock catalog
-        #     catalog = {
-        #         "translator_reference_graph": {
-        #             "kg_name": "Translator Reference Graph",
-        #             "kg_versions": ["1.0", "2.0", "2.1"]
-        #         },
-        #         "semantic_medline_database": {
-        #             "name": "Semantic Medline Database",
-        #             "versions": ["4.2", "4.3"]
-        #         }
-        #     }
-        # else:
-        #     # The real content of the catalog
-        #     catalog: Dict[str,  Dict[str, Union[str, List]]] = dict()
-        #     for kg_id, entry in self._kge_file_set_catalog.items():
-        #         kg_name = entry.get_name()
-        #         kg_version = entry.get_version()
-        #         if kg_id not in catalog:
-        #             catalog[kg_id] = dict()
-        #             catalog[kg_id]["kg_name"] = kg_name
-        #             catalog[kg_id]["kg_versions"] = list()
-        #         if kg_version not in catalog[kg_id]["kg_versions"]:
-        #             catalog[kg_id]["kg_versions"].append(kg_version)
-
-        catalog = {
-            "translator_reference_graph": {
-                "name": "Translator Reference Graph",
-                "versions": ["1.0", "2.0", "2.1"]
-            },
-            "semantic_medline_database": {
-                "name": "Semantic Medline Database",
-                "versions": ["4.2", "4.3"]
+        # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
+        if DEV_MODE:
+            # mock catalog
+            catalog = {
+                "translator_reference_graph": {
+                    "name": "Translator Reference Graph",
+                    "versions": ["1.0", "2.0", "2.1"]
+                },
+                "semantic_medline_database": {
+                    "name": "Semantic Medline Database",
+                    "versions": ["4.2", "4.3"]
+                }
             }
-        }
+        else:
+            # The real content of the catalog
+
+            # KCB catalog metadata retrieval variant - need to compare & contrast
+
+            # versions_per_kg = get_kg_versions_available(_KGEA_APP_CONFIG['bucket'])
+            #
+            # catalog = {}
+            # for kg_id, kg_versions in versions_per_kg.items():
+            #     catalog[kg_id] = {
+            #         "name": kg_id,  # TODO: name <- registration
+            #         "versions": kg_versions
+            #     }
+
+            catalog: Dict[str,  Dict[str, Union[str, List]]] = dict()
+            for kg_id, entry in self._kge_file_set_catalog.items():
+                kg_name = entry.get_name()
+                kg_version = entry.get_version()
+                if kg_id not in catalog:
+                    catalog[kg_id] = dict()
+                    catalog[kg_id]["kg_name"] = kg_name
+                    catalog[kg_id]["kg_versions"] = list()
+                if kg_version not in catalog[kg_id]["kg_versions"]:
+                    catalog[kg_id]["kg_versions"].append(kg_version)
+
         return catalog
 
 
