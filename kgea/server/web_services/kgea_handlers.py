@@ -97,18 +97,7 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     :param request:
     :type request: web.json_response
     """
-    # TODO: need to fetch the actual KGE Archive catalog here. This is just a
-    #       mock catalog - see KgeFileSetEntry schema in the kgea_archive.yaml
-    catalog = {
-        "translator_reference_graph": {
-            "name": "Translator Reference Graph",
-            "versions": ["1.0", "2.0", "2.1"]
-        },
-        "semantic_medline_database": {
-            "name": "Semantic Medline Database",
-            "versions": ["4.2", "4.3"]
-        }
-    }
+    catalog = KgeaCatalog.catalog().get_entries()
 
     response = web.json_response(catalog, status=200)
 

@@ -27,6 +27,8 @@ from io import BytesIO
 from typing import Dict, Union, Tuple, Set, List
 from enum import Enum
 from string import Template
+from json import dumps
+
 import logging
 
 from github import Github
@@ -258,9 +260,12 @@ class KgeaFileSet:
         #     s3_file_url=s3_file_url
         # )
 
+    def get_name(self) -> str:
+        return self.parameter.setdefault("kg_name", 'Unknown')
+
     def get_version(self) -> str:
         return self.parameter.setdefault("kg_version", get_default_date_stamp())
-    
+
     def get_metadata_file(self) -> Union[Dict, None]:
         """
         :return: a copy of metadata dictionary about the KGE File Set metadata file, if available; None otherwise
@@ -546,10 +551,48 @@ class KgeaCatalog:
             
         return errors
 
+    def get_entries(self) -> Dict:
+        # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
+        if RUN_TESTS:
+            # mock catalog
+            catalog = {
+                "translator_reference_graph": {
+                    "kg_name": "Translator Reference Graph",
+                    "kg_versions": ["1.0", "2.0", "2.1"]
+                },
+                "semantic_medline_database": {
+                    "name": "Semantic Medline Database",
+                    "versions": ["4.2", "4.3"]
+                }
+            }
+        else:
+            # The real content of the catalog
+            catalog: Dict[str,  Dict[str, Union[str, List]]] = dict()
+            for kg_id, entry in self._kge_file_set_catalog.items():
+                kg_name = entry.get_name()
+                kg_version = entry.get_version()
+                if kg_id not in catalog:
+                    catalog[kg_id] = dict()
+                    catalog[kg_id]["kg_name"] = kg_name
+                    catalog[kg_id]["kg_versions"] = list()
+                if kg_version not in catalog[kg_id]["kg_versions"]:
+                    catalog[kg_id]["kg_versions"].append(kg_version)
+
+        return catalog
+
 
 # TODO
 @prepare_test
 def test_check_kgx_compliance():
+    return True
+
+
+# TODO
+@prepare_test
+def test_get_catalog_entries():
+    print("\ntest_get_catalog_entries() test output:\n", file=stderr)
+    catalog = KgeaCatalog.catalog().get_entries()
+    print(dumps(catalog, indent=4, sort_keys=True), file=stderr)
     return True
 
 
@@ -776,6 +819,8 @@ if __name__ == '__main__':
         assert (test_add_to_archive())
         assert (test_create_translator_registry_entry())
         # assert (test_add_to_github())
+
+        assert (test_get_catalog_entries())
         
         print("all KGEA Catalog tests passed")
         
