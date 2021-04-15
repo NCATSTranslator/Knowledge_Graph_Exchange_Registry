@@ -582,27 +582,16 @@ class KgeaCatalog:
         else:
             # The real content of the catalog
 
-            # KCB catalog metadata retrieval variant - need to compare & contrast
-
-            # versions_per_kg = get_kg_versions_available(_KGEA_APP_CONFIG['bucket'])
-            #
-            # catalog = {}
-            # for kg_id, kg_versions in versions_per_kg.items():
-            #     catalog[kg_id] = {
-            #         "name": kg_id,  # TODO: name <- registration
-            #         "versions": kg_versions
-            #     }
-
             catalog: Dict[str,  Dict[str, Union[str, List]]] = dict()
             for kg_id, entry in self._kge_file_set_catalog.items():
                 kg_name = entry.get_name()
                 kg_version = entry.get_version()
                 if kg_id not in catalog:
                     catalog[kg_id] = dict()
-                    catalog[kg_id]["kg_name"] = kg_name
-                    catalog[kg_id]["kg_versions"] = list()
-                if kg_version not in catalog[kg_id]["kg_versions"]:
-                    catalog[kg_id]["kg_versions"].append(kg_version)
+                    catalog[kg_id]["name"] = kg_name
+                    catalog[kg_id]["versions"] = list()
+                if kg_version not in catalog[kg_id]["versions"]:
+                    catalog[kg_id]["versions"].append(kg_version)
 
         return catalog
 
