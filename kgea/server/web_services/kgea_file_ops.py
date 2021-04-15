@@ -828,12 +828,10 @@ def get_archive_contents(bucket_name: str) -> Dict[str, str]:
     #         "versions": kg_versions
     #     }
 
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(bucket_name)
-    objs = []  # list(bucket.objects)
+    all_files = kg_files_in_location(_KGEA_APP_CONFIG['bucket'])
 
     contents: Dict = dict()
-    for w in objs:
+    for file_path in all_files:
         # TODO: some magic here...
         pass
 
