@@ -24,7 +24,7 @@ from os import getenv
 from os.path import abspath, dirname
 import asyncio
 from io import BytesIO
-from typing import Dict, Union, Tuple, Set, List
+from typing import Dict, Union, Tuple, Set, List, Optional
 from enum import Enum
 from string import Template
 from json import dumps
@@ -404,6 +404,13 @@ class KgeaFileSet:
         )
 
 
+def load_archive_entry(kg_id, entry) -> KgeaFileSet:
+    # TODO: parse an KGE Archive entry, to initialize a KgeaFileSet
+    kwargs: Dict = dict()
+    kge_file_set = KgeaFileSet(kg_id, **kwargs)
+    return kge_file_set
+
+
 class KgeaCatalog:
     """
     Knowledge Graph Exchange (KGE) Temporary Registry for
@@ -413,10 +420,12 @@ class KgeaCatalog:
     
     def __init__(self):
         self._kge_file_set_catalog: Dict[str, KgeaFileSet] = dict()
-        # TODO: initialize catalog with the metadata of all existing AWS S3 KGE File Sets
+        # TODO: initialize catalog with the metadata of all
+        #       existing KGE Archive (AWS S3 stored) KGE File Sets
         archive_contents = get_archive_contents()
         for kg_id, entry in archive_contents:
-            self._kge_file_set_catalog[kg_id] = None
+            self._kge_file_set_catalog[kg_id] = \
+                load_archive_entry(kg_id=kg_id, entry=entry)
 
     @classmethod
     def catalog(cls):
