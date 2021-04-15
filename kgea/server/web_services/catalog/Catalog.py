@@ -35,9 +35,7 @@ from github.GithubException import UnknownObjectException
 from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_file_ops import get_default_date_stamp, get_object_location
 from .kgea_kgx import KgxValidator
-from kgea.server.web_services.kgea_file_ops import (
-    upload_file
-)
+from kgea.server.web_services.kgea_file_ops import upload_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
