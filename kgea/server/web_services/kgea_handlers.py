@@ -211,18 +211,18 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
                 KgeaCatalog.catalog().register_kge_file_set(
-                    kg_id,
-                    file_set_location=file_set_location,
+                    kg_id=kg_id,
+                    kg_version=assigned_version,
                     kg_name=kg_name,
                     kg_description=kg_description,
-                    kg_version=assigned_version,
                     translator_component=translator_component,
                     translator_team=translator_team,
                     submitter=submitter,
                     submitter_email=submitter_email,
                     license_name=license_name,
                     license_url=license_url,
-                    terms_of_service=terms_of_service
+                    terms_of_service=terms_of_service,
+                    file_set_location=file_set_location
                 )
 
                 await redirect(request,

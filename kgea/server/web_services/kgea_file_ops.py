@@ -7,12 +7,13 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
+import io
 from sys import stderr
-from typing import Dict
+from typing import Dict, Union, List
 from functools import wraps
 from string import Template
 import random
-
+from json import loads
 import time
 from datetime import datetime
 
@@ -23,13 +24,24 @@ from pathlib import Path
 import tarfile
 from s3_tar import S3Tar
 
+import yaml
+
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
+
 import webbrowser
 import requests
 
 import boto3
 from botocore.exceptions import ClientError
 
-from kgea.server.config import s3_client, get_app_config
+from kgea.server.config import (
+    s3_client,
+    get_app_config,
+    PROVIDER_METADATA_FILE
+)
 
 import logging
 
@@ -105,7 +117,7 @@ def get_object_location(kg_id):
     randomness in this method; they may be appended afterwards.
     """
     location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
-        DIRECTORY_NAME=_KGEA_APP_CONFIG['bucket'],
+        DIRECTORY_NAME=_KGEA_APP_CONFIG['archive-directory'],
         KG_NAME=kg_id
     )
     return location
@@ -809,31 +821,72 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
     return True
 
 
-def get_archive_contents(bucket_name: str) -> Dict[str, str]:
+def _load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -> Union[None, bytes, str]:
     """
-    Get contents of KGE Archive AWS S3.
+    Given an S3 object key name, load the specific file.
+    The return value defaults to being decoded from utf-8 to a text string.
+    Return None the object is inaccessible.
+    """
+    data_string: Union[None, bytes, str] = None
+
+    try:
+        mf = io.BytesIO()
+        s3 = boto3.client('s3')
+        s3.download_fileobj(
+            bucket_name,
+            object_name,
+            mf
+        )
+        data_bytes = mf.getvalue()
+        mf.close()
+        if mode == 'text':
+            data_string = data_bytes.decode('utf-8')
+    except Exception as e:
+        logger.error('ERROR: _load_s3_text_file(): '+str(e))
+
+    return data_string
+
+
+def get_archive_contents(bucket_name: str) -> Dict[str, Dict[str,  Union[str, List]]]:
+    """
+    Get contents of KGE Archive fronm AWS S3 bucket folder names and contents.
 
     :param bucket_name: The bucket
     :return: annotated KGE File Set, enumerated from the AWS S3 repository
     """
+    all_files = kg_files_in_location(bucket_name=bucket_name)
 
-    # KCB catalog metadata retrieval variant - need to compare & contrast
-
-    # versions_per_kg = get_kg_versions_available(_KGEA_APP_CONFIG['bucket'])
-    #
-    # catalog = {}
-    # for kg_id, kg_versions in versions_per_kg.items():
-    #     catalog[kg_id] = {
-    #         "name": kg_id,  # TODO: name <- registration
-    #         "versions": kg_versions
-    #     }
-
-    all_files = kg_files_in_location(_KGEA_APP_CONFIG['bucket'])
-
-    contents: Dict = dict()
+    contents: Dict[str, Dict[str,  Union[str, List]]] = dict()
     for file_path in all_files:
-        # TODO: some magic here...
-        pass
+
+        file_part = file_path.split('/')
+
+        if file_part[0] != _KGEA_APP_CONFIG['archive-directory']:
+            # ignore things that don't look like the KGE File Set archive folder
+            continue
+
+        kg_id = file_part[1]
+        # Simple first iteration of capture of KGE Archive contents
+        if kg_id not in contents:
+            contents[kg_id] = dict()
+            contents[kg_id]['versions'] = list()
+
+        if file_part[2] == PROVIDER_METADATA_FILE:
+            # Get the provider 'kg_id' associated metadata file just stored
+            # as a blob of text, for content parsing by the function caller
+            # Unlike the kg_id versions, there should only be one such file?
+            contents[kg_id]['metadata'] = \
+                _load_s3_text_file(
+                    bucket_name=bucket_name,
+                    object_name=file_path
+                )
+        else:
+            # otherwise, assume file_part[2] is a 'version folder'
+            kg_version = file_part[2]
+            if kg_version not in contents[kg_id]['versions']:
+                contents[kg_id]['versions'].append(kg_version)
+
+        # TODO: may also be necessary to parse in the Archive file contents here
 
     return contents
 

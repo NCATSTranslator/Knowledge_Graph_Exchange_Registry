@@ -13,9 +13,6 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-# the following config file should be visible in the 'kgea/server/config' subdirectory, as
-# copied from the available template and populated with site-specific configuration values
-CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
 
 # Master flag for local development runs bypassing
 # authentication and other production processes
@@ -23,6 +20,12 @@ DEV_MODE = getenv('DEV_MODE', default=False)
 
 home = expanduser("~")
 AWS_CONFIG_ROOT = home + "/.aws/"
+
+# the following config file should be visible in the 'kgea/server/config' subdirectory, as
+# copied from the available template and populated with site-specific configuration values
+CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
+
+PROVIDER_METADATA_FILE = 'provider_metadata.yaml'
 
 
 def validate_session_configuration():

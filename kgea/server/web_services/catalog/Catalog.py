@@ -18,7 +18,7 @@ from os import getenv
 from os.path import abspath, dirname
 import asyncio
 from io import BytesIO
-from typing import Dict, Union, Tuple, Set, List, Optional
+from typing import Dict, Union, Tuple, Set, List
 from enum import Enum
 from string import Template
 from json import dumps
@@ -28,7 +28,10 @@ import logging
 from github import Github
 from github.GithubException import UnknownObjectException
 
-from kgea.server.config import get_app_config
+from kgea.server.config import (
+    get_app_config,
+    PROVIDER_METADATA_FILE
+)
 from kgea.server.web_services.kgea_file_ops import (
     get_default_date_stamp,
     get_object_location,
@@ -342,9 +345,17 @@ class KgeaFileSet:
         remotely,  in the Translator SmartAPI Registry.
         """
         metadata_file = self.generate_provider_metadata_file()
-        if not add_to_archive(self.kg_id, metadata_file):
-            logger.warning("KGE File Set provider metadata_file not posted?")
+
+        if not add_to_archive(
+                kg_id=self.kg_id,
+                text=metadata_file,
+                file_name=PROVIDER_METADATA_FILE
+        ):
+            logger.warning(
+                "publish_file_set(): KGE File Set "+PROVIDER_METADATA_FILE+" not successfully added to archive??")
+
         translator_smartapi_registry_entry = self.generate_translator_registry_entry()
+
         if not add_to_github(self.kg_id, translator_smartapi_registry_entry):
             logger.warning("publish_file_set(): Translator Registry entry not posted. Is gh_token configured?")
 
@@ -400,13 +411,6 @@ class KgeaFileSet:
         )
 
 
-def load_archive_entry(kg_id, entry) -> KgeaFileSet:
-    # TODO: parse an KGE Archive entry, to initialize a KgeaFileSet
-    kwargs: Dict = dict()
-    kge_file_set = KgeaFileSet(kg_id, **kwargs)
-    return kge_file_set
-
-
 class KgeaCatalog:
     """
     Knowledge Graph Exchange (KGE) Temporary Registry for
@@ -415,14 +419,13 @@ class KgeaCatalog:
     _the_catalog = None
     
     def __init__(self):
-        self._kge_file_set_catalog: Dict[str, KgeaFileSet] = dict()
+        self._kge_file_set_catalog: Dict[str, Dict[str, KgeaFileSet]] = dict()
 
         # Initialize catalog with the metadata of all
         # existing KGE Archive (AWS S3 stored) KGE File Sets
         archive_contents = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['bucket'])
-        for kg_id, entry in archive_contents:
-            self._kge_file_set_catalog[kg_id] = \
-                load_archive_entry(kg_id=kg_id, entry=entry)
+        for kg_id, entry in archive_contents.items():
+            self.load_archive_entry(kg_id=kg_id, entry=entry)
 
     @classmethod
     def initialize(cls):
@@ -439,6 +442,24 @@ class KgeaCatalog:
 
         return KgeaCatalog._the_catalog
 
+    def load_archive_entry(self, kg_id, entry):
+        # TODO: parse an KGE Archive entry,
+        #       to initialize and load a KgeaFileSet
+        self.register_kge_file_set(
+            kg_id=kg_id,
+            kg_name='kg_name',
+            kg_version='assigned_version',
+            kg_description='kg_description',
+            translator_component='translator_component',
+            translator_team='translator_team',
+            submitter='submitter',
+            submitter_email='submitter_email',
+            license_name='license_name',
+            license_url='license_url',
+            terms_of_service='terms_of_service',
+            file_set_location='file_set_location'
+        )
+
     @staticmethod
     def normalize_name(kg_name: str) -> str:
         # TODO: need to review graph name normalization and indexing
@@ -451,7 +472,7 @@ class KgeaCatalog:
     
     # TODO: what is the required idempotency of this KG addition relative to submitters (can submitters change?)
     # TODO: how do we deal with versioning of submissions across several days(?)
-    def register_kge_file_set(self, kg_id: str, **kwargs) -> KgeaFileSet:
+    def register_kge_file_set(self, **kwargs) -> KgeaFileSet:
         """
         As needed, registers a new record for a knowledge graph with a given 'name' for a given 'submitter'.
         The name is indexed by normalization to lower case and substitution of underscore for spaces.
@@ -461,11 +482,15 @@ class KgeaCatalog:
         :param kwargs: dictionary of metadata describing a KGE File Set entry
         :return: KgeaFileSet of the graph (existing or added)
         """
-        
+
+        kg_id = kwargs['kg_id']
+        kg_version = kwargs['kg_version']
+
         # For now, a given graph is only submitted once for a given submitter
         # TODO: should we accept any resubmissions or changes?
+
         if kg_id not in self._kge_file_set_catalog:
-            print('adding to catalog')
+
             self._kge_file_set_catalog[kg_id] = KgeaFileSet(kg_id, **kwargs)
         
         return self._kge_file_set_catalog[kg_id]
@@ -674,7 +699,8 @@ def test_create_translator_registry_entry():
 
 def add_to_archive(
         kg_id: str,
-        text: str
+        text: str,
+        file_name: str
 ) -> str:
     uploaded_file_object_key: str = ''
     if text:
