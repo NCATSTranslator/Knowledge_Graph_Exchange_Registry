@@ -512,9 +512,12 @@ class KgeKnowledgeGraph:
             kg_id=self.kg_id, **self.parameter
         )
 
-    def add_versions(self, versions: Dict[str, List[str]]):
-        # TODO: should probably merge, not overwrite?
+    def add_versions(self, versions: Dict[str, Set[str]]):
+        # TODO: should probably merge, not simply overwrite?
         self._versions = versions
+
+    def get_versions_names(self) -> Set[str]:
+        return set(self._versions.keys())
 
 
 class KgeArchiveCatalog:
@@ -782,7 +785,7 @@ class KgeArchiveCatalog:
             
         return errors
 
-    def get_kg_entries(self) -> Dict:
+    def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, Set[str]]]]:
 
         # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
         if DEV_MODE:
@@ -790,26 +793,20 @@ class KgeArchiveCatalog:
             catalog = {
                 "translator_reference_graph": {
                     "name": "Translator Reference Graph",
-                    "versions": ["1.0", "2.0", "2.1"]
+                    "versions": {"1.0", "2.0", "2.1"}
                 },
                 "semantic_medline_database": {
                     "name": "Semantic Medline Database",
-                    "versions": ["4.2", "4.3"]
+                    "versions": {"4.2", "4.3"}
                 }
             }
+            pass
         else:
             # The real content of the catalog
-
-            catalog: Dict[str,  Dict[str, Union[str, List]]] = dict()
-            for kg_id, entry in self._kge_knowledge_graph_catalog.items():
-                kg_name = entry.get_name()
-                kg_version = entry.get_version()
-                if kg_id not in catalog:
-                    catalog[kg_id] = dict()
-                    catalog[kg_id]["name"] = kg_name
-                    catalog[kg_id]["versions"] = list()
-                if kg_version not in catalog[kg_id]["versions"]:
-                    catalog[kg_id]["versions"].append(kg_version)
+            catalog: Dict[str,  Dict[str, Union[str, Set[str]]]] = dict()
+            for kg_id, knowledge_graph in self._kge_knowledge_graph_catalog.items():
+                catalog[kg_id]['name'] = knowledge_graph.get_name()
+                catalog[kg_id]['versions'] = knowledge_graph.get_versions_names()
 
         return catalog
 
