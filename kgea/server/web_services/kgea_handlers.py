@@ -102,7 +102,7 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     # Paranoia: can't see the catalog without being logged in a user session
     session = await get_session(request)
     if not session.empty:
-        catalog = KgeaCatalog.catalog().get_entries()
+        catalog = KgeaCatalog.catalog().get_kg_entries()
 
     # but don't need to propagate the user session to the output
     response = web.json_response(catalog, status=200)

@@ -20,6 +20,10 @@ from os.path import abspath, dirname
 import asyncio
 from io import BytesIO
 from typing import Dict, Union, Tuple, Set, List
+
+# TODO: maybe convert Catalog components to Python Dataclasses?
+# from dataclasses import dataclass
+
 from enum import Enum
 from string import Template
 from json import dumps
@@ -124,6 +128,10 @@ class KgeaFileSet:
             self.parameter[key] = value
 
         self.provider_metadata: Union[Dict, None] = dict()
+
+        # TODO: need to rationalize versions and data_files management
+        #       (files and submitters  need to be managed at the version level?)
+        self._versions: Dict[str, List[str]] = dict()
         self.data_files: Dict[str, Dict] = dict()
         
         # KGX Validator singleton for this KGE File Set
@@ -419,6 +427,10 @@ class KgeaFileSet:
             kg_id=self.kg_id, **self.parameter
         )
 
+    def add_versions(self, versions: Dict[str, List[str]]):
+        # TODO: should probably merge, not overwrite?
+        self._versions = versions
+
 
 class KgeaCatalog:
     """
@@ -428,12 +440,28 @@ class KgeaCatalog:
     _the_catalog = None
     
     def __init__(self):
-        #
-        self._kge_file_set_catalog: Dict[str, Dict[str, KgeaFileSet]] = dict()
+        # Catalog keys are kg_id's, entries are a Python dictionary of kg_id metadata including
+        # name, KGE File Set metadata and a list of versions with associated file sets
+        self._kge_file_set_catalog: Dict[
+            str,  # kg_id's are keys
+            Dict[
+                str,  # kg_id level properties: 'metadata' and 'versions'
+                Union[
+                    KgeaFileSet,  # global 'metadata'  including KG name, owners, licensing, etc.
+                    Dict[  # global 'versions'
+                        str,       # kg_version's are the keys
+                        List[str]  # List of S3 object_name paths for files associated with a given version
+                    ]
+                ]
+            ]
+        ] = dict()
 
-        # Initialize catalog with the metadata of all
-        # existing KGE Archive (AWS S3 stored) KGE File Sets
-        archive_contents = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['bucket'])
+        # Initialize catalog with the metadata of all the existing KGE Archive (AWS S3 stored) KGE File Sets
+        # archive_contents keys are the kg_id's, entries are the rest of the KGE File Set metadata
+        archive_contents: Dict[
+            str,
+            Dict[str, Union[str, List]]
+        ] = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['bucket'])
         for kg_id, entry in archive_contents.items():
             self.load_archive_entry(kg_id=kg_id, entry=entry)
 
@@ -445,14 +473,26 @@ class KgeaCatalog:
     @classmethod
     def catalog(cls):
         """
-        :return: singleton of KgeaRegistry
+        :return: singleton of KgeaCatalog
         """
         if not cls._the_catalog:
             raise RuntimeError("KGE Archive Catalog is uninitialized?")
 
         return KgeaCatalog._the_catalog
 
-    def load_archive_entry(self, kg_id, entry):
+    def load_archive_entry(
+            self, kg_id: str, 
+            entry: Dict[
+                    str,  # tags 'metadata' and 'versions'
+                    Union[
+                        str,   # 'metadata' field value: a kg specific text file blob from S3
+                        Dict[
+                            str,  # kg_version's of versioned KGE File Sets for a kg
+                            List[str]  # list of data files in a given KGE File Set
+                        ]
+                    ]
+                ]
+    ):
         """
         Parse an KGE Archive entry for
         metadata to load into a KgeaFileSet
@@ -540,6 +580,9 @@ class KgeaCatalog:
                 file_set_location=file_set_location
             )
 
+        if 'versions' in entry:
+            self.add_kge_file_set_versions(kg_id=kg_id, versions=entry['versions'])
+
     @staticmethod
     def normalize_name(kg_name: str) -> str:
         # TODO: need to review graph name normalization and indexing
@@ -556,7 +599,7 @@ class KgeaCatalog:
         """
         As needed, registers a new record for a knowledge graph with a given 'name' for a given 'submitter'.
         The name is indexed by normalization to lower case and substitution of underscore for spaces.
-        Returns the new or any existing matching KgeaRegistry knowledge graph entry.
+        Returns the new or any existing matching KgeaCatalog knowledge graph entry.
         
         :param kg_id: identifier of the knowledge graph file set
         :param kwargs: dictionary of metadata describing a KGE File Set entry
@@ -669,7 +712,7 @@ class KgeaCatalog:
             
         return errors
 
-    def get_entries(self) -> Dict:
+    def get_kg_entries(self) -> Dict:
 
         # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
         if DEV_MODE:
@@ -700,6 +743,10 @@ class KgeaCatalog:
 
         return catalog
 
+    def add_kge_file_set_versions(self, kg_id: str, versions: Dict[str, List[str]]):
+        kgfs: KgeaFileSet = self.get_kge_file_set(kg_id)
+        kgfs.add_versions(versions)
+
 
 # TODO
 @prepare_test
@@ -711,7 +758,7 @@ def test_check_kgx_compliance():
 @prepare_test
 def test_get_catalog_entries():
     print("\ntest_get_catalog_entries() test output:\n", file=stderr)
-    catalog = KgeaCatalog.catalog().get_entries()
+    catalog = KgeaCatalog.catalog().get_kg_entries()
     print(dumps(catalog, indent=4, sort_keys=True), file=stderr)
     return True
 
