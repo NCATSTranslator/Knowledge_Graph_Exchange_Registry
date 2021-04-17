@@ -246,7 +246,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         await redirect(request, LANDING)
 
 
-async def publish_kge_file_set(request: web.Request, kg_id):
+async def publish_kge_file_set(request: web.Request, kg_id, kg_version):
     """Publish a registered File Set
 
     :param request:
@@ -293,6 +293,7 @@ async def get_file_set_location(kg_id: str, kg_version: str = None):
 async def upload_kge_file(
         request: web.Request,
         kg_id: str,
+        kg_version: str,
         kgx_file_content: str,
         upload_mode: str,
         content_name: str,
@@ -305,6 +306,8 @@ async def upload_kge_file(
     :type request: web.Request
     :param kg_id:
     :type kg_id: str
+    :param kg_version:
+    :type kg_version: str
     :param kgx_file_content:
     :type kgx_file_content: str
     :param upload_mode:
@@ -359,9 +362,13 @@ async def upload_kge_file(
             # nodes -> <file_set_location>/nodes/
             # archive -> <file_set_location>/archive/
 
-        file_set_location, assigned_version = await get_file_set_location(kg_id)
+        file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
         if not file_set_location:
-            await report_not_found(request, "upload_kge_file(): unknown KGE File Set '" + kg_id + "'?")
+            await report_not_found(
+                request,
+                "upload_kge_file(): unknown version '"+kg_version+
+                "' or Knowledge Graph '" + kg_id + "'?"
+            )
 
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
 
@@ -382,14 +389,15 @@ async def upload_kge_file(
 
         """END Register upload-specific metadata"""
 
-
         """BEGIN File Upload Protocol"""
 
         # keep track of the final key for testing purposes?
         uploaded_file_object_key = None
 
         # we modify the filename so that they can be validated by KGX natively by tar.gz
-        content_name = infix_string(content_name, f"_{kgx_file_content}") if kgx_file_content in ['nodes', 'edges'] else content_name
+        content_name = infix_string(
+            content_name, f"_{kgx_file_content}"
+        ) if kgx_file_content in ['nodes', 'edges'] else content_name
 
         if upload_mode == 'content_from_url':
 
@@ -424,7 +432,6 @@ async def upload_kge_file(
 
         """END File Upload Protocol"""
 
-
         if uploaded_file_object_key:
 
             try:
@@ -433,11 +440,12 @@ async def upload_kge_file(
                     object_key=uploaded_file_object_key
                 )
 
-                # This action adds a file to a knowledge graph initiating
-                # or continuing a KGE file set registration process.
+                # This action adds a file to the given knowledge graph, identified by the 'kg_id',
+                # initiating or continuing a versioned KGE file set assembly process.
                 # May raise an Exception if something goes wrong.
                 KgeArchiveCatalog.catalog().add_to_kge_file_set(
                     kg_id=kg_id,
+                    kg_version=kg_version,
                     file_type=file_type,
                     file_name=content_name,
                     object_key=uploaded_file_object_key,

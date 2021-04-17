@@ -106,7 +106,10 @@ class KgeFileSet:
         self.submitter = submitter
         self.submitter_email = submitter_email
 
-        # this attribute will track all (meta-)data files of the given version of KGE File Set
+        # this attribute will track all metadata files of the given version of KGE File Set
+        self.content_metadata: Dict[str, Union[str, bool, List[str]]] = dict()
+
+        # this attribute will track all data files of the given version of KGE File Set
         self.data_files: Dict[str, Dict[str, Any]] = dict()
 
         # ### KGX VALIDATION FRAMEWORK ###
@@ -132,6 +135,29 @@ class KgeFileSet:
 
     def get_submitter_email(self):
         return self.submitter_email
+
+    def set_content_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
+        """
+        Sets the metadata file identification for a KGE File Set
+        :param file_name: original name of metadata file.
+
+        :param object_key:
+        :param s3_file_url:
+        :return: None
+        """
+        self.content_metadata = {
+            "file_name": file_name,
+            "object_key": object_key,
+            "s3_file_url": s3_file_url,
+            "kgx_compliant": False,  # until proven True...
+            "errors": []
+        }
+
+        # KGE metadata file validation needed here?
+        self.check_kge_content_metadata_compliance(
+            object_key=object_key,
+            s3_file_url=s3_file_url
+        )
 
     def add_data_file(
             self,
@@ -410,36 +436,14 @@ class KgeKnowledgeGraph:
         # File Set Versions
         self._versions: Dict[str, KgeFileSet] = dict()
 
-        # Register any initial submitter-specified KGE File Set version
-        if kg_version:
+        # Register an explicitly specified submitter-specified KGE File Set version
+        # Sanity check: we should probably not overwrite a KgeFileSet version if it already exists?
+        if kg_version and kg_version not in self._versions:
             self._versions[kg_version] = KgeFileSet(
                 kg_version,
                 kwargs['submitter'],
                 kwargs['submitter_email']
             )
-
-    def set_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
-        """
-        Sets the metadata file identification for a KGE File Set
-        :param file_name: original name of metadata file.
-
-        :param object_key:
-        :param s3_file_url:
-        :return: None
-        """
-        self.content_metadata = {
-            "file_name": file_name,
-            "object_key": object_key,
-            "s3_file_url": s3_file_url,
-            "kgx_compliant": False,  # until proven True...
-            "errors": []
-        }
-        
-        # KGE metadata file validation needed here?
-        self.check_kge_content_metadata_compliance(
-            object_key=object_key,
-            s3_file_url=s3_file_url
-        )
 
     def get_name(self) -> str:
         return self.parameter.setdefault("kg_name", 'Unknown')
@@ -462,7 +466,7 @@ class KgeKnowledgeGraph:
         [dataset.add(tuple(x)) for x in self.data_files.values()]
         return dataset
         
-    def publish_file_set(self):
+    def publish_file_set(self, kg_version: str):
         """
         Publish provider metadata,
         both locally in the Archive S3 repository and
@@ -679,7 +683,7 @@ class KgeArchiveCatalog:
 
         kg_id = kwargs['kg_id']
         if kg_id not in self._kge_knowledge_graph_catalog:
-            self._kge_knowledge_graph_catalog[kg_id] = KgeKnowledgeGraph(**kwargs)  # Note: kwargs still includes 'kg_id'
+            self._kge_knowledge_graph_catalog[kg_id] = KgeKnowledgeGraph(**kwargs)
         
         return self._kge_knowledge_graph_catalog[kg_id]
     
@@ -694,11 +698,10 @@ class KgeArchiveCatalog:
         else:
             return None
 
-    # TODO: probably need to somehow factor in timestamps
-    #       or are they already as encoded in the object_key?
     def add_to_kge_file_set(
             self,
             kg_id: str,
+            kg_version: str,
             file_type: KgeFileType,
             file_name: str,
             object_key: str,
@@ -717,14 +720,17 @@ class KgeArchiveCatalog:
         :param s3_file_url: current pre-signed url to access the file
         :return: None
         """
-        file_set = self.get_kge_graph(kg_id)
+        knowledge_graph = self.get_kge_graph(kg_id)
 
-        if not file_set:
+        if not knowledge_graph:
             raise RuntimeError("KGE File Set '" + kg_id + "' is unknown?")
         else:
-            # Found a matching KGE file set? Add the current file to the set
+            # Found a matching KGE Knowledge Graph?
+            # Add the current file to the KGE File Set
+            # associated with the kg_version of the graph.
+            kgefs = knowledge_graph.get_data_file_set()
             if file_type == KgeFileType.KGX_DATA_FILE:
-                file_set.add_data_file(
+                knowledge_graph.add_data_file(
                     file_name=file_name,
                     object_key=object_key,
                     s3_file_url=s3_file_url
@@ -735,7 +741,7 @@ class KgeArchiveCatalog:
                 pass
             
             elif file_type == KgeFileType.KGX_METADATA_FILE:
-                file_set.set_metadata_file(
+                knowledge_graph.set_content_metadata_file(
                     file_name=file_name,
                     object_key=object_key,
                     s3_file_url=s3_file_url
@@ -743,12 +749,12 @@ class KgeArchiveCatalog:
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
 
-    async def publish_file_set(self, kg_id):
+    async def publish_file_set(self, kg_id: str, kg_version: str):
         
         # TODO: need to fully implement post-processing of the completed
         #       file set (with all files, as uploaded by the client)
         
-        logger.debug("Calling Registry.publish_file_set(kg_id: '"+kg_id+"')")
+        logger.debug("Calling Registry.publish_file_set(kg_version: '"+kg_version+"' of graph kg_id: '"+kg_id+"')")
         
         errors: List = []
         
