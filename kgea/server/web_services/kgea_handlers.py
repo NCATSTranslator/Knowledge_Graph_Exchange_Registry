@@ -47,7 +47,7 @@ from .kgea_stream import transfer_file_from_url
 
 from kgea.server.web_services.catalog.Catalog import (
     KgeFileType,
-    KgeaCatalog
+    KgeArchiveCatalog
 )
 
 import logging
@@ -102,7 +102,7 @@ async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
     # Paranoia: can't see the catalog without being logged in a user session
     session = await get_session(request)
     if not session.empty:
-        catalog = KgeaCatalog.catalog().get_kg_entries()
+        catalog = KgeArchiveCatalog.catalog().get_kg_entries()
 
     # but don't need to propagate the user session to the output
     response = web.json_response(catalog, status=200)
@@ -138,11 +138,17 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         # kg_name: human readable name of the knowledge graph
         kg_name = data['kg_name']
 
-        # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
-        kg_description = data['kg_description']
-
         # kg_version: release version of knowledge graph
         kg_version = data['kg_version']
+
+        # submitter: name of submitter of the KGE file set
+        submitter = data['submitter']
+
+        if not (kg_name and kg_version and submitter):
+            await report_error(request, "register_kge_file_set(): either name, version or submitter are empty?")
+
+        # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
+        kg_description = data['kg_description']
 
         # translator_component: Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
         translator_component = data['translator_component']
@@ -150,9 +156,6 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         # translator_team: specific Translator team (affiliation)
         # contributing the file set, e.g. Clinical Data Provider
         translator_team = data['translator_team']
-
-        # submitter: name of submitter of the KGE file set
-        submitter = data['submitter']
 
         # submitter_email: contact email of the submitter
         submitter_email = data['submitter_email']
@@ -180,7 +183,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
             "register_kge_file_set() form parameters:\n\t" +
             "\n\tkg_name: " + kg_name +
             "\n\tkg_description: " + kg_description +
-            "\n\tkg_version: " + kg_version +
+            "\n\tCurrently active kg_version: " + kg_version +
             "\n\ttranslator_component: " + translator_component +
             "\n\ttranslator_team: " + translator_team +
             "\n\tsubmitter: " + submitter +
@@ -190,12 +193,9 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
             "\n\tterms_of_service: " + terms_of_service
         )
 
-        if not kg_name or not submitter:
-            await report_error(request, "register_kge_file_set(): either kg_name or submitter are empty?")
-
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
-        kg_id = KgeaCatalog.normalize_name(kg_name)
+        kg_id = KgeArchiveCatalog.normalize_name(kg_name)
 
         file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
@@ -207,11 +207,10 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
 
-                # Here we start to inject local KGE Archive tracking
-                # of the file set of a specific knowledge graph submission
-                KgeaCatalog.catalog().register_kge_file_set(
+                # Here we start to start to track a specific
+                # knowledge graph submission within KGE Archive
+                KgeArchiveCatalog.catalog().register_kge_graph(
                     kg_id=kg_id,
-                    kg_version=assigned_version,
                     kg_name=kg_name,
                     kg_description=kg_description,
                     kg_size='unknown',  # value cannot yet be set here
@@ -222,7 +221,10 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                     license_name=license_name,
                     license_url=license_url,
                     terms_of_service=terms_of_service,
-                    file_set_location=file_set_location  # kg_version specific?
+
+                    # Register an initial submitter-specified KGE File Set version
+                    kg_version=assigned_version,
+                    file_set_location=file_set_location
                 )
 
                 await redirect(request,
@@ -249,15 +251,14 @@ async def publish_kge_file_set(request: web.Request, kg_id):
 
     :param request:
     :type request: web.Request
-    :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed.
+    :param kg_id: KGE Knowledge Graph Identifier for the knowledge graph from which data files are being accessed.
     :type kg_id: str
-
     """
 
     if not kg_id:
-        await report_not_found(request, "publish_kge_file_set(): unknown KGE File Set '" + kg_id + "'?")
+        await report_not_found(request, "publish_kge_file_set(): null Knowledge Graph ID '" + kg_id + "'?")
 
-    errors: List = await KgeaCatalog.catalog().publish_file_set(kg_id)
+    errors: List = await KgeArchiveCatalog.catalog().publish_file_set(kg_id)
 
     if DEV_MODE and errors:
         raise report_error(
@@ -279,7 +280,7 @@ async def publish_kge_file_set(request: web.Request, kg_id):
 
 async def get_file_set_location(kg_id: str, kg_version: str = None):
     
-    kge_file_set = KgeaCatalog.catalog().get_kge_file_set(kg_id)
+    kge_file_set = KgeArchiveCatalog.catalog().get_kge_graph(kg_id)
 
     if not kg_version:
         kg_version = kge_file_set.get_version()
@@ -377,7 +378,7 @@ async def upload_kge_file(
             #      respect to properly persisting it in the S3 bucket...
             #      Leave it in the kg_id 'root' version folder for now?
             #      The archive may has metadata too, but the data's the main thing.
-            file_type = KgeFileType.KGX_ARCHIVE
+            file_type = KgeFileType.KGE_ARCHIVE
 
         """END Register upload-specific metadata"""
 
@@ -435,7 +436,7 @@ async def upload_kge_file(
                 # This action adds a file to a knowledge graph initiating
                 # or continuing a KGE file set registration process.
                 # May raise an Exception if something goes wrong.
-                KgeaCatalog.catalog().add_to_kge_file_set(
+                KgeArchiveCatalog.catalog().add_to_kge_file_set(
                     kg_id=kg_id,
                     file_type=file_type,
                     file_name=content_name,

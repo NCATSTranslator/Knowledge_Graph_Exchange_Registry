@@ -121,13 +121,21 @@ paths:
             application/json:
               schema:
                 type: string
-  /publish/{kg_id}:
+  /publish/{kg_id}/{kg_version}:
     get:
       parameters:
       - name: kg_id
         in: path
         description: >-
-          KGE File Set identifier for the knowledge graph
+          KGE Knowledge Graph identifier for the knowledge graph
+          for which data files are being accessed.
+        required: true
+        schema:
+          type: string
+      - name: kg_version
+        in: path
+        description: >-
+          KGE File Set version identifier for the knowledge graph
           for which data files are being accessed.
         required: true
         schema:
@@ -154,15 +162,17 @@ paths:
             schema:
               type: object
               description: >-
-                Uploading form posting of (meta-)data files. The 'upload_mode'
-                string argument specifies the category and/or mode as one of
-                'metadata', 'content_from_local_file' or 'content_from_url'. If
-                'metadata' or 'content_from_local_file' are indicated, then the
-                'uploaded_file' parameter should be set to the file to be
-                uploaded. If 'upload_mode' is set to 'content_from_url'
-                then the 'content_url' parameter is taken as a REST endpoint
-                of the file to be transferred into the Archive (authentication
-                not yet supported - URL should provide unauthenticated access).
+                Uploading form posting of (meta-)data files to a specific
+                KGE File Set version, belonging to a specific Knowledge Graph.
+                The 'upload_mode' argument specifies the category and/or mode
+                as one of 'metadata', 'content_from_local_file' or
+                'content_from_url'. If 'metadata' or 'content_from_local_file'
+                are indicated, then the 'uploaded_file' parameter should be
+                set to the file to be ploaded. If 'upload_mode' is set to
+                'content_from_url' then the 'content_url' parameter is taken
+                as a REST endpoint of the file to be transferred into the
+                Archive (authentication not yet supported - URL should provide
+                unauthenticated access).
                 The 'content_name' should be set either to the file name of
                 the 'metadata' or 'content_from_local_file', or url transfers,
                 set by inference or as specified by the caller (especially if
@@ -173,6 +183,8 @@ paths:
                 set by the selected 'nodes' versus 'edges' radio button.
               properties:
                 kg_id:
+                  type: string
+                kg_version:
                   type: string
                 kgx_file_content:
                   type: string
@@ -187,11 +199,14 @@ paths:
                   format: binary
               required:
               - kg_id
+              - kg_version
               - kgx_file_content
               - upload_mode
               - content_name
             encoding:
               kg_id:
+                contentType: text/plain; charset=utf-8
+              kg_version:
                 contentType: text/plain; charset=utf-8
               kgx_file_content:
                 contentType: text/plain; charset=utf-8

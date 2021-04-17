@@ -2,7 +2,7 @@ from os import path
 import connexion
 import aiohttp_cors
 
-from kgea.server.web_services.catalog.Catalog import KgeaCatalog
+from kgea.server.web_services.catalog.Catalog import KgeArchiveCatalog
 from kgea.server.web_services.kgea_session import KgeaSession
 
 
@@ -46,7 +46,7 @@ def main():
 
     KgeaSession.initialize(app.app)
 
-    KgeaCatalog.initialize()
+    KgeArchiveCatalog.initialize()
 
     app.run(port=8080)
 
