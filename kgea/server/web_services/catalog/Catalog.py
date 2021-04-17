@@ -13,6 +13,7 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
+import io
 from sys import stderr
 from os import getenv
 from os.path import abspath, dirname
@@ -22,6 +23,12 @@ from typing import Dict, Union, Tuple, Set, List
 from enum import Enum
 from string import Template
 from json import dumps
+
+import yaml
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 import logging
 
@@ -35,7 +42,7 @@ from kgea.server.config import (
 from kgea.server.web_services.kgea_file_ops import (
     get_default_date_stamp,
     get_object_location,
-    get_archive_contents
+    get_archive_contents, with_version
 )
 from .kgea_kgx import KgxValidator
 from kgea.server.web_services.kgea_file_ops import upload_file
@@ -87,8 +94,9 @@ class KgeaFileSet:
     _expected = [
         "file_set_location",
         "kg_name",
-        "kg_description",
         "kg_version",
+        "kg_description",
+        "kg_size",
         "translator_component",
         "translator_team",
         "submitter",
@@ -98,14 +106,14 @@ class KgeaFileSet:
         "terms_of_service"
     ]
     
-    def __init__(self, kg_id: str, **kwargs):
+    def __init__(self, **kwargs):
         """
         KgeaFileSet constructor
         
         :param kg_name: name of knowledge graph in entry
         :param submitter: owner of knowledge graph
         """
-        self.kg_id = kg_id
+        self.kg_id = kwargs.pop("kg_id")
         self.parameter: Dict = dict()
         for key, value in kwargs.items():
             
@@ -115,7 +123,7 @@ class KgeaFileSet:
             
             self.parameter[key] = value
 
-        self.metadata_file: Union[Dict, None] = dict()
+        self.provider_metadata: Union[Dict, None] = dict()
         self.data_files: Dict[str, Dict] = dict()
         
         # KGX Validator singleton for this KGE File Set
@@ -183,7 +191,7 @@ class KgeaFileSet:
 
                 errors = await KgxValidator.validate_metadata(file_path=s3_file_url)
                 if not errors:
-                    self.metadata_file["kgx_compliant"] = True
+                    self.provider_metadata["kgx_compliant"] = True
                 else:
                     self.data_files[object_key]["errors"] = errors
             else:
@@ -248,7 +256,7 @@ class KgeaFileSet:
         :param s3_file_url:
         :return: None
         """
-        self.metadata_file = {
+        self.provider_metadata = {
             "file_name": file_name,
             "object_key": object_key,
             "s3_file_url": s3_file_url,
@@ -273,8 +281,8 @@ class KgeaFileSet:
         """
         :return: a copy of metadata dictionary about the KGE File Set metadata file, if available; None otherwise
         """
-        if self.metadata_file:
-            return self.metadata_file.copy()
+        if self.provider_metadata:
+            return self.provider_metadata.copy()
         else:
             return None
 
@@ -329,9 +337,9 @@ class KgeaFileSet:
         
         # check if any errors were returned by KGX Validation
         errors: List = []
-        if self.metadata_file:
-            if not self.metadata_file["kgx_compliant"]:
-                errors.append(self.metadata_file["errors"])
+        if self.provider_metadata:
+            if not self.provider_metadata["kgx_compliant"]:
+                errors.append(self.provider_metadata["errors"])
         for data_file in self.data_files.values():
             if not data_file["kgx_compliant"]:
                 errors.append(data_file["errors"])
@@ -388,9 +396,10 @@ class KgeaFileSet:
 
     # KGE File Set Translator SmartAPI parameters (March 2021 release):
     # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
+    # - kg_version: release version of KGE File Set - recorded directly as the Translator SmartAPI entry 'version'
     # - kg_name: human readable name of the knowledge graph
     # - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
-    # - kg_version: release version of KGE File Set - recorded directly as the Translator SmartAPI entry 'version'
+    # - kg_size: size of tar.gz archive aggregating all files of the KGE File Set
     # - submitter - name of submitter of the KGE file set
     # - submitter_email - contact email of the submitter
     # - license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.
@@ -419,6 +428,7 @@ class KgeaCatalog:
     _the_catalog = None
     
     def __init__(self):
+        #
         self._kge_file_set_catalog: Dict[str, Dict[str, KgeaFileSet]] = dict()
 
         # Initialize catalog with the metadata of all
@@ -443,22 +453,92 @@ class KgeaCatalog:
         return KgeaCatalog._the_catalog
 
     def load_archive_entry(self, kg_id, entry):
-        # TODO: parse an KGE Archive entry,
-        #       to initialize and load a KgeaFileSet
-        self.register_kge_file_set(
-            kg_id=kg_id,
-            kg_name='kg_name',
-            kg_version='assigned_version',
-            kg_description='kg_description',
-            translator_component='translator_component',
-            translator_team='translator_team',
-            submitter='submitter',
-            submitter_email='submitter_email',
-            license_name='license_name',
-            license_url='license_url',
-            terms_of_service='terms_of_service',
-            file_set_location='file_set_location'
-        )
+        """
+        Parse an KGE Archive entry for
+        metadata to load into a KgeaFileSet
+        for indexing in the KgeaCatalog
+        """
+        if 'metadata' in entry:
+            # Assumed to be a YAML string to be parsed into a Python dictionary
+            mf = io.StringIO(entry['metadata'])
+            md_raw = yaml.load(mf, Loader=Loader)
+            md = dict(md_raw)
+
+            # TODO: sanity check of kg_id here perhaps?
+            # id: "disney_small_world_graph" ## == kg_id
+            # if kg_id != md.setdefault('id', ''):
+            #     raise RuntimeError(
+            #         "load_archive_entry(): archive folder kg_id '"+kg_id+
+            #         " != id in "+PROVIDER_METADATA_FILE+"?"
+            #     )
+
+            # name:  "Disneyland Small World Graph"
+            kg_name = md.setdefault('name', kg_id)
+
+            # version: "1964-04-22"
+            kg_version = md.setdefault('version', 'latest')
+
+            # description: >-
+            #   Voyage along the Seven Seaways canal and behold a cast of
+            #     almost 300 Audio-Animatronics dolls representing children
+            #     from every corner of the globe as they sing the classic
+            #     anthem to world peace—in their native languages.
+            kg_description = md.setdefault('description', '')
+
+            # size: "KGE archive file size TBA"
+            kg_size = md.setdefault('size', 'unknown')
+
+            # translator:
+            #   component: "KP"
+            #   team:
+            #   - "Disney Knowledge Provider"
+            if 'translator' in md:
+                tmd = md['translator']
+                translator_component = tmd.setdefault('component', 'unknown')
+                translator_team = tmd.setdefault('team', 'unknown')
+            else:
+                translator_component = translator_team = 'unknown'
+
+            # submitter:
+            #   name: "Mickey Mouse"
+            #   email: "mickey.mouse@disneyland.disney.go.com"
+            if 'submitter' in md:
+                smd = md['submitter']
+                submitter = smd.setdefault('name', 'unknown')
+                submitter_email = smd.setdefault('email', 'unknown')
+            else:
+                submitter = submitter_email = 'unknown'
+
+            # license:
+            #   name: "Artistic 2.0"
+            #   url:  "https://opensource.org/licenses/Artistic-2.0"
+            if 'license' in md:
+                lmd = md['license']
+                license_name = lmd.setdefault('name', 'unknown')
+                license_url = lmd.setdefault('url', 'unknown')
+            else:
+                license_name = license_url = 'unknown'
+
+            # termsOfService: "https://disneyland.disney.go.com/en-ca/terms-conditions/"
+            terms_of_service = md.setdefault('termsOfService', 'unknown')
+
+            file_set_location, _ = with_version(func=get_object_location, version=kg_version)(kg_id)
+
+            self.register_kge_file_set(
+                kg_id=kg_id,
+                kg_name=kg_name,
+                kg_version=kg_version,
+                kg_description=kg_description,
+                kg_size=kg_size,
+                translator_component=translator_component,
+                translator_team=translator_team,
+                submitter=submitter,
+                submitter_email=submitter_email,
+                license_name=license_name,
+                license_url=license_url,
+                terms_of_service=terms_of_service,
+                file_set_location=file_set_location
+            )
 
     @staticmethod
     def normalize_name(kg_name: str) -> str:
@@ -491,7 +571,7 @@ class KgeaCatalog:
 
         if kg_id not in self._kge_file_set_catalog:
 
-            self._kge_file_set_catalog[kg_id] = KgeaFileSet(kg_id, **kwargs)
+            self._kge_file_set_catalog[kg_id] = KgeaFileSet(**kwargs)
         
         return self._kge_file_set_catalog[kg_id]
     

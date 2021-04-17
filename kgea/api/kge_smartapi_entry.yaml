@@ -21,7 +21,7 @@ info:
     id: "${kg_id}"
     name:  "${kg_name}"
     version: "${kg_version}"
-    size: "KGE archive file size TBA"
+    size: "${kg_size}"
 servers:
   - url: "https://kge.starinformatics.ca/archive/${kg_id}"
     description: "KGE Archive Entry base url for ${kg_name}"

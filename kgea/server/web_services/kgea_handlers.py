@@ -206,7 +206,6 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 # TODO: repair return
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
-                #
 
                 # Here we start to inject local KGE Archive tracking
                 # of the file set of a specific knowledge graph submission
@@ -215,6 +214,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                     kg_version=assigned_version,
                     kg_name=kg_name,
                     kg_description=kg_description,
+                    kg_size='unknown',  # value cannot yet be set here
                     translator_component=translator_component,
                     translator_team=translator_team,
                     submitter=submitter,
@@ -222,7 +222,7 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                     license_name=license_name,
                     license_url=license_url,
                     terms_of_service=terms_of_service,
-                    file_set_location=file_set_location
+                    file_set_location=file_set_location  # kg_version specific?
                 )
 
                 await redirect(request,

@@ -849,14 +849,16 @@ def _load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -
 
 def get_archive_contents(bucket_name: str) -> Dict[str, Dict[str,  Union[str, List]]]:
     """
-    Get contents of KGE Archive fronm AWS S3 bucket folder names and contents.
+    Get contents of KGE Archive from
+    AWS S3 bucket folder names and contents.
 
     :param bucket_name: The bucket
     :return: annotated KGE File Set, enumerated from the AWS S3 repository
     """
     all_files = kg_files_in_location(bucket_name=bucket_name)
 
-    contents: Dict[str, Dict[str,  Union[str, List]]] = dict()
+    contents: Dict[str, Dict[str, Union[str, Dict[str, Union[str, List]]]]] = dict()
+
     for file_path in all_files:
 
         file_part = file_path.split('/')
@@ -866,10 +868,12 @@ def get_archive_contents(bucket_name: str) -> Dict[str, Dict[str,  Union[str, Li
             continue
 
         kg_id = file_part[1]
-        # Simple first iteration of capture of KGE Archive contents
         if kg_id not in contents:
+            # each Knowledge Graph may have high level 'metadata'
+            # obtained from a kg_id specific PROVIDER_METADATA_FILE
+            # plus one or more versions of KGE File Set
             contents[kg_id] = dict()
-            contents[kg_id]['versions'] = list()
+            contents[kg_id]['versions'] = dict()
 
         if file_part[2] == PROVIDER_METADATA_FILE:
             # Get the provider 'kg_id' associated metadata file just stored
@@ -884,9 +888,12 @@ def get_archive_contents(bucket_name: str) -> Dict[str, Dict[str,  Union[str, Li
             # otherwise, assume file_part[2] is a 'version folder'
             kg_version = file_part[2]
             if kg_version not in contents[kg_id]['versions']:
-                contents[kg_id]['versions'].append(kg_version)
+                contents[kg_id]['versions'][kg_version] = list()
 
-        # TODO: may also be necessary to parse in the Archive file contents here
+            # simple first iteration just records the list of data file paths
+            # (other than the PROVIDER_METADATA_FILE)
+            # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
+            contents[kg_id]['versions'][kg_version] .append(file_path)
 
     return contents
 
