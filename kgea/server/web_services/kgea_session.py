@@ -9,7 +9,6 @@
 from os import getenv
 from typing import Dict
 from uuid import uuid4
-from urllib.parse import quote_plus
 
 import asyncio
 from asyncio.events import AbstractEventLoop

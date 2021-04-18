@@ -37,7 +37,7 @@ from .kgea_file_ops import (
     # add_to_github,
     # generate_translator_registry_entry,
     get_object_location,
-    get_kg_versions_available,
+    # get_kg_versions_available,
 
     with_version,
     with_subfolder
@@ -281,14 +281,13 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
 
 
 async def get_file_set_location(kg_id: str, kg_version: str = None):
-    
     kge_file_set = KgeArchiveCatalog.catalog().get_kge_graph(kg_id)
 
     if not kg_version:
         kg_version = kge_file_set.get_version()
-        
+
     file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
-    
+
     return file_set_location, assigned_version
 
 
@@ -360,15 +359,15 @@ async def upload_kge_file(
         """BEGIN Register upload-specific metadata"""
 
         # The final key for the object is dependent on its type
-            # edges -> <file_set_location>/edges/
-            # nodes -> <file_set_location>/nodes/
-            # archive -> <file_set_location>/archive/
+        # edges -> <file_set_location>/edges/
+        # nodes -> <file_set_location>/nodes/
+        # archive -> <file_set_location>/archive/
 
         file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
         if not file_set_location:
             await report_not_found(
                 request,
-                "upload_kge_file(): unknown version '"+kg_version+
+                "upload_kge_file(): unknown version '" + kg_version +
                 "' or Knowledge Graph '" + kg_id + "'?"
             )
 
@@ -423,8 +422,8 @@ async def upload_kge_file(
             """
 
             uploaded_file_object_key = upload_file(
-                data_file=uploaded_file.file,      # The raw file object (e.g. as a byte stream)
-                file_name=content_name,            # The new name for the file
+                data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
+                file_name=content_name,  # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],
                 object_location=file_set_location
             )
@@ -492,7 +491,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed
     :type kg_id: str
-    :param kg_version: Specific version of KGE File Set for the knowledge graph for which data file metadata are being accessed
+    :param kg_version: Specific version of KGE File Set for the knowledge graph for which metadata are being accessed
     :type kg_version: str
 
     """
@@ -512,7 +511,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
         file_set_location, assigned_version = await get_file_set_location(kg_id)
         if not file_set_location:
             await report_not_found(request, "get_kge_file_set_contents(): unknown KGE File Set '" + kg_id + "'?")
-        
+
         # Listings Approach
         # - Introspect on Bucket
         # - Create URL per Item Listing
@@ -564,7 +563,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
     session = await get_session(request)
     if not session.empty:
 
-        file_set_location, assigned_version = await get_file_set_location(kg_id, version=kg_version)
+        file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
         if not file_set_location:
             await report_not_found(request, "kge_meta_knowledge_graph(): unknown KGE File Set '" + kg_id + "'?")
 
@@ -603,7 +602,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
         await redirect(request, LANDING)
 
 
-async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive=False) -> web.Response:
+async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive=False):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
 
@@ -614,6 +613,7 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
     :param kg_version: Version of KGE File Set of the knowledge graph being accessed.
     :type kg_version: str
 
+    :return: None - redirection responses triggered
     """
     if not (kg_id and kg_version):
         await report_not_found(
@@ -634,7 +634,7 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
 
         maybe_archive = [
             kg_path for kg_path in kg_files_for_version
-                if ".tar.gz" in kg_path
+            if ".tar.gz" in kg_path
         ]
 
         if len(maybe_archive) == 1:

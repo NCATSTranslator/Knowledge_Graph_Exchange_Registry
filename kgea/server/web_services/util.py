@@ -2,13 +2,16 @@ import datetime
 
 import typing
 from typing import Union
-from web_services import typing_utils
+from . import typing_utils
 
 T = typing.TypeVar('T')
 Class = typing.Type[T]
 
 
-def _deserialize(data: Union[dict, list, str], klass: Union[Class, str]) -> Union[dict, list, Class, int, float, str, bool, datetime.date, datetime.datetime]:
+def _deserialize(
+        data: Union[dict, list, str],
+        klass: Union[Class, str]
+) -> Union[dict, list, Class, int, float, str, bool, datetime.date, datetime.datetime]:
     """Deserializes dict, list, str into an object.
 
     :param data: dict, list or str.
@@ -65,11 +68,8 @@ def deserialize_date(string: str) -> datetime.date:
     :param string: str.
     :return: date.
     """
-    try:
-        from dateutil.parser import parse
-        return parse(string).date()
-    except ImportError:
-        return string
+    from dateutil.parser import parse
+    return parse(string).date()
 
 
 def deserialize_datetime(string: str) -> datetime.datetime:
@@ -80,11 +80,8 @@ def deserialize_datetime(string: str) -> datetime.datetime:
     :param string: str.
     :return: datetime.
     """
-    try:
-        from dateutil.parser import parse
-        return parse(string)
-    except ImportError:
-        return string
+    from dateutil.parser import parse
+    return parse(string)
 
 
 def deserialize_model(data: Union[dict, list], klass: T) -> T:

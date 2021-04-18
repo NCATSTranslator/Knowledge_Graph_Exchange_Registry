@@ -1,4 +1,3 @@
-import sys
 from os import getenv
 from typing import List, Dict
 

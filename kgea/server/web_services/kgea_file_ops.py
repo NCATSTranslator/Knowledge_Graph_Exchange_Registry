@@ -13,7 +13,6 @@ from typing import Dict, Union, List
 from functools import wraps
 from string import Template
 import random
-from json import loads
 import time
 from datetime import datetime
 
@@ -23,8 +22,6 @@ import tempfile
 from pathlib import Path
 import tarfile
 from s3_tar import S3Tar
-
-import yaml
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
