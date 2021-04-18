@@ -259,7 +259,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
     if not (kg_id and kg_version):
         await report_not_found(request, "publish_kge_file_set(): knowledge graph id or file set version are null?")
 
-    errors: List = await KgeArchiveCatalog.catalog().publish_file_set(kg_id, kg_version)
+    errors: List[str] = await KgeArchiveCatalog.catalog().publish_file_set(kg_id, kg_version)
 
     if DEV_MODE and errors:
         raise report_error(

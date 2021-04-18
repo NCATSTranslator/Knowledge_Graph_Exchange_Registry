@@ -1,0 +1,12 @@
+id: "${kg_id}"
+version:  "${kg_version}"
+# TODO: we can perhaps user comments about File Set revisions here
+revisions: >-
+  ${revisions}
+submitter:
+  name: "${submitter}"
+  email: "${submitter_email}"
+# SmartAPI Registered Server access
+# point for data (with KGE Archive Web Service)
+size: "{$size}"
+access: "https://kge.starinformatics.ca/${kg_id}/${kg_version}"

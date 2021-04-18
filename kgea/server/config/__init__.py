@@ -25,7 +25,8 @@ AWS_CONFIG_ROOT = home + "/.aws/"
 # copied from the available template and populated with site-specific configuration values
 CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
 
-PROVIDER_METADATA_FILE = 'provider_metadata.yaml'
+PROVIDER_METADATA_FILE = 'provider.yaml'
+FILE_SET_METADATA_FILE = 'file_set.yaml'
 
 
 def validate_session_configuration():
