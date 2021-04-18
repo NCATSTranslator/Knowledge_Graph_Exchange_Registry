@@ -180,7 +180,7 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
         terms_of_service = data['terms_of_service']
 
         logger.debug(
-            "register_kge_file_set() form parameters:\n\t" +
+            "register_kge_knowledge_graph() form parameters:\n\t" +
             "\n\tkg_name: " + kg_name +
             "\n\tkg_description: " + kg_description +
             "\n\tCurrently active kg_version: " + kg_version +
@@ -213,7 +213,6 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
                     kg_id=kg_id,
                     kg_name=kg_name,
                     kg_description=kg_description,
-                    kg_size='unknown',  # value cannot yet be set here
                     translator_component=translator_component,
                     translator_team=translator_team,
                     submitter=submitter,

@@ -106,6 +106,9 @@ class KgeFileSet:
         self.submitter = submitter
         self.submitter_email = submitter_email
 
+        # KGE File Set archive size, initially unknown
+        self.size = 'unknown'
+
         # this attribute will track all metadata files of the given version of KGE File Set
         self.content_metadata: Dict[str, Union[str, bool, List[str]]] = dict()
 
@@ -446,7 +449,7 @@ class KgeKnowledgeGraph:
             )
 
     def get_name(self) -> str:
-        return self.parameter.setdefault("kg_name", 'Unknown')
+        return self.parameter.setdefault("kg_name", self.kg_id)
 
     def get_provider_metadata(self) -> Union[Dict, None]:
         """
@@ -517,8 +520,8 @@ class KgeKnowledgeGraph:
         # TODO: should probably merge, not simply overwrite?
         self._versions = versions
 
-    def get_versions_names(self) -> Set[str]:
-        return set(self._versions.keys())
+    def get_versions_names(self) -> list[str]:
+        return list(self._versions.keys())
 
 
 class KgeArchiveCatalog:
@@ -658,6 +661,11 @@ class KgeArchiveCatalog:
                 kg_version=kg_version,
                 file_set_location=file_set_location
             )
+        else:
+            # provider_metadata not available? Need a stub graph record then
+            self.register_kge_graph(
+                kg_id=kg_id
+            )
 
         if 'versions' in entry:
             self.add_kge_file_set_versions(kg_id=kg_id, versions=entry['versions'])
@@ -794,11 +802,11 @@ class KgeArchiveCatalog:
             catalog = {
                 "translator_reference_graph": {
                     "name": "Translator Reference Graph",
-                    "versions": {"1.0", "2.0", "2.1"}
+                    "versions": ["1.0", "2.0", "2.1"]
                 },
                 "semantic_medline_database": {
                     "name": "Semantic Medline Database",
-                    "versions": {"4.2", "4.3"}
+                    "versions": ["4.2", "4.3"]
                 }
             }
             pass

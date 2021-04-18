@@ -192,11 +192,15 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
     return True
 
 
-def kg_files_in_location(bucket_name, object_location=''):
-    bucket_listings = [e['Key']
-                       for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name)
-                       for e in p['Contents']
-                       ]
+def kg_files_in_location(bucket_name, object_location='') -> List[str]:
+    bucket_listings: List = list()
+    for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name):
+        if 'Contents' in p:
+            for e in p['Contents']:
+                bucket_listings.append(e['Key'])
+        else:
+            return []  # empty bucket?
+
     # If object_location is the empty string, then each object
     # listed passes (since the empty string is part of every string)
     object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
