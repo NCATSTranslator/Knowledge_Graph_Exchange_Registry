@@ -114,7 +114,7 @@ class KgeFileSet:
         self.content_metadata: Dict[str, Union[str, bool, List[str]]] = dict()
 
         # this attribute will track all data files of the given version of KGE File Set
-        self.data_files: Dict[str, Dict[str, Any]] = dict()
+        self.data_files: Dict[str, Dict[str, Union[str, bool, List[str]]]] = dict()
 
         # ### KGX VALIDATION FRAMEWORK ###
 
@@ -402,9 +402,6 @@ class KgeKnowledgeGraph:
     def __init__(self, **kwargs):
         """
         KgeKnowledgeGraph constructor.
-        
-        :param kg_name: name of knowledge graph in entry
-        :param submitter: owner of knowledge graph
         """
         #     Dict[
         #         str,  # kg_id level properties: 'metadata' and 'versions'
@@ -438,12 +435,12 @@ class KgeKnowledgeGraph:
             self.parameter[key] = value
 
         # File Set Versions
-        self._versions: Dict[str, KgeFileSet] = dict()
+        self._file_set_versions: Dict[str, KgeFileSet] = dict()
 
         # Register an explicitly specified submitter-specified KGE File Set version
         # Sanity check: we should probably not overwrite a KgeFileSet version if it already exists?
-        if kg_version and kg_version not in self._versions:
-            self._versions[kg_version] = KgeFileSet(
+        if kg_version and kg_version not in self._file_set_versions:
+            self._file_set_versions[kg_version] = KgeFileSet(
                 kg_version,
                 kwargs['submitter'],
                 kwargs['submitter_email']
@@ -466,9 +463,9 @@ class KgeKnowledgeGraph:
         """
         :return: Set[Tuple] of access metadata for data files in the KGE File Set
         """
-        if kg_version not in self._versions:
+        if kg_version not in self._file_set_versions:
             logger.warning("KGE File Set version '"+kg_version+"' unknown for Knowledge Graph '"+self.kg_id+"'?")
-        return self._versions[kg_version]
+        return self._file_set_versions[kg_version]
 
     def get_data_file_set(self, kg) -> Set[Tuple]:
         """
@@ -525,10 +522,10 @@ class KgeKnowledgeGraph:
 
     def add_versions(self, versions: Dict[str, List[str]]):
         # TODO: should probably merge, not simply overwrite?
-        self._versions = versions
+        self._file_set_versions = versions
 
-    def get_versions_names(self) -> list[str]:
-        return list(self._versions.keys())
+    def get_version_names(self) -> list[str]:
+        return list(self._file_set_versions.keys())
 
 
 class KgeArchiveCatalog:
@@ -803,7 +800,6 @@ class KgeArchiveCatalog:
             
         return errors
 
-
     def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
 
         # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
@@ -819,14 +815,13 @@ class KgeArchiveCatalog:
                     "versions": ["4.2", "4.3"]
                 }
             }
-            pass
         else:
             # The real content of the catalog
             catalog: Dict[str,  Dict[str, Union[str, List[str]]]] = dict()
             for kg_id, knowledge_graph in self._kge_knowledge_graph_catalog.items():
                 catalog[kg_id] = dict()
                 catalog[kg_id]['name'] = knowledge_graph.get_name()
-                catalog[kg_id]['versions'] = knowledge_graph.get_versions_names()
+                catalog[kg_id]['versions'] = knowledge_graph.get_version_names()
 
         return catalog
 
