@@ -7,13 +7,13 @@ from ..kgea_handlers import (
 )
 
 
-async def get_file_set_catalog(request: web.Request) -> web.Response:
+async def get_knowledge_graph_catalog(request: web.Request) -> web.Response:
     """Returns the catalog of available KGE File Sets
 
     :param request:
     :type request: web.Request
     """
-    return await get_kge_file_set_catalog(request)
+    return await get_kge_knowledge_graph_catalog(request)
 
 
 async def register_knowledge_graph(request: web.Request):

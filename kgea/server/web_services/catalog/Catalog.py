@@ -84,7 +84,7 @@ def prepare_test(func):
 
 class KgeFileType(Enum):
     KGX_UNKNOWN = "unknown file type"
-    KGX_METADATA_FILE = "KGX metadata file"
+    KGX_CONTENT_METADATA_FILE = "KGX metadata file"
     KGX_DATA_FILE = "KGX data file"
     KGE_ARCHIVE = "KGE data archive"
 
@@ -294,7 +294,7 @@ class KgeFileSet:
                 # TODO: not sure how we should properly validate a KGX Data archive?
                 self.data_files[object_key]["errors"] = ['KGE Archive validation is not yet implemented?']
 
-            elif file_type == KgeFileType.KGX_METADATA_FILE:
+            elif file_type == KgeFileType.KGX_CONTENT_METADATA_FILE:
                 errors = await self.validator.validate_metadata(file_path=s3_file_url)
 
                 if not errors:
@@ -456,12 +456,20 @@ class KgeKnowledgeGraph:
         :return: a copy of metadata dictionary about the
         KGE File Set metadata file, if available; None otherwise
         """
-        if self.content_metadata:
-            return self.content_metadata.copy()
+        if self.v_metadata:
+            return self.provider_metadata.copy()
         else:
             return None
 
-    def get_data_file_set(self) -> Set[Tuple]:
+    def get_kge_file_set(self, kg_version: str) -> KgeFileSet:
+        """
+        :return: Set[Tuple] of access metadata for data files in the KGE File Set
+        """
+        if kg_version not in self._versions:
+            logger.warning("KGE File Set version '"+kg_version+"' unknown for Knowledge Graph '"+self.kg_id+"'?")
+        return self._versions[kg_version]
+
+    def get_data_file_set(self, kg) -> Set[Tuple]:
         """
         :return: Set[Tuple] of access metadata for data files in the KGE File Set
         """
@@ -493,10 +501,8 @@ class KgeKnowledgeGraph:
 
     # KGE File Set Translator SmartAPI parameters (March 2021 release):
     # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
-    # - kg_version: release version of KGE File Set - recorded directly as the Translator SmartAPI entry 'version'
     # - kg_name: human readable name of the knowledge graph
     # - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
-    # - kg_size: size of tar.gz archive aggregating all files of the KGE File Set
     # - submitter - name of submitter of the KGE file set
     # - submitter_email - contact email of the submitter
     # - license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.
@@ -516,7 +522,7 @@ class KgeKnowledgeGraph:
             kg_id=self.kg_id, **self.parameter
         )
 
-    def add_versions(self, versions: Dict[str, Set[str]]):
+    def add_versions(self, versions: Dict[str, List[str]]):
         # TODO: should probably merge, not simply overwrite?
         self._versions = versions
 
@@ -725,11 +731,12 @@ class KgeArchiveCatalog:
         to KGX compliance, and the entire file set assessed for completeness.
         An exception is raise if there is an error.
     
-        :param kg_id: Knowledge Graph File Set identifier
-        :param file_type: KgeFileType of the current file
-        :param file_name: name of the current file
+        :param kg_id: identifier of the KGE Archive managed Knowledge Graph of interest
+        :param kg_version: version of interest of the KGE File Set associated with the Knowledge Graph
+        :param file_type: KgeFileType of the file being added
+        :param file_name: name of the file
         :param object_key: AWS S3 object key of the file
-        :param s3_file_url: current pre-signed url to access the file
+        :param s3_file_url: currently active pre-signed url to access the file
         :return: None
         """
         knowledge_graph = self.get_kge_graph(kg_id)
@@ -738,11 +745,12 @@ class KgeArchiveCatalog:
             raise RuntimeError("KGE File Set '" + kg_id + "' is unknown?")
         else:
             # Found a matching KGE Knowledge Graph?
-            # Add the current file to the KGE File Set
-            # associated with the kg_version of the graph.
-            kgefs = knowledge_graph.get_data_file_set()
+            file_set = knowledge_graph.get_kge_file_set(kg_version=kg_version)
+
+            # Add the current (meta-)data file to the KGE File Set
+            # associated with this kg_version of the graph.
             if file_type == KgeFileType.KGX_DATA_FILE:
-                knowledge_graph.add_data_file(
+                file_set.add_data_file(
                     file_name=file_name,
                     object_key=object_key,
                     s3_file_url=s3_file_url
@@ -752,8 +760,8 @@ class KgeArchiveCatalog:
                 # not sure how best to handle KGX data archives here
                 pass
             
-            elif file_type == KgeFileType.KGX_METADATA_FILE:
-                knowledge_graph.set_content_metadata_file(
+            elif file_type == KgeFileType.KGX_CONTENT_METADATA_FILE:
+                file_set.set_content_metadata_file(
                     file_name=file_name,
                     object_key=object_key,
                     s3_file_url=s3_file_url
@@ -794,7 +802,7 @@ class KgeArchiveCatalog:
             
         return errors
 
-    def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, Set[str]]]]:
+    def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
 
         # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
         if DEV_MODE:
@@ -812,7 +820,7 @@ class KgeArchiveCatalog:
             pass
         else:
             # The real content of the catalog
-            catalog: Dict[str,  Dict[str, Union[str, Set[str]]]] = dict()
+            catalog: Dict[str,  Dict[str, Union[str, List[str]]]] = dict()
             for kg_id, knowledge_graph in self._kge_knowledge_graph_catalog.items():
                 catalog[kg_id]['name'] = knowledge_graph.get_name()
                 catalog[kg_id]['versions'] = knowledge_graph.get_versions_names()

@@ -84,14 +84,14 @@ else:
 # Insert import and return call into provider_controller.py:
 #
 # from ..kge_handlers import (
-#     get_kge_file_set_catalog,
+#     get_kge_knowledge_graph_catalog,
 #     register_kge_knowledge_graph,
 #     publish_kge_file_set
 # )
 #############################################################
 
 
-async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
+async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
     """Returns the catalog of available KGE File Sets
 
     :param request:
@@ -378,7 +378,7 @@ async def upload_kge_file(
 
         elif kgx_file_content == "metadata":
             # metadata stays in the kg_id 'root' version folder
-            file_type = KgeFileType.KGX_METADATA_FILE
+            file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
 
         elif kgx_file_content == "archive":
             # TODO this is tricky.. not yet sure how to handle an archive with

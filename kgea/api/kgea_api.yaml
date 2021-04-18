@@ -48,7 +48,7 @@ paths:
       tags:
       - catalog
       summary: Returns the catalog of available KGE File Sets
-      operationId: getFileSetCatalog
+      operationId: get_knowledge_graph_catalog
       responses:
         '200':
           description: >-
@@ -68,7 +68,7 @@ paths:
       tags:
         - catalog
       summary: Register core metadata for a KGE Knowledge Graph
-      operationId: registerKnowledgeGraph
+      operationId: register_knowledge_graph
       requestBody:
         required: true
         content:
@@ -141,7 +141,7 @@ paths:
       tags:
       - catalog
       summary: Publish a registered File Set
-      operationId: publishFileSet
+      operationId: publish_file_set
       responses:
         '302':
           description: >-
@@ -151,7 +151,7 @@ paths:
       tags:
         - upload
       summary: Upload processing of KGE File Set file
-      operationId: uploadFile
+      operationId: upload_file
       requestBody:
         description: KGE File Set metadata or data file submitted
         required: true
@@ -261,7 +261,7 @@ paths:
       tags:
         - content
       summary: Get file list and details for a specified KGE File Set version.
-      operationId: getFileSetContents
+      operationId: get_file_set_contents
       responses:
         '200':
           description: >-
@@ -309,7 +309,7 @@ paths:
       tags:
         - content
       summary: Meta knowledge graph representation of this KGX knowledge graph.
-      operationId: metaKnowledgeGraph
+      operationId: meta_knowledge_graph
       responses:
         '200':
           description: >-
@@ -353,7 +353,7 @@ paths:
       tags:
         - content
       summary: Returns specified KGE File Set as a gzip compressed tar archive
-      operationId: downloadFileSet
+      operationId: download_file_set
       responses:
         '200':
           description: >-

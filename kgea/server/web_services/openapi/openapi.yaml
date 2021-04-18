@@ -41,7 +41,7 @@ tags:
 paths:
   /catalog:
     get:
-      operationId: get_file_set_catalog
+      operationId: get_knowledge_graph_catalog
       responses:
         "200":
           content:
