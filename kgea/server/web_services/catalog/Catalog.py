@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 DEV_MODE = getenv('DEV_MODE', default=False)
+OVERRIDE = True
 
 RUN_TESTS = getenv('RUN_TESTS', default=False)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
@@ -802,10 +803,11 @@ class KgeArchiveCatalog:
             
         return errors
 
+
     def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
 
         # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
-        if DEV_MODE:
+        if not OVERRIDE and DEV_MODE:
             # mock catalog
             catalog = {
                 "translator_reference_graph": {
@@ -822,6 +824,7 @@ class KgeArchiveCatalog:
             # The real content of the catalog
             catalog: Dict[str,  Dict[str, Union[str, List[str]]]] = dict()
             for kg_id, knowledge_graph in self._kge_knowledge_graph_catalog.items():
+                catalog[kg_id] = dict()
                 catalog[kg_id]['name'] = knowledge_graph.get_name()
                 catalog[kg_id]['versions'] = knowledge_graph.get_versions_names()
 
