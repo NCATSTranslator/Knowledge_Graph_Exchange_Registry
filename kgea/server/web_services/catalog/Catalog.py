@@ -548,7 +548,7 @@ class KgeKnowledgeGraph:
         # TODO: should probably merge, not simply overwrite?
         self._file_set_versions = versions
 
-    def get_version_names(self) -> list[str]:
+    def get_version_names(self) -> List[str]:
         return list(self._file_set_versions.keys())
 
     def publish_knowledge_graph(self):
