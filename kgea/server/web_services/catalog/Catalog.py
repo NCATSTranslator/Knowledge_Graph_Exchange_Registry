@@ -187,7 +187,7 @@ class KgeFileSet:
         }
 
         # TODO: implement the validate_content_metadata validator - is only a stub right now
-        errors = await self.validator.validate_content_metadata(file_path=s3_file_url)
+        errors = self.validator.validate_content_metadata(file_path=s3_file_url)
 
         if not errors:
             self.content_metadata["kgx_compliant"] = True
@@ -433,8 +433,8 @@ class KgeFileSet:
 
 class KgeKnowledgeGraph:
     """
-    Class wrapping information about a KGE Archive managed Knowledge Graph assembled in AWS S3
-    then published in the Translator SmartAPI Registry for 3rd party client access.
+    Class wrapping information about a KGE Archive managed Knowledge Graph assembled
+    in AWS S3 then published in the Translator SmartAPI Registry for 3rd party client access.
     A knowledge graph has some characteristic source, scope and Translator team owner, and
     contains one or more versioned KgeFileSets.
     """

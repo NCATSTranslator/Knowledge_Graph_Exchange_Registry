@@ -23,7 +23,7 @@ class KgxValidator:
         self.validator = Validator()
     
     @staticmethod
-    async def validate_content_metadata(file_path) -> List:
+    def validate_content_metadata(file_path) -> List:
         # TODO: Stub implementation of metadata validator
         if file_path:
             # use the self.validator ... maybe? or need something else for KGX metadata JSON?
