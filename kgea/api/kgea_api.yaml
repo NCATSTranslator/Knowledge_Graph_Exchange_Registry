@@ -67,8 +67,8 @@ paths:
     post:
       tags:
         - catalog
-      summary: Register core parameters for the KGE File Set upload
-      operationId: registerFileSet
+      summary: Register core metadata for a KGE Knowledge Graph
+      operationId: registerKnowledgeGraph
       requestBody:
         required: true
         content:
@@ -76,10 +76,6 @@ paths:
             schema:
               type: object
               properties:
-                kg_name:
-                  type: string
-                kg_description:
-                  type: string
                 submitter:
                   type: string
                 submitter_email:
@@ -88,6 +84,12 @@ paths:
                   type: string
                 translator_team:
                   type: string
+                kg_name:
+                  type: string
+                kg_version:
+                  type: string
+                kg_description:
+                  type: string
                 license_name:
                   type: string
                 license_url:
@@ -95,16 +97,12 @@ paths:
                 terms_of_service:
                   type: string
               required:
-                - kg_name
-                - translator_component
-                - translator_team
                 - submitter
                 - submitter_email
-            encoding:
-              submitter:
-                contentType: text/plain; charset=utf-8
-              kg_name:
-                contentType: text/plain; charset=utf-8
+                - translator_component
+                - translator_team
+                - kg_name
+                - kg_version
       responses:
         '201':
           description: Upload successfully completed.

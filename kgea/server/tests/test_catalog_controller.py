@@ -40,7 +40,7 @@ async def test_publish_file_set(client):
 
 @pytest.mark.skip("application/x-www-form-urlencoded not supported by Connexion")
 async def test_register_file_set(client):
-    """Test case for register_file_set
+    """Test case for register_knowledge_graph
 
     Register core parameters for the KGE File Set upload
     """

@@ -476,6 +476,7 @@ class KgeKnowledgeGraph:
 
         if not add_to_archive(
                 kg_id=self.kg_id,
+                kg_version=kg_version,
                 text=metadata_file,
                 file_name=PROVIDER_METADATA_FILE
         ):
@@ -775,7 +776,7 @@ class KgeArchiveCatalog:
                 # We publish provider metadata both locally in the Archive S3 repository and
                 # remotely,  in the Translator SmartAPI Registry
                 logger.debug("Publishing validated KGE File Set in the Archive and to the Translator Registry")
-                knowledge_graph.publish_file_set()
+                knowledge_graph.publish_file_set(kg_version)
             else:
                 logger.debug("KGX validation errors encountered:\n" + str(errors))
             
@@ -901,6 +902,7 @@ def test_create_translator_registry_entry():
 
 def add_to_archive(
         kg_id: str,
+        kg_version: str,
         text: str,
         file_name: str
 ) -> str:

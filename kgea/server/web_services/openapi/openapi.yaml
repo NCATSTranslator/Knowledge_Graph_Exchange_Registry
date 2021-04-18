@@ -81,7 +81,7 @@ paths:
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
   /register:
     post:
-      operationId: register_file_set
+      operationId: register_knowledge_graph
       requestBody:
         $ref: '#/components/requestBodies/inline_object'
         content:

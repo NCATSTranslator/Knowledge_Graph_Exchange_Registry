@@ -2,7 +2,7 @@ from aiohttp import web
 
 from ..kgea_handlers import (
     get_kge_file_set_catalog,
-    register_kge_file_set,
+    register_kge_knowledge_graph,
     publish_kge_file_set
 )
 
@@ -16,7 +16,7 @@ async def get_file_set_catalog(request: web.Request) -> web.Response:
     return await get_kge_file_set_catalog(request)
 
 
-async def register_file_set(request: web.Request):
+async def register_knowledge_graph(request: web.Request):
     """Register core parameters for the KGE File Set upload
 
     :param request:
@@ -25,7 +25,7 @@ async def register_file_set(request: web.Request):
     """
     # This method raises an obligatory web.HTTPFound
     # redirection exception to the /upload form
-    await register_kge_file_set(request)
+    await register_kge_knowledge_graph(request)
 
 
 async def publish_file_set(request: web.Request, kg_id: str, kg_version: str):

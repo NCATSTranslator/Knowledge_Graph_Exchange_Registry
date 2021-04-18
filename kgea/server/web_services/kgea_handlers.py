@@ -85,7 +85,7 @@ else:
 #
 # from ..kge_handlers import (
 #     get_kge_file_set_catalog,
-#     register_kge_file_set,
+#     register_kge_knowledge_graph,
 #     publish_kge_file_set
 # )
 #############################################################
@@ -116,7 +116,7 @@ _known_licenses = {
 }
 
 
-async def register_kge_file_set(request: web.Request):  # noqa: E501
+async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
@@ -246,19 +246,21 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         await redirect(request, LANDING)
 
 
-async def publish_kge_file_set(request: web.Request, kg_id, kg_version):
+async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str):
     """Publish a registered File Set
 
     :param request:
     :type request: web.Request
     :param kg_id: KGE Knowledge Graph Identifier for the knowledge graph from which data files are being accessed.
     :type kg_id: str
+    :param kg_version: specific version of KGE File Set being published for the specified Knowledge Graph Identifier
+    :type kg_version: str
     """
 
-    if not kg_id:
-        await report_not_found(request, "publish_kge_file_set(): null Knowledge Graph ID '" + kg_id + "'?")
+    if not (kg_id and kg_version):
+        await report_not_found(request, "publish_kge_file_set(): knowledge graph id or file set version are null?")
 
-    errors: List = await KgeArchiveCatalog.catalog().publish_file_set(kg_id)
+    errors: List = await KgeArchiveCatalog.catalog().publish_file_set(kg_id, kg_version)
 
     if DEV_MODE and errors:
         raise report_error(
