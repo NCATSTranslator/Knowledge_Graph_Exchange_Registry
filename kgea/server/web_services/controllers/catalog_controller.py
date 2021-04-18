@@ -1,7 +1,7 @@
 from aiohttp import web
 
 from ..kgea_handlers import (
-    get_kge_file_set_catalog,
+    get_kge_knowledge_graph_catalog,
     register_kge_knowledge_graph,
     publish_kge_file_set
 )
