@@ -8,5 +8,5 @@ submitter:
   email: "${submitter_email}"
 # SmartAPI Registered Server access
 # point for data (with KGE Archive Web Service)
-size: "{$size}"
+size: "${size}"
 access: "https://kge.starinformatics.ca/${kg_id}/${kg_version}"
