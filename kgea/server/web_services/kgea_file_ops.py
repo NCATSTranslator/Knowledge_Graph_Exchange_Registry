@@ -37,7 +37,7 @@ from botocore.exceptions import ClientError
 from kgea.server.config import (
     s3_client,
     get_app_config,
-    PROVIDER_METADATA_FILE
+    PROVIDER_METADATA_FILE, FILE_SET_METADATA_FILE
 )
 
 import logging
@@ -848,13 +848,32 @@ def _load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -
     return data_string
 
 
-def get_archive_contents(bucket_name: str) -> Dict[str, Dict[str,  Union[str, List]]]:
+def get_archive_contents(bucket_name: str) -> \
+        Dict[
+            str,  # kg_id's of every KGE archived knowledge graph
+            Dict[
+                str,  # tags 'metadata' and 'versions'
+                Union[
+                    str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
+                    Dict[
+                        str,  # kg_version's of versioned KGE File Sets for a kg
+                        Dict[
+                            str,  # tags 'metadata' and 'file_object_keys'
+                            Union[
+                                str,  # 'metadata' field value: 'file set' specific text file blob from S3
+                                List[str]  # list of data files in a given KGE File Set
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]:
     """
     Get contents of KGE Archive from the
     AWS S3 bucket folder names and metadata file contents.
 
     :param bucket_name: The bucket
-    :return: annotated KGE File Set, enumerated from the AWS S3 repository
+    :return: multi-level catalog of KGE knowledge graphs and associated versioned file sets from S3 storage
     """
     all_files = kg_files_in_location(bucket_name=bucket_name)
 
@@ -863,13 +882,19 @@ def get_archive_contents(bucket_name: str) -> Dict[str, Dict[str,  Union[str, Li
         Dict[
             str,  # tags 'metadata' and 'versions'
             Union[
-                str,   # 'metadata' field value: kg specific text file blob from S3
+                str,   # 'metadata' field value: kg specific 'provider' text file blob from S3
                 Dict[
                     str,  # kg_version's of versioned KGE File Sets for a kg
-                    List[str]  # list of data files in a given KGE File Set
+                    Dict[
+                        str,  # tags 'metadata' and 'file_object_keys'
+                        Union[
+                            str,   # 'metadata' field value: 'file set' specific text file blob from S3
+                            List[str]  # list of data file object keys in a given KGE File Set
+                            ]
+                        ]
+                    ]
                 ]
             ]
-        ]
     ] = dict()
 
     for file_path in all_files:
@@ -901,12 +926,23 @@ def get_archive_contents(bucket_name: str) -> Dict[str, Dict[str,  Union[str, Li
             # otherwise, assume file_part[2] is a 'version folder'
             kg_version = file_part[2]
             if kg_version not in contents[kg_id]['versions']:
-                contents[kg_id]['versions'][kg_version] = list()
+                contents[kg_id]['versions'][kg_version] = dict()
+                contents[kg_id]['versions'][kg_version]['file_object_keys'] = list()
 
             # simple first iteration just records the list of data file paths
             # (other than the PROVIDER_METADATA_FILE)
             # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
-            contents[kg_id]['versions'][kg_version].append(file_path)
+            contents[kg_id]['versions'][kg_version]['file_object_keys'].append(file_path)
+
+            if file_part[3] == FILE_SET_METADATA_FILE:
+                # Get the provider 'kg_id' associated metadata file just stored
+                # as a blob of text, for content parsing by the function caller
+                # Unlike the kg_id versions, there should only be one such file?
+                contents[kg_id]['versions'][kg_version]['metadata'] = \
+                    _load_s3_text_file(
+                        bucket_name=bucket_name,
+                        object_name=file_path
+                    )
 
     return contents
 

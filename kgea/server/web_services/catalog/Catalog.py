@@ -19,7 +19,7 @@ from os import getenv
 from os.path import abspath, dirname
 import asyncio
 from io import BytesIO
-from typing import Dict, Union, Tuple, Set, List, Any, Optional
+from typing import Dict, Union, Set, List, Any, Optional
 
 # TODO: maybe convert Catalog components to Python Dataclasses?
 # from dataclasses import dataclass
@@ -116,7 +116,16 @@ class KgeFileSet:
     """
     # TODO: perhaps a 'file_set_metadata.yaml' should
     #       be persisted to S3 in each File Set version folder?
-    def __init__(self, kg_id: str, kg_version: str, submitter: str, submitter_email: str):
+    def __init__(
+            self,
+            kg_id: str,
+            kg_version: str,
+            submitter: str,
+            submitter_email: str,
+            size: str = 'unknown',
+            revisions: str = 'creation',
+            validate: bool = True
+    ):
         """
         KgeFileSet constructor
 
@@ -130,9 +139,9 @@ class KgeFileSet:
         self.submitter = submitter
         self.submitter_email = submitter_email
 
-        # KGE File Set archive size, initially unknown
-        self.size = 'unknown'
-        self.revisions = 'Creation'
+        # KGE File Set archive size, may initially be unknown
+        self.size = size
+        self.revisions = revisions
 
         self._file_set_metadata_object_key: Optional[str] = None
 
@@ -143,21 +152,21 @@ class KgeFileSet:
         self.data_files: Dict[str, Dict[str, Union[str, bool, List[str]]]] = dict()
 
         # ### KGX VALIDATION FRAMEWORK ###
+        if validate:
+            # KGX Validator singleton for this KGE File Set
+            self.validator = KgxValidator()
 
-        # KGX Validator singleton for this KGE File Set
-        self.validator = KgxValidator()
+            # this Queue serves at the communication link
+            # between a KGX validation process and the Registry
+            self.validation_queue = asyncio.Queue()
 
-        # this Queue serves at the communication link
-        # between a KGX validation process and the Registry
-        self.validation_queue = asyncio.Queue()
+            # Create three worker tasks to process the queue concurrently.
+            self.tasks = []
 
-        # Create three worker tasks to process the queue concurrently.
-        self.tasks = []
-
-        # DISABLED KGX VALIDATION CODE BLOCK
-        # for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
-        #     task = asyncio.create_task(self.validate(f'KGX Validation Worker-{i}'))
-        #     self.tasks.append(task)
+            # DISABLED KGX VALIDATION CODE BLOCK
+            # for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
+            #     task = asyncio.create_task(self.validate(f'KGX Validation Worker-{i}'))
+            #     self.tasks.append(task)
 
     def get_version(self):
         return self.kg_version
@@ -422,13 +431,25 @@ class KgeFileSet:
 
         return errors
 
-    def post_process_file_set(self) -> List[str]:
+    @staticmethod
+    def post_process_file_set() -> List[str]:
         """
         Stub file for KGE File Set upload post-processing code.
 
         :return: list of any generated (string) error messages
         """
         return []
+
+    def load_data_files(self, file_object_keys: List[str]):
+        # TODO: is there any other information here to be captured or inferred,
+        #       e.g. file compression (from file extension), file type, size, etc.
+        for object_key in file_object_keys:
+            part = object_key.split('/')
+            file_name = part[-1]
+            self.data_files[object_key] = {
+                "file_name": file_name,
+                "object_key": object_key
+            }
 
 
 class KgeKnowledgeGraph:
@@ -544,10 +565,6 @@ class KgeKnowledgeGraph:
             kg_id=self.kg_id, **self.parameter
         )
 
-    def add_versions(self, versions: Dict[str, List[str]]):
-        # TODO: should probably merge, not simply overwrite?
-        self._file_set_versions = versions
-
     def get_version_names(self) -> List[str]:
         return list(self._file_set_versions.keys())
 
@@ -568,6 +585,69 @@ class KgeKnowledgeGraph:
                 "' not successfully added to KGE Archive storage?"
             )
 
+    def load_file_set_versions(
+            self,
+            versions: Dict[
+                str,  # kg_version's of versioned KGE File Sets for a kg
+                Dict[
+                    str,  # tags 'metadata' and 'files'
+                    Union[
+                        str,  # 'metadata' field value: 'file set' specific text file blob from S3
+                        List[str]  # list of data files in a given KGE File Set
+                    ]
+                ]
+            ]
+    ):
+        for kg_version, entry in versions:
+            file_set: KgeFileSet = self.load_file_set_metadata(entry['metadata'])
+            file_set.load_data_files(entry['file_object_keys'])
+
+    def load_file_set_metadata(self, metadata_text: str) -> KgeFileSet:
+
+        # Assumed to be a YAML string to be parsed into a Python dictionary
+        mf = io.StringIO(metadata_text)
+        md_raw = yaml.load(mf, Loader=Loader)
+        md = dict(md_raw)
+
+        # id: "disney_small_world_graph" ## == kg_id
+        if self.kg_id != md.setdefault('id', ''):
+            raise RuntimeError(
+                "load_archive_entry(): archive folder kg_id '" + self.kg_id +
+                " != id in " + PROVIDER_METADATA_FILE + "?"
+            )
+
+        # version: "1964-04-22"
+        kg_version = md.setdefault('version', 'latest')
+
+        # revisions: >-
+        #   ${revisions}
+        revisions = md.setdefault('revisions', '')
+
+        # submitter:
+        #   name: "${submitter}"
+        submitter = md.setdefault('submitter', '')
+
+        #   email: "${submitter_email}"
+        submitter_email = md.setdefault('submitter_email', '')
+
+        # size: "10000" # megabytes
+        size = md.setdefault('size', '')
+        # TODO: should the file set size value be validated here?
+
+        # Probably don't need this field value
+        # access: "https://kge.starinformatics.ca/disney_small_world_graph/1964-04-22"
+        # access = md.setdefault('access', '')
+
+        return KgeFileSet(
+            self.kg_id,
+            kg_version=kg_version,
+            submitter=submitter,
+            submitter_email=submitter_email,
+            size=size,
+            revisions=revisions,
+            validate=False
+        )
+
 
 class KgeArchiveCatalog:
     """
@@ -583,10 +663,7 @@ class KgeArchiveCatalog:
 
         # Initialize catalog with the metadata of all the existing KGE Archive (AWS S3 stored) KGE File Sets
         # archive_contents keys are the kg_id's, entries are the rest of the KGE File Set metadata
-        archive_contents: Dict[
-            str,
-            Dict[str, Union[str, List]]
-        ] = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['bucket'])
+        archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['bucket'])
         for kg_id, entry in archive_contents.items():
             self.load_archive_entry(kg_id=kg_id, entry=entry)
 
@@ -606,114 +683,113 @@ class KgeArchiveCatalog:
         return KgeArchiveCatalog._the_catalog
 
     def load_archive_entry(
-            self, kg_id: str, 
+            self,
+            kg_id: str,
             entry: Dict[
-                    str,  # tags 'metadata' and 'versions'
-                    Union[
-                        str,   # 'metadata' field value: a kg specific text file blob from S3
+                str,  # tags 'metadata' and 'versions'
+                Union[
+                    str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
+                    Dict[  # 'versions' field value
+                        str,  # kg_version's of versioned KGE File Sets for a kg
                         Dict[
-                            str,  # kg_version's of versioned KGE File Sets for a kg
-                            List[str]  # list of data files in a given KGE File Set
+                            str,  # tags 'metadata' and 'files'
+                            Union[
+                                str,  # 'metadata' field value: 'file set' specific text file blob from S3
+                                List[str]  # list of data files in a given KGE File Set
+                            ]
                         ]
                     ]
                 ]
+            ]
     ):
         """
-        Parse an KGE Archive entry for
-        metadata to load into a KgeaFileSet
-        for indexing in the KgeaCatalog
+         Parse an KGE Archive entry for metadata
+         to load into a KgeFileSet
+         for indexing in the KgeArchiveCatalog
         """
         if 'metadata' in entry:
-            # Assumed to be a YAML string to be parsed into a Python dictionary
-            mf = io.StringIO(entry['metadata'])
-            md_raw = yaml.load(mf, Loader=Loader)
-            md = dict(md_raw)
-
-            # TODO: sanity check of kg_id here perhaps?
-            # id: "disney_small_world_graph" ## == kg_id
-            # if kg_id != md.setdefault('id', ''):
-            #     raise RuntimeError(
-            #         "load_archive_entry(): archive folder kg_id '"+kg_id+
-            #         " != id in "+PROVIDER_METADATA_FILE+"?"
-            #     )
-
-            # name:  "Disneyland Small World Graph"
-            kg_name = md.setdefault('name', kg_id)
-
-            # version: "1964-04-22"
-            kg_version = md.setdefault('version', 'latest')
-
-            # description: >-
-            #   Voyage along the Seven Seaways canal and behold a cast of
-            #     almost 300 Audio-Animatronics dolls representing children
-            #     from every corner of the globe as they sing the classic
-            #     anthem to world peace—in their native languages.
-            kg_description = md.setdefault('description', '')
-
-            # size: "KGE archive file size TBA"
-            kg_size = md.setdefault('size', 'unknown')
-
-            # translator:
-            #   component: "KP"
-            #   team:
-            #   - "Disney Knowledge Provider"
-            if 'translator' in md:
-                tmd = md['translator']
-                translator_component = tmd.setdefault('component', 'unknown')
-                translator_team = tmd.setdefault('team', 'unknown')
-            else:
-                translator_component = translator_team = 'unknown'
-
-            # submitter:
-            #   name: "Mickey Mouse"
-            #   email: "mickey.mouse@disneyland.disney.go.com"
-            if 'submitter' in md:
-                smd = md['submitter']
-                submitter = smd.setdefault('name', 'unknown')
-                submitter_email = smd.setdefault('email', 'unknown')
-            else:
-                submitter = submitter_email = 'unknown'
-
-            # license:
-            #   name: "Artistic 2.0"
-            #   url:  "https://opensource.org/licenses/Artistic-2.0"
-            if 'license' in md:
-                lmd = md['license']
-                license_name = lmd.setdefault('name', 'unknown')
-                license_url = lmd.setdefault('url', 'unknown')
-            else:
-                license_name = license_url = 'unknown'
-
-            # termsOfService: "https://disneyland.disney.go.com/en-ca/terms-conditions/"
-            terms_of_service = md.setdefault('termsOfService', 'unknown')
-
-            file_set_location, _ = with_version(func=get_object_location, version=kg_version)(kg_id)
-
-            self.register_kge_graph(
-                kg_id=kg_id,
-                kg_name=kg_name,
-                kg_description=kg_description,
-                kg_size=kg_size,
-                translator_component=translator_component,
-                translator_team=translator_team,
-                submitter=submitter,
-                submitter_email=submitter_email,
-                license_name=license_name,
-                license_url=license_url,
-                terms_of_service=terms_of_service,
-
-                # latest version as listed in provider_metadata.yaml file?
-                kg_version=kg_version,
-                file_set_location=file_set_location
-            )
+            self.load_provider_metadata(entry['metadata'])
         else:
-            # provider_metadata not available? Need a stub graph record then
-            self.register_kge_graph(
-                kg_id=kg_id
-            )
+            # provider_metadata not available? Create a stub graph record then
+            self.register_kge_graph(kg_id=kg_id)
 
         if 'versions' in entry:
-            self.add_kge_file_set_versions(kg_id=kg_id, versions=entry['versions'])
+            knowledge_graph: KgeKnowledgeGraph = self.get_kge_graph(kg_id)
+            knowledge_graph.load_file_set_versions(versions=entry['versions'])
+
+    def load_provider_metadata(self, metadata_text: str):
+        # Assumed to be a YAML string to be parsed into a Python dictionary
+        mf = io.StringIO(metadata_text)
+        md_raw = yaml.load(mf, Loader=Loader)
+        md = dict(md_raw)
+
+        # id: "disney_small_world_graph" ## == kg_id
+        # if kg_id != md.setdefault('id', ''):
+        #     raise RuntimeError(
+        #         "load_archive_entry(): archive folder kg_id '"+kg_id+
+        #         " != id in "+PROVIDER_METADATA_FILE+"?"
+        #     )
+
+        # name:  "Disneyland Small World Graph"
+        kg_name = md.setdefault('name', 'Unknown')
+
+        # description: >-
+        #   Voyage along the Seven Seaways canal and behold a cast of
+        #     almost 300 Audio-Animatronics dolls representing children
+        #     from every corner of the globe as they sing the classic
+        #     anthem to world peace—in their native languages.
+        kg_description = md.setdefault('description', '')
+
+        # size: "KGE archive file size TBA"
+        kg_size = md.setdefault('size', 'unknown')
+
+        # translator:
+        #   component: "KP"
+        #   team:
+        #   - "Disney Knowledge Provider"
+        if 'translator' in md:
+            tmd = md['translator']
+            translator_component = tmd.setdefault('component', 'unknown')
+            translator_team = tmd.setdefault('team', 'unknown')
+        else:
+            translator_component = translator_team = 'unknown'
+
+        # submitter:
+        #   name: "Mickey Mouse"
+        #   email: "mickey.mouse@disneyland.disney.go.com"
+        if 'submitter' in md:
+            smd = md['submitter']
+            submitter = smd.setdefault('name', 'unknown')
+            submitter_email = smd.setdefault('email', 'unknown')
+        else:
+            submitter = submitter_email = 'unknown'
+
+        # license:
+        #   name: "Artistic 2.0"
+        #   url:  "https://opensource.org/licenses/Artistic-2.0"
+        if 'license' in md:
+            lmd = md['license']
+            license_name = lmd.setdefault('name', 'unknown')
+            license_url = lmd.setdefault('url', 'unknown')
+        else:
+            license_name = license_url = 'unknown'
+
+        # termsOfService: "https://disneyland.disney.go.com/en-ca/terms-conditions/"
+        terms_of_service = md.setdefault('termsOfService', 'unknown')
+
+        self.register_kge_graph(
+            kg_id=kg_id,
+            kg_name=kg_name,
+            kg_description=kg_description,
+            kg_size=kg_size,
+            translator_component=translator_component,
+            translator_team=translator_team,
+            submitter=submitter,
+            submitter_email=submitter_email,
+            license_name=license_name,
+            license_url=license_url,
+            terms_of_service=terms_of_service
+        )
 
     @staticmethod
     def normalize_name(kg_name: str) -> str:
@@ -871,12 +947,9 @@ class KgeArchiveCatalog:
 
         return catalog
 
-    def add_kge_file_set_versions(self, kg_id: str, versions: Dict[str, List[str]]):
-        kgfs: KgeKnowledgeGraph = self.get_kge_graph(kg_id)
-        kgfs.add_versions(versions)
-
     def register_kge_file_set(
-            self, kg_id: str,
+            self,
+            kg_id: str,
             kg_version: str,
             submitter: str,
             submitter_email: str
