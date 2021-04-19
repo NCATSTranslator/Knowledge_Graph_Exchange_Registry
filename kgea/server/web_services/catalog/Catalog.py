@@ -637,7 +637,8 @@ class KgeKnowledgeGraph:
         # access: "https://kge.starinformatics.ca/disney_small_world_graph/1964-04-22"
         # access = md.setdefault('access', '')
 
-        return KgeFileSet(
+        # Capture the file set metadata...
+        file_set = KgeFileSet(
             self.kg_id,
             kg_version=kg_version,
             submitter=submitter,
@@ -646,6 +647,12 @@ class KgeKnowledgeGraph:
             revisions=revisions,
             validate=False
         )
+
+        # ...add it to the knowledge graph...
+        self._file_set_versions[kg_version] = file_set
+
+        # then return it for further processing
+        return file_set
 
 
 class KgeArchiveCatalog:
