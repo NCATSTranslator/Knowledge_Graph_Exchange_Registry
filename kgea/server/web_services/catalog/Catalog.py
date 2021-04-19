@@ -67,6 +67,7 @@ def prepare_test(func):
         return func()
     return wrapper
 
+
 #
 # Until we are confident about the KGE File Set publication
 # We will post our Translator SmartAPI entries to a local KGE Archive folder
@@ -142,8 +143,6 @@ class KgeFileSet:
         # KGE File Set archive size, may initially be unknown
         self.size = size
         self.revisions = revisions
-
-        self._file_set_metadata_object_key: Optional[str] = None
 
         # this attribute will track all metadata files of the given version of KGE File Set
         self.content_metadata: Dict[str, Union[str, bool, List[str]]] = dict()
@@ -408,14 +407,14 @@ class KgeFileSet:
         errors: List[str] = self.post_process_file_set()
 
         file_set_metadata_file = self.generate_file_set_metadata_file()
-        self._file_set_metadata_object_key = add_to_s3_archive(
+        file_set_metadata_object_key = add_to_s3_archive(
             kg_id=self.kg_id,
             kg_version=self.kg_version,
             text=file_set_metadata_file,
             file_name=FILE_SET_METADATA_FILE
         )
 
-        if not self._file_set_metadata_object_key:
+        if not file_set_metadata_object_key:
             msg = "publish_file_set(): '" + FILE_SET_METADATA_FILE + \
                 "' for KGE File Set version '" + self.kg_version + \
                 "' of knowledge graph '" + self.kg_id + "' not successfully added to archive?"
@@ -598,7 +597,7 @@ class KgeKnowledgeGraph:
                 ]
             ]
     ):
-        for kg_version, entry in versions:
+        for kg_version, entry in versions.items():
             file_set: KgeFileSet = self.load_file_set_metadata(entry['metadata'])
             file_set.load_data_files(entry['file_object_keys'])
 
@@ -708,7 +707,7 @@ class KgeArchiveCatalog:
          for indexing in the KgeArchiveCatalog
         """
         if 'metadata' in entry:
-            self.load_provider_metadata(entry['metadata'])
+            self.load_provider_metadata(kg_id=kg_id, metadata_text=entry['metadata'])
         else:
             # provider_metadata not available? Create a stub graph record then
             self.register_kge_graph(kg_id=kg_id)
@@ -717,18 +716,18 @@ class KgeArchiveCatalog:
             knowledge_graph: KgeKnowledgeGraph = self.get_kge_graph(kg_id)
             knowledge_graph.load_file_set_versions(versions=entry['versions'])
 
-    def load_provider_metadata(self, metadata_text: str):
+    def load_provider_metadata(self, kg_id, metadata_text: str):
         # Assumed to be a YAML string to be parsed into a Python dictionary
         mf = io.StringIO(metadata_text)
         md_raw = yaml.load(mf, Loader=Loader)
         md = dict(md_raw)
 
         # id: "disney_small_world_graph" ## == kg_id
-        # if kg_id != md.setdefault('id', ''):
-        #     raise RuntimeError(
-        #         "load_archive_entry(): archive folder kg_id '"+kg_id+
-        #         " != id in "+PROVIDER_METADATA_FILE+"?"
-        #     )
+        if kg_id != md.setdefault('id', ''):
+            raise RuntimeError(
+                "load_archive_entry(): archive folder kg_id '" + kg_id +
+                " != id in "+PROVIDER_METADATA_FILE+"?"
+            )
 
         # name:  "Disneyland Small World Graph"
         kg_name = md.setdefault('name', 'Unknown')

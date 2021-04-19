@@ -37,7 +37,8 @@ from botocore.exceptions import ClientError
 from kgea.server.config import (
     s3_client,
     get_app_config,
-    PROVIDER_METADATA_FILE, FILE_SET_METADATA_FILE
+    PROVIDER_METADATA_FILE,
+    FILE_SET_METADATA_FILE
 )
 
 import logging
@@ -929,11 +930,6 @@ def get_archive_contents(bucket_name: str) -> \
                 contents[kg_id]['versions'][kg_version] = dict()
                 contents[kg_id]['versions'][kg_version]['file_object_keys'] = list()
 
-            # simple first iteration just records the list of data file paths
-            # (other than the PROVIDER_METADATA_FILE)
-            # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
-            contents[kg_id]['versions'][kg_version]['file_object_keys'].append(file_path)
-
             if file_part[3] == FILE_SET_METADATA_FILE:
                 # Get the provider 'kg_id' associated metadata file just stored
                 # as a blob of text, for content parsing by the function caller
@@ -943,6 +939,12 @@ def get_archive_contents(bucket_name: str) -> \
                         bucket_name=bucket_name,
                         object_name=file_path
                     )
+                continue
+
+            # simple first iteration just records the list of data file paths
+            # (other than the PROVIDER_METADATA_FILE)
+            # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
+            contents[kg_id]['versions'][kg_version]['file_object_keys'].append(file_path)
 
     return contents
 
