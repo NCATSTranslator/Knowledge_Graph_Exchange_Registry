@@ -790,8 +790,8 @@ async def compress_download(bucket, file_set_object_key, open_file=False):
         allow_dups=True,
     )
     # add the file the running archive
-    print(kg_files_in_location(bucket, object_key))
-    job.add_files(object_key)
+    print(kg_files_in_location(bucket, file_set_object_key))
+    job.add_files(file_set_object_key)
     # execute the job
     job.tar()
 
