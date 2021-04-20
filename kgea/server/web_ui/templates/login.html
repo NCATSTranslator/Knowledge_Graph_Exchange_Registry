@@ -1,8 +1,10 @@
 {% extends "layout.html" %}
 {% block title %}KGE Archive Login{% endblock %}
 {% block content %}
-<form action="/login">
-    <input type="submit" value="Login" />
-</form>
+<div style="text-align: center;">
+    <form action="/login">
+        <input type="submit" value="Login" />
+    </form>
+</div>
 {% endblock %}
 {% block app_footer %}User Authentication Powered by AWS Cognito{% endblock %}

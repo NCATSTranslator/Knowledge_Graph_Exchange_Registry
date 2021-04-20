@@ -1,15 +1,15 @@
 {% extends "layout.html" %}
 {% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA==" crossorigin="anonymous"></script>
     <script>
-
         // empty catalog... needs to be retrieved from the back end
         let kgea_catalog = {};
-
         async function showVersions(selectObject) {
             let kg_id = selectObject.value;
             if(kg_id in kgea_catalog) {
                 let versions = kgea_catalog[kg_id].versions;
-                let version_options = '<option value="latest">Latest</option>';
+                let version_options = '';  // '<option value="latest">Latest</option>'; // don't deal with 'latest' yet
                 versions.forEach((v,_) => {
                     version_options += '<option value="' + v + '">' + v + '</option>';
                 });
@@ -55,65 +55,99 @@
         {
             let kg_id = document.getElementById('select_kg_id').value;
             let kg_version = document.getElementById('select_kg_version').value;
-
             console.log(
                 "DownloadFile(" +
-                    "action: '" + source.id + "', " +
+                    "action: '" + source.target.id + "', " +
                     "kg_id: '" + kg_id + "', " +
                     "kg_version: '" + kg_version + "'" +
                 "')"
             );
             window.alert(
                 "DownloadFile(" +
-                    "action: '" + source.id+"', " +
+                    "action: '" + source.target.id+"', " +
                     "kg_id: '" + kg_id + "', " +
                     "kg_version: '" + kg_version + "'" +
                 "')"
             );
-            //
-            // let url = '/archive/' + kg_name + '/' + source.id;
-            //
-            // console.log("Downloading  URL: '"+url+"'");
-            //
-            // let formData = new FormData();
-            //
-            // try {
-            //     // TODO: What happens to the data returned here?
-            //     // TODO: Should this fetch rather be a redirect in a separate tab or window?
-            //    let r = await fetch(url, {method: "GET"});
-            //    console.log('HTTP response code:',r.status);
-            //
-            // } catch(e) {
-            //    console.log('File download error:', e);
-            // }
+
+
+
+            let kg_name = kg_id + '/' + kg_version
+            let url = '{{ archive_path }}' + kg_name + '/' + source.target.id;
+
+            console.log("Downloading  URL: '"+url+"'");
+
+            let formData = new FormData();
+
+            try {
+                 // TODO: What happens to the data returned here?
+                 // TODO: Should this fetch rather be a redirect in a separate tab or window?
+                let r = await fetch(url, {
+                    method: "GET",
+                    credentials: "include"
+                });
+                console.log('HTTP response code:',r.status);
+
+            } catch(e) {
+               console.log('File download error:', e);
+            }
 
             // block further propagation of the event here?
             return false;
         }
+
+        let self = this;
+        $(document).ready(function () {
+
+            $('#kg_name').autocomplete({
+                minChars: 0,
+                source: async function( request, response ) {
+                    return await fetch("{{get_catalog}}")
+                        .then(body => body.json())
+                        .then(text => {
+                            console.log(text)
+                            return text
+                        })
+                        .then(text =>
+                            Array.from(new Set(
+                                text.replaceAll(/[\[\]]/g, '', ).split(', ')
+                                    .map(str => str.replaceAll('\'', '', ))
+                            ))
+                        )
+                        .then(array => response(array));
+                }
+            });
+
+            $('#meta_knowledge_graph').on('click', DownloadFile);
+            $('#download').on('click', DownloadFile);
+
+        })
+
     </script>
 {% endblock %}
 {% block body %}<body onload="getCatalog()">{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% endblock %}
-{% block title %}KGE Archive{% endblock %}
+{% block title %}Welcome '{{submitter}}' to the<br>Knowledge Graph Exchange (KGE) Archive{% endblock %}
 {% block content %}
+    <p></p>
     <table width="50%">
         <tr>
             <td>
-                <center>
+                <div style="text-align: center;">
                     <h3>Upload a Knowledge Graph</h3>
-                </center>
+                </div>
             </td>
             <td>
-                <center>
+                <div style="text-align: center;">
                     <h3>Access a Knowledge Graph</h3>
-                </center>
+                </div>
             </td>
         </tr>
         <tr>
             <td>
-                <center>
+                <div style="text-align: center;">
                     <a href="/register"><button>Register KGE File Set</button></a>
                     <!-- Don't need a form here - don't have the session_id anymore.
                          Simple clickable button is better, and is CSS formatted the same.
@@ -123,37 +157,41 @@
                         <input type="submit" value="Register KGE File Set" /><br>
                         <small>This is the first step required for uploading.</small>
                     </form -->
-                </center>
+                </div>
             </td>
             <td>
-                <center>
-                    <!-- These kg_name and kg_version widgets need to be
-                         replaced with an integrated UI which takes the results
-                         of call to /catalog, to give the user a list of available
-                         KGE File Sets from which to select (by name) and
-                         their associated versions (dynamically presented)-->
+                <p><label for="kg_name"><b>Graph Name</b></label>
+                <input id="kg_name" type="text"/>
+                <!-- These kg_name and kg_version widgets need to be
+                     replaced with an integrated UI which takes the results
+                     of call to /catalog, to give the user a list of available
+                     KGE File Sets from which to select (by name) and
+                     their associated versions (dynamically presented)-->
+                <!-- TODO: When the catalog gets large, this could
+                           also include a kind of type head search? -->
+                <p><label for="select_kg_id">Choose a Graph</label>
+                <select id="select_kg_id" onchange="showVersions(this)">
+                </select>
+                <br>
+                <!-- Once the given kg_name is selected, then the set of
+                     associated versions need to be dynamically listed here? -->
+                <label for="select_kg_version">Version</label>
+                <select id="select_kg_version">
+                </select>
+                <br>
+                <p>
+{#                    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">#}
+{#                        <input type="submit" value="Download Metadata" />#}
+{#                    </form>#}
 
-                    <!-- TODO: When the catalog gets large, this could
-                               also include a kind of type head search? -->
-                    <p><label for="select_kg_id">Choose a Graph:</label>
-                    <select id="select_kg_id" onchange="showVersions(this)">
-                    </select>
-                    <br>
-                    <!-- Once the given kg_name is selected, then the set of
-                         associated versions need to be dynamically listed here? -->
-                    <label for="select_kg_version">Version?</label>
-                    <select id="select_kg_version">
-                    </select>
-                    <br>
-                    <p>
-                    <form id="meta_knowledge_graph" method="get" onsubmit="DownloadFile(this)">
-                        <input type="submit" value="Download Meta Knowledge Graph" />
-                    </form>
+                <button id="meta_knowledge_graph">Download Metadata</button>
 
-                    <form id="download" method="get" onsubmit="DownloadFile(this)">
-                        <input type="submit" value="Download KGE Data Archive" />
-                    </form>
-                </center>
+
+{#                    <form id="access" method="get" onsubmit="DownloadFile(this)">#}
+{#                        <input type="submit" value="Download Data File(s)" />#}
+{#                    </form>#}
+
+                <button id="download">Download Data File(s)</button>
             </td>
         </tr>
     </table>

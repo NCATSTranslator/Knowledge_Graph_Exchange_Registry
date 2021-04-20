@@ -1,0 +1,17 @@
+id: "${kg_id}"
+name:  "${kg_name}"
+description: >-
+  ${kg_description}
+translator:
+  component: "${translator_component}"
+  team: "${translator_team}"
+submitter:
+  name: "${submitter}"
+  email: "${submitter_email}"
+license:
+  name: "${license_name}"
+  url:  "${license_url}"
+termsOfService: "${terms_of_service}"
+# SmartAPI Registered Server access
+# point for data (with KGE Archive Web Service)
+access: "https://kge.starinformatics.ca/${kg_id}"

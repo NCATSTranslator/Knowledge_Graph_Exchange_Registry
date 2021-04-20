@@ -1,4 +1,3 @@
-import sys
 from os import getenv
 from typing import List, Dict
 
@@ -60,18 +59,18 @@ LANDING = '/'
 HOME = '/home'
 
 ARCHIVE_PATH = '/archive/'
-
 if DEV_MODE:
     # Point to http://localhost:8080 for Archive process host for local testing
+    # TODO: take from config
     ARCHIVE_PATH = 'http://localhost:8080/archive/'
-else:
-    # Production NGINX resolves the relative path otherwise?
-    ARCHIVE_PATH = '/archive/'
 
 GET_CATALOG_URL = ARCHIVE_PATH+"catalog"
 ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
 UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
 PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
+
+DOWNLOAD_ARCHIVE = ARCHIVE_PATH+"download"
+DOWNLOAD_METADATA = ARCHIVE_PATH+"meta_knowledge_graph"
 
 
 async def kge_landing_page(request: web.Request) -> web.Response:
@@ -106,7 +105,12 @@ async def get_kge_home(request: web.Request) -> web.Response:
         response = aiohttp_jinja2.render_template(
             'home.html',
             request=request,
-            context={"get_catalog": GET_CATALOG_URL}
+            context={
+                "submitter": session['name'],
+                "get_catalog": GET_CATALOG_URL,
+                "archive_path": ARCHIVE_PATH,
+
+            }
         )
         return await with_session(request, response)
     else:
@@ -241,10 +245,11 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
 
+        submitter = session['name']
+
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
         kg_version = request.query.get('kg_version', default='')
-        submitter = request.query.get('submitter', default='')
         
         missing: List[str] = []
         if not kg_id:
@@ -253,8 +258,6 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             missing.append("kg_name")
         if not kg_version:
             missing.append("kg_version")
-        if not submitter:
-            missing.append("submitter")
 
         if missing:
             await report_error( request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))

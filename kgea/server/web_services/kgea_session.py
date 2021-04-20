@@ -33,7 +33,7 @@ class KgeaSession:
     _client_session: ClientSession
 
     @classmethod
-    def init(cls, app=None):
+    def initialize(cls, app=None):
         """
         Initialize a global KGE Archive Client Session
         """
@@ -172,6 +172,7 @@ async def _process_redirection(request, response, active_session):
 
 
 async def redirect(request, location: str, active_session: bool = False):
+    # TODO: might need to urlencode query parameter values in the location?
     logger.debug('redirect() to location: ' + str(location))
     await _process_redirection(
         request,

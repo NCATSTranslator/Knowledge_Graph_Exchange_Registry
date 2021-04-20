@@ -23,10 +23,10 @@ REQUIRES = [
 setup(
     name=NAME,
     version=VERSION,
-    description="OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGE) Archive",
+    description="OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive. Although this API is SmartAPI compliant, it will not normally be visible in the Translator SmartAPI Registry since it is mainly meant to be accessed through Registry indexed KGE File Sets, which will have distinct entries in the Registry.",
     author_email="richard.bruskiewich@delphinai.com",
     url="",
-    keywords=["OpenAPI", "OpenAPI for the NCATS Biomedical Translator Knowledge Graph EXchange (KGE) Archive"],
+    keywords=["OpenAPI", "OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive. Although this API is SmartAPI compliant, it will not normally be visible in the Translator SmartAPI Registry since it is mainly meant to be accessed through Registry indexed KGE File Sets, which will have distinct entries in the Registry."],
     install_requires=REQUIRES,
     packages=find_packages(),
     package_data={'': ['openapi/openapi.yaml']},

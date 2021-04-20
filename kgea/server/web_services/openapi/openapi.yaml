@@ -13,8 +13,8 @@ info:
   termsOfService: https://ncats.nih.gov/translator
   title: OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive. Although
     this API is SmartAPI compliant, it will not normally be visible in the Translator
-    SmartAPI Registry since it is mainly meant to be accessed through its various
-    contained KGE File Sets (which will have their own distinct entries in the Registry).
+    SmartAPI Registry since it is mainly meant to be accessed through Registry indexed
+    KGE File Sets, which will have distinct entries in the Registry.
   version: 1.0.0-dev
   x-translator:
     component: SRI service
@@ -28,20 +28,20 @@ servers:
 - description: Localhost URL for server, to be proxied to the real internet
   url: http://localhost:8080/archive
 tags:
-- description: NCATS Biomedical Data Translator component API
+- description: Designates a NCATS Biomedical Data Translator component API
   name: translator
-- description: Translator Knowledge Graph eXchange (KGE) system API
+- description: Designates a Translator Knowledge Graph eXchange (KGE) Archive API
   name: kge
-- description: KGE file set upload form
+- description: Endpoints to access catalog of KGE file sets
+  name: catalog
+- description: Endpoints for KGE file set upload
   name: upload
-- description: Provider "access" metadata for KGE file set
-  name: provider
-- description: Content metadata for KGX-formatted data files in a KGE file set.
+- description: Endpoints to access version specific KGE file set content (meta-)data.
   name: content
 paths:
   /catalog:
     get:
-      operationId: get_file_set_catalog
+      operationId: get_knowledge_graph_catalog
       responses:
         "200":
           content:
@@ -56,17 +56,26 @@ paths:
           description: Catalog of available KGE File Sets, their name and their versions.
       summary: Returns the catalog of available KGE File Sets
       tags:
-      - provider
-      x-openapi-router-controller: kgea.server.web_services.controllers.provider_controller
-  /publish/{kg_id}:
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
+  /publish/{kg_id}/{kg_version}:
     get:
       operationId: publish_file_set
       parameters:
-      - description: KGE File Set identifier for the knowledge graph for which data
-          files are being accessed.
+      - description: KGE Knowledge Graph identifier for the knowledge graph for which
+          data files are being accessed.
         explode: false
         in: path
         name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: KGE File Set version identifier for the knowledge graph for which
+          data files are being accessed.
+        explode: false
+        in: path
+        name: kg_version
         required: true
         schema:
           type: string
@@ -77,28 +86,17 @@ paths:
             to /home.
       summary: Publish a registered File Set
       tags:
-      - upload
-      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
   /register:
     post:
-      operationId: register_file_set
+      operationId: register_knowledge_graph
       requestBody:
         $ref: '#/components/requestBodies/inline_object'
         content:
           application/x-www-form-urlencoded:
-            encoding:
-              submitter:
-                contentType: text/plain; charset=utf-8
-                style: form
-              kg_name:
-                contentType: text/plain; charset=utf-8
-                style: form
             schema:
               properties:
-                kg_name:
-                  type: string
-                kg_description:
-                  type: string
                 submitter:
                   type: string
                 submitter_email:
@@ -106,6 +104,12 @@ paths:
                 translator_component:
                   type: string
                 translator_team:
+                  type: string
+                kg_name:
+                  type: string
+                kg_version:
+                  type: string
+                kg_description:
                   type: string
                 license_name:
                   type: string
@@ -115,6 +119,7 @@ paths:
                   type: string
               required:
               - kg_name
+              - kg_version
               - submitter
               - submitter_email
               - translator_component
@@ -137,10 +142,10 @@ paths:
           description: Bad request. Request is invalid according to this OpenAPI schema
             OR a specific parameter is believed to be invalid somehow (or not just
             recognized).
-      summary: Register core parameters for the KGE File Set upload
+      summary: Register core metadata for a KGE Knowledge Graph
       tags:
-      - upload
-      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
       x-codegen-request-body-name: body
   /upload:
     post:
@@ -151,6 +156,9 @@ paths:
           multipart/form-data:
             encoding:
               kg_id:
+                contentType: text/plain; charset=utf-8
+                style: form
+              kg_version:
                 contentType: text/plain; charset=utf-8
                 style: form
               kgx_file_content:
@@ -169,11 +177,12 @@ paths:
                 contentType: text/csv, text/tab-separated-values, text/json
                 style: form
             schema:
-              description: Uploading form posting of (meta-)data files. The 'upload_mode'
-                string argument specifies the category and/or mode as one of 'metadata',
-                'content_from_local_file' or 'content_from_url'. If 'metadata' or
-                'content_from_local_file' are indicated, then the 'uploaded_file'
-                parameter should be set to the file to be uploaded. If 'upload_mode'
+              description: Uploading form posting of (meta-)data files to a specific
+                KGE File Set version, belonging to a specific Knowledge Graph. The
+                'upload_mode' argument specifies the category and/or mode as one of
+                'metadata', 'content_from_local_file' or 'content_from_url'. If 'metadata'
+                or 'content_from_local_file' are indicated, then the 'uploaded_file'
+                parameter should be set to the file to be ploaded. If 'upload_mode'
                 is set to 'content_from_url' then the 'content_url' parameter is taken
                 as a REST endpoint of the file to be transferred into the Archive
                 (authentication not yet supported - URL should provide unauthenticated
@@ -186,6 +195,8 @@ paths:
                 modes set by the selected 'nodes' versus 'edges' radio button.
               properties:
                 kg_id:
+                  type: string
+                kg_version:
                   type: string
                 kgx_file_content:
                   type: string
@@ -201,6 +212,7 @@ paths:
               required:
               - content_name
               - kg_id
+              - kg_version
               - kgx_file_content
               - upload_mode
               type: object
@@ -233,15 +245,24 @@ paths:
       - upload
       x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
       x-codegen-request-body-name: body
-  /{kg_id}/access:
+  /{kg_id}/{kg_version}/contents:
     get:
-      operationId: access
+      operationId: get_file_set_contents
       parameters:
       - description: KGE File Set identifier for the knowledge graph for which data
-          files are being accessed
+          file metadata are being accessed
         explode: false
         in: path
         name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Specific version of KGE File Set for the knowledge graph for
+          which data file metadata are being accessed
+        explode: false
+        in: path
+        name: kg_version
         required: true
         schema:
           type: string
@@ -251,28 +272,12 @@ paths:
           content:
             application/json:
               schema:
-                additionalProperties:
-                  description: List of file names and sizes for a given KGE File Set
-                    version
-                  items:
-                    properties:
-                      file_name:
-                        description: original name of file (as uploaded)
-                        type: string
-                      file_type:
-                        description: designates if the file is meta-, node or edge
-                          data
-                        type: string
-                      file_size:
-                        description: size of file in megabytes
-                        format: float
-                        type: number
-                    type: object
-                  type: array
-                description: Dictionary of details about available versions for a
-                  given KGE File Set.
-                type: object
-          description: Catalog of available KGE File Set versions and their file contents.
+                description: Annotated list of file in a given KGE File Set version.
+                items:
+                  $ref: '#/components/schemas/KgeFile'
+                type: array
+          description: Annotated list of files of for a given version of a specified
+            KGE File Set.
         "404":
           content:
             application/json:
@@ -285,10 +290,10 @@ paths:
               schema:
                 type: string
           description: Bad request. Request is invalid according to this OpenAPI schema.
-      summary: Get metadata about KGE File Set versions and their files.
+      summary: Get file list and details for a specified KGE File Set version.
       tags:
-      - provider
-      x-openapi-router-controller: kgea.server.web_services.controllers.provider_controller
+      - content
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
   /{kg_id}/{kg_version}/download:
     get:
       operationId: download_file_set
@@ -414,6 +419,28 @@ components:
           title: versions
           type: array
       title: KgeFileSetEntry
+      type: object
+    KgeFile:
+      description: Annotated file in a KGE File Set.
+      example:
+        file_name: file_name
+        file_type: file_type
+        file_size: 0.8008282
+      properties:
+        file_name:
+          description: original name of file (as uploaded)
+          title: file_name
+          type: string
+        file_type:
+          description: designates if the file is meta-, node or edge data
+          title: file_type
+          type: string
+        file_size:
+          description: size of file in megabytes
+          format: float
+          title: file_size
+          type: number
+      title: KgeFile
       type: object
     BiolinkEntity:
       description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing or
@@ -604,10 +631,6 @@ components:
       type: object
     inline_object:
       properties:
-        kg_name:
-          type: string
-        kg_description:
-          type: string
         submitter:
           type: string
         submitter_email:
@@ -615,6 +638,12 @@ components:
         translator_component:
           type: string
         translator_team:
+          type: string
+        kg_name:
+          type: string
+        kg_version:
+          type: string
+        kg_description:
           type: string
         license_name:
           type: string
@@ -624,16 +653,18 @@ components:
           type: string
       required:
       - kg_name
+      - kg_version
       - submitter
       - submitter_email
       - translator_component
       - translator_team
       type: object
     inline_object_1:
-      description: Uploading form posting of (meta-)data files. The 'upload_mode'
-        string argument specifies the category and/or mode as one of 'metadata', 'content_from_local_file'
+      description: Uploading form posting of (meta-)data files to a specific KGE File
+        Set version, belonging to a specific Knowledge Graph. The 'upload_mode' argument
+        specifies the category and/or mode as one of 'metadata', 'content_from_local_file'
         or 'content_from_url'. If 'metadata' or 'content_from_local_file' are indicated,
-        then the 'uploaded_file' parameter should be set to the file to be uploaded.
+        then the 'uploaded_file' parameter should be set to the file to be ploaded.
         If 'upload_mode' is set to 'content_from_url' then the 'content_url' parameter
         is taken as a REST endpoint of the file to be transferred into the Archive
         (authentication not yet supported - URL should provide unauthenticated access).
@@ -646,6 +677,8 @@ components:
         button.
       properties:
         kg_id:
+          type: string
+        kg_version:
           type: string
         kgx_file_content:
           type: string
@@ -661,6 +694,7 @@ components:
       required:
       - content_name
       - kg_id
+      - kg_version
       - kgx_file_content
       - upload_mode
       type: object

@@ -28,6 +28,7 @@
             let formData = new FormData();
 
             formData.append("kg_id", "{{kg_id}}");
+            formData.append("kg_version", "{{kg_version}}");
 
             let kfc_radio = document.querySelector("input[name=kgx_file_content]:checked");
             let kgx_file_content = kfc_radio ? kfc_radio.value : "";
@@ -117,7 +118,7 @@
 {% include "logout.button" %}
 {% include "home.button" %}
 <div class="menu_item">
-<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
+<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}/{{kg_version}}">
     <input type="submit" value="Done Uploading" />
 </form>
 </div>
@@ -174,28 +175,24 @@
     <p></p>
         </td>
         <td>
-            <center>
-                <h4>Upload a (meta-)data file from your computer:</h4>
+            <h4>Upload from your computer</h4>
 
-                <p>Select a single KGX-compliant file at a time for upload:</p>
+            <p>Choose a KGX content type for uploading</p>
 
-                <label for="content_file"><b>Select File:</b></label>
-                <input id="content_file"  class="textbox" type="file"/>
-                <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
-            </center>
+            <label for="content_file"><b>Select File</b></label>
+            <input id="content_file"  class="textbox" type="file"/>
+            <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
         </td>
     </tr>
     <tr>
         <td>
-            <center>
-                <h4>Transfer a KGX-compliant data file from an URL endpoint:</h4>
+            <h4>Transfer from a URL</h4>
 
-                <label for="content_url"><b>URL to File:</b></label>
-                <input id="content_url" type="text" oninput="GetUrl(this)"/>
-                <br><label for="file_name"><b>File Name:</b></label>
-                <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
-                <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
-            </center>
+            <label for="content_url"><b>URL to File</b></label>
+            <input id="content_url" type="text" oninput="GetUrl(this)"/>
+            <br><label for="file_name"><b>File Name</b></label>
+            <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
+            <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
         </td>
     </tr>
 </table>
