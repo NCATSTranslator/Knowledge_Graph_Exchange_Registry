@@ -776,10 +776,11 @@ def download_file(bucket, object_key, open_file=False):
     return download_url
 
 
-async def compress_download(bucket, object_key, open_file=False):
-    archive_path = "{}archive/{}.tar.gz".format(
-        object_key,
-        Path(object_key).stem,
+async def compress_download(bucket, file_set_object_key, open_file=False):
+    archive_file_name = Path(file_set_object_key).name
+    archive_path = "{file_set_object_key}archive/{archive_file_name}.tar.gz".format(
+        file_set_object_key=file_set_object_key,
+        archive_file_name=archive_file_name,
     ).replace('\\', '/')
 
     # setup an S3 job to compress the file

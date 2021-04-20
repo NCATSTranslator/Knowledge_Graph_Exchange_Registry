@@ -601,7 +601,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
         await redirect(request, LANDING)
 
 
-async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive=False):
+async def download_kge_file_set(request: web.Request, kg_id, kg_version):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
 
@@ -625,10 +625,13 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
 
     session = await get_session(request)
     if not session.empty:
-        kg_filepath, _ = with_version(get_object_location, kg_version)(kg_id)
+
+        # TODO: need to do something reasonable here for kg_version == 'latest'
+
+        file_set_object_key, _ = with_version(get_object_location, kg_version)(kg_id)
         kg_files_for_version = kg_files_in_location(
             _KGEA_APP_CONFIG['bucket'],
-            kg_filepath,
+            file_set_object_key,
         )
 
         maybe_archive = [
@@ -639,10 +642,10 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
         if len(maybe_archive) == 1:
             archive_key = maybe_archive[0]
             download_url = download_file(_KGEA_APP_CONFIG['bucket'], archive_key, open_file=True)
-            await redirect(request, download_url)
         else:
-            download_url = await compress_download(_KGEA_APP_CONFIG['bucket'], kg_filepath, open_file=True)
-            await redirect(request, download_url)
+            download_url = await compress_download(_KGEA_APP_CONFIG['bucket'], file_set_object_key, open_file=True)
+
+        await redirect(request, download_url)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page

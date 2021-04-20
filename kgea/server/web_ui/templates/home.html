@@ -9,7 +9,7 @@
             let kg_id = selectObject.value;
             if(kg_id in kgea_catalog) {
                 let versions = kgea_catalog[kg_id].versions;
-                let version_options = '<option value="latest">Latest</option>';
+                let version_options = '';  // '<option value="latest">Latest</option>'; // don't deal with 'latest' yet
                 versions.forEach((v,_) => {
                     version_options += '<option value="' + v + '">' + v + '</option>';
                 });
