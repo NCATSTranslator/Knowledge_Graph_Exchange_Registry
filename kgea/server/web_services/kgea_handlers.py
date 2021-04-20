@@ -1,6 +1,6 @@
 from os import getenv
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -28,29 +28,26 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     upload_file,
-    upload_file_multipart,
-    upload_file_as_archive,
     download_file,
     compress_download,
     create_presigned_url,
     infix_string,
-    compress_file_to_archive,
     # location_available,
     kg_files_in_location,
     # add_to_github,
     # generate_translator_registry_entry,
     get_object_location,
-    get_kg_versions_available,
+    # get_kg_versions_available,
 
     with_version,
-    with_subfolder, kg_filepath
+    with_subfolder
 )
 
 from .kgea_stream import transfer_file_from_url
 
-from ..catalog.Catalog import (
+from kgea.server.web_services.catalog.Catalog import (
     KgeFileType,
-    KgeaCatalog
+    KgeArchiveCatalog
 )
 
 import logging
@@ -87,35 +84,29 @@ else:
 # Insert import and return call into provider_controller.py:
 #
 # from ..kge_handlers import (
-#     get_kge_file_set_catalog,
-#     register_kge_file_set,
+#     get_kge_knowledge_graph_catalog,
+#     register_kge_knowledge_graph,
 #     publish_kge_file_set
 # )
 #############################################################
 
 
-async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
+async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
     """Returns the catalog of available KGE File Sets
 
     :param request:
     :type request: web.json_response
     """
-    # TODO: need to fetch the actual KGE Archive catalog here. This is just a
-    #       mock catalog - see KgeFileSetEntry schema in the kgea_archive.yaml
-    catalog = {
-        "translator_reference_graph": {
-            "name": "Translator Reference Graph",
-            "versions": ["1.0", "2.0", "2.1"]
-        },
-        "semantic_medline_database": {
-            "name": "Semantic Medline Database",
-            "versions": ["4.2", "4.3"]
-        }
-    }
+    catalog: Dict = dict()
 
+    # Paranoia: can't see the catalog without being logged in a user session
+    session = await get_session(request)
+    if not session.empty:
+        catalog = KgeArchiveCatalog.catalog().get_kg_entries()
+
+    # but don't need to propagate the user session to the output
     response = web.json_response(catalog, status=200)
-
-    return await with_session(request, response)
+    return response
 
 
 _known_licenses = {
@@ -125,7 +116,7 @@ _known_licenses = {
 }
 
 
-async def register_kge_file_set(request: web.Request):  # noqa: E501
+async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
     """Register core parameters for the KGE File Set upload
 
      # noqa: E501
@@ -147,11 +138,17 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         # kg_name: human readable name of the knowledge graph
         kg_name = data['kg_name']
 
-        # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
-        kg_description = data['kg_description']
-
         # kg_version: release version of knowledge graph
         kg_version = data['kg_version']
+
+        # submitter: name of submitter of the KGE file set
+        submitter = data['submitter']
+
+        if not (kg_name and kg_version and submitter):
+            await report_error(request, "register_kge_file_set(): either name, version or submitter are empty?")
+
+        # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
+        kg_description = data['kg_description']
 
         # translator_component: Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
         translator_component = data['translator_component']
@@ -159,9 +156,6 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         # translator_team: specific Translator team (affiliation)
         # contributing the file set, e.g. Clinical Data Provider
         translator_team = data['translator_team']
-
-        # submitter: name of submitter of the KGE file set
-        submitter = data['submitter']
 
         # submitter_email: contact email of the submitter
         submitter_email = data['submitter_email']
@@ -186,10 +180,10 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         terms_of_service = data['terms_of_service']
 
         logger.debug(
-            "register_kge_file_set() form parameters:\n\t" +
+            "register_kge_knowledge_graph() form parameters:\n\t" +
             "\n\tkg_name: " + kg_name +
             "\n\tkg_description: " + kg_description +
-            "\n\tkg_version: " + kg_version +
+            "\n\tCurrently active kg_version: " + kg_version +
             "\n\ttranslator_component: " + translator_component +
             "\n\ttranslator_team: " + translator_team +
             "\n\tsubmitter: " + submitter +
@@ -199,12 +193,9 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
             "\n\tterms_of_service: " + terms_of_service
         )
 
-        if not kg_name or not submitter:
-            await report_error(request, "register_kge_file_set(): either kg_name or submitter are empty?")
-
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
-        kg_id = KgeaCatalog.normalize_name(kg_name)
+        kg_id = KgeArchiveCatalog.normalize_name(kg_name)
 
         file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
@@ -215,23 +206,24 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
                 # TODO: repair return
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
-                #
 
-                # Here we start to inject local KGE Archive tracking
-                # of the file set of a specific knowledge graph submission
-                KgeaCatalog.registry().register_kge_file_set(
-                    kg_id,
-                    file_set_location=file_set_location,
+                # Here we start to start to track a specific
+                # knowledge graph submission within KGE Archive
+                KgeArchiveCatalog.catalog().register_kge_graph(
+                    kg_id=kg_id,
                     kg_name=kg_name,
                     kg_description=kg_description,
-                    kg_version=assigned_version,
                     translator_component=translator_component,
                     translator_team=translator_team,
                     submitter=submitter,
                     submitter_email=submitter_email,
                     license_name=license_name,
                     license_url=license_url,
-                    terms_of_service=terms_of_service
+                    terms_of_service=terms_of_service,
+
+                    # Register an initial submitter-specified KGE File Set version
+                    kg_version=assigned_version,
+                    file_set_location=file_set_location
                 )
 
                 await redirect(request,
@@ -253,20 +245,21 @@ async def register_kge_file_set(request: web.Request):  # noqa: E501
         await redirect(request, LANDING)
 
 
-async def publish_kge_file_set(request: web.Request, kg_id):
+async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str):
     """Publish a registered File Set
 
     :param request:
     :type request: web.Request
-    :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed.
+    :param kg_id: KGE Knowledge Graph Identifier for the knowledge graph from which data files are being accessed.
     :type kg_id: str
-
+    :param kg_version: specific version of KGE File Set being published for the specified Knowledge Graph Identifier
+    :type kg_version: str
     """
 
-    if not kg_id:
-        await report_not_found(request, "publish_kge_file_set(): unknown KGE File Set '" + kg_id + "'?")
+    if not (kg_id and kg_version):
+        await report_not_found(request, "publish_kge_file_set(): knowledge graph id or file set version are null?")
 
-    errors: List = await KgeaCatalog.registry().publish_file_set(kg_id)
+    errors: List[str] = await KgeArchiveCatalog.catalog().publish_file_set(kg_id, kg_version)
 
     if DEV_MODE and errors:
         raise report_error(
@@ -287,20 +280,20 @@ async def publish_kge_file_set(request: web.Request, kg_id):
 
 
 async def get_file_set_location(kg_id: str, kg_version: str = None):
-    
-    kge_file_set = KgeaCatalog.registry().get_kge_file_set(kg_id)
+    kge_file_set = KgeArchiveCatalog.catalog().get_kge_graph(kg_id)
 
     if not kg_version:
         kg_version = kge_file_set.get_version()
-        
+
     file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
-    
+
     return file_set_location, assigned_version
 
 
 async def upload_kge_file(
         request: web.Request,
         kg_id: str,
+        kg_version: str,
         kgx_file_content: str,
         upload_mode: str,
         content_name: str,
@@ -313,6 +306,8 @@ async def upload_kge_file(
     :type request: web.Request
     :param kg_id:
     :type kg_id: str
+    :param kg_version:
+    :type kg_version: str
     :param kgx_file_content:
     :type kgx_file_content: str
     :param upload_mode:
@@ -363,13 +358,17 @@ async def upload_kge_file(
         """BEGIN Register upload-specific metadata"""
 
         # The final key for the object is dependent on its type
-            # edges -> <file_set_location>/edges/
-            # nodes -> <file_set_location>/nodes/
-            # archive -> <file_set_location>/archive/
+        # edges -> <file_set_location>/edges/
+        # nodes -> <file_set_location>/nodes/
+        # archive -> <file_set_location>/archive/
 
-        file_set_location, assigned_version = await get_file_set_location(kg_id)
+        file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
         if not file_set_location:
-            await report_not_found(request, "upload_kge_file(): unknown KGE File Set '" + kg_id + "'?")
+            await report_not_found(
+                request,
+                "upload_kge_file(): unknown version '" + kg_version +
+                "' or Knowledge Graph '" + kg_id + "'?"
+            )
 
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
 
@@ -379,17 +378,16 @@ async def upload_kge_file(
 
         elif kgx_file_content == "metadata":
             # metadata stays in the kg_id 'root' version folder
-            file_type = KgeFileType.KGX_METADATA_FILE
+            file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
 
         elif kgx_file_content == "archive":
             # TODO this is tricky.. not yet sure how to handle an archive with
             #      respect to properly persisting it in the S3 bucket...
             #      Leave it in the kg_id 'root' version folder for now?
             #      The archive may has metadata too, but the data's the main thing.
-            file_type = KgeFileType.KGX_ARCHIVE
+            file_type = KgeFileType.KGE_ARCHIVE
 
         """END Register upload-specific metadata"""
-
 
         """BEGIN File Upload Protocol"""
 
@@ -397,7 +395,9 @@ async def upload_kge_file(
         uploaded_file_object_key = None
 
         # we modify the filename so that they can be validated by KGX natively by tar.gz
-        content_name = infix_string(content_name, f"_{kgx_file_content}") if kgx_file_content in ['nodes', 'edges'] else content_name
+        content_name = infix_string(
+            content_name, f"_{kgx_file_content}"
+        ) if kgx_file_content in ['nodes', 'edges'] else content_name
 
         if upload_mode == 'content_from_url':
 
@@ -421,8 +421,8 @@ async def upload_kge_file(
             """
 
             uploaded_file_object_key = upload_file(
-                data_file=uploaded_file.file,      # The raw file object (e.g. as a byte stream)
-                file_name=content_name,            # The new name for the file
+                data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
+                file_name=content_name,  # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],
                 object_location=file_set_location
             )
@@ -432,7 +432,6 @@ async def upload_kge_file(
 
         """END File Upload Protocol"""
 
-
         if uploaded_file_object_key:
 
             try:
@@ -441,11 +440,12 @@ async def upload_kge_file(
                     object_key=uploaded_file_object_key
                 )
 
-                # This action adds a file to a knowledge graph initiating
-                # or continuing a KGE file set registration process.
+                # This action adds a file to the given knowledge graph, identified by the 'kg_id',
+                # initiating or continuing a versioned KGE file set assembly process.
                 # May raise an Exception if something goes wrong.
-                KgeaCatalog.registry().add_to_kge_file_set(
+                KgeArchiveCatalog.catalog().add_to_kge_file_set(
                     kg_id=kg_id,
+                    kg_version=kg_version,
                     file_type=file_type,
                     file_name=content_name,
                     object_key=uploaded_file_object_key,
@@ -483,40 +483,6 @@ async def upload_kge_file(
 #############################################################
 
 
-async def get_kge_file_set_catalog(request: web.Request) -> web.Response:
-    """Returns the catalog of available KGE File Sets
-
-    :param request:
-    :type request: web.json_response
-    """
-    # TODO: need to fetch the actual KGE Archive catalog here. This is just a
-    #       mock catalog - see KgeFileSetEntry schema in the kgea_archive.yaml
-    """
-    catalog = {
-        "translator_reference_graph": {
-            "name": "Translator Reference Graph",
-            "versions": ["1.0", "2.0", "2.1"]
-        },
-        "semantic_medline_database": {
-            "name": "Semantic Medline Database",
-            "versions": ["4.2", "4.3"]
-        }
-    }
-    """
-    versions_per_kg = get_kg_versions_available(_KGEA_APP_CONFIG['bucket'])
-
-    catalog = {}
-    for kg_id, kg_versions in versions_per_kg.items():
-        catalog[kg_id] = {
-            "name": kg_id,  # TODO: name <- registration
-            "versions": kg_versions
-        }
-
-    response = web.json_response(catalog, status=200)
-    return response
-    # return await with_session(request, response)
-
-
 async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
     """Get KGE File Set provider metadata.
 
@@ -524,7 +490,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed
     :type kg_id: str
-    :param kg_version: Specific version of KGE File Set for the knowledge graph for which data file metadata are being accessed
+    :param kg_version: Specific version of KGE File Set for the knowledge graph for which metadata are being accessed
     :type kg_version: str
 
     """
@@ -544,7 +510,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
         file_set_location, assigned_version = await get_file_set_location(kg_id)
         if not file_set_location:
             await report_not_found(request, "get_kge_file_set_contents(): unknown KGE File Set '" + kg_id + "'?")
-        
+
         # Listings Approach
         # - Introspect on Bucket
         # - Create URL per Item Listing
@@ -596,7 +562,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
     session = await get_session(request)
     if not session.empty:
 
-        file_set_location, assigned_version = await get_file_set_location(kg_id, version=kg_version)
+        file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
         if not file_set_location:
             await report_not_found(request, "kge_meta_knowledge_graph(): unknown KGE File Set '" + kg_id + "'?")
 
@@ -635,7 +601,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
         await redirect(request, LANDING)
 
 
-async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive=False) -> web.Response:
+async def download_kge_file_set(request: web.Request, kg_id, kg_version):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
 
@@ -646,6 +612,7 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
     :param kg_version: Version of KGE File Set of the knowledge graph being accessed.
     :type kg_version: str
 
+    :return: None - redirection responses triggered
     """
     if not (kg_id and kg_version):
         await report_not_found(
@@ -658,24 +625,27 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version, archive
 
     session = await get_session(request)
     if not session.empty:
-        kg_filepath, _ = with_version(get_object_location, kg_version)(kg_id)
+
+        # TODO: need to do something reasonable here for kg_version == 'latest'
+
+        file_set_object_key, _ = with_version(get_object_location, kg_version)(kg_id)
         kg_files_for_version = kg_files_in_location(
             _KGEA_APP_CONFIG['bucket'],
-            kg_filepath,
+            file_set_object_key,
         )
 
         maybe_archive = [
             kg_path for kg_path in kg_files_for_version
-                if ".tar.gz" in kg_path
+            if ".tar.gz" in kg_path
         ]
 
         if len(maybe_archive) == 1:
             archive_key = maybe_archive[0]
             download_url = download_file(_KGEA_APP_CONFIG['bucket'], archive_key, open_file=True)
-            await redirect(request, download_url)
         else:
-            download_url = await compress_download(_KGEA_APP_CONFIG['bucket'], kg_filepath, open_file=True)
-            await redirect(request, download_url)
+            download_url = await compress_download(_KGEA_APP_CONFIG['bucket'], file_set_object_key, open_file=True)
+
+        await redirect(request, download_url)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page

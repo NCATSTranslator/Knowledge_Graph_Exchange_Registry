@@ -28,6 +28,7 @@
             let formData = new FormData();
 
             formData.append("kg_id", "{{kg_id}}");
+            formData.append("kg_version", "{{kg_version}}");
 
             let kfc_radio = document.querySelector("input[name=kgx_file_content]:checked");
             let kgx_file_content = kfc_radio ? kfc_radio.value : "";
@@ -117,7 +118,7 @@
 {% include "logout.button" %}
 {% include "home.button" %}
 <div class="menu_item">
-<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}">
+<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}/{{kg_version}}">
     <input type="submit" value="Done Uploading" />
 </form>
 </div>

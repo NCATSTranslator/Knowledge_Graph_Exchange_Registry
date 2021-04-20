@@ -7,32 +7,47 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
-
-from kgea.server.config import s3_client
-
-import boto3
-from botocore.exceptions import ClientError
+import io
+from sys import stderr
+from typing import Dict, Union, List
+from functools import wraps
+from string import Template
+import random
+import time
+from datetime import datetime
 
 from os.path import abspath, splitext
+from io import BytesIO
+import tempfile
 from pathlib import Path
+import tarfile
 from s3_tar import S3Tar
 
-import tarfile
-
-import random
-from string import Template
-from datetime import datetime
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 import webbrowser
 import requests
 
-import logging
+import boto3
+from botocore.exceptions import ClientError
 
-from io import BytesIO
-import tempfile
+from kgea.server.config import (
+    s3_client,
+    get_app_config,
+    PROVIDER_METADATA_FILE,
+    FILE_SET_METADATA_FILE
+)
+
+import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Opaquely access the configuration dictionary
+_KGEA_APP_CONFIG = get_app_config()
 
 
 def create_location(bucket, kg_id):
@@ -64,9 +79,6 @@ TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
 TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
-
-from functools import wraps
-
 
 
 def prepare_test(func):
@@ -103,7 +115,7 @@ def get_object_location(kg_id):
     randomness in this method; they may be appended afterwards.
     """
     location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
-        DIRECTORY_NAME='kge-data',
+        DIRECTORY_NAME=_KGEA_APP_CONFIG['archive-directory'],
         KG_NAME=kg_id
     )
     return location
@@ -181,10 +193,17 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
     return True
 
 
-def kg_files_in_location(bucket_name, object_location=''):
-    bucket_listings = [e['Key'] for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name) for
-                       e in p['Contents']]
-    # If object_location is the empty string, then each object listed passes (since the empty string is part of every string)
+def kg_files_in_location(bucket_name, object_location='') -> List[str]:
+    bucket_listings: List = list()
+    for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name):
+        if 'Contents' in p:
+            for e in p['Contents']:
+                bucket_listings.append(e['Key'])
+        else:
+            return []  # empty bucket?
+
+    # If object_location is the empty string, then each object
+    # listed passes (since the empty string is part of every string)
     object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
     return object_matches
 
@@ -206,10 +225,10 @@ def get_kg_versions_available(bucket_name, kg_id=None):
     kg_files = kg_files_in_location(bucket_name)
 
     def kg_id_to_versions(kg_file):
-        root_path = str(list(Path(kg_file).parents)[-2])    # get the root directory (not local/`.`)
+        root_path = str(list(Path(kg_file).parents)[-2])  # get the root directory (not local/`.`)
         stem_path = str(Path(kg_file).name)
 
-        entry_string = str(Path(kg_file))   # normalize delimiters
+        entry_string = str(Path(kg_file))  # normalize delimiters
         for i in [root_path, stem_path, 'node', 'edge']:
             entry_string = entry_string.replace(i, '')
 
@@ -284,10 +303,10 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
         return False
     return True
 
+
 # https://gist.github.com/chipx86/9598b1e4a9a1a7831054
 # TODO: disk or memory?
 def compress_file_to_archive(in_filename, out_filename):
-
     class FileStream(object):
         def __init__(self):
             self.buffer = BytesIO()
@@ -362,7 +381,6 @@ def compress_file_to_archive(in_filename, out_filename):
 
         yield
 
-
     streaming_fp = FileStream()
 
     temp = tempfile.NamedTemporaryFile()
@@ -376,14 +394,21 @@ def compress_file_to_archive(in_filename, out_filename):
     print('Wrote tar file to {}'.format(temp.name))
     return temp
 
+
 def kg_filepath(kg_id, kg_version, root='', subdir='', attachment=''):
     return Template("$ROOT/$KG_ID/$KG_VERSION$SUB_DIR$ATTACHMENT").substitute(
         ROOT=root,
         KG_ID=kg_id,
         KG_VERSION=kg_version,
-        SUB_DIR=subdir+'/',
+        SUB_DIR=subdir + '/',
         ATTACHMENT=attachment
     )
+
+
+def tardir(directory, name) -> str:
+    logger.error("Calling tardir(directory='"+directory+"', name='"+name+"')")
+    raise RuntimeError("Not yet implemented!")
+
 
 @prepare_test
 def test_tardir():
@@ -433,6 +458,7 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         logger.error(e)
         return False
     return True
+
 
 def upload_file(data_file, file_name, bucket, object_location, config=None):
     """Upload a file to an S3 bucket
@@ -500,13 +526,18 @@ def upload_file_multipart(data_file, file_name, bucket, object_location, metadat
     return upload_file(data_file, file_name, bucket, object_location, config=transfer_config)
 
 
+def package_file(name: str, target_file):
+    logger.error("Calling package_file(name='"+name+"', name='"+target_file+"')")
+    raise RuntimeError("Not yet implemented!")
+
+
 @prepare_test
 def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
-            packaged_file = package_file(test_file.name, test_file)
+            packaged_file = package_file(name=test_file.name, target_file=test_file)
             object_key = upload_file(packaged_file, test_file.name, test_bucket, content_location)
             assert (object_key in kg_files_in_location(test_bucket, content_location))
     except FileNotFoundError as e:
@@ -576,6 +607,7 @@ def upload_file_as_archive(data_file, file_name, bucket, object_location, metada
             metadata
         )
 
+
 @prepare_test
 def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
@@ -599,6 +631,7 @@ def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         logger.error(e)
         return False
     return True
+
 
 def upload_file_to_archive(archive_name, data_file, file_name, bucket, object_location):
     # upload the file
@@ -624,6 +657,7 @@ def upload_file_to_archive(archive_name, data_file, file_name, bucket, object_lo
 
     return archive_path
 
+
 @prepare_test
 def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     """
@@ -634,7 +668,7 @@ def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     """
     try:
         # Prepare information used between subtests
-        TEST_ARCHIVE_NAME = _random_alpha_string() # the stem for the filename of the archive
+        TEST_ARCHIVE_NAME = _random_alpha_string()  # the stem for the filename of the archive
         CONTENT_LOCATION, _ = with_version(get_object_location)(test_kg)
 
         """
@@ -652,7 +686,6 @@ def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
                 test_bucket,
                 CONTENT_LOCATION
             )
-
 
             """
             Test 1b: override file 
@@ -696,6 +729,7 @@ def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+
 @prepare_test
 def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     """
@@ -727,11 +761,13 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+
 def infix_string(name, infix, delimiter="."):
     tokens = name.split(delimiter)
     *pre_name, end_name = tokens
     name = ''.join([delimiter.join(pre_name), infix, delimiter, end_name])
     return name
+
 
 def download_file(bucket, object_key, open_file=False):
     download_url = create_presigned_url(bucket=bucket, object_key=object_key)
@@ -739,11 +775,12 @@ def download_file(bucket, object_key, open_file=False):
         return download_url, webbrowser.open_new_tab(download_url)
     return download_url
 
-async def compress_download(bucket, object_key, open_file=False):
 
-    archive_path = "{}archive/{}.tar.gz".format(
-        object_key,
-        Path(object_key).stem,
+async def compress_download(bucket, file_set_object_key, open_file=False):
+    archive_file_name = Path(file_set_object_key).name
+    archive_path = "{file_set_object_key}archive/{archive_file_name}.tar.gz".format(
+        file_set_object_key=file_set_object_key,
+        archive_file_name=archive_file_name,
     ).replace('\\', '/')
 
     # setup an S3 job to compress the file
@@ -787,11 +824,145 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
     return True
 
 
+def _load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -> Union[None, bytes, str]:
+    """
+    Given an S3 object key name, load the specific file.
+    The return value defaults to being decoded from utf-8 to a text string.
+    Return None the object is inaccessible.
+    """
+    data_string: Union[None, bytes, str] = None
+
+    try:
+        mf = io.BytesIO()
+        s3 = boto3.client('s3')
+        s3.download_fileobj(
+            bucket_name,
+            object_name,
+            mf
+        )
+        data_bytes = mf.getvalue()
+        mf.close()
+        if mode == 'text':
+            data_string = data_bytes.decode('utf-8')
+    except Exception as e:
+        logger.error('ERROR: _load_s3_text_file(): '+str(e))
+
+    return data_string
+
+
+def get_archive_contents(bucket_name: str) -> \
+        Dict[
+            str,  # kg_id's of every KGE archived knowledge graph
+            Dict[
+                str,  # tags 'metadata' and 'versions'
+                Union[
+                    str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
+                    Dict[
+                        str,  # kg_version's of versioned KGE File Sets for a kg
+                        Dict[
+                            str,  # tags 'metadata' and 'file_object_keys'
+                            Union[
+                                str,  # 'metadata' field value: 'file set' specific text file blob from S3
+                                List[str]  # list of data files in a given KGE File Set
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]:
+    """
+    Get contents of KGE Archive from the
+    AWS S3 bucket folder names and metadata file contents.
+
+    :param bucket_name: The bucket
+    :return: multi-level catalog of KGE knowledge graphs and associated versioned file sets from S3 storage
+    """
+    all_files = kg_files_in_location(bucket_name=bucket_name)
+
+    contents: Dict[
+        str,   # kg_id's of every KGE archived knowledge graph
+        Dict[
+            str,  # tags 'metadata' and 'versions'
+            Union[
+                str,   # 'metadata' field value: kg specific 'provider' text file blob from S3
+                Dict[
+                    str,  # kg_version's of versioned KGE File Sets for a kg
+                    Dict[
+                        str,  # tags 'metadata' and 'file_object_keys'
+                        Union[
+                            str,   # 'metadata' field value: 'file set' specific text file blob from S3
+                            List[str]  # list of data file object keys in a given KGE File Set
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+    ] = dict()
+
+    for file_path in all_files:
+
+        file_part = file_path.split('/')
+
+        if file_part[0] != _KGEA_APP_CONFIG['archive-directory']:
+            # ignore things that don't look like the KGE File Set archive folder
+            continue
+
+        kg_id = file_part[1]
+        if kg_id not in contents:
+            # each Knowledge Graph may have high level 'metadata'
+            # obtained from a kg_id specific PROVIDER_METADATA_FILE
+            # plus one or more versions of KGE File Set
+            contents[kg_id] = dict()  # dictionary of kg's, indexed by kg_id
+            contents[kg_id]['versions'] = dict()  # dictionary of versions, indexed by kg_version
+
+        if file_part[2] == PROVIDER_METADATA_FILE:
+            # Get the provider 'kg_id' associated metadata file just stored
+            # as a blob of text, for content parsing by the function caller
+            # Unlike the kg_id versions, there should only be one such file?
+            contents[kg_id]['metadata'] = \
+                _load_s3_text_file(
+                    bucket_name=bucket_name,
+                    object_name=file_path
+                )
+        else:
+            # otherwise, assume file_part[2] is a 'version folder'
+            kg_version = file_part[2]
+            if kg_version not in contents[kg_id]['versions']:
+                contents[kg_id]['versions'][kg_version] = dict()
+                contents[kg_id]['versions'][kg_version]['file_object_keys'] = list()
+
+            if file_part[3] == FILE_SET_METADATA_FILE:
+                # Get the provider 'kg_id' associated metadata file just stored
+                # as a blob of text, for content parsing by the function caller
+                # Unlike the kg_id versions, there should only be one such file?
+                contents[kg_id]['versions'][kg_version]['metadata'] = \
+                    _load_s3_text_file(
+                        bucket_name=bucket_name,
+                        object_name=file_path
+                    )
+                continue
+
+            # simple first iteration just records the list of data file paths
+            # (other than the PROVIDER_METADATA_FILE)
+            # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
+            contents[kg_id]['versions'][kg_version]['file_object_keys'].append(file_path)
+
+    return contents
+
+
+@prepare_test
+def test_get_archive_contents(test_bucket=TEST_BUCKET):
+    print("\ntest_get_archive_contents() test output:\n", file=stderr)
+    contents = get_archive_contents(test_bucket)
+    print(str(contents), file=stderr)
+
+
 """
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
-import time
+
+
 def run_test(test_func):
     try:
         start = time.time()
@@ -836,5 +1007,7 @@ if __name__ == '__main__':
 
     run_test(test_upload_file_to_archive)
     run_test(test_download_file)
+
+    run_test(test_get_archive_contents)
 
     print("tests complete")

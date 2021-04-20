@@ -1,13 +1,10 @@
 id: "${kg_id}"
 name:  "${kg_name}"
-version: "${kg_version}"
 description: >-
   ${kg_description}
-size: "KGE archive file size TBA"
 translator:
   component: "${translator_component}"
-  team:
-  - "${translator_team}"
+  team: "${translator_team}"
 submitter:
   name: "${submitter}"
   email: "${submitter_email}"

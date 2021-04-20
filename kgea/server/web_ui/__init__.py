@@ -55,7 +55,7 @@ async def make_app():
     # for route in list(app.router.routes()):
     #     cors.add(route)
 
-    KgeaSession.init(app)
+    KgeaSession.initialize(app)
     
     return app
 

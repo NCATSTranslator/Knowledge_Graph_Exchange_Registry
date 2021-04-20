@@ -48,7 +48,7 @@ paths:
       tags:
       - catalog
       summary: Returns the catalog of available KGE File Sets
-      operationId: getFileSetCatalog
+      operationId: get_knowledge_graph_catalog
       responses:
         '200':
           description: >-
@@ -67,8 +67,8 @@ paths:
     post:
       tags:
         - catalog
-      summary: Register core parameters for the KGE File Set upload
-      operationId: registerFileSet
+      summary: Register core metadata for a KGE Knowledge Graph
+      operationId: register_knowledge_graph
       requestBody:
         required: true
         content:
@@ -76,10 +76,6 @@ paths:
             schema:
               type: object
               properties:
-                kg_name:
-                  type: string
-                kg_description:
-                  type: string
                 submitter:
                   type: string
                 submitter_email:
@@ -88,6 +84,12 @@ paths:
                   type: string
                 translator_team:
                   type: string
+                kg_name:
+                  type: string
+                kg_version:
+                  type: string
+                kg_description:
+                  type: string
                 license_name:
                   type: string
                 license_url:
@@ -95,16 +97,12 @@ paths:
                 terms_of_service:
                   type: string
               required:
-                - kg_name
-                - translator_component
-                - translator_team
                 - submitter
                 - submitter_email
-            encoding:
-              submitter:
-                contentType: text/plain; charset=utf-8
-              kg_name:
-                contentType: text/plain; charset=utf-8
+                - translator_component
+                - translator_team
+                - kg_name
+                - kg_version
       responses:
         '201':
           description: Upload successfully completed.
@@ -121,13 +119,21 @@ paths:
             application/json:
               schema:
                 type: string
-  /publish/{kg_id}:
+  /publish/{kg_id}/{kg_version}:
     get:
       parameters:
       - name: kg_id
         in: path
         description: >-
-          KGE File Set identifier for the knowledge graph
+          KGE Knowledge Graph identifier for the knowledge graph
+          for which data files are being accessed.
+        required: true
+        schema:
+          type: string
+      - name: kg_version
+        in: path
+        description: >-
+          KGE File Set version identifier for the knowledge graph
           for which data files are being accessed.
         required: true
         schema:
@@ -135,7 +141,7 @@ paths:
       tags:
       - catalog
       summary: Publish a registered File Set
-      operationId: publishFileSet
+      operationId: publish_file_set
       responses:
         '302':
           description: >-
@@ -145,7 +151,7 @@ paths:
       tags:
         - upload
       summary: Upload processing of KGE File Set file
-      operationId: uploadFile
+      operationId: upload_file
       requestBody:
         description: KGE File Set metadata or data file submitted
         required: true
@@ -154,15 +160,17 @@ paths:
             schema:
               type: object
               description: >-
-                Uploading form posting of (meta-)data files. The 'upload_mode'
-                string argument specifies the category and/or mode as one of
-                'metadata', 'content_from_local_file' or 'content_from_url'. If
-                'metadata' or 'content_from_local_file' are indicated, then the
-                'uploaded_file' parameter should be set to the file to be
-                uploaded. If 'upload_mode' is set to 'content_from_url'
-                then the 'content_url' parameter is taken as a REST endpoint
-                of the file to be transferred into the Archive (authentication
-                not yet supported - URL should provide unauthenticated access).
+                Uploading form posting of (meta-)data files to a specific
+                KGE File Set version, belonging to a specific Knowledge Graph.
+                The 'upload_mode' argument specifies the category and/or mode
+                as one of 'metadata', 'content_from_local_file' or
+                'content_from_url'. If 'metadata' or 'content_from_local_file'
+                are indicated, then the 'uploaded_file' parameter should be
+                set to the file to be ploaded. If 'upload_mode' is set to
+                'content_from_url' then the 'content_url' parameter is taken
+                as a REST endpoint of the file to be transferred into the
+                Archive (authentication not yet supported - URL should provide
+                unauthenticated access).
                 The 'content_name' should be set either to the file name of
                 the 'metadata' or 'content_from_local_file', or url transfers,
                 set by inference or as specified by the caller (especially if
@@ -173,6 +181,8 @@ paths:
                 set by the selected 'nodes' versus 'edges' radio button.
               properties:
                 kg_id:
+                  type: string
+                kg_version:
                   type: string
                 kgx_file_content:
                   type: string
@@ -187,11 +197,14 @@ paths:
                   format: binary
               required:
               - kg_id
+              - kg_version
               - kgx_file_content
               - upload_mode
               - content_name
             encoding:
               kg_id:
+                contentType: text/plain; charset=utf-8
+              kg_version:
                 contentType: text/plain; charset=utf-8
               kgx_file_content:
                 contentType: text/plain; charset=utf-8
@@ -248,7 +261,7 @@ paths:
       tags:
         - content
       summary: Get file list and details for a specified KGE File Set version.
-      operationId: getFileSetContents
+      operationId: get_file_set_contents
       responses:
         '200':
           description: >-
@@ -296,7 +309,7 @@ paths:
       tags:
         - content
       summary: Meta knowledge graph representation of this KGX knowledge graph.
-      operationId: metaKnowledgeGraph
+      operationId: meta_knowledge_graph
       responses:
         '200':
           description: >-
@@ -340,7 +353,7 @@ paths:
       tags:
         - content
       summary: Returns specified KGE File Set as a gzip compressed tar archive
-      operationId: downloadFileSet
+      operationId: download_file_set
       responses:
         '200':
           description: >-

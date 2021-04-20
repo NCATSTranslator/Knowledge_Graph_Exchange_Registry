@@ -1,5 +1,6 @@
 from os import getenv
 from os.path import expanduser, dirname, abspath
+from typing import Dict
 
 import boto3
 from botocore.client import Config
@@ -12,9 +13,6 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-# the following config file should be visible in the 'kgea/server/config' subdirectory, as
-# copied from the available template and populated with site-specific configuration values
-CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
 
 # Master flag for local development runs bypassing
 # authentication and other production processes
@@ -22,6 +20,13 @@ DEV_MODE = getenv('DEV_MODE', default=False)
 
 home = expanduser("~")
 AWS_CONFIG_ROOT = home + "/.aws/"
+
+# the following config file should be visible in the 'kgea/server/config' subdirectory, as
+# copied from the available template and populated with site-specific configuration values
+CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
+
+PROVIDER_METADATA_FILE = 'provider.yaml'
+FILE_SET_METADATA_FILE = 'file_set.yaml'
 
 
 def validate_session_configuration():
@@ -66,7 +71,8 @@ def validate_client_configuration():
             config.read_file(config_file)
             
             # if config['default']['region'] != 'us-east-1':
-            #     print("NOTE: we recommend using us-east-1 as your region", "(currently %s)" % config['default']['region'])
+            #     print("NOTE: we recommend using us-east-1 as your region",
+            #           "(currently %s)" % config['default']['region'])
             #     # this is a warning, no need to return false
             
             try:
@@ -101,7 +107,7 @@ except Exception as e:
     print(e)
 
 # Exported  'application configuration' dictionary
-_app_config: dict = dict()
+_app_config: Dict = dict()
 
 
 def get_app_config() -> dict:
