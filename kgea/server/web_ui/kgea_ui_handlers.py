@@ -162,7 +162,7 @@ async def kge_login(request: web.Request):
         # Stub implementation of user_attributes, to fake authentication
         user_attributes: Dict = mock_user_attributes()
 
-        await initialize_user_session(request,user_attributes=user_attributes)
+        await initialize_user_session(request, user_attributes=user_attributes)
 
         # then redirects to an authenticated home page
         await redirect(request, HOME, active_session=True)

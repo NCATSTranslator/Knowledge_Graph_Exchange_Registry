@@ -777,7 +777,8 @@ def download_file(bucket, object_key, open_file=False):
 
 
 async def compress_download(bucket, file_set_object_key, open_file=False):
-    archive_file_name = Path(file_set_object_key).name
+    part = file_set_object_key.split('/')
+    archive_file_name = str(part[-3]).strip()+"_"+str(part[-2]).strip()
     archive_path = "{file_set_object_key}archive/{archive_file_name}.tar.gz".format(
         file_set_object_key=file_set_object_key,
         archive_file_name=archive_file_name,
@@ -792,6 +793,9 @@ async def compress_download(bucket, file_set_object_key, open_file=False):
     # add the file the running archive
     print(kg_files_in_location(bucket, file_set_object_key))
     job.add_files(file_set_object_key)
+    # Add the Knowledge Graph provider.yaml file as well
+    provider_metadata_file_object_key = part[0]+"/"+part[1]+"/provider.yaml"
+    job.add_file(provider_metadata_file_object_key)
     # execute the job
     job.tar()
 
