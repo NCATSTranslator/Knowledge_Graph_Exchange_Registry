@@ -17,7 +17,7 @@ from aiohttp_session import get_session
 # Application Configuration
 #############################################################
 
-from kgea.server.config import get_app_config
+from kgea.server.config import get_app_config, CONTENT_METADATA_FILE
 
 from .kgea_session import (
     redirect,
@@ -380,6 +380,10 @@ async def upload_kge_file(
             # metadata stays in the kg_id 'root' version folder
             file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
 
+            # We coerce the content metadata file name
+            # into a standard name, during transfer to S3
+            content_name = CONTENT_METADATA_FILE
+
         elif kgx_file_content == "archive":
             # TODO this is tricky.. not yet sure how to handle an archive with
             #      respect to properly persisting it in the S3 bucket...
@@ -422,7 +426,7 @@ async def upload_kge_file(
 
             uploaded_file_object_key = upload_file(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
-                file_name=content_name,  # The new name for the file
+                file_name=content_name,        # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],
                 object_location=file_set_location
             )
