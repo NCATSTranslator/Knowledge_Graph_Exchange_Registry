@@ -3,5 +3,16 @@
   "$id": "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/kgea/api/content_metadata.schema.json",
   "title": "KGX Content Metadata",
   "description": "Knowledge Graph eXchange (KGX) knowledge graph content metadata JSON schema; See https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_METADATA.md",
-  "type": "object"
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "description": "Collection of node categories provided by this TRAPI web service, indexed by Biolink class CURIEs.",
+      "type": "object"
+    },
+    "edges": {
+      "description": "List of edges/predicates provided by this TRAPI web service.",
+      "type": "object"
+    }
+  },
+  "required": [ "nodes", "edges" ]
 }
