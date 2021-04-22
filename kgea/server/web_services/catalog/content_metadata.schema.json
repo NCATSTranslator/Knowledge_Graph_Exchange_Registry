@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/kgea/api/content_metadata.schema.json",
+  "title": "KGX Content Metadata",
+  "description": "Knowledge Graph eXchange (KGX) knowledge graph content metadata JSON schema; See https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/blob/master/KGE_METADATA.md",
+  "type": "object"
+}
