@@ -10,7 +10,7 @@
       "type": "object",
       "patternProperties": {
           "^biolink:[A-Z][a-zA-Z]*$": {
-              "$ref": "#/$defs/meta_node"
+              "$ref": "#/$defs/MetaNode"
           }
       },
       "additionalProperties": false
@@ -19,13 +19,13 @@
       "description": "List of edges/predicates provided by this knowledge graph.",
       "type": "array",
       "items": {
-        "$ref": "#/$defs/meta_edge"
+        "$ref": "#/$defs/MetaEdge"
       }
     }
   },
   "required": [ "nodes", "edges" ],
   "$defs": {
-    "meta_node": {
+    "MetaNode": {
       "type": "object",
       "properties": {
         "id_prefixes": {
@@ -55,20 +55,20 @@
       "additionalProperties": false,
       "required": [ "id_prefixes" ]
     },
-    "meta_edge": {
+    "MetaEdge": {
       "type": "object",
       "description": "Edge in a meta knowledge map describing relationship between a subject Biolink class and an object Biolink class.",
       "properties": {
         "subject": {
-          "$ref": "#/components/schemas/BiolinkEntity",
+          "$ref": "#/$defs/BiolinkEntity",
           "description": "Subject node category of this relationship edge."
         },
         "predicate": {
-          "$ref": "#/components/schemas/BiolinkPredicate",
+          "$ref": "#/$defs/BiolinkPredicate",
           "description":  "Biolink relationship between the subject and object categories."
         },
         "object": {
-          "$ref": "#/components/schemas/BiolinkEntity",
+          "$ref": "#/$defs/BiolinkEntity",
           "description": "Object node category of this relationship edge."
         },
         "relations": {
@@ -95,6 +95,16 @@
       },
       "additionalProperties": false,
       "required": [ "subject", "predicate", "object" ]
+    },
+    "BiolinkEntity": {
+      "description": "Compact URI (CURIE) for a Biolink class, biolink:NamedThing or a child thereof. The CURIE must use the prefix 'biolink:' followed by the PascalCase class name.",
+      "type": "string",
+      "pattern": "^biolink:[A-Z][a-zA-Z]*$"
+    },
+    "BiolinkPredicate": {
+      "description": "CURIE for a Biolink 'predicate' slot, taken from the Biolink slot ('is_a') hierarchy rooted in biolink:related_to (snake_case). This predicate defines the Biolink relationship between the subject and object nodes of a biolink:Association defining a knowledge graph edge.",
+      "type": "string",
+      "pattern": "^biolink:[a-z][a-z_]*$"
     }
   }
 }
