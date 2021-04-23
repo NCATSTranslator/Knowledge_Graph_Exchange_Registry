@@ -1,4 +1,4 @@
-"meta_knowledge_map": {
+{
     "nodes": {
         "biolink:Gene": {
             "id_prefixes": [
@@ -29,7 +29,7 @@
         },
         "biolink:CellularComponent": {
             "id_prefixes": [
-                "GO",
+                "GO"
             ],
             "count": 8,
             "count_by_source": {
@@ -38,7 +38,7 @@
         },
         "biolink:BiologicalProcess": {
             "id_prefixes": [
-                "GO",
+                "GO"
             ],
             "count": 43,
             "count_by_source": {
@@ -64,8 +64,7 @@
             "count_by_source": {
                 "OMIM": 50,
                 "HPOA": 75,
-                "ORPHANET": 60,
-                "HPOA": 8
+                "ORPHANET": 60
             }
         },
         "biolink:Disease": {

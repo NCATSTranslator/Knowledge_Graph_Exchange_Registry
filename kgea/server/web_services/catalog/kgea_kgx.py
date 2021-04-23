@@ -2,6 +2,7 @@
 Knowledge Graph eXchange (KGX) tool kit validation of
 Knowledge Graph Exchange (KGE) File Sets located on AWS S3
 """
+import json
 from typing import List, Optional
 from sys import stderr
 from os.path import dirname, abspath
@@ -23,7 +24,7 @@ logger.setLevel(logging.DEBUG)
 # KGX Content Metadata Validator is a simply JSON Schema validation operation
 CONTENT_METADATA_SCHEMA_FILE = abspath(dirname(__file__) + '/content_metadata.schema.json')
 with open(CONTENT_METADATA_SCHEMA_FILE, mode='r', encoding='utf-8') as cms:
-    CONTENT_METADATA_SCHEMA = cms.read()
+    CONTENT_METADATA_SCHEMA = json.load(cms)
 
 
 # This first iteration only validates the JSON structure and property tags against the JSON schema
@@ -87,8 +88,7 @@ class KgxValidator:
                 if output:
                     self.kgx_data_validator.write_report(errors, open(output, 'w'))
                 else:
-                    if DEBUG:
-                        self.kgx_data_validator.write_report(errors, stderr)
+                    self.kgx_data_validator.write_report(errors, stderr)
 
             return errors
         
@@ -111,9 +111,11 @@ SAMPLE_META_KNOWLEDGE_GRAPH_FILE = abspath(dirname(__file__) + '/sample_meta_kno
 def test_contents_metadata_validator():
     print("\ntest_contents_metadata_validator() test output:\n", file=stderr)
     with open(SAMPLE_META_KNOWLEDGE_GRAPH_FILE, mode='r', encoding='utf-8') as smkg:
-        mkg_json = smkg.read()
+        mkg_json = json.load(smkg)
     errors: List[str] = validate_content_metadata(mkg_json)
-    assert errors
+    if errors:
+        logger.error("test_contents_metadata_validator() errors: " + str(errors))
+    return not errors
 
 
 def run_test(test_func):

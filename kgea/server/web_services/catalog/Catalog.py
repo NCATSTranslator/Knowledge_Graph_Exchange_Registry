@@ -14,6 +14,7 @@ TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 import io
+import json
 from sys import stderr
 from os import getenv
 from os.path import abspath, dirname
@@ -197,11 +198,13 @@ class KgeFileSet:
             "errors": []
         }
 
-        content_metadata_file = load_s3_text_file(
+        content_metadata_file_text = load_s3_text_file(
             bucket_name=_KGEA_APP_CONFIG['bucket'],
             object_name=object_key
         )
-        errors = validate_content_metadata(content_metadata_file)
+        # Must load the JSON into a Python dictionary for validation
+        metadata_json = json.loads(content_metadata_file_text)
+        errors = validate_content_metadata(metadata_json)
 
         if not errors:
             self.content_metadata["kgx_compliant"] = True
