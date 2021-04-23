@@ -47,9 +47,11 @@ from kgea.server.config import (
 from kgea.server.web_services.kgea_file_ops import (
     # get_default_date_stamp,
     get_object_location,
-    get_archive_contents, with_version
+    get_archive_contents,
+    with_version,
+    load_s3_text_file
 )
-from .kgea_kgx import KgxValidator
+from .kgea_kgx import KgxValidator, validate_content_metadata
 from kgea.server.web_services.kgea_file_ops import upload_file
 
 logger = logging.getLogger(__name__)
@@ -60,6 +62,7 @@ OVERRIDE = True
 
 RUN_TESTS = getenv('RUN_TESTS', default=False)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
+
 
 def prepare_test(func):
     def wrapper():
@@ -176,7 +179,7 @@ class KgeFileSet:
     def get_submitter_email(self):
         return self.submitter_email
 
-    # TODO: perhaps the name of the content metadata file needs to be normalized on S3 to 'content_metadata.yaml'?
+    # Note: content metadata file is already normalized on S3 to 'content_metadata.yaml'
     def set_content_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
         """
         Sets the metadata file identification for a KGE File Set
@@ -194,8 +197,11 @@ class KgeFileSet:
             "errors": []
         }
 
-        # TODO: implement the validate_content_metadata validator - is only a stub right now
-        errors = self.validator.validate_content_metadata(file_path=s3_file_url)
+        content_metadata_file = load_s3_text_file(
+            bucket_name=_KGEA_APP_CONFIG['bucket'],
+            object_name=object_key
+        )
+        errors = validate_content_metadata(content_metadata_file)
 
         if not errors:
             self.content_metadata["kgx_compliant"] = True

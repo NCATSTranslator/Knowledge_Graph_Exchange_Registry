@@ -830,7 +830,7 @@ def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_
     return True
 
 
-def _load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -> Union[None, bytes, str]:
+def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -> Union[None, bytes, str]:
     """
     Given an S3 object key name, load the specific file.
     The return value defaults to being decoded from utf-8 to a text string.
@@ -926,7 +926,7 @@ def get_archive_contents(bucket_name: str) -> \
             # as a blob of text, for content parsing by the function caller
             # Unlike the kg_id versions, there should only be one such file?
             contents[kg_id]['metadata'] = \
-                _load_s3_text_file(
+                load_s3_text_file(
                     bucket_name=bucket_name,
                     object_name=file_path
                 )
@@ -942,7 +942,7 @@ def get_archive_contents(bucket_name: str) -> \
                 # as a blob of text, for content parsing by the function caller
                 # Unlike the kg_id versions, there should only be one such file?
                 contents[kg_id]['versions'][kg_version]['metadata'] = \
-                    _load_s3_text_file(
+                    load_s3_text_file(
                         bucket_name=bucket_name,
                         object_name=file_path
                     )
