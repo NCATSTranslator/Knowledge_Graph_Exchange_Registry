@@ -26,6 +26,8 @@ with open(CONTENT_METADATA_SCHEMA_FILE, mode='r', encoding='utf-8') as cms:
     CONTENT_METADATA_SCHEMA = cms.read()
 
 
+# This first iteration only validates the JSON structure and property tags against the JSON schema
+# TODO: perhaps also semantically validate Biolink node categories and predicates (using the Biolink Model Toolkit)?
 def validate_content_metadata(content_metadata_file) -> List:
     errors: List[str] = list()
     if content_metadata_file:

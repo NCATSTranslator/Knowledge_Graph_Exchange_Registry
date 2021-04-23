@@ -1,44 +1,94 @@
 "meta_knowledge_map": {
     "nodes": {
         "biolink:Gene": {
-
+            "id_prefixes": [
+                "NCBIGene",
+                "ZFIN",
+                "ENSEMBL",
+                "MGI",
+                "RGD",
+                "HGNC",
+                "FlyBase",
+                "PANTHER",
+                "BIOGRID",
+                "STRING"
+            ],
+            "count": 372,
+            "count_by_source": {
+                "NCBIGene": 82,
+                "ZFIN": 8,
+                "ENSEMBL": 65,
+                "MGI": 20,
+                "RGD": 15,
+                "HGNC": 50,
+                "FlyBase": 10,
+                "PANTHER": 13,
+                "BIOGRID": 9,
+                "STRING": 100
+            }
         },
         "biolink:CellularComponent": {
-
+            "id_prefixes": [
+                "GO",
+            ],
+            "count": 8,
+            "count_by_source": {
+                "GO": 8
+            }
         },
         "biolink:BiologicalProcess": {
-
+            "id_prefixes": [
+                "GO",
+            ],
+            "count": 43,
+            "count_by_source": {
+                "GO": 43
+            }
         },
         "biolink:AnatomicalEntity": {
-
+            "id_prefixes": [
+                "BGEE"
+            ],
+            "count": 10,
+            "count_by_source": {
+                "BGEE": 10
+            }
         },
         "biolink:PhenotypicFeature": {
-
+            "id_prefixes": [
+                "OMIM",
+                "HPOA",
+                "ORPHANET"
+            ],
+            "count": 185,
+            "count_by_source": {
+                "OMIM": 50,
+                "HPOA": 75,
+                "ORPHANET": 60,
+                "HPOA": 8
+            }
         },
         "biolink:Disease": {
-
+            "id_prefixes": [
+                "OMIM",
+                "HPOA",
+                "ORPHANET"
+            ],
+            "count": 51,
+            "count_by_source": {
+                "OMIM": 12,
+                "ORPHANET": 26,
+                "HPOA": 5
+            }
         },
         "biolink:Pathway": {
-
-        },
-        "id_prefixes": [
-            "HP",
-            "NCBIGene",
-            "ZFIN",
-            "REACT",
-            "ENSEMBL",
-            "MONDO",
-            "MGI",
-            "RGD",
-            "GO",
-            "HGNC",
-            "FlyBase",
-            "EFO",
-            "UBERON"
-        ],
-        "count": 512,
-        "count_by_source": {
-            "unknown": 512
+            "id_prefixes": [
+                "REACT"
+            ],
+            "count": 16,
+            "count_by_source": {
+                "REACT": 16
+            }
         }
     },
     "edges": [
@@ -51,9 +101,8 @@
             ],
             "count": 165,
             "count_by_source": {
-                "unknown": 0,
-                "biogrid": 9,
-                "string": 159
+                "BIOGRID": 9,
+                "STRING": 159
             }
         },
         {
@@ -65,8 +114,7 @@
             ],
             "count": 8,
             "count_by_source": {
-                "unknown": 0,
-                "go": 8
+                "GO": 8
             }
         },
         {
@@ -78,8 +126,7 @@
             ],
             "count": 143,
             "count_by_source": {
-                "unknown": 0,
-                "go": 143
+                 "GO": 143
             }
         },
         {
@@ -91,8 +138,7 @@
             ],
             "count": 8,
             "count_by_source": {
-                "unknown": 0,
-                "go": 8
+                "GO": 8
             }
         },
         {
@@ -104,8 +150,7 @@
             ],
             "count": 8,
             "count_by_source": {
-                "unknown": 0,
-                "reactome": 8
+                "REACT": 8
             }
         },
         {
@@ -118,9 +163,8 @@
             ],
             "count": 13,
             "count_by_source": {
-                "unknown": 0,
-                "panther": 13,
-                "zfin": 2
+                "PANTHER": 13,
+                "ZFIN": 2
             }
         },
         {
@@ -132,8 +176,7 @@
             ],
             "count": 20,
             "count_by_source": {
-                "unknown": 0,
-                "bgee": 20
+                "BGEE": 20
             }
         },
         {
@@ -145,23 +188,9 @@
             ],
             "count": 111,
             "count_by_source": {
-                "unknown": 0,
-                "omim": 54,
-                "hpoa": 111,
-                "orphanet": 72
-            }
-        },
-        {
-            "subject": "biolink:Gene",
-            "predicate": "biolink:contributes_to",
-            "object": "biolink:PhenotypicFeature",
-            "relations": [
-                "RO:0003304"
-            ],
-            "count": 1,
-            "count_by_source": {
-                "unknown": 0,
-                "gwascatalog": 1
+                "OMIM": 54,
+                "HPOA": 111,
+                "ORPHANET": 72
             }
         },
         {
@@ -175,9 +204,8 @@
             ],
             "count": 18,
             "count_by_source": {
-                "unknown": 0,
-                "omim": 4,
-                "orphanet": 14
+                "OMIM": 4,
+                "ORPHANET": 14
             }
         },
         {
@@ -189,8 +217,7 @@
             ],
             "count": 2,
             "count_by_source": {
-                "unknown": 0,
-                "omim": 2
+                "OMIM": 2
             }
         },
         {
@@ -202,10 +229,9 @@
             ],
             "count": 22,
             "count_by_source": {
-                "unknown": 0,
-                "omim": 8,
-                "reactome": 22,
-                "orphanet": 14
+                "OMIM": 8,
+                "REACT": 16,
+                "ORPHANET": 14
             }
         },
         {
@@ -217,8 +243,7 @@
             ],
             "count": 13,
             "count_by_source": {
-                "unknown": 0,
-                "hpoa": 13
+                "HPOA": 13
             }
         }
     ]
