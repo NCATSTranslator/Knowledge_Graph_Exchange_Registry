@@ -1,3 +1,4 @@
+import logging
 from os import getenv
 from os.path import expanduser, dirname, abspath
 from typing import Dict
@@ -130,15 +131,20 @@ def _load_app_config() -> dict:
                 raise RuntimeError(
                     "Missing 'bucket' attribute in '~/kgea/server/config/config.yaml' configuration file."
                 )
-            elif not (DEV_MODE or 'github' in app_config_raw):
-                raise RuntimeError(
-                    "Missing 'github.token' attribute in '~/kgea/server/config/config.yaml' configuration file."
-                )
-            else:
-                if s3_client is not None:
-                    # TODO: detect the bucket here
-                    # if not detected, raise an error
-                    pass
+            if 'github' not in app_config_raw:
+                if DEV_MODE:
+                    logging.warning(
+                        "The github credentials are missing inside the application config.yaml file? " +
+                        "This to be set for publication of KGE file set entries to the Translator Registry."
+                    )
+                else:
+                    raise RuntimeError(
+                        "Missing 'github.token' attribute in '~/kgea/server/config/config.yaml' configuration file!"
+                    )
+            if s3_client is not None:
+                # TODO: detect the bucket here
+                # if not detected, raise an error
+                pass
             
             _app_config = dict(app_config_raw)
         
