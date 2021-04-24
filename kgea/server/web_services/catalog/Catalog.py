@@ -155,6 +155,13 @@ class KgeFileSet:
         self.data_files: Dict[str, Dict[str, Union[str, bool, List[str]]]] = dict()
 
         # ### KGX VALIDATION FRAMEWORK ###
+
+        # The initial design of the system is designed to manage
+        # validation tasks locally within each distinct KGE File Set.
+
+        # Aiming for a more economical design with reduced process overheads
+        # may suggest use of a single "class level" central Queue
+        # for validation across all file sets from all knowledge graphs.
         if validate:
             # KGX Validator singleton for this KGE File Set
             self.validator = KgxValidator()
@@ -166,10 +173,14 @@ class KgeFileSet:
             # Create three worker tasks to process the queue concurrently.
             self.tasks = []
 
-            # DISABLED KGX VALIDATION CODE BLOCK
-            # for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
-            #     task = asyncio.create_task(self.validate(f'KGX Validation Worker-{i}'))
-            #     self.tasks.append(task)
+            # Validation worker tasks set running
+            for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
+                task = asyncio.create_task(
+                    self.validate(
+                        f"KGX Validation Worker-{i} for KG Id '" + self.kg_id + "'"
+                    )
+                )
+                self.tasks.append(task)
 
     def get_version(self):
         return self.kg_version
@@ -294,9 +305,8 @@ class KgeFileSet:
             "input_compression": input_compression
         }
 
-        # DISABLED KGX VALIDATION CODE BLOCK
-        # Post file to validation task
-        # self.validation_queue.put_nowait(kge_file_spec)
+        # Post KGX data file specifications to validation task Queue
+        self.validation_queue.put_nowait(kge_file_spec)
 
     def add_data_files(self, data_files: Dict[str, Dict[str, Any]]):
         """
@@ -312,8 +322,11 @@ class KgeFileSet:
             # TODO: need to be careful here with data file removal in case
             #       the file in question is still being actively validated?
             details = self.data_files.pop(data_file)
-        except KeyError as ke:
-            logger.warning("File '"+data_file+"' was  not found in KGE File Set version '"+self.kg_version+"'")
+        except KeyError:
+            logger.warning(
+                "File '"+data_file+"' was  not found in " +
+                "KGE File Set version '"+self.kg_version+"'"
+            )
         return details
 
     def get_data_file_names(self) -> Set[str]:
@@ -326,6 +339,7 @@ class KgeFileSet:
     async def validate(self, name):
 
         while True:
+
             # Process one file at a time?
             kge_file_spec = await self.validation_queue.get()
 
@@ -335,18 +349,24 @@ class KgeFileSet:
             input_format = kge_file_spec['input_format']
             input_compression = kge_file_spec['input_compression']
 
-            print(f'{name} working on file {object_key}', file=stderr)
+            print(
+                f"{name} working on file '{object_key}' of " +
+                f"type '{file_type}', input format '{input_format}' " +
+                f"and with compression '{input_compression}', " +
+                f"located at S3 endpoint '{s3_file_url}',  ", file=stderr
+            )
 
-            # Run KGX validation here
             errors: List = list()
 
             if file_type == KgeFileType.KGX_DATA_FILE:
 
-                errors = await self.validator.validate_data_file(
-                    file_path=s3_file_url,
-                    input_format=input_format,
-                    input_compression=input_compression
-                )
+                # Run KGX data file validation here
+                # DISABLED KGX DATA FILE VALIDATION FOR TESTING PURPOSES
+                errors: List[str] = list()  # await self.validator.validate_data_file(
+                #     file_path=s3_file_url,
+                #     input_format=input_format,
+                #     input_compression=input_compression
+                # )
 
                 if not errors:
                     self.data_files[object_key]["kgx_compliant"] = True
@@ -362,8 +382,10 @@ class KgeFileSet:
 
             compliance: str = ' not ' if errors else ' '
 
-            print(f"{name} has finished processing file {object_key} ... is" + compliance + "KGX compliant",
-                  file=stderr)
+            print(
+                f"{name} has finished processing file {object_key} ... is" +
+                compliance + "KGX compliant", file=stderr
+            )
 
             self.validation_queue.task_done()
 
@@ -437,8 +459,7 @@ class KgeFileSet:
             errors.extend(self.content_metadata["errors"])
 
         # .. from the KGX graph (nodes and edges) data files, asynchonously checked here.
-        # TEMPORARILY DISABLED KGX VALIDATION CODE BLOCK
-        # errors.extend(await file_set.confirm_kgx_data_file_set_validation())
+        errors.extend(await self.confirm_kgx_data_file_set_validation())
 
         logger.debug("KGX format validation() completed for KGE File Set version '" + self.kg_version +
                      "' of KGE Knowledge Graph '" + self.kg_id + "'")
@@ -583,7 +604,11 @@ class KgeKnowledgeGraph:
         return list(self._file_set_versions.keys())
 
     def publish_knowledge_graph(self):
-        logger.debug("Publishing knowledge graph to the Archive and to the Translator Registry")
+
+        logger.debug(
+            "Publishing knowledge graph '" + self.kg_id +
+            "' to the Archive and to the Translator Registry"
+        )
 
         provider_metadata_file = self.generate_provider_metadata_file()
         # no kg_version given since the provider metadata is global to Knowledge Graph
@@ -913,7 +938,11 @@ class KgeArchiveCatalog:
                 raise RuntimeError("Unknown KGE File Set type?")
 
     async def publish_file_set(self, kg_id: str, kg_version: str):
-        logger.debug("Calling Registry.publish_file_set(kg_version: '"+kg_version+"' of graph kg_id: '"+kg_id+"')")
+
+        logger.debug(
+            "Calling Registry.publish_file_set(" +
+            "kg_version: '"+kg_version+"' of graph kg_id: '"+kg_id+"')"
+        )
         
         errors: List[str] = list()
         
@@ -1053,10 +1082,19 @@ def add_to_s3_archive(
         file_name: str,
         kg_version: str = ''
 ) -> str:
+    """
+    Add a file of specified text content and name,
+     to a KGE Archive (possibly versioned) S3 folder.
+    :param kg_id: knowledge graph
+    :param text: string blob contents of the file.
+    :param file_name: of the file.
+    :param kg_version: version (optional)
+    :return: str object key of the uploaded file
+    """
     if kg_version:
         file_set_location, _ = with_version(func=get_object_location, version=kg_version)(kg_id)
     else:
-        file_set_location=get_object_location(kg_id)
+        file_set_location = get_object_location(kg_id)
 
     uploaded_file_object_key: str = ''
     if text:
@@ -1136,7 +1174,7 @@ _TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 
 
 @prepare_test
-def test_add_to_archive():
+def test_add_to_archive() -> bool:
     outcome: str = add_to_s3_archive(
         "kge_test_provider_metadata_file",
         _TEST_TPMF
