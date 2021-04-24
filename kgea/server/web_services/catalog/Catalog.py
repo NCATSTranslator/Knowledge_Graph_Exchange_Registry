@@ -1112,6 +1112,14 @@ def add_to_s3_archive(
     return uploaded_file_object_key
 
 
+def get_github_token() -> Optional[str]:
+    _github: Optional[Dict] = _KGEA_APP_CONFIG.setdefault('github', None)
+    token: Optional[str] = None
+    if _github:
+        token = _github.setdefault('token', None)
+    return token
+
+
 def add_to_github(
         kg_id: str,
         text: str,
@@ -1121,11 +1129,11 @@ def add_to_github(
     
     status: bool = False
     
-    gh_token = _KGEA_APP_CONFIG['github']['token']
+    gh_token = get_github_token()
     
     logger.debug("Calling Registry.add_to_github(gh_token: '"+str(gh_token)+"')")
     
-    if text and gh_token:
+    if gh_token and text:
         
         logger.debug(
             "\n\t### api_specification = '''\n" + text[:60] + "...\n'''\n" +
@@ -1213,7 +1221,7 @@ def clean_tests(
     :return:
     """
     
-    gh_token = _KGEA_APP_CONFIG['github']['token']
+    gh_token = get_github_token()
     
     print(
         "Calling Registry.clean_tests()",

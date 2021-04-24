@@ -130,7 +130,7 @@ def _load_app_config() -> dict:
                 raise RuntimeError(
                     "Missing 'bucket' attribute in '~/kgea/server/config/config.yaml' configuration file."
                 )
-            elif 'github' not in app_config_raw:
+            elif not (DEV_MODE or 'github' in app_config_raw):
                 raise RuntimeError(
                     "Missing 'github.token' attribute in '~/kgea/server/config/config.yaml' configuration file."
                 )
