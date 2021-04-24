@@ -377,7 +377,7 @@ class KgeFileSet:
         except Exception as exc:
             logger.error("KgeaFileSet() KGX worker task exception: " + str(exc))
 
-    async def confirm_file_set_validation(self):
+    async def confirm_kgx_data_file_set_validation(self):
 
         # Blocking call to KGX validator worker Queue processing
         await self.validation_queue.join()
@@ -431,8 +431,14 @@ class KgeFileSet:
             errors.append(msg)
 
         # Next, ensure that the set of files for the current version are KGX validated.
-        # DISABLED KGX VALIDATION CODE BLOCK
-        # errors.extend(await file_set.confirm_file_set_validation())
+        # The content metadata file was checked separately when it was uploaded...
+        # (sanity check: self.content_metadata may not be initialized if no metadata file was uploaded?)
+        if self.content_metadata and "errors" in self.content_metadata:
+            errors.extend(self.content_metadata["errors"])
+
+        # .. from the KGX graph (nodes and edges) data files, asynchonously checked here.
+        # TEMPORARILY DISABLED KGX VALIDATION CODE BLOCK
+        # errors.extend(await file_set.confirm_kgx_data_file_set_validation())
 
         logger.debug("KGX format validation() completed for KGE File Set version '" + self.kg_version +
                      "' of KGE Knowledge Graph '" + self.kg_id + "'")
@@ -598,16 +604,26 @@ class KgeKnowledgeGraph:
             versions: Dict[
                 str,  # kg_version's of versioned KGE File Sets for a kg
                 Dict[
-                    str,  # tags 'metadata' and 'files'
+                    str,  # tags 'metadata' and 'file_object_keys'
                     Union[
                         str,  # 'metadata' field value: 'file set' specific text file blob from S3
-                        List[str]  # list of data files in a given KGE File Set
+                        List[str]  # list of 'file_object_keys' in a given KGE File Set
                     ]
                 ]
             ]
     ):
         for kg_version, entry in versions.items():
-            file_set: KgeFileSet = self.load_file_set_metadata(entry['metadata'])
+            file_set: KgeFileSet
+            if 'metadata' in entry:
+                file_set = self.load_file_set_metadata(entry['metadata'])
+            else:
+                file_set = KgeFileSet(
+                                self.kg_id,
+                                kg_version=kg_version,
+                                submitter=self.parameter.setdefault('submitter', ''),
+                                submitter_email=self.parameter.setdefault('submitter_email', ''),
+                                validate=False
+                            )
             file_set.load_data_files(entry['file_object_keys'])
 
     def load_file_set_metadata(self, metadata_text: str) -> KgeFileSet:
@@ -621,7 +637,7 @@ class KgeKnowledgeGraph:
         if self.kg_id != md.setdefault('id', ''):
             raise RuntimeError(
                 "load_archive_entry(): archive folder kg_id '" + self.kg_id +
-                " != id in " + PROVIDER_METADATA_FILE + "?"
+                " != id in " + FILE_SET_METADATA_FILE + "?"
             )
 
         # version: "1964-04-22"
