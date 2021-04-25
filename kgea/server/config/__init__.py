@@ -134,8 +134,9 @@ def _load_app_config() -> dict:
             if 'github' not in app_config_raw:
                 if DEV_MODE:
                     logging.warning(
-                        "The github credentials are missing inside the application config.yaml file? " +
-                        "This to be set for publication of KGE file set entries to the Translator Registry."
+                        "Github credentials are missing inside the application config.yaml file?\n" +
+                        "These to be set for publication of KGE file set entries to the Translator Registry.\n"
+                        "Assume that you don't care... thus, the application will still run (only in DEV_MODE)."
                     )
                 else:
                     raise RuntimeError(

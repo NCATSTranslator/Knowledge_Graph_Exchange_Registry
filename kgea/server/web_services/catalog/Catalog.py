@@ -349,11 +349,12 @@ class KgeFileSet:
             input_format = kge_file_spec['input_format']
             input_compression = kge_file_spec['input_compression']
 
-            print(
+            logging.debug(
                 f"{name} working on file '{object_key}' of " +
                 f"type '{file_type}', input format '{input_format}' " +
-                f"and with compression '{input_compression}', " +
-                f"located at S3 endpoint '{s3_file_url}',  ", file=stderr
+                f"and with compression '{input_compression}', "
+                # + f"located at S3 endpoint '{s3_file_url}',  "  # the URL is pretty long... only print out if needed
+                # , file=stderr  # converted the print statement to a logging.debug() call
             )
 
             errors: List = list()

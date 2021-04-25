@@ -1,3 +1,4 @@
+import sys
 from os import getenv
 from pathlib import Path
 from typing import Dict, List
@@ -648,6 +649,8 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
             download_url = download_file(_KGEA_APP_CONFIG['bucket'], archive_key, open_file=True)
         else:
             download_url = await compress_download(_KGEA_APP_CONFIG['bucket'], file_set_object_key, open_file=True)
+
+        print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
 
         await redirect(request, download_url)
     else:
