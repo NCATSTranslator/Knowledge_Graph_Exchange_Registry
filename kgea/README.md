@@ -150,13 +150,18 @@ To configure the proper running of the Archive, a configuration file must be set
 The configuration file sets the target AWS S3 storage bucket name and user AWS Cognito authentication parameters. It also can contain (optional) AWS credential configuration (optional if another mode of [AWS Configuration](#amazon-web-services-configuration) is used):
 
 ```yaml
+# AWS Cognito OAuth2 transaction parameters
+# These parameters should match those set as 'app client' parameters in Cognito
+# i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
 oauth2:
-  host:      '<AWS Cognito URL>'
-  client_id: '<myclientid>'     # get from AWS Cognito User Pool app
-  site_uri:  '<ArchiveSiteURL>' # get from AWS Cognito User Pool app
+  host:      ''
+  client_id: ''
+  client_secret: ''
+  site_uri:  ''
   login_callback:  '/oauth2callback'
 
-bucket: 'kgea-bucket'   # REQUIRED: the name of the S3 bucket that will host your kgea files
+bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
 
 # Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
 credentials_file: ''                # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
@@ -166,6 +171,15 @@ credentials_mode: 'default'         # the part of the credentials to use. Allows
 credentials:
   aws_access_key_id: '...'         # the 20 character AWS access key id
   aws_secret_access_key: '...'     # the 40 character AWS secret key
+
+github:
+    token: ''
+
+# Uncomment and set this configuration tag value to override
+# hardcoded default of 3 KGX validation worker tasks
+# No_KGX_Validation_Worker_Tasks:
+
+# secret_key:
 ```
 
 Now when you run the Archive application, this file will be read in, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
