@@ -150,18 +150,19 @@ To configure the proper running of the Archive, a configuration file must be set
 The configuration file sets the target AWS S3 storage bucket name and user AWS Cognito authentication parameters. It also can contain (optional) AWS credential configuration (optional if another mode of [AWS Configuration](#amazon-web-services-configuration) is used):
 
 ```yaml
+# Amazon S3 storage structure
+bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+
 # AWS Cognito OAuth2 transaction parameters
 # These parameters should match those set as 'app client' parameters in Cognito
 # i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
 oauth2:
-  host:      ''
-  client_id: ''
-  client_secret: ''
-  site_uri:  ''
+  host:      '<AWS Cognito URL>'
+  client_id: '<myClientid>'     # get from AWS Cognito User Pool app
+  client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
+  site_uri:  '<myArchiveSiteURL>' # get from AWS Cognito User Pool app
   login_callback:  '/oauth2callback'
-
-bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
-archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
 
 # Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
 credentials_file: ''                # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
