@@ -4,7 +4,7 @@ import pytest
 import json
 from aiohttp import web
 
-from web_services.models.attribute import Attribute
+from kgea.server.web_services.models.attribute import Attribute
 
 
 async def test_access(client):

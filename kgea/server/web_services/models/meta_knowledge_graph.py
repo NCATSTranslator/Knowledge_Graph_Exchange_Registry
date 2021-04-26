@@ -4,10 +4,10 @@ from datetime import date, datetime
 
 from typing import List, Dict, Type
 
-from web_services.models.base_model_ import Model
-from web_services.models.meta_edge import MetaEdge
-from web_services.models.meta_node import MetaNode
-from web_services import util
+from kgea.server.web_services.models.base_model_ import Model
+from kgea.server.web_services.models.meta_edge import MetaEdge
+from kgea.server.web_services.models.meta_node import MetaNode
+from kgea.server.web_services import util
 
 
 class MetaKnowledgeGraph(Model):

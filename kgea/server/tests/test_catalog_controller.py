@@ -4,7 +4,7 @@ import pytest
 import json
 from aiohttp import web
 
-from web_services.models.kge_file_set_entry import KgeFileSetEntry
+from kgea.server.web_services.models.kge_file_set_entry import KgeFileSetEntry
 
 
 async def test_get_file_set_catalog(client):
