@@ -12,7 +12,7 @@
 {% include "logout.button" %}
 {% include "home.button" %}
 {% endblock %}
-{% block title %}Submitter: {{submitter}}<br>Register your KGE File Set{% endblock %}
+{% block title %}Register your KGE File Set<br>Submitter: {{submitter}}{% endblock %}
 {% block content %}
 <form method="post"
       action="{{registration_action}}"
@@ -20,9 +20,10 @@
       accept-charset="utf-8"
 >
     <p></p><div style="font-size: smaller">Mandatory fields noted by a '<span style="color: red; font-weight: bold">*</span>'.</div>
-    <p>
-    <span class="label">Email:</span> {{submitter_email}}
-    </p>
+    <p></p>
+    <b>Email:</b> {{submitter_email}}
+
+
     <input id="submitter" type="hidden" name="submitter" value="{{submitter}}" />
     <input id="submitter_email" type="hidden" name="submitter_email" value="{{submitter_email}}" />
     <p></p>
@@ -95,5 +96,5 @@ Detailed description of knowledge graph.</textarea>
 {% endblock %}
 {% block app_footer %}
 (*) For examples of good Knowledge Graph names,
-see the <a href="https://smart-api.info/registry">SmartAPI Registry</a>.
+see the <a href="https://smart-api.info/registry" target="_blank">SmartAPI Registry</a>.
 {% endblock %}
