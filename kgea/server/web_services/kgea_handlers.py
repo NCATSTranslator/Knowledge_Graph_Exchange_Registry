@@ -31,7 +31,7 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     upload_file,
-    download_file,
+    # download_file,
     compress_download,
     create_presigned_url,
     infix_string,
@@ -656,11 +656,11 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
 
         print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
 
-        # temporary workaround
-        webbrowser.open_new_tab(download_url)
+        # temporary workaround for local downloading
+        # if DEV_MODE:
+        #     webbrowser.open_new_tab(download_url)
 
-        # await redirect(request, download_url)
-        return web.Response(text="Downloading...")
+        await redirect(request, download_url)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page

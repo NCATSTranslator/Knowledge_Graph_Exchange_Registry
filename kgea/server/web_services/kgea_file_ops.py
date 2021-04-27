@@ -28,7 +28,7 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-import webbrowser
+# import webbrowser
 
 import boto3
 from botocore.exceptions import ClientError
@@ -768,11 +768,11 @@ def infix_string(name, infix, delimiter="."):
     return name
 
 
-def download_file(bucket, object_key, open_file=False):
-    download_url = create_presigned_url(bucket=bucket, object_key=object_key)
-    if open_file:
-        webbrowser.open_new_tab(download_url)
-    return download_url
+# def download_file(bucket, object_key, open_file=False):
+#     download_url = create_presigned_url(bucket=bucket, object_key=object_key)
+#     # if open_file:
+#     #     webbrowser.open_new_tab(download_url)
+#     return download_url
 
 
 async def compress_download(bucket, file_set_object_key):
