@@ -42,19 +42,6 @@ async def make_app():
                           path=templates_dir + '/images',
                           name='images')
 
-    # # Enable CORS for all origins.
-    # cors = aiohttp_cors.setup(app, defaults={
-    #     "*": aiohttp_cors.ResourceOptions(
-    #         allow_credentials=True,
-    #         expose_headers="*",
-    #         allow_headers="*",
-    #     )
-    # })
-    #
-    # # Register all routers for CORS.
-    # for route in list(app.router.routes()):
-    #     cors.add(route)
-
     KgeaSession.initialize(app)
     
     return app

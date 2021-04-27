@@ -15,6 +15,7 @@ from asyncio.events import AbstractEventLoop
 
 from aiohttp import web, ClientSession
 from aiohttp_session import AbstractStorage, setup, new_session, get_session
+from multidict import MultiDict
 
 from kgea.server.config import get_app_config
 
@@ -181,6 +182,16 @@ async def redirect(request, location: str, active_session: bool = False):
         active_session
     )
 
+async def download(request, location: str, active_session: bool = False):
+    # TODO: might need to urlencode query parameter values in the location?
+    logger.debug('redirect() to location: ' + str(location))
+    await _process_redirection(
+        request,
+        web.HTTPFound(location, headers=MultiDict({
+            'CONTENT-DISPOSITION': 'attachment'
+        })),
+        active_session
+    )
 
 async def report_not_found(request, reason: str, active_session: bool = False):
     await _process_redirection(

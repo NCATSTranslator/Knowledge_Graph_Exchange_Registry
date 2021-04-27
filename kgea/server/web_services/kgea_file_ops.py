@@ -280,8 +280,12 @@ def create_presigned_url(bucket, object_key, expiration=86400):
     #
     # This may thrown a Boto related exception - assume that it will be catch by the caller
     response = s3_client.generate_presigned_url(
-        'get_object',
-        Params={'Bucket': bucket, 'Key': object_key},
+        ClientMethod='get_object',
+        Params={
+            'Bucket': bucket,
+            'Key': object_key,
+            'ResponseContentDisposition': 'attachment'
+        },
         ExpiresIn=expiration
     )
 
@@ -775,7 +779,12 @@ def infix_string(name, infix, delimiter="."):
 #     return download_url
 
 
-async def compress_download(bucket, file_set_object_key):
+async def compress_download(
+        bucket,
+        file_set_object_key,
+        # open_file=False
+) -> str:
+
     part = file_set_object_key.split('/')
     archive_file_name = str(part[-3]).strip()+"_"+str(part[-2]).strip()
     archive_path = "{file_set_object_key}archive/{archive_file_name}.tar.gz".format(
@@ -800,6 +809,7 @@ async def compress_download(bucket, file_set_object_key):
     # execute the job
     job.tar()
 
+    # return download_file(bucket,archive_path,open_file)
     return archive_path
 
 

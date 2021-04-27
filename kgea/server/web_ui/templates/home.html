@@ -1,7 +1,9 @@
 {% extends "layout.html" %}
 {% block scripts %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"
+            integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
+            crossorigin="anonymous"></script>
     <script>
         // empty catalog... needs to be retrieved from the back end
         let kgea_catalog = {};
@@ -78,12 +80,12 @@
             let formData = new FormData();
 
             try {
-                 // TODO: What happens to the data returned here?
-                 // TODO: Should this fetch rather be a redirect in a separate tab or window?
-                let r = await fetch(url, {
-                    method: "GET",
-                    credentials: "include"
-                });
+                let a = document.createElement('a');
+                a.href = url;
+                document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+                a.click();
+                a.remove();  //afterwards we remove the element again
+
                 console.log('HTTP response code:',r.status);
 
             } catch(e) {
@@ -95,6 +97,7 @@
         }
 
         let self = this;
+
         $(document).ready(function () {
 
             $('#kg_name').autocomplete({
