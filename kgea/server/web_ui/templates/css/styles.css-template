@@ -101,7 +101,7 @@ label{
 .tooltip .tooltiptext {
   visibility: hidden;
   width: 260px;
-  /*background-color: #5e2ca5;*/
+  background-color: #5e2ca5;
   font-family: Arial, sans-serif;
   font-weight: bold;
   font-size: smaller;
