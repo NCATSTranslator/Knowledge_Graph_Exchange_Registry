@@ -4,17 +4,17 @@ info:
   title: >-
     SemMedDb June 2020 file set Knowledge Graph eXchange File Set.
   description: >-
-    Another test of the KGEA archive
+    Detailed description of knowledge graph.
   license:
     name: "Creative-Commons-4.0"
     url:  "https://creativecommons.org/licenses/by/4.0/legalcode"
   termsOfService: ""
   contact:
-    name: "Trans Lator"
+    name: "Richard Bruskiewich"
     x-role: "Submitter"
-    email: "translator@ncats.nih.gov"
+    email: "richard@starinformatics.com"
   x-translator:
-    component: "ARA"
+    component: "KP"
     team:
     - "STAR Informatics"
   x-kge:
