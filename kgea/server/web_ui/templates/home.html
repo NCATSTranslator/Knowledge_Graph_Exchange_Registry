@@ -80,11 +80,16 @@
             try {
                  // TODO: What happens to the data returned here?
                  // TODO: Should this fetch rather be a redirect in a separate tab or window?
-                let r = await fetch(url, {
-                    method: "GET",
-                    credentials: "include",
-                    mode: "cors"
-                });
+                //let r = await fetch(url, {
+                //   mode: 'no-cors',
+                //    credentials: 'include'
+                //});
+                let a = document.createElement('a');
+                a.href = url;
+                document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+                a.click();
+                a.remove();  //afterwards we remove the element again
+
                 console.log('HTTP response code:',r.status);
 
             } catch(e) {

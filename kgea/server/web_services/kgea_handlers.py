@@ -24,6 +24,7 @@ from kgea.server.config import get_app_config, CONTENT_METADATA_FILE
 
 from .kgea_session import (
     redirect,
+    download,
     with_session,
     report_error,
     report_not_found
@@ -657,7 +658,7 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
 
         print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
 
-        await redirect(request, download_url)
+        await download(request, download_url)
 
     else:
         # If session is not active, then just a redirect
