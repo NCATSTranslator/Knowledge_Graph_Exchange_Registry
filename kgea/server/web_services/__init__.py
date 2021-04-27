@@ -31,6 +31,8 @@ def main():
                 },
                 pythonic_params=True,
                 pass_context_arg_name='request')
+
+    # See https://github.com/aio-libs/aiohttp-cors#usage
     
     # Enable CORS for all origins.
     cors = aiohttp_cors.setup(app.app, defaults={
