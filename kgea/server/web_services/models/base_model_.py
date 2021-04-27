@@ -2,7 +2,7 @@ import pprint
 
 import typing
 
-from web_services import util
+from kgea.server.web_services import util
 
 T = typing.TypeVar('T')
 

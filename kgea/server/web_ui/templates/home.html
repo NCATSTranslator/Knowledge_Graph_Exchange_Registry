@@ -62,15 +62,13 @@
                     "kg_version: '" + kg_version + "'" +
                 "')"
             );
-            window.alert(
-                "DownloadFile(" +
-                    "action: '" + source.target.id+"', " +
-                    "kg_id: '" + kg_id + "', " +
-                    "kg_version: '" + kg_version + "'" +
-                "')"
-            );
-
-
+            // window.alert(
+            //     "DownloadFile(" +
+            //         "action: '" + source.target.id+"', " +
+            //         "kg_id: '" + kg_id + "', " +
+            //         "kg_version: '" + kg_version + "'" +
+            //     "')"
+            // );
 
             let kg_name = kg_id + '/' + kg_version
             let url = '{{ archive_path }}' + kg_name + '/' + source.target.id;
