@@ -11,6 +11,8 @@ except ImportError:
 from string import Template
 import re
 
+import webbrowser
+
 from aiohttp import web
 from aiohttp_session import get_session
 
@@ -646,13 +648,17 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
 
         if len(maybe_archive) == 1:
             archive_key = maybe_archive[0]
-            download_url = download_file(_KGEA_APP_CONFIG['bucket'], archive_key, open_file=True)
         else:
-            download_url = await compress_download(_KGEA_APP_CONFIG['bucket'], file_set_object_key, open_file=True)
+            #download_url = download_file(_KGEA_APP_CONFIG['bucket'], archive_key, open_file=True)
+            archive_key = await compress_download(_KGEA_APP_CONFIG['bucket'], file_set_object_key)
+
+        download_url = create_presigned_url(bucket=_KGEA_APP_CONFIG['bucket'], object_key=archive_key)
+        # webbrowser.open_new_tab(download_url)
 
         print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
 
         await redirect(request, download_url)
+
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
