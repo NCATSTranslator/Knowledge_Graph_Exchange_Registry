@@ -59,7 +59,8 @@ class KgeaSession:
             import aiomcache
             from aiohttp_session.memcached_storage import MemcachedStorage
             mc = aiomcache.Client("memcached", 11211)
-            cls._session_storage = MemcachedStorage(mc)
+            # we assume an HTTPS SSL secured site, hence 'secure=True'
+            cls._session_storage = MemcachedStorage(mc, secure=True)
 
     @classmethod
     def get_storage(cls) -> AbstractStorage:
