@@ -33,7 +33,7 @@ def main():
                 pass_context_arg_name='request')
 
     # See https://github.com/aio-libs/aiohttp-cors#usage
-    
+
     # Enable CORS for all origins.
     cors = aiohttp_cors.setup(app.app, defaults={
         "*": aiohttp_cors.ResourceOptions(
@@ -61,16 +61,16 @@ def main():
     # X-Amz-Signature=8ce60f9ab102ca90de7a6f7fff405760da42a3a0d1b142d08db2a21010af6448’
     # (Reason: Credential is not supported if the CORS header ‘Access-Control-Allow-Origin’ is ‘*’).
 
-    resource = cors.add(app.app.router.add_resource("/kge-data/test_graph_for_kgx_validation/2021-04-24/archive/"))
-    cors.add(
-        resource.add_route("GET", download_file_set), {
-            "https://kgea-bucket.s3.amazonaws.com": aiohttp_cors.ResourceOptions(
-                allow_credentials=True,
-                # expose_headers=("X-Custom-Server-Header",),
-                allow_headers=( "Content-Type"),
-                max_age=3600,
-            )
-        })
+    # resource = cors.add(app.app.router.add_resource("/kge-data/test_graph_for_kgx_validation/2021-04-24/archive/"))
+    # cors.add(
+    #     resource.add_route("GET", download_file_set), {
+    #         "https://kgea-bucket.s3.amazonaws.com": aiohttp_cors.ResourceOptions(
+    #             allow_credentials=True,
+    #             # expose_headers=("X-Custom-Server-Header",),
+    #             allow_headers=( "Content-Type"),
+    #             max_age=3600,
+    #         )
+    #     })
 
     KgeaSession.initialize(app.app)
 
