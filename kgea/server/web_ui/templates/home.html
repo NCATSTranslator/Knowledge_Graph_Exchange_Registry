@@ -72,8 +72,8 @@
             //     "')"
             // );
 
-            let kg_name = kg_id + '/' + kg_version
-            let url = '{{ archive_path }}' + kg_name + '/' + source.target.id;
+            let file_set = kg_id + '/' + kg_version
+            let url = '{{ archive_path }}' + file_set + '/' + source.target.id;
 
             console.log("Downloading  URL: '"+url+"'");
 
@@ -161,8 +161,8 @@
                 </div>
             </td>
             <td>
-                <p><label for="kg_name"><b>Graph Name</b></label>
-                <input id="kg_name" type="text"/>
+                <!-- p><label for="kg_name"><b>Graph Name</b></label>
+                <input id="kg_name" type="text"/ -->
                 <!-- These kg_name and kg_version widgets need to be
                      replaced with an integrated UI which takes the results
                      of call to /catalog, to give the user a list of available
