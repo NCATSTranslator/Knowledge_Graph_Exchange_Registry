@@ -29,7 +29,6 @@ except ImportError:
     from yaml import Loader, Dumper
 
 import webbrowser
-import requests
 
 import boto3
 from botocore.exceptions import ClientError
@@ -772,11 +771,11 @@ def infix_string(name, infix, delimiter="."):
 def download_file(bucket, object_key, open_file=False):
     download_url = create_presigned_url(bucket=bucket, object_key=object_key)
     if open_file:
-        return download_url, webbrowser.open_new_tab(download_url)
+        webbrowser.open_new_tab(download_url)
     return download_url
 
 
-async def compress_download(bucket, file_set_object_key, open_file=False):
+async def compress_download(bucket, file_set_object_key):
     part = file_set_object_key.split('/')
     archive_file_name = str(part[-3]).strip()+"_"+str(part[-2]).strip()
     archive_path = "{file_set_object_key}archive/{archive_file_name}.tar.gz".format(
@@ -801,33 +800,33 @@ async def compress_download(bucket, file_set_object_key, open_file=False):
     # execute the job
     job.tar()
 
-    return download_file(bucket, archive_path, open_file)
+    return archive_path
 
 
-@prepare_test
-# @prepare_test_random_object_location
-def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
-    try:
-        with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_id))
-            url = download_file(
-                bucket=test_bucket,
-                object_key=get_object_location(test_kg_id) + TEST_FILE_NAME,
-                open_file=False
-            )  # open_file=False to affirm we won't trigger a browser action
-            print(url)
-            response = requests.get(url)
-            assert (response.status_code == 200)
-            # TODO: test for equal content from download response
-    except FileNotFoundError as e:
-        logger.error("Test is malformed!")
-        logger.error(e)
-        return False
-    except AssertionError as e:
-        logger.error('URL is not returning a downloadable resource (response code is not 200)')
-        logger.error(e)
-        return False
-    return True
+# @prepare_test
+# # @prepare_test_random_object_location
+# def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
+#     try:
+#         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+#             object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_id))
+#             url = download_file(
+#                 bucket=test_bucket,
+#                 object_key=get_object_location(test_kg_id) + TEST_FILE_NAME,
+#                 open_file=False
+#             )  # open_file=False to affirm we won't trigger a browser action
+#             print(url)
+#             response = requests.get(url)
+#             assert (response.status_code == 200)
+#             # TODO: test for equal content from download response
+#     except FileNotFoundError as e:
+#         logger.error("Test is malformed!")
+#         logger.error(e)
+#         return False
+#     except AssertionError as e:
+#         logger.error('URL is not returning a downloadable resource (response code is not 200)')
+#         logger.error(e)
+#         return False
+#     return True
 
 
 def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -> Union[None, bytes, str]:
@@ -1012,7 +1011,7 @@ if __name__ == '__main__':
     # run_test(test_upload_file_as_archive)
 
     run_test(test_upload_file_to_archive)
-    run_test(test_download_file)
+    # run_test(test_download_file)
 
     run_test(test_get_archive_contents)
 
