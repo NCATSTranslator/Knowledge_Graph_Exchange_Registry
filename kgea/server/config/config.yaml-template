@@ -24,8 +24,8 @@ credentials:
 github:
     token: ''
 
-# Uncomment and set this configuration tag value to override
-# hardcoded default of 3 KGX validation worker tasks
-# No_KGX_Validation_Worker_Tasks:
+# Uncomment and set this configuration tag value to override the
+# KGE Archive Catalog hardcoded to a default of 3 KGX validation worker tasks
+# Number_of_KGX_Validation_Worker_Tasks: 3
 
 # secret_key:

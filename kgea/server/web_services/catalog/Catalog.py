@@ -85,7 +85,7 @@ KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 _KGEA_APP_CONFIG = get_app_config()
 
 # one could perhaps parameterize this in the KGEA_APP_CONFIG
-_NO_KGX_VALIDATION_WORKER_TASKS = _KGEA_APP_CONFIG.setdefault("No_KGX_Validation_Worker_Tasks", 3)
+_NUMBER_OF_KGX_VALIDATION_WORKER_TASKS = _KGEA_APP_CONFIG.setdefault("Number_of_KGX_Validation_Worker_Tasks", 3)
 
 
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
@@ -170,11 +170,12 @@ class KgeFileSet:
             # between a KGX validation process and the Registry
             self.validation_queue = asyncio.Queue()
 
-            # Create three worker tasks to process the queue concurrently.
+            # Create _NO_KGX_VALIDATION_WORKER_TASKS worker
+            # tasks to concurrently process the validation_queue.
             self.tasks = []
 
             # Validation worker tasks set running
-            for i in range(_NO_KGX_VALIDATION_WORKER_TASKS):
+            for i in range(_NUMBER_OF_KGX_VALIDATION_WORKER_TASKS):
                 task = asyncio.create_task(
                     self.validate(
                         f"KGX Validation Worker-{i} for KG Id '" + self.kg_id + "'"
