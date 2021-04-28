@@ -40,9 +40,9 @@ from .kgea_file_ops import (
     # generate_translator_registry_entry,
     get_object_location,
     # get_kg_versions_available,
-
+    
     with_version,
-    with_subfolder
+    with_subfolder, object_key_exists
 )
 
 from .kgea_stream import transfer_file_from_url
@@ -570,37 +570,40 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
 
         file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
         if not file_set_location:
-            await report_not_found(request, "kge_meta_knowledge_graph(): unknown KGE File Set '" + kg_id + "'?")
+            await report_not_found(
+                request,
+                "kge_meta_knowledge_graph(): unknown KGE File Set version '" + kg_id + "' for graph '" + kg_id + "'?"
+            )
 
-        # Listings Approach
-        # - Introspect on Bucket
-        # - Create URL per Item Listing
-        # - Send Back URL with Dictionary
-        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-        # TODO: convert into redirect approach with cross-origin scripting?
-        kg_files = kg_files_in_location(
+        content_metadata_file_key = file_set_location + "content_metadata.json"
+        
+        if not object_key_exists(
             bucket_name=_KGEA_APP_CONFIG['bucket'],
-            object_location=file_set_location
+            object_key=content_metadata_file_key
+        ):
+            await report_not_found(
+                request,
+                "kge_meta_knowledge_graph(): KGX content metadata unavailable for " +
+                "KGE File Set version '" + kg_id + "' for graph '" + kg_id + "'?"
+            )
+
+        # Current implementation of this handler triggers a
+        # download of the KGX content metadata file, if available
+        download_url = create_presigned_url(
+            bucket=_KGEA_APP_CONFIG['bucket'],
+            object_key=content_metadata_file_key
         )
+        
+        print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
 
-        #
-        # RMB - probably legacy code to be deleted but I keep it visible, just in case
-        #
-        # pattern = Template('$FILES_LOCATION([^\/]+\..+)').substitute(
-        #     FILES_LOCATION=file_set_location
-        # )
-        # kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-        # kg_urls = dict(
-        #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
-        #         kg_listing)
-        # )
-
-        kg_names = [kg_name.split('/')[1] for kg_name in kg_files]
-
-        logger.debug('knowledge_map names: %s', kg_names)
-
-        response = web.Response(text=str(kg_names), status=200)
-        return await with_session(response)
+        await download(request, download_url)
+        
+        # Alternate version could directly return the JSON
+        # of the Content Metadata as a direct response?
+        
+        # response = web.json_response(text=str(file_set_location))
+        # return await with_session(request, response)
+        
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page

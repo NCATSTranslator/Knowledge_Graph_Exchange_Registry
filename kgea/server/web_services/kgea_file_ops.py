@@ -137,25 +137,40 @@ def with_subfolder(location: str, subfolder: str):
     return location
 
 
-def location_available(bucket_name, object_key):
+def object_key_exists(bucket_name, object_key) -> bool:
     """
-    Guarantee that we can write to the location of the object without overriding everything
+    Checks for the existence of the specified object key
+
+    :param bucket_name: The bucket
+    :param object_key: Target object key in the bucket
+    :return: True if the object is in the bucket, False if it is not in the bucket (False also if empty object key)
+    """
+    if not object_key:
+        return False
+    
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    key = object_key
+    objs = list(bucket.objects.filter(Prefix=key))
+    return any([w.key == key for w in objs])
+
+
+def location_available(bucket_name, object_key) -> bool:
+    """
+    Predicate to guarantee that we can write to the
+    location of the object without overriding everything.
 
     :param bucket_name: The bucket
     :param object_key: The object in the bucket
     :return: True if the object is not in the bucket, False if it is already in the bucket
     """
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(bucket_name)
-    key = object_key
-    objs = list(bucket.objects.filter(Prefix=key))
-    if any([w.key == key for w in objs]):
+    if object_key_exists(bucket_name, object_key):
         # exists
-        # invert because unavailable
+        # invert because object key location is unavailable
         return False
     else:
         # doesn't exist
-        # invert because available
+        # invert because object key location is available
         return True
 
 

@@ -64,13 +64,13 @@
                     "kg_version: '" + kg_version + "'" +
                 "')"
             );
-            // window.alert(
-            //     "DownloadFile(" +
-            //         "action: '" + source.target.id+"', " +
-            //         "kg_id: '" + kg_id + "', " +
-            //         "kg_version: '" + kg_version + "'" +
-            //     "')"
-            // );
+            window.alert(
+                "DownloadFile(" +
+                    "action: '" + source.target.id+"', " +
+                    "kg_id: '" + kg_id + "', " +
+                    "kg_version: '" + kg_version + "'" +
+                "')"
+            );
 
             let file_set = kg_id + '/' + kg_version
             let url = '{{ archive_path }}' + file_set + '/' + source.target.id;
@@ -181,17 +181,7 @@
                 </select>
                 <br>
                 <p>
-{#                    <form id="knowledge_map" method="get" onsubmit="DownloadFile(this)">#}
-{#                        <input type="submit" value="Download Metadata" />#}
-{#                    </form>#}
-
                 <button id="meta_knowledge_graph">Download Metadata</button>
-
-
-{#                    <form id="access" method="get" onsubmit="DownloadFile(this)">#}
-{#                        <input type="submit" value="Download Data File(s)" />#}
-{#                    </form>#}
-
                 <button id="download">Download Data File(s)</button>
             </td>
         </tr>
