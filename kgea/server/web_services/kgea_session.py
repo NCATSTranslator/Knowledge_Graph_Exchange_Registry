@@ -182,6 +182,7 @@ async def redirect(request, location: str, active_session: bool = False):
         active_session
     )
 
+
 async def download(request, location: str, active_session: bool = False):
     # TODO: might need to urlencode query parameter values in the location?
     logger.debug('redirect() to location: ' + str(location))
@@ -192,6 +193,7 @@ async def download(request, location: str, active_session: bool = False):
         })),
         active_session
     )
+
 
 async def report_not_found(request, reason: str, active_session: bool = False):
     await _process_redirection(
