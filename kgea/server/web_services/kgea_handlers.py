@@ -30,6 +30,7 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     upload_file,
+    upload_file_multipart,
     # download_file,
     compress_download,
     create_presigned_url,
@@ -426,7 +427,7 @@ async def upload_kge_file(
             So for now we're just streaming into the bucket, only archiving when required - on download.
             """
 
-            uploaded_file_object_key = upload_file(
+            uploaded_file_object_key = upload_file_multipart(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
                 file_name=content_name,        # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],

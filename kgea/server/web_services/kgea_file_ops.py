@@ -478,8 +478,51 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+import threading
 
-def upload_file(data_file, file_name, bucket, object_location, config=None):
+
+def pathless_file_size(data_file):
+    """
+    pathless_file_size
+
+
+
+    :param data_file:
+    :return size:
+    """
+    data_file.seek(0, 2)
+    size = data_file.tell()
+    data_file.seek(0, 0)
+    return size
+
+class ProgressPercentage(object):
+
+    def __init__(self, filename, data_file):
+
+        self._filename = filename
+        self.data_file = data_file
+        self.size = pathless_file_size(self.data_file)
+
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        # To simplify we'll assume this is hooked up
+        # to a single filename.
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self.size) * 100
+            print(percentage)
+
+            # sys.stdout.write(
+            #     "\r%s  %s / %s  (%.2f%%)" % (
+            #         self._filename, self._seen_so_far, self._size,
+            #         percentage)
+            # )
+            # sys.stdout.flush()
+
+
+def upload_file(data_file, file_name, bucket, object_location, config=None, callback=None):
     """Upload a file to an S3 bucket
 
     :param data_file: File to upload (can be read in binary mode)
@@ -493,13 +536,12 @@ def upload_file(data_file, file_name, bucket, object_location, config=None):
         FILENAME=Path(file_name).stem,
         EXTENSION=splitext(file_name)[1]
     )
-
     # Upload the file
     try:
         if config is None:
-            s3_client.upload_fileobj(data_file, bucket, object_key)
+            s3_client.upload_fileobj(data_file, bucket, object_key, Callback=ProgressPercentage(file_name, data_file))
         else:
-            s3_client.upload_fileobj(data_file, bucket, object_key, Config=config)
+            s3_client.upload_fileobj(data_file, bucket, object_key, Config=config, Callback=ProgressPercentage(file_name, data_file))
     except Exception as exc:
         logger.error("kgea file ops: upload_file() exception: " + str(exc))
         raise exc
@@ -541,8 +583,8 @@ def upload_file_multipart(data_file, file_name, bucket, object_location, metadat
         use_threads=True,
         max_concurrency=concurrency
     )
-
-    return upload_file(data_file, file_name, bucket, object_location, config=transfer_config)
+    print('upload says hello')
+    return upload_file(data_file, file_name, bucket, object_location, config=transfer_config, callback=None)
 
 
 def package_file(name: str, target_file):
