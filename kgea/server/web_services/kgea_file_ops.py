@@ -209,6 +209,7 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
 
 def kg_files_in_location(bucket_name, object_location='') -> List[str]:
     bucket_listings: List = list()
+    print(s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name))
     for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name):
         if 'Contents' in p:
             for e in p['Contents']:

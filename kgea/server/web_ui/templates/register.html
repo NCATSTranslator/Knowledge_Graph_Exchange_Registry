@@ -24,29 +24,30 @@
     <b>Email:</b> {{submitter_email}}
 
 
-    <input id="submitter" type="hidden" name="submitter" value="{{submitter}}" />
+    <input id="submitter" type="hidden" name="submitter" value="{{submitter}}" /><br>
     <input id="submitter_email" type="hidden" name="submitter_email" value="{{submitter_email}}" />
     <p></p>
         <p>
         <!--    translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)-->
-        <label  class="label" for="translator_component"><span style="color: red; font-weight: bold">*</span>Translator Component:</label>
+        <label  class="label" for="translator_component"><span style="color: red; font-weight: bold">*</span>Translator Component</label><br>
         <select name="translator_component" id="translator_component">
-          <option>---- Specify Translator Component ----</option>
-          <option value="KP">Knowledge Provider</option>
-          <option value="ARA">Autonomous Relay Agent</option>
-          <option value="SRI">Standards & Reference Implementation</option>
-          <option value="Other">Other</option>
+          <optgroup label="---- Specify Translator Component ----">
+              <option value="KP">Knowledge Provider</option>
+              <option value="ARA">Autonomous Relay Agent</option>
+              <option value="SRI">Standards & Reference Implementation</option>
+              <option value="Other">Other</option>
+          </optgroup>
         </select>
     </p>
     <p>
         <!--    translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider-->
-        <label  class="label" for="translator_team"><span style="color: red; font-weight: bold">*</span>Translator Team:</label>
+        <label  class="label" for="translator_team"><span style="color: red; font-weight: bold">*</span>Translator Team</label><br>
         <input id="translator_team" class="textbox" type="text" name="translator_team" />
     </p>
 
     <label class="label" for="kg_name">
-        <span style="color: red; font-weight: bold">*</span>Knowledge Graph Name:
-    </label>
+        <span style="color: red; font-weight: bold">*</span>Knowledge Graph Name
+    </label><br>
     <input id="kg_name" class="textbox" type="text" name="kg_name" />
     <div class="tooltip">
         <img class="tooltip_target" src="images/help-icon.png"/>
@@ -56,17 +57,16 @@
         </span>
     </div>
     <p></p>
-    <label  class="label" for="kg_version"><span style="color: red; font-weight: bold">*</span> Version:</label>
+    <label  class="label" for="kg_version"><span style="color: red; font-weight: bold">*</span> Version</label><br>
     <input id="kg_version" class="textbox" type="text" name="kg_version" value="{{kg_version}}" />
 
     <p>
         <!-- kg_description: detailed description of knowledge graph (multi-lined text)-->
-        <h4>Knowledge Graph Description:</h4>
-        <textarea id="kg_description" class="textbox" type="text" name="kg_description" rows="4" cols="60">
-Detailed description of knowledge graph.</textarea>
+        <h4>Knowledge Graph Description</h4><br>
+        <textarea id="kg_description" class="textbox" type="text" name="kg_description" rows="4" cols="60" placeholder="Detailed description of knowledge graph."></textarea>
     <p></p>
     <!--    license_name - Open Source license name, e.g. MIT, Apache 2.0, etc.-->
-    <label  class="label" for="license_name">License:</label>
+    <label  class="label" for="license_name">License</label><br>
     <select name="license_name" id="license_name">
           <option value="Creative-Commons-4.0" selected>Creative Commons</option>
           <option value="MIT">MIT</option>
@@ -82,13 +82,13 @@ Detailed description of knowledge graph.</textarea>
     </div>
     <p></p>
         <!--    license_url - web site link to project license-->
-        <label  class="label" for="license_url">License URL:</label>
-        <input id="license_url" class="textbox" type="text" name="license_url" />
+        <label  class="label" for="license_url">License URL</label><br>
+        <input id="license_url" class="textbox" type="url" name="license_url" />
     <p></p>
     <p>
         <!--    terms_of_service - specifically relating to the project, beyond the licensing-->
-        <label  class="label" for="terms_of_service">Terms of Service URL:</label>
-        <input id="terms_of_service" class="textbox" type="text" name="terms_of_service" />
+        <label  class="label" for="terms_of_service">Terms of Service URL</label><br>
+        <input id="terms_of_service" class="textbox" type="url" name="terms_of_service" />
     </p>
 
     <p><input type="submit" value="Register"></p>
