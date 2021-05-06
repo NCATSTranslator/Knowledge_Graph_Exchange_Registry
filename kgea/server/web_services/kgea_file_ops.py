@@ -478,14 +478,22 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
-import threading
-
 
 def pathless_file_size(data_file):
     """
     pathless_file_size
 
+    Takes an open file-like object, gets its end location (in bytes), and returns it as a measure of the file size.
 
+    Traditionally, one would use a systems-call to get the size of a file (using the `os` module).
+    But `TemporaryFileWrapper`s do not feature a location in the filesystem, and so cannot be tested with `os` methods,
+    as they require access to a filepath, or a file-like object that supports a path, in order to work.
+
+    This function seeks the end of a file-like object, records the location, and then seeks back to the beginning so that
+    the file behaves as if it was opened for the first time. This way you can get a file's size before reading it.
+
+    (Note how we aren't using a `with` block, which would close the file after use. So this function leaves the file
+    open, as an implicit non-effect. Closing is problematic for TemporaryFileWrappers which wouldn't be operable again.)
 
     :param data_file:
     :return size:
@@ -494,6 +502,9 @@ def pathless_file_size(data_file):
     size = data_file.tell()
     data_file.seek(0, 0)
     return size
+
+
+import threading
 
 class ProgressPercentage(object):
 
@@ -514,13 +525,6 @@ class ProgressPercentage(object):
             percentage = (self._seen_so_far / self.size) * 100
             print(percentage)
 
-            # sys.stdout.write(
-            #     "\r%s  %s / %s  (%.2f%%)" % (
-            #         self._filename, self._seen_so_far, self._size,
-            #         percentage)
-            # )
-            # sys.stdout.flush()
-
 
 def upload_file(data_file, file_name, bucket, object_location, config=None, callback=None):
     """Upload a file to an S3 bucket
@@ -529,6 +533,8 @@ def upload_file(data_file, file_name, bucket, object_location, config=None, call
     :param file_name: Filename to use
     :param bucket: Bucket to upload to
     :param object_location: root S3 object location name.
+    :param config: a means of configuring the network call
+    :param callback: an object that implements __call__, that runs on each file block uploaded (receiving byte data.)
     :return: True if file was uploaded, else False
     """
     object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
@@ -539,9 +545,9 @@ def upload_file(data_file, file_name, bucket, object_location, config=None, call
     # Upload the file
     try:
         if config is None:
-            s3_client.upload_fileobj(data_file, bucket, object_key, Callback=ProgressPercentage(file_name, data_file))
+            s3_client.upload_fileobj(data_file, bucket, object_key, Callback=callback)
         else:
-            s3_client.upload_fileobj(data_file, bucket, object_key, Config=config, Callback=ProgressPercentage(file_name, data_file))
+            s3_client.upload_fileobj(data_file, bucket, object_key, Config=config, Callback=callback)
     except Exception as exc:
         logger.error("kgea file ops: upload_file() exception: " + str(exc))
         raise exc
@@ -584,7 +590,7 @@ def upload_file_multipart(data_file, file_name, bucket, object_location, metadat
         max_concurrency=concurrency
     )
     print('upload says hello')
-    return upload_file(data_file, file_name, bucket, object_location, config=transfer_config, callback=None)
+    return upload_file(data_file, file_name, bucket, object_location, config=transfer_config, callback=ProgressPercentage(file_name, data_file))
 
 
 def package_file(name: str, target_file):
