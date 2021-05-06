@@ -15,9 +15,23 @@ VERSION = "1.0.0"
 REQUIRES = [
     # TODO: fix temporary Patched version of Connexion for proper 'application/x-www-form-urlencoded' support
     "connexion @ git+https://github.com/STARInformatics/connexion.git#egg=connexion",
+    # TODO: temporary patched version of KGX for proper streaming of files for validation
     "swagger-web_ui-bundle==0.0.6",
     "aiohttp_jinja2==1.2.0",
-    "jsonschema<3.0.0"
+    "jsonschema<3.0.0",
+    "multidict",
+    "jinja2 == 2.11.3",
+    "aiohttp_cors >= 0.7.0",
+    # KGE specific
+    "botocore<1.21.0,>=1.20.12",
+    "boto3 >= 1.17.0",
+    "s3-tar",
+    "pyyaml",
+    "aiohttp<3.7",
+    "aiohttp-session",
+    "aiomcache",
+    "jsonschema",
+    "PyGithub"
 ]
 
 setup(

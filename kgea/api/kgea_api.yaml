@@ -146,6 +146,37 @@ paths:
         '302':
           description: >-
             After KGE File Set publication is triggered, user gets redirected to /home.
+  /status/{kg_id}/{kg_version}:
+    get:
+      parameters:
+      - name: kg_id
+        in: path
+        description: >-
+          KGE Knowledge Graph identifier for the knowledge graph
+          with a versioned KGE File Se for which status is required.
+        required: true
+        schema:
+          type: string
+      - name: kg_version
+        in: path
+        description: >-
+          Version identifier of the KGE File Set
+          for which status is required.
+        required: true
+        schema:
+          type: string
+      tags:
+      - catalog
+      summary: Retrieve KGE File Set status
+      operationId: file_set_status
+      responses:
+        '200':
+          description: >-
+            Status report KGE File Set validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KgeFileSetStatus'
   /upload:
     post:
       tags:
@@ -411,6 +442,24 @@ components:
           description: size of file in megabytes
           type: number
           format: float
+    KgeFileSetStatus:
+      description: >-
+        Status report about a KGE File Set.
+      type: object
+      properties:
+        status:
+          description: >-
+            KGE File Set status code, one of 'processing', 'validated' or 'error'.
+          type: string
+        errors:
+          description: >-
+            A list of error status messages with an 'error' status code.
+          type: array
+          items:
+            type: string
+      required:
+        - status
+      additionalProperties: false
     BiolinkEntity:
       description: >-
         Compact URI (CURIE) for a Biolink class, biolink:NamedThing

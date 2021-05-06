@@ -71,26 +71,27 @@ class KgxValidator:
         if file_path:
             # The putative KGX file 'source' is currently sitting at the end
             # of an S3 signed URL(!?) for streaming into the validation.
+            
+            validator = Validator()
 
             transformer = Transformer(stream=True)
-            
+
             transformer.transform(
-                {
-                    'filename': [file_path],
-                    'format': input_format,
-                    'compression': input_compression
-                }
+                input_args={'filename': [file_path], 'format': input_format, 'compression': input_compression},
+                output_args={'format': 'null'},
+                inspector=validator
             )
 
-            errors = self.kgx_data_validator.validate(transformer.store.graph)
-            
+            errors = validator.get_errors()
             if errors:
                 if output:
-                    self.kgx_data_validator.write_report(errors, open(output, 'w'))
+                    self.kgx_data_validator.write_report(open(output, 'w'))
                 else:
-                    self.kgx_data_validator.write_report(errors, stderr)
+                    self.kgx_data_validator.write_report(stderr)
 
-            return errors
+            # as a sanity check, force error data
+            # returned into a list of string error messages
+            return [str(error) for error in errors]
         
         else:
             return ["Empty file source"]

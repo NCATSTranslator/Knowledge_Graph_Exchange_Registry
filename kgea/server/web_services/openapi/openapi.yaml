@@ -147,6 +147,38 @@ paths:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
       x-codegen-request-body-name: body
+  /status/{kg_id}/{kg_version}:
+    get:
+      operationId: file_set_status
+      parameters:
+      - description: KGE Knowledge Graph identifier for the knowledge graph with a
+          versioned KGE File Se for which status is required.
+        explode: false
+        in: path
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Version identifier of the KGE File Set for which status is required.
+        explode: false
+        in: path
+        name: kg_version
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KgeFileSetStatus'
+          description: Status report KGE File Set validation.
+      summary: Retrieve KGE File Set status
+      tags:
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
   /upload:
     post:
       operationId: upload_file
@@ -441,6 +473,30 @@ components:
           title: file_size
           type: number
       title: KgeFile
+      type: object
+    KgeFileSetStatus:
+      additionalProperties: false
+      description: Status report about a KGE File Set.
+      example:
+        errors:
+        - errors
+        - errors
+        status: status
+      properties:
+        status:
+          description: KGE File Set status code, one of 'processing', 'validated'
+            or 'error'.
+          title: status
+          type: string
+        errors:
+          description: A list of error status messages with an 'error' status code.
+          items:
+            type: string
+          title: errors
+          type: array
+      required:
+      - status
+      title: KgeFileSetStatus
       type: object
     BiolinkEntity:
       description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing or

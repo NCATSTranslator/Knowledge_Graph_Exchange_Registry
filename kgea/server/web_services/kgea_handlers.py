@@ -272,6 +272,17 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
     await redirect(request, HOME)
 
 
+async def kge_file_set_status(request: web.Request, kg_id, kg_version) -> web.Response:
+    """Retrieve KGE File Set status
+
+    :param kg_id: KGE Knowledge Graph identifier for the knowledge graph with a versioned KGE File Se for which status is required.
+    :type kg_id: str
+    :param kg_version: Version identifier of the KGE File Set for which status is required.
+    :type kg_version: str
+
+    """
+    return web.Response(status=200)
+
 #############################################################
 # Upload Controller Handler
 #
