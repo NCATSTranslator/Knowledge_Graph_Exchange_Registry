@@ -30,7 +30,7 @@
         <p>
         <!--    translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)-->
         <label  class="label" for="translator_component"><span style="color: red; font-weight: bold">*</span>Translator Component</label><br>
-        <select name="translator_component" id="translator_component">
+        <select name="translator_component" id="translator_component" required>
           <optgroup label="---- Specify Translator Component ----">
               <option value="KP">Knowledge Provider</option>
               <option value="ARA">Autonomous Relay Agent</option>
@@ -42,13 +42,13 @@
     <p>
         <!--    translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider-->
         <label  class="label" for="translator_team"><span style="color: red; font-weight: bold">*</span>Translator Team</label><br>
-        <input id="translator_team" class="textbox" type="text" name="translator_team" />
+        <input id="translator_team" class="textbox" type="text" name="translator_team" required/>
     </p>
 
     <label class="label" for="kg_name">
         <span style="color: red; font-weight: bold">*</span>Knowledge Graph Name
     </label><br>
-    <input id="kg_name" class="textbox" type="text" name="kg_name" />
+    <input id="kg_name" class="textbox" type="text" name="kg_name" required/>
     <div class="tooltip">
         <img class="tooltip_target" src="images/help-icon.png"/>
         <span class="tooltiptext">
@@ -58,7 +58,7 @@
     </div>
     <p></p>
     <label  class="label" for="kg_version"><span style="color: red; font-weight: bold">*</span> Version</label><br>
-    <input id="kg_version" class="textbox" type="text" name="kg_version" value="{{kg_version}}" />
+    <input id="kg_version" class="textbox" type="text" name="kg_version" value="{{kg_version}}" required/>
 
     <p>
         <!-- kg_description: detailed description of knowledge graph (multi-lined text)-->
