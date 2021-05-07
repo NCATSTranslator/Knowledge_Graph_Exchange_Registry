@@ -584,6 +584,24 @@ class KgeKnowledgeGraph:
     def get_provider_metadata_object_key(self):
         return self._provider_metadata_object_key
 
+    def publish_provider_metadata(self):
+        logger.debug("Publishing knowledge graph '" + self.kg_id + "' to the Archive")
+        provider_metadata_file = self.generate_provider_metadata_file()
+        # no kg_version given since the provider metadata is global to Knowledge Graph
+        object_key = add_to_s3_archive(
+            kg_id=self.kg_id,
+            text=provider_metadata_file,
+            file_name=PROVIDER_METADATA_FILE
+        )
+        if not object_key:
+            self.set_provider_metadata_object_key(object_key)
+        else:
+            logger.warning(
+                "publish_file_set(): " + PROVIDER_METADATA_FILE +
+                " for Knowledge Graph '" + self.kg_id +
+                "' not successfully added to KGE Archive storage?"
+            )
+
     def get_name(self) -> str:
         return self.parameter.setdefault("kg_name", self.kg_id)
 
@@ -764,8 +782,11 @@ class KgeArchiveCatalog:
         if 'metadata' in entry:
             self.load_provider_metadata(kg_id=kg_id, metadata_text=entry['metadata'])
         else:
-            # provider_metadata not available? Create a stub graph record then
-            self.register_kge_graph(kg_id=kg_id)
+            # provider.yaml metadata was not loaded, then, ignore this entry and return...
+            logger.warning(
+                "load_archive_entry(): no 'metadata' loaded from archive... ignoring knowledge graph '"+kg_id+"'?"
+            )
+            return
 
         if 'versions' in entry:
             knowledge_graph: KgeKnowledgeGraph = self.get_kge_graph(kg_id)
@@ -831,7 +852,7 @@ class KgeArchiveCatalog:
         # termsOfService: "https://disneyland.disney.go.com/en-ca/terms-conditions/"
         terms_of_service = md.setdefault('termsOfService', 'unknown')
 
-        self.register_kge_graph(
+        self.add_knowledge_graph(
             kg_id=kg_id,
             kg_name=kg_name,
             kg_description=kg_description,
@@ -855,49 +876,26 @@ class KgeArchiveCatalog:
         kg_id = kg_id.replace(' ', '_')  # spaces with underscores
         return kg_id
     
-    # TODO: what is the required idempotency of this KG addition relative to submitters (can submitters change?)
-    # TODO: how do we deal with versioning of submissions across several days?
-    #       Answer: versions are now managed in  the KGEFileSet's  inside the KGEKnowledgeGraph
-    def register_kge_graph(self, **kwargs) -> KgeKnowledgeGraph:
+    # TODO: what is the required idempotency of this KG addition
+    #       relative to submitters (can submitters change?)
+    def add_knowledge_graph(self, **kwargs) -> KgeKnowledgeGraph:
         """
-        As needed, registers a new record for a knowledge graph with a given 'name' for a given 'submitter'.
-        The name is indexed by normalization to lower case and substitution of underscore for spaces.
-        Returns the new or any existing matching KgeKnowledgeGraph entry.
+         As needed, registers a new catalog record for a knowledge graph 'kg_id'
+         with a given 'name' for a given 'submitter'.
 
         :param kwargs: dictionary of metadata describing a KGE File Set entry
-        :return: KgeFileSet of the graph (existing or added)
+        :return: KgeKnowledgeGraph instance of the knowledge graph (existing or added)
         """
-
         kg_id = kwargs['kg_id']
         if kg_id not in self._kge_knowledge_graph_catalog:
             self._kge_knowledge_graph_catalog[kg_id] = KgeKnowledgeGraph(**kwargs)
-
-        knowledge_graph = self._kge_knowledge_graph_catalog[kg_id]
-
-        # TODO: move "publication" of provider.yaml here
-        logger.debug( "Publishing knowledge graph '" + kg_id + "' to the Archive")
-
-        provider_metadata_file = knowledge_graph.generate_provider_metadata_file()
-        # no kg_version given since the provider metadata is global to Knowledge Graph
-        object_key = add_to_s3_archive(
-            kg_id=kg_id,
-            text=provider_metadata_file,
-            file_name=PROVIDER_METADATA_FILE
-        )
-        if not object_key:
-            knowledge_graph.set_provider_metadata_object_key(object_key)
-        else:
-            logger.warning(
-                "publish_file_set(): " + PROVIDER_METADATA_FILE +
-                " for Knowledge Graph '" + kg_id +
-                "' not successfully added to KGE Archive storage?"
-            )
-
         return self._kge_knowledge_graph_catalog[kg_id]
     
     def get_kge_graph(self, kg_id: str) -> Union[KgeKnowledgeGraph, None]:
         """
-        Get the knowledge graph provider metadata associated with a given knowledge graph file set identifier.
+         Get the knowledge graph provider metadata associated with
+         a given knowledge graph file set identifier.
+
         :param kg_id: input knowledge graph file set identifier
         :return: KgeaFileSet; None, if unknown
         """

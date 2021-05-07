@@ -213,7 +213,7 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
 
                 # Here we start to start to track a specific
                 # knowledge graph submission within KGE Archive
-                KgeArchiveCatalog.catalog().register_kge_graph(
+                knowledge_graph = KgeArchiveCatalog.catalog().add_knowledge_graph(
                     kg_id=kg_id,
                     kg_name=kg_name,
                     kg_description=kg_description,
@@ -229,6 +229,9 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
                     kg_version=assigned_version,
                     file_set_location=file_set_location
                 )
+
+                # Also publish a new 'provider.yaml' metadata file to the KGE Archive
+                knowledge_graph.publish_provider_metadata()
 
                 await redirect(request,
                                Template(
