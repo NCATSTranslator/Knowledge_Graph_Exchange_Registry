@@ -114,6 +114,12 @@ class KgeFileType(Enum):
     KGE_ARCHIVE = "KGE data archive"
 
 
+class KgeFileSetStatusCode(Enum):
+    Processing = "KGX File Set is being processed"
+    Validated = "KGX File Set is Validated"
+    Error = "Validation Error"
+
+
 class KgeFileSet:
     """
     Class wrapping information about a specific released version of
@@ -162,7 +168,10 @@ class KgeFileSet:
         # Aiming for a more economical design with reduced process overheads
         # may suggest use of a single "class level" central Queue
         # for validation across all file sets from all knowledge graphs.
+        self.status: KgeFileSetStatusCode
         if validate:
+            self.status = KgeFileSetStatusCode.Processing
+
             # KGX Validator singleton for this KGE File Set
             self.validator = KgxValidator()
 
@@ -182,6 +191,8 @@ class KgeFileSet:
                     )
                 )
                 self.tasks.append(task)
+        else:
+            self.status = KgeFileSetStatusCode.Validated
 
     def get_version(self):
         return self.kg_version
@@ -605,12 +616,11 @@ class KgeKnowledgeGraph:
     def get_version_names(self) -> List[str]:
         return list(self._file_set_versions.keys())
 
+    # TODO: should check if the Knowledge Graph is already published
+    #       (this would be the case if just a new file set version is being published?)
     def publish_knowledge_graph(self):
 
-        logger.debug(
-            "Publishing knowledge graph '" + self.kg_id +
-            "' to the Archive and to the Translator Registry"
-        )
+        logger.debug( "Publishing knowledge graph '" + self.kg_id + "' to the Archive")
 
         provider_metadata_file = self.generate_provider_metadata_file()
         # no kg_version given since the provider metadata is global to Knowledge Graph

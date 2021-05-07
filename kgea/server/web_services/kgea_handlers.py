@@ -3,6 +3,8 @@ from os import getenv
 from pathlib import Path
 from typing import Dict, List
 
+from .models import KgeFileSetStatus
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -281,6 +283,15 @@ async def kge_file_set_status(request: web.Request, kg_id, kg_version) -> web.Re
     :type kg_version: str
 
     """
+    logger.debug("Entering kge_file_set_status()")
+
+    if not (kg_id and kg_version):
+        await report_not_found(request, "kge_file_set_status(): knowledge graph id or file set version are null?")
+
+    session = await get_session(request)
+    if not session.empty:
+        fss: KgeFileSetStatus = KgeFileSetStatus()
+
     return web.Response(status=200)
 
 #############################################################

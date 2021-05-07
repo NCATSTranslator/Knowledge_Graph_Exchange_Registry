@@ -1,8 +1,6 @@
 # coding: utf-8
 
-from datetime import date, datetime
-
-from typing import List, Dict, Type
+from typing import List, Dict
 
 from kgea.server.web_services.models.base_model_ import Model
 from kgea.server.web_services.models.meta_edge import MetaEdge

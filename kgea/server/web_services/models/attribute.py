@@ -1,9 +1,5 @@
 # coding: utf-8
 
-from datetime import date, datetime
-
-from typing import List, Dict, Type
-
 from kgea.server.web_services.models.base_model_ import Model
 from kgea.server.web_services import util
 
