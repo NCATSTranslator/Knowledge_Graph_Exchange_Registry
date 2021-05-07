@@ -294,8 +294,10 @@ class KgeFileSet:
 
         # trigger asynchronous KGX metadata file validation process here?
         logger.debug(
-            "Checking if " + str(file_type) + " data file, with object_key = '" + object_key + "'" +
-            "and with S3 object URL = '" + s3_file_url + "' is KGX compliant")
+            "Checking if " + str(file_type) +
+            " data file, with object_key = '" + object_key +
+            "' is KGX compliant"
+        )
 
         if file_type == KgeFileType.KGX_DATA_FILE:
             input_format = self.data_files[object_key]["input_format"]
@@ -361,12 +363,11 @@ class KgeFileSet:
             input_format = kge_file_spec['input_format']
             input_compression = kge_file_spec['input_compression']
 
-            logging.debug(
+            print(
                 f"{name} working on file '{object_key}' of " +
                 f"type '{file_type}', input format '{input_format}' " +
-                f"and with compression '{input_compression}', "
-                # + f"located at S3 endpoint '{s3_file_url}',  "  # the URL is pretty long... only print out if needed
-                # , file=stderr  # converted the print statement to a logging.debug() call
+                f"and with compression '{input_compression}', ",
+                file=stderr
             )
 
             errors: List = list()
