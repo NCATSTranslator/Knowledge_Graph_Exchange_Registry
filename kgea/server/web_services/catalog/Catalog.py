@@ -374,12 +374,12 @@ class KgeFileSet:
             if file_type == KgeFileType.KGX_DATA_FILE:
 
                 # Run validation of KGX knowledge graph data files here
-                errors: List[str] = \
-                    await self.validator.validate_data_file(
-                        file_path=s3_file_url,
-                        input_format=input_format,
-                        input_compression=input_compression
-                    )
+                # errors: List[str] = \
+                #     await self.validator.validate_data_file(
+                #         file_path=s3_file_url,
+                #         input_format=input_format,
+                #         input_compression=input_compression
+                #     )
 
                 if not errors:
                     self.data_files[object_key]["kgx_compliant"] = True
