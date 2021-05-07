@@ -578,6 +578,12 @@ class KgeKnowledgeGraph:
             )
         self._provider_metadata_object_key: Optional[str] = None
 
+    def set_provider_metadata_object_key(self, object_key: str):
+        self._provider_metadata_object_key = object_key
+
+    def get_provider_metadata_object_key(self):
+        return self._provider_metadata_object_key
+
     def get_name(self) -> str:
         return self.parameter.setdefault("kg_name", self.kg_id)
 
@@ -615,26 +621,6 @@ class KgeKnowledgeGraph:
 
     def get_version_names(self) -> List[str]:
         return list(self._file_set_versions.keys())
-
-    # TODO: should check if the Knowledge Graph is already published
-    #       (this would be the case if just a new file set version is being published?)
-    def publish_knowledge_graph(self):
-
-        logger.debug( "Publishing knowledge graph '" + self.kg_id + "' to the Archive")
-
-        provider_metadata_file = self.generate_provider_metadata_file()
-        # no kg_version given since the provider metadata is global to Knowledge Graph
-        self._provider_metadata_object_key = add_to_s3_archive(
-            kg_id=self.kg_id,
-            text=provider_metadata_file,
-            file_name=PROVIDER_METADATA_FILE
-        )
-        if not self._provider_metadata_object_key:
-            logger.warning(
-                "publish_file_set(): " + PROVIDER_METADATA_FILE +
-                " for Knowledge Graph '" + self.kg_id +
-                "' not successfully added to KGE Archive storage?"
-            )
 
     def load_file_set_versions(
             self,
@@ -879,13 +865,34 @@ class KgeArchiveCatalog:
         Returns the new or any existing matching KgeKnowledgeGraph entry.
 
         :param kwargs: dictionary of metadata describing a KGE File Set entry
-        :return: KgeaFileSet of the graph (existing or added)
+        :return: KgeFileSet of the graph (existing or added)
         """
 
         kg_id = kwargs['kg_id']
         if kg_id not in self._kge_knowledge_graph_catalog:
             self._kge_knowledge_graph_catalog[kg_id] = KgeKnowledgeGraph(**kwargs)
-        
+
+        knowledge_graph = self._kge_knowledge_graph_catalog[kg_id]
+
+        # TODO: move "publication" of provider.yaml here
+        logger.debug( "Publishing knowledge graph '" + kg_id + "' to the Archive")
+
+        provider_metadata_file = knowledge_graph.generate_provider_metadata_file()
+        # no kg_version given since the provider metadata is global to Knowledge Graph
+        object_key = add_to_s3_archive(
+            kg_id=kg_id,
+            text=provider_metadata_file,
+            file_name=PROVIDER_METADATA_FILE
+        )
+        if not object_key:
+            knowledge_graph.set_provider_metadata_object_key(object_key)
+        else:
+            logger.warning(
+                "publish_file_set(): " + PROVIDER_METADATA_FILE +
+                " for Knowledge Graph '" + kg_id +
+                "' not successfully added to KGE Archive storage?"
+            )
+
         return self._kge_knowledge_graph_catalog[kg_id]
     
     def get_kge_graph(self, kg_id: str) -> Union[KgeKnowledgeGraph, None]:
@@ -961,10 +968,6 @@ class KgeArchiveCatalog:
         if kg_id in self._kge_knowledge_graph_catalog:
             
             knowledge_graph = self._kge_knowledge_graph_catalog[kg_id]
-
-            # Publish global Knowledge Graph Provider and
-            # versioned File Set Metadata, to the Archive
-            knowledge_graph.publish_knowledge_graph()
 
             file_set = knowledge_graph.get_kge_file_set(kg_version)
 
