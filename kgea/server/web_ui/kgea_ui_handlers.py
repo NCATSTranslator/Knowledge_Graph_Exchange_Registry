@@ -218,9 +218,6 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:
         #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
         context = {
             "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION,
-            # initial kg_version defaults to today's date. but
-            # the user can revise it in the registration form
-            "kg_version": datetime.now().strftime('%Y-%m-%d'),
             
             # Now going to 'hard code' these to the
             # authenticated user values captured
@@ -249,15 +246,12 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
 
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
-        kg_version = request.query.get('kg_version', default='')
         
         missing: List[str] = []
         if not kg_id:
             missing.append("kg_id")
         if not kg_name:
             missing.append("kg_name")
-        if not kg_version:
-            missing.append("kg_version")
 
         if missing:
             await report_error( request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
@@ -265,7 +259,6 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
-            "kg_version": kg_version,
             "submitter": submitter,
             "upload_action": UPLOAD_FORM_ACTION,
             "publish_file_set_action": PUBLISH_FILE_SET_ACTION
