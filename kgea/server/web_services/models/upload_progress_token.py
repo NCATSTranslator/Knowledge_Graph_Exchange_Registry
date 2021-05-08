@@ -19,8 +19,8 @@ class UploadProgressToken(Model):
         """
         self.openapi_types = {
             'upload_token': str,
-            'current_position': Int,
-            'end_position': Int
+            'current_position': int,
+            'end_position': int
         }
 
         self.attribute_map = {
@@ -74,7 +74,7 @@ class UploadProgressToken(Model):
         Number of bytes uploaded so far.
 
         :return: The current_position of this UploadProgressToken.
-        :rtype: Int
+        :rtype: int
         """
         return self._current_position
 
@@ -85,7 +85,7 @@ class UploadProgressToken(Model):
         Number of bytes uploaded so far.
 
         :param current_position: The current_position of this UploadProgressToken.
-        :type current_position: Int
+        :type current_position: int
         """
         if current_position is None:
             raise ValueError("Invalid value for `current_position`, must not be `None`")
@@ -99,7 +99,7 @@ class UploadProgressToken(Model):
         Total expected bytes to be uploaded.
 
         :return: The end_position of this UploadProgressToken.
-        :rtype: Int
+        :rtype: int
         """
         return self._end_position
 
@@ -110,7 +110,7 @@ class UploadProgressToken(Model):
         Total expected bytes to be uploaded.
 
         :param end_position: The end_position of this UploadProgressToken.
-        :type end_position: Int
+        :type end_position: int
         """
         if end_position is None:
             raise ValueError("Invalid value for `end_position`, must not be `None`")
