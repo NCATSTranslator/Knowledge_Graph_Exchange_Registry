@@ -180,6 +180,102 @@ paths:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
   /upload:
+    get:
+      description: Uploading of (meta-)data files to a specific KGE File Set version,
+        belonging to a specific Knowledge Graph. The 'upload_mode' argument specifies
+        the upload mode as either 'content_from_local_file' or 'content_from_url'.
+        If 'content_from_local_file' is indicated, then a follow-up HTTP POST call
+        to the /upload endpoint is expected, with the token returned from this call
+        and an 'uploaded_file' parameter set to the file to be uploaded. If 'upload_mode'
+        is set to 'content_from_url' then the 'content_url' parameter is taken as
+        a REST endpoint of the file to be transferred into the Archive (authentication
+        not yet supported - URL should provide unauthenticated access). The 'content_name'
+        should be set either to the file name of the 'content_from_local_file', or
+        url transfers, set by inference or as specified by the caller (especially
+        if the 'content_url' doesn't resolve to a definitive file name). The specific
+        KGX file content of the current upload file is set by the `kgx_file_content'
+        for KGX data files uploaded in the 'content_from_local_file' or 'content_from_url'
+        modes set by the selected 'nodes' versus 'edges' radio button.
+      operationId: setup_upload_context
+      parameters:
+      - description: KGE File Set identifier for the knowledge graph for which data
+          file metadata are being accessed
+        explode: true
+        in: query
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Specific version of KGE File Set for the knowledge graph for
+          which data file metadata are being accessed
+        explode: true
+        in: query
+        name: kg_version
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Tags the upload as either 'metadata', 'nodes', 'edges' or 'archive'.
+        explode: true
+        in: query
+        name: kgx_file_content
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Specifies the upload mode as either 'content_from_local_file'
+          or 'content_from_url'
+        explode: true
+        in: query
+        name: upload_mode
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: The file name of the data set to be uploaded.
+        explode: true
+        in: query
+        name: content_name
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: (Optional) URL to a web based file resource to be directly uploaded
+          to the KGE Archive from it's server.
+        explode: true
+        in: query
+        name: content_url
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectKey'
+          description: Upload configuration successful, returning associated object
+            key.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or KGE File Set version is unknown (not registered).
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Configure upload context for a specific file of a KGE File Set.
+      tags:
+      - upload
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
     post:
       operationId: upload_file
       requestBody:
@@ -187,68 +283,31 @@ paths:
         content:
           multipart/form-data:
             encoding:
-              kg_id:
-                contentType: text/plain; charset=utf-8
-                style: form
-              kg_version:
-                contentType: text/plain; charset=utf-8
-                style: form
-              kgx_file_content:
-                contentType: text/plain; charset=utf-8
-                style: form
-              upload_mode:
-                contentType: text/plain; charset=utf-8
-                style: form
-              content_url:
-                contentType: text/plain; charset=utf-8
-                style: form
-              content_name:
+              upload_token:
                 contentType: text/plain; charset=utf-8
                 style: form
               uploaded_file:
                 contentType: text/csv, text/tab-separated-values, text/json
                 style: form
             schema:
-              description: Uploading form posting of (meta-)data files to a specific
-                KGE File Set version, belonging to a specific Knowledge Graph. The
-                'upload_mode' argument specifies the category and/or mode as one of
-                'metadata', 'content_from_local_file' or 'content_from_url'. If 'metadata'
-                or 'content_from_local_file' are indicated, then the 'uploaded_file'
-                parameter should be set to the file to be ploaded. If 'upload_mode'
-                is set to 'content_from_url' then the 'content_url' parameter is taken
-                as a REST endpoint of the file to be transferred into the Archive
-                (authentication not yet supported - URL should provide unauthenticated
-                access). The 'content_name' should be set either to the file name
-                of the 'metadata' or 'content_from_local_file', or url transfers,
-                set by inference or as specified by the caller (especially if the
-                'content_url' doesn't resolve to a definitive file name). The specific
-                KGX file content of the current upload file is set by the `kgx_file_content'
-                for KGX data files uploaded in the 'content_from_local_file' or 'content_from_url'
-                modes set by the selected 'nodes' versus 'edges' radio button.
+              description: When 'content_from_local_file' mode wass indicated, then
+                this HTTP POST call to the /upload endpoint is expected, with the
+                token returned from the /upload GET call plus an 'uploaded_file' parameter
+                for the file to be uploaded.
               properties:
-                kg_id:
-                  type: string
-                kg_version:
-                  type: string
-                kgx_file_content:
-                  type: string
-                upload_mode:
-                  type: string
-                content_name:
-                  type: string
-                content_url:
+                object_key:
+                  description: Object key associated with a given file for Archive
+                    uploading as specified by a preceding /upload GET call.
                   type: string
                 uploaded_file:
+                  description: File (blob) object to be uploaded.
                   format: binary
                   type: string
               required:
-              - content_name
-              - kg_id
-              - kg_version
-              - kgx_file_content
-              - upload_mode
+              - object_key
+              - uploaded_file
               type: object
-        description: KGE File Set metadata or data file submitted
+        description: Upload token plus data file resource for uploading.
         required: true
         x-body-name: body
       responses:
@@ -263,20 +322,59 @@ paths:
             application/json:
               schema:
                 type: string
-          description: KGE File Set is unknown (not registered).
+          description: Knowledge graph or requested KGE File Set version is unknown.
         "400":
           content:
             application/json:
               schema:
                 type: string
           description: Bad request. Request is invalid according to this OpenAPI schema
-            OR a specific parameter is believed to be invalid somehow (or not just
+            OR a specific parameter is believed to be invalid somehow (or just not
             recognized).
-      summary: Upload processing of KGE File Set file
+      summary: Uploading of a specified file from a local computer.
       tags:
       - upload
       x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
       x-codegen-request-body-name: body
+  /upload/progress:
+    get:
+      description: Poll the status of a given upload process.
+      operationId: get_upload_status
+      parameters:
+      - description: Object key associated with a given file for uploading to the
+          Archive as specified by a preceding /upload GET call.
+        explode: true
+        in: query
+        name: object_key
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadProgressToken'
+          description: Details about the status of a file upload operation.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Specified object key is unknown (not registered).
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Get the progress of uploading for a specific file of a KGE File Set.
+      tags:
+      - upload
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
   /{kg_id}/{kg_version}/contents:
     get:
       operationId: get_file_set_contents
@@ -315,13 +413,15 @@ paths:
             application/json:
               schema:
                 type: string
-          description: Specified KGE File Set was not found.
+          description: Knowledge graph or requested KGE File Set version is unknown.
         "400":
           content:
             application/json:
               schema:
                 type: string
-          description: Bad request. Request is invalid according to this OpenAPI schema.
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
       summary: Get file list and details for a specified KGE File Set version.
       tags:
       - content
@@ -360,13 +460,15 @@ paths:
             application/json:
               schema:
                 type: string
-          description: KGE File Set or its requested version was not found.
+          description: Knowledge graph or requested KGE File Set version is unknown.
         "400":
           content:
             application/json:
               schema:
                 type: string
           description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
       summary: Returns specified KGE File Set as a gzip compressed tar archive
       tags:
       - content
@@ -405,13 +507,15 @@ paths:
             application/json:
               schema:
                 type: string
-          description: KGE File Set or its requested version was not found.
+          description: Knowledge graph or requested KGE File Set version is unknown.
         "400":
           content:
             application/json:
               schema:
                 type: string
           description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
       summary: Meta knowledge graph representation of this KGX knowledge graph.
       tags:
       - content
@@ -497,6 +601,49 @@ components:
       required:
       - status
       title: KgeFileSetStatus
+      type: object
+    ObjectKey:
+      additionalProperties: false
+      description: Object key associated with a file for uploading into a KGE File
+        Set.
+      example:
+        object_key: object_key
+      properties:
+        object_key:
+          description: Upload object key returned, for use in a local file upload
+            and/or in  in progress monitoring of a local upload or a URL-specified
+            file transfer.
+          title: object_key
+          type: string
+      required:
+      - object_key
+      title: ObjectKey
+      type: object
+    UploadProgressToken:
+      additionalProperties: false
+      description: Token tracking the upload progress of a file into a KGE File Set.
+      example:
+        object_key: object_key
+        current_position: ""
+        end_position: ""
+      properties:
+        object_key:
+          description: Object key associated with a given uploading file.
+          title: object_key
+          type: string
+        current_position:
+          description: Number of bytes uploaded so far.
+          title: current_position
+          type: int
+        end_position:
+          description: Total expected bytes to be uploaded.
+          title: end_position
+          type: int
+      required:
+      - current_position
+      - end_position
+      - object_key
+      title: UploadProgressToken
       type: object
     BiolinkEntity:
       description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing or
@@ -716,41 +863,20 @@ components:
       - translator_team
       type: object
     inline_object_1:
-      description: Uploading form posting of (meta-)data files to a specific KGE File
-        Set version, belonging to a specific Knowledge Graph. The 'upload_mode' argument
-        specifies the category and/or mode as one of 'metadata', 'content_from_local_file'
-        or 'content_from_url'. If 'metadata' or 'content_from_local_file' are indicated,
-        then the 'uploaded_file' parameter should be set to the file to be ploaded.
-        If 'upload_mode' is set to 'content_from_url' then the 'content_url' parameter
-        is taken as a REST endpoint of the file to be transferred into the Archive
-        (authentication not yet supported - URL should provide unauthenticated access).
-        The 'content_name' should be set either to the file name of the 'metadata'
-        or 'content_from_local_file', or url transfers, set by inference or as specified
-        by the caller (especially if the 'content_url' doesn't resolve to a definitive
-        file name). The specific KGX file content of the current upload file is set
-        by the `kgx_file_content' for KGX data files uploaded in the 'content_from_local_file'
-        or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
-        button.
+      description: When 'content_from_local_file' mode wass indicated, then this HTTP
+        POST call to the /upload endpoint is expected, with the token returned from
+        the /upload GET call plus an 'uploaded_file' parameter for the file to be
+        uploaded.
       properties:
-        kg_id:
-          type: string
-        kg_version:
-          type: string
-        kgx_file_content:
-          type: string
-        upload_mode:
-          type: string
-        content_name:
-          type: string
-        content_url:
+        object_key:
+          description: Object key associated with a given file for Archive uploading
+            as specified by a preceding /upload GET call.
           type: string
         uploaded_file:
+          description: File (blob) object to be uploaded.
           format: binary
           type: string
       required:
-      - content_name
-      - kg_id
-      - kg_version
-      - kgx_file_content
-      - upload_mode
+      - object_key
+      - uploaded_file
       type: object
