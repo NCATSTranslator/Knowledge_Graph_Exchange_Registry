@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from .models import (
     KgeFileSetStatus,
-    ObjectKey,
+    UploadTokenObject,
     UploadProgressToken
 )
 
@@ -46,9 +46,9 @@ from .kgea_file_ops import (
     # generate_translator_registry_entry,
     get_object_location,
     # get_kg_versions_available,
-    
     with_version,
-    with_subfolder, object_key_exists
+    with_subfolder,
+    object_key_exists
 )
 
 from .kgea_stream import transfer_file_from_url
@@ -476,8 +476,8 @@ async def setup_kge_upload_context(
         #         await report_error(request, error_msg)
         # else:
         #     await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
-        object_key = ObjectKey()
-        response = web.json_response(object_key)
+        upload_token = UploadTokenObject()
+        response = web.json_response(upload_token)
         return await with_session(request, response)
 
     else:
@@ -486,22 +486,22 @@ async def setup_kge_upload_context(
         await redirect(request, LANDING)
 
 
-async def get_kge_upload_status(request: web.Request, object_key: str) -> web.Response:
+async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.Response:
     """Get the progress of uploading for a specific file of a KGE File Set.
 
     Poll the status of a given upload process.
 
     :param request:
     :type request: web.Request
-    :param object_key: Object key associated with a given file for uploading to the Archive as specified by a preceding /upload GET call.
-    :type object_key: str
+    :param upload_token: Object key associated with a given file for uploading to the Archive as specified by a preceding /upload GET call.
+    :type upload_token: str
 
     """
 
     session = await get_session(request)
     if not session.empty:
 
-        progress_token = UploadProgressToken(object_key=object_key)
+        progress_token = UploadProgressToken(upload_token=upload_token)
         response = web.json_response(progress_token)
         return await with_session(request, response)
 
@@ -513,15 +513,15 @@ async def get_kge_upload_status(request: web.Request, object_key: str) -> web.Re
 
 async def upload_kge_file(
         request: web.Request,
-        object_key=None,
+        upload_token=None,
         uploaded_file=None
 ) -> web.Response:
     """Uploading of a specified file from a local computer.
 
     :param request:
     :type request: web.Request
-    :param object_key: Object key associated with a given file for uploading.
-    :type object_key: str
+    :param upload_token: Object key associated with a given file for uploading.
+    :type upload_token: str
     :param uploaded_file: File (blob) object to be uploaded.
     :type uploaded_file: str
     :rtype: web.Response
@@ -750,7 +750,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
         await redirect(request, LANDING)
 
 
-async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
+async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str):
     """Get supported relationships by source and target
 
     :param request:
@@ -781,7 +781,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
                 "kge_meta_knowledge_graph(): unknown KGE File Set version '" + kg_id + "' for graph '" + kg_id + "'?"
             )
 
-        content_metadata_file_key = file_set_location + "content_metadata.json"
+        content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
         
         if not object_key_exists(
             bucket_name=_KGEA_APP_CONFIG['bucket'],
