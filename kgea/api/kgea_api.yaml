@@ -70,6 +70,7 @@ paths:
       summary: Register core metadata for a KGE Knowledge Graph
       operationId: register_knowledge_graph
       requestBody:
+        $ref: '#/components/requestBodies/RegisterRequestBody'
         required: true
         content:
           application/x-www-form-urlencoded:
@@ -146,37 +147,6 @@ paths:
         '302':
           description: >-
             After KGE File Set publication is triggered, user gets redirected to /home.
-  /status/{kg_id}/{kg_version}:
-    get:
-      parameters:
-      - name: kg_id
-        in: path
-        description: >-
-          KGE Knowledge Graph identifier for the knowledge graph
-          with a versioned KGE File Se for which status is required.
-        required: true
-        schema:
-          type: string
-      - name: kg_version
-        in: path
-        description: >-
-          Version identifier of the KGE File Set
-          for which status is required.
-        required: true
-        schema:
-          type: string
-      tags:
-      - catalog
-      summary: Retrieve KGE File Set status
-      operationId: file_set_status
-      responses:
-        '200':
-          description: >-
-            Status report KGE File Set validation.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/KgeFileSetStatus'
   /upload:
     post:
       tags:
@@ -184,6 +154,7 @@ paths:
       summary: Upload processing of KGE File Set file
       operationId: upload_file
       requestBody:
+        $ref: '#/components/requestBodies/UploadRequestBody'
         description: KGE File Set metadata or data file submitted
         required: true
         content:
@@ -197,7 +168,7 @@ paths:
                 as one of 'metadata', 'content_from_local_file' or
                 'content_from_url'. If 'metadata' or 'content_from_local_file'
                 are indicated, then the 'uploaded_file' parameter should be
-                set to the file to be ploaded. If 'upload_mode' is set to
+                set to the file to be uploaded. If 'upload_mode' is set to
                 'content_from_url' then the 'content_url' parameter is taken
                 as a REST endpoint of the file to be transferred into the
                 Archive (authentication not yet supported - URL should provide
@@ -301,7 +272,7 @@ paths:
             application/json:
               schema:
                 description: >-
-                  Annotated list of file in a given KGE File Set version.
+                  Annotated list of files within a given KGE File Set version.
                 type: array
                 items:
                   $ref: '#/components/schemas/KgeFile'
@@ -410,6 +381,19 @@ paths:
               schema:
                 type: string
 components:
+  requestBodies:
+    UploadRequestBody:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/UploadRequestBody'
+      required: true
+    RegisterRequestBody:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/RegisterRequestBody'
+      required: true
   schemas:
     KgeFileSetEntry:
       description: >-
@@ -432,33 +416,34 @@ components:
         Annotated file in a KGE File Set.
       type: object
       properties:
-        file_name:
+        original_name:
           description: original name of file (as uploaded)
           type: string
+        assigned_name:
+          description: assigned name of file (by archive, for export)
+          type: string
         file_type:
-          description: designates if the file is meta-, node or edge data
+          description: >-
+            Designates if the file is (content or file set) meta-, node or edge data
           type: string
         file_size:
           description: size of file in megabytes
           type: number
           format: float
-    KgeFileSetStatus:
-      description: >-
-        Status report about a KGE File Set.
-      type: object
-      properties:
-        status:
-          description: >-
-            KGE File Set status code, one of 'processing', 'validated' or 'error'.
+        kgx_compliance_status:
+          description: one of 'assessing', 'compliant' or 'non-compliant'
           type: string
         errors:
-          description: >-
-            A list of error status messages with an 'error' status code.
+          description: if 'non-compliant' file, list of error messags
           type: array
           items:
             type: string
       required:
-        - status
+        - original_name
+        - assigned_name
+        - file_type
+        - file_size
+        - kgx_compliance_status
       additionalProperties: false
     BiolinkEntity:
       description: >-
@@ -579,3 +564,72 @@ components:
         - predicate
         - object
       additionalProperties: false
+    RegisterRequestBody:
+      properties:
+        submitter:
+          type: string
+        submitter_email:
+          type: string
+        translator_component:
+          type: string
+        translator_team:
+          type: string
+        kg_name:
+          type: string
+        kg_version:
+          type: string
+        kg_description:
+          type: string
+        license_name:
+          type: string
+        license_url:
+          type: string
+        terms_of_service:
+          type: string
+      required:
+      - kg_name
+      - kg_version
+      - submitter
+      - submitter_email
+      - translator_component
+      - translator_team
+      type: object
+    UploadRequestBody:
+      description: Uploading form posting of (meta-)data files to a specific KGE File
+        Set version, belonging to a specific Knowledge Graph. The 'upload_mode' argument
+        specifies the category and/or mode as one of 'metadata', 'content_from_local_file'
+        or 'content_from_url'. If 'metadata' or 'content_from_local_file' are indicated,
+        then the 'uploaded_file' parameter should be set to the file to be uploaded.
+        If 'upload_mode' is set to 'content_from_url' then the 'content_url' parameter
+        is taken as a REST endpoint of the file to be transferred into the Archive
+        (authentication not yet supported - URL should provide unauthenticated access).
+        The 'content_name' should be set either to the file name of the 'metadata'
+        or 'content_from_local_file', or url transfers, set by inference or as specified
+        by the caller (especially if the 'content_url' doesn't resolve to a definitive
+        file name). The specific KGX file content of the current upload file is set
+        by the `kgx_file_content' for KGX data files uploaded in the 'content_from_local_file'
+        or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
+        button.
+      properties:
+        kg_id:
+          type: string
+        kg_version:
+          type: string
+        kgx_file_content:
+          type: string
+        upload_mode:
+          type: string
+        content_name:
+          type: string
+        content_url:
+          type: string
+        uploaded_file:
+          format: binary
+          type: string
+      required:
+      - content_name
+      - kg_id
+      - kg_version
+      - kgx_file_content
+      - upload_mode
+      type: object

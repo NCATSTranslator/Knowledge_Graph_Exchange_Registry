@@ -472,7 +472,7 @@ class KgeFileSet:
         if self.content_metadata and "errors" in self.content_metadata:
             errors.extend(self.content_metadata["errors"])
 
-        # .. from the KGX graph (nodes and edges) data files, asynchonously checked here.
+        # .. from the KGX graph (nodes and edges) data files, asynchronously checked here.
         errors.extend(await self.confirm_kgx_data_file_set_validation())
 
         logger.debug("KGX format validation() completed for KGE File Set version '" + self.kg_version +
