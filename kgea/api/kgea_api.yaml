@@ -186,12 +186,12 @@ paths:
         as either 'content_from_local_file' or 'content_from_url'.
         If 'content_from_local_file' is indicated, then a follow-up
         HTTP POST call to the /upload endpoint is expected, with the
-        token returned from this call and an 'uploaded_file' parameter
-        set to the file to be uploaded. If 'upload_mode' is set to
-        'content_from_url' then the 'content_url' parameter is taken
-        as a REST endpoint of the file to be transferred into the
-        Archive (authentication not yet supported - URL should provide
-        unauthenticated access).
+        'upload token' returned from this call and an 'uploaded_file'
+        parameter set to the file to be uploaded. If 'upload_mode'
+        is set to 'content_from_url' then the 'content_url' parameter
+        is taken as a REST endpoint of the file to be transferred
+        into the Archive (http authentication not yet supported,
+        therefore, the URL should provide for unauthenticated access).
         The 'content_name' should be set either to the file name of
         the 'content_from_local_file', or url transfers,
         set by inference or as specified by the caller (especially if
@@ -257,7 +257,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ObjectKey'
+                $ref: '#/components/schemas/UploadTokenObject'
         '404':
           description: >-
             Knowledge graph or KGE File Set version is unknown (not registered).
@@ -289,12 +289,12 @@ paths:
               description: >-
                 When 'content_from_local_file' mode wass indicated, then this
                 HTTP POST call to the /upload endpoint is expected, with the
-                token returned from the /upload GET call plus an 'uploaded_file'
-                parameter for the file to be uploaded.
+                upload token returned from the /upload GET call plus an 
+                'uploaded_file' parameter for the file to be uploaded.
               properties:
-                object_key:
+                upload_token:
                   description: >-
-                    Object key associated with a given file for Archive
+                    Upload token associated with a given file for Archive
                     uploading as specified by a preceding /upload GET call.
                   type: string
                 uploaded_file:
@@ -303,7 +303,7 @@ paths:
                   type: string
                   format: binary
               required:
-              - object_key
+              - upload_token
               - uploaded_file
             encoding:
               upload_token:
@@ -338,10 +338,10 @@ paths:
       description: >-
         Poll the status of a given upload process.
       parameters:
-        - name: object_key
+        - name: upload_token
           in: query
           description: >-
-            Object key associated with a given file for uploading to
+            Upload token associated with a given file for uploading to
             the Archive as specified by a preceding /upload GET call.
           required: true
           schema:
@@ -569,39 +569,39 @@ components:
       required:
         - status
       additionalProperties: false
-    ObjectKey:
+    UploadTokenObject:
       description: >-
-        Object key associated with a file for uploading into a KGE File Set.
+        Upload token associated with a file for uploading into a KGE File Set.
       type: object
       properties:
-        object_key:
+        upload_token:
           description: >-
             Upload object key returned, for use in a local file
             upload and/or in  in progress monitoring of a local
             upload or a URL-specified file transfer.
           type: string
       required:
-        - object_key
+        - upload_token
       additionalProperties: false
     UploadProgressToken:
       description: >-
         Token tracking the upload progress of a file into a KGE File Set.
       type: object
       properties:
-        object_key:
+        upload_token:
           description: >-
-            Object key associated with a given uploading file.
+            Upload token associated with a given uploading file.
           type: string
         current_position:
           description: >-
             Number of bytes uploaded so far.
-          type: int
+          type: integer
         end_position:
           description: >-
             Total expected bytes to be uploaded.
-          type: int
+          type: integer
       required:
-        - object_key
+        - upload_token
         - current_position
         - end_position
       additionalProperties: false

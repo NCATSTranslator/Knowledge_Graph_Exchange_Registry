@@ -52,32 +52,32 @@ async def setup_upload_context(
     )
 
 
-async def get_upload_status(request: web.Request, object_key: str) -> web.Response:
+async def get_upload_status(request: web.Request, upload_token: str) -> web.Response:
     """Get the progress of uploading for a specific file of a KGE File Set.
 
     Poll the status of a given upload process.
 
     :param request:
     :type request: web.Request
-    :param object_key: Object key associated with a given file for uploading to the Archive as specified by a preceding /upload GET call.
-    :type object_key: str
+    :param upload_token: Upload token associated with a given file for uploading to the Archive as specified by a preceding /upload GET call.
+    :type upload_token: str
     :rtype: web.Response
 
     """
-    return await get_kge_upload_status(request, object_key)
+    return await get_kge_upload_status(request, upload_token)
 
 
 async def upload_file(
         request: web.Request,
-        object_key,
+        upload_token,
         uploaded_file
 ) -> web.Response:
     """Uploading of a specified file from a local computer.
 
     :param request:
     :type request: web.Request
-    :param object_key: Object key associated with a given file for Archive uploading as specified by a preceding /upload GET call.
-    :type object_key: str
+    :param upload_token: Upload token associated with a given file for Archive uploading as specified by a preceding /upload GET call.
+    :type upload_token: str
     :param uploaded_file: File (blob) object to be uploaded.
     :type uploaded_file: str
     :rtype: web.Response
@@ -85,6 +85,6 @@ async def upload_file(
     """
     return await upload_kge_file(
         request,
-        object_key=object_key,
+        upload_token=upload_token,
         uploaded_file=uploaded_file
     )
