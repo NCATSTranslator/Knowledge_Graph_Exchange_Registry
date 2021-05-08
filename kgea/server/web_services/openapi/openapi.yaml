@@ -185,17 +185,18 @@ paths:
         belonging to a specific Knowledge Graph. The 'upload_mode' argument specifies
         the upload mode as either 'content_from_local_file' or 'content_from_url'.
         If 'content_from_local_file' is indicated, then a follow-up HTTP POST call
-        to the /upload endpoint is expected, with the token returned from this call
-        and an 'uploaded_file' parameter set to the file to be uploaded. If 'upload_mode'
-        is set to 'content_from_url' then the 'content_url' parameter is taken as
-        a REST endpoint of the file to be transferred into the Archive (authentication
-        not yet supported - URL should provide unauthenticated access). The 'content_name'
-        should be set either to the file name of the 'content_from_local_file', or
-        url transfers, set by inference or as specified by the caller (especially
-        if the 'content_url' doesn't resolve to a definitive file name). The specific
-        KGX file content of the current upload file is set by the `kgx_file_content'
-        for KGX data files uploaded in the 'content_from_local_file' or 'content_from_url'
-        modes set by the selected 'nodes' versus 'edges' radio button.
+        to the /upload endpoint is expected, with the 'upload token' returned from
+        this call and an 'uploaded_file' parameter set to the file to be uploaded.
+        If 'upload_mode' is set to 'content_from_url' then the 'content_url' parameter
+        is taken as a REST endpoint of the file to be transferred into the Archive
+        (http authentication not yet supported, therefore, the URL should provide
+        for unauthenticated access). The 'content_name' should be set either to the
+        file name of the 'content_from_local_file', or url transfers, set by inference
+        or as specified by the caller (especially if the 'content_url' doesn't resolve
+        to a definitive file name). The specific KGX file content of the current upload
+        file is set by the `kgx_file_content' for KGX data files uploaded in the 'content_from_local_file'
+        or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
+        button.
       operationId: setup_upload_context
       parameters:
       - description: KGE File Set identifier for the knowledge graph for which data
@@ -255,7 +256,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ObjectKey'
+                $ref: '#/components/schemas/UploadTokenObject'
           description: Upload configuration successful, returning associated object
             key.
         "404":
@@ -292,11 +293,11 @@ paths:
             schema:
               description: When 'content_from_local_file' mode wass indicated, then
                 this HTTP POST call to the /upload endpoint is expected, with the
-                token returned from the /upload GET call plus an 'uploaded_file' parameter
-                for the file to be uploaded.
+                upload token returned from the /upload GET call plus an  'uploaded_file'
+                parameter for the file to be uploaded.
               properties:
-                object_key:
-                  description: Object key associated with a given file for Archive
+                upload_token:
+                  description: Upload token associated with a given file for Archive
                     uploading as specified by a preceding /upload GET call.
                   type: string
                 uploaded_file:
@@ -304,7 +305,7 @@ paths:
                   format: binary
                   type: string
               required:
-              - object_key
+              - upload_token
               - uploaded_file
               type: object
         description: Upload token plus data file resource for uploading.
@@ -341,11 +342,11 @@ paths:
       description: Poll the status of a given upload process.
       operationId: get_upload_status
       parameters:
-      - description: Object key associated with a given file for uploading to the
+      - description: Upload token associated with a given file for uploading to the
           Archive as specified by a preceding /upload GET call.
         explode: true
         in: query
-        name: object_key
+        name: upload_token
         required: true
         schema:
           type: string
@@ -602,47 +603,47 @@ components:
       - status
       title: KgeFileSetStatus
       type: object
-    ObjectKey:
+    UploadTokenObject:
       additionalProperties: false
-      description: Object key associated with a file for uploading into a KGE File
+      description: Upload token associated with a file for uploading into a KGE File
         Set.
       example:
-        object_key: object_key
+        upload_token: upload_token
       properties:
-        object_key:
+        upload_token:
           description: Upload object key returned, for use in a local file upload
             and/or in  in progress monitoring of a local upload or a URL-specified
             file transfer.
-          title: object_key
+          title: upload_token
           type: string
       required:
-      - object_key
-      title: ObjectKey
+      - upload_token
+      title: UploadTokenObject
       type: object
     UploadProgressToken:
       additionalProperties: false
       description: Token tracking the upload progress of a file into a KGE File Set.
       example:
-        object_key: object_key
+        upload_token: upload_token
         current_position: ""
         end_position: ""
       properties:
-        object_key:
-          description: Object key associated with a given uploading file.
-          title: object_key
+        upload_token:
+          description: Upload token associated with a given uploading file.
+          title: upload_token
           type: string
         current_position:
           description: Number of bytes uploaded so far.
           title: current_position
-          type: int
+          type: integer
         end_position:
           description: Total expected bytes to be uploaded.
           title: end_position
-          type: int
+          type: integer
       required:
       - current_position
       - end_position
-      - object_key
+      - upload_token
       title: UploadProgressToken
       type: object
     BiolinkEntity:
@@ -864,12 +865,12 @@ components:
       type: object
     inline_object_1:
       description: When 'content_from_local_file' mode wass indicated, then this HTTP
-        POST call to the /upload endpoint is expected, with the token returned from
-        the /upload GET call plus an 'uploaded_file' parameter for the file to be
-        uploaded.
+        POST call to the /upload endpoint is expected, with the upload token returned
+        from the /upload GET call plus an  'uploaded_file' parameter for the file
+        to be uploaded.
       properties:
-        object_key:
-          description: Object key associated with a given file for Archive uploading
+        upload_token:
+          description: Upload token associated with a given file for Archive uploading
             as specified by a preceding /upload GET call.
           type: string
         uploaded_file:
@@ -877,6 +878,6 @@ components:
           format: binary
           type: string
       required:
-      - object_key
+      - upload_token
       - uploaded_file
       type: object
