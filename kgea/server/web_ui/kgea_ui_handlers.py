@@ -265,19 +265,25 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
 
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
-        kg_version = request.query.get('kg_version', default='')
+        major_version = request.query.get('major_version', default='')
+        minor_version = request.query.get('minor_version', default='')
 
         missing: List[str] = []
         if not kg_id:
             missing.append("kg_id")
         if not kg_name:
             missing.append("kg_name")
-        if not kg_version:
-            missing.append("kg_version")
+        if not major_version:
+            missing.append("major_version")
+        if not minor_version:
+            missing.append("minor_version")
 
         if missing:
             await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
     
+        # TODO: Should the kg_version include more than just the major and minor SemVer versioning?
+        kg_version = str(major_version) + "." + str(minor_version)
+        
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,

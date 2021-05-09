@@ -155,69 +155,6 @@ paths:
       operationId: upload_file
       requestBody:
         $ref: '#/components/requestBodies/UploadRequestBody'
-        description: KGE File Set metadata or data file submitted
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              description: >-
-                Uploading form posting of (meta-)data files to a specific
-                KGE File Set version, belonging to a specific Knowledge Graph.
-                The 'upload_mode' argument specifies the category and/or mode
-                as one of 'metadata', 'content_from_local_file' or
-                'content_from_url'. If 'metadata' or 'content_from_local_file'
-                are indicated, then the 'uploaded_file' parameter should be
-                set to the file to be uploaded. If 'upload_mode' is set to
-                'content_from_url' then the 'content_url' parameter is taken
-                as a REST endpoint of the file to be transferred into the
-                Archive (authentication not yet supported - URL should provide
-                unauthenticated access).
-                The 'content_name' should be set either to the file name of
-                the 'metadata' or 'content_from_local_file', or url transfers,
-                set by inference or as specified by the caller (especially if
-                the 'content_url' doesn't resolve to a definitive file name).
-                The specific KGX file content of the current upload file is
-                set by the `kgx_file_content' for KGX data files uploaded
-                in the 'content_from_local_file' or 'content_from_url' modes
-                set by the selected 'nodes' versus 'edges' radio button.
-              properties:
-                kg_id:
-                  type: string
-                kg_version:
-                  type: string
-                kgx_file_content:
-                  type: string
-                upload_mode:
-                  type: string
-                content_name:
-                  type: string
-                content_url:
-                  type: string
-                uploaded_file:
-                  type: string
-                  format: binary
-              required:
-              - kg_id
-              - kg_version
-              - kgx_file_content
-              - upload_mode
-              - content_name
-            encoding:
-              kg_id:
-                contentType: text/plain; charset=utf-8
-              kg_version:
-                contentType: text/plain; charset=utf-8
-              kgx_file_content:
-                contentType: text/plain; charset=utf-8
-              upload_mode:
-                contentType: text/plain; charset=utf-8
-              content_url:
-                contentType: text/plain; charset=utf-8
-              content_name:
-                contentType: text/plain; charset=utf-8
-              uploaded_file: # Property name (see above)
-                contentType: text/csv, text/tab-separated-values, text/json
       responses:
         '201':
           description: Upload successfully completed.
@@ -391,6 +328,7 @@ components:
             $ref: '#/components/schemas/RegisterFileSetRequestBody'
       required: true
     UploadRequestBody:
+      description: KGE File Set metadata or data file submitted
       content:
         multipart/form-data:
           schema:
@@ -656,6 +594,7 @@ components:
         by the `kgx_file_content' for KGX data files uploaded in the 'content_from_local_file'
         or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
         button.
+      type: object
       properties:
         kg_id:
           type: string
@@ -678,4 +617,3 @@ components:
       - kg_version
       - kgx_file_content
       - upload_mode
-      type: object
