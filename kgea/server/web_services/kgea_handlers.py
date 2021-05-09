@@ -299,6 +299,7 @@ async def register_kge_file_set(request: web.Request):
             )
         
         # Consolidated version of new KGE File Set
+        # TODO: Should the kg_version include more than just the major and minor SemVer versioning?
         kg_version = str(major_version) + "." + str(minor_version)
         
         # TODO: do we need to check if this kg_version of
@@ -350,7 +351,8 @@ async def register_kge_file_set(request: web.Request):
                         kg_id=kg_id,
                         kg_version=kg_version,
                         submitter=submitter,
-                        submitter_email=submitter_email
+                        submitter_email=submitter_email,
+                        date_stamp=date_stamp
                     )
 
                 # Add new versioned KGE File Set to the Catalog Knowledge Graph entry
@@ -360,7 +362,7 @@ async def register_kge_file_set(request: web.Request):
                         request,
                         Template(
                            UPLOAD_FORM_PATH +
-                           '?kg_id=$kg_id&kg_name=$kg_name&submitter=$submitter'
+                           '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter=$submitter'
                         ).substitute(
                            kg_id=kg_id,
                            kg_name=knowledge_graph.get_name(),
