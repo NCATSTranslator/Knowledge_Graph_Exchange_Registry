@@ -36,6 +36,7 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     upload_file,
+    upload_file_multipart,
     # download_file,
     compress_download,
     create_presigned_url,
@@ -498,8 +499,27 @@ async def get_kge_upload_status(request: web.Request, object_key: str) -> web.Re
 
     """
 
+# <<<<<<< HEAD
     session = await get_session(request)
     if not session.empty:
+# =======
+#         elif upload_mode == 'content_from_local_file':
+#
+#             """
+#             Although earlier on I experimented with approaches that streamed directly into an archive,
+#             it failed for what should have been obvious reasons: gzip is non-commutative, so without unpacking
+#             then zipping up consecutively uploaded files I can't add new gzip files to the package after compression.
+#
+#             So for now we're just streaming into the bucket, only archiving when required - on download.
+#             """
+#
+#             uploaded_file_object_key = upload_file_multipart(
+#                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
+#                 file_name=content_name,        # The new name for the file
+#                 bucket=_KGEA_APP_CONFIG['bucket'],
+#                 object_location=file_set_location
+#             )
+# >>>>>>> master
 
         progress_token = UploadProgressToken(object_key=object_key)
         response = web.json_response(progress_token)
