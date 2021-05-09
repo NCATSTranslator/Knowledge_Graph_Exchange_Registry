@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.1.0
 info:
   contact:
     email: richard.bruskiewich@delphinai.com
@@ -674,17 +674,17 @@ components:
       properties:
         kg_id:
           type: string
-        kg_major_version:
+        major_version:
           type: integer
-        kg_minor_version:
+        minor_version:
           type: integer
-        kg_date_stamp:
+        date_stamp:
           format: date
           type: string
       required:
       - kg_id
-      - kg_major_version
-      - kg_minor_version
+      - major_version
+      - minor_version
       type: object
     UploadRequestBody:
       description: Uploading form posting of (meta-)data files to a specific KGE File

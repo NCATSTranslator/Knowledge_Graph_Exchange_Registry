@@ -233,7 +233,8 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
             "submitter": session['name'],
             "submitter_email": session['email'],
     
-            # TODO: maybe try to set these to the 'next' version for the given KGE Knowledge Graph?
+            # TODO: might be best to look up "latest" KGE file set version,
+            #       increment it and send it to the form here?
             "major_version": "1",
             "minor_version": "0",
             "date_stamp": get_default_date_stamp(),
@@ -261,21 +262,23 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
 
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
-        
+        kg_version = request.query.get('kg_version', default='')
+
         missing: List[str] = []
         if not kg_id:
             missing.append("kg_id")
         if not kg_name:
             missing.append("kg_name")
+        if not kg_version:
+            missing.append("kg_version")
 
         if missing:
             await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
-
-        # TODO: might wish to look up "latest" KGE file set version, increment it and send it to the upload form.
-        
+    
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
+            "kg_version": kg_version,
             "submitter": submitter,
             "upload_action": UPLOAD_FORM_ACTION,
             "publish_file_set_action": PUBLISH_FILE_SET_ACTION
