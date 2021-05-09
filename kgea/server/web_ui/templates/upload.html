@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% block scripts %}
+    <script type="text/javascript" src="https://raw.githubusercontent.com/mdix/progress.js/master/progress.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://github.com/mdix/progress.js/blob/master/progress.css"/>
     <script>
         let content_name = 'unknown';
         function SetFileName(value) {
@@ -78,14 +80,19 @@
             }
 
             formData.append("content_name", content_name);
-
-            fetch(
+            document.getElementById('content_from_local_file').disabled = true;
+            await fetch(
                 "{{upload_action}}",
                 {
                     method: "POST",
                     body: formData,
                     credentials: "include"
-                }).then(
+                })
+                // block button
+                .then(response => {
+                    return response;
+                })
+                .then(
                     response => {
                         console.log('HTTP response code:', response.status);
                         response.text(
@@ -104,13 +111,16 @@
                             console.log(err_msg);
                             window.alert(err_msg);
                         })
-                }).catch(error => {
+                })
+                .catch(error => {
                     let err_msg =
                             "File upload error encountered\nfor " + kgx_file_content + " file '" + content_name +
                             "'\nfor knowledge graph '{{kg_name}}: " + error;
                     console.log(err_msg);
                     window.alert(err_msg);
                 });
+            document.getElementById('content_from_local_file').disabled = false;
+
         }
     </script>
 {% endblock %}
