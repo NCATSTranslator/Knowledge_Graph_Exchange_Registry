@@ -237,7 +237,7 @@ async def register_kge_knowledge_graph(request: web.Request):
         await redirect(request, LANDING)
 
 
-def register_kge_file_set(request: web.Request):
+async def register_kge_file_set(request: web.Request):
     """Register core metadata for a distinctly versioned file set of a KGE Knowledge Graph
 
     Register core metadata for a newly persisted file set version of a
