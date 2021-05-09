@@ -321,7 +321,6 @@ components:
     KgeFileSetStatus:
       description: KGE File Set Status including inventory of associated files.
       example:
-        kg_id: semmeddb
         files:
         - kgx_compliance_status: kgx_compliance_status
           file_type: file_type
@@ -339,6 +338,7 @@ components:
           errors:
           - errors
           - errors
+        kg_id: semmeddb
         kg_version: "1.0"
       properties:
         kg_id:
@@ -351,6 +351,8 @@ components:
           example: "1.0"
           title: kg_version
           type: string
+        status:
+          $ref: '#/components/schemas/KgeFileSetStatusCode'
         files:
           description: Annotated list of files within a given file set.
           items:
@@ -359,6 +361,16 @@ components:
           type: array
       title: KgeFileSetStatus
       type: object
+    KgeFileSetStatusCode:
+      description: Version identifier of the file set.
+      enum:
+      - Created
+      - Loaded
+      - Processing
+      - Validated
+      - Error
+      title: KgeFileSetStatusCode
+      type: string
     KgeFile:
       additionalProperties: false
       description: Annotated file in a KGE File Set.
