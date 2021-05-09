@@ -95,11 +95,73 @@
             } else if (source.id === 'content_from_local_file') {
 
                 let uploaded_file = document.getElementById('content_file').files[0];
-                content_name = uploaded_file.name;
+                {#content_name = uploaded_file.name;#}
 
                 if(uploaded_file) {
                     console.log("KGX "+kgx_file_content+" file being uploaded: '" + uploaded_file.name + "'");
                     formData.append("uploaded_file", uploaded_file);
+
+                    formData.append("content_name", uploaded_file.name);
+
+                    document.getElementById('content_from_local_file').disabled = true;
+                    document.getElementById('spinner').style.display = "inline-block";
+                    document.getElementById('percentage').style.display = "inline-block";
+                    document.getElementById('spinner-text').style.display = "inline-block";
+
+                    const url =  new URL(window.location.href);
+                    await fetch(`{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
+                        {
+                            method: "GET",
+                            credentials: "include"
+                        }
+                    )
+                    .then(r => r.json())
+                    .then(async result => {
+                        formData.append('upload_token', result.upload_token)
+                        fetch(`{{upload_action}}`, {
+                            method: "POST",
+                            body: formData,
+                            credentials: "include"
+                        })
+                        return result.upload_token
+                    })
+                    .then(async upload_token => {
+
+                        // use mutual recursion to create a progress element that always updates the exact amount required
+
+                        document.getElementById('percentage').textContent = `0%`;
+
+                       async function askForProgress() {
+                            return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, { credentials: "include" })
+                                .then(r => r.json())
+                                .then(j => {
+                                    let percentage = Math.floor((j.current_position / j.end_position) * 100);
+                                    document.getElementById('percentage').textContent = `${percentage}%`;
+                                    return j;
+                                })
+                        }
+
+                        function later(delay, value) {
+                            return new Promise(resolve => setTimeout(resolve, delay, value));
+                        }
+
+                        async function execute(callback) {
+                            return await callback().then(async j => {
+                                if (!(j.current_position === j.end_position)) {
+                                    return await later(1000, askForProgress).then(execute)
+                                }
+                            })
+                        }
+
+                        await later(1000, askForProgress).then(execute);
+
+                    })
+
+                    document.getElementById('content_from_local_file').disabled = false;
+                    document.getElementById('spinner').style.display = "none";
+                    document.getElementById('percentage').style.display = "none";
+                    document.getElementById('spinner-text').style.display = "none";
+
                 } else  {
                     console.log("KGX "+kgx_file_content+" file is undefined?");
                     window.alert("KGX "+kgx_file_content+" file is undefined");
@@ -107,52 +169,7 @@
                 }
             }
 
-            formData.append("content_name", content_name);
 
-            document.getElementById('content_from_local_file').disabled = true;
-            document.getElementById('spinner').style.display = "inline-block";
-            document.getElementById('spinner-text').style.display = "inline-block";
-
-            const url =  new URL(window.location.href);
-            await fetch(`{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${content_name}`,
-                {
-                    method: "GET",
-                    credentials: "include"
-                }
-            )
-            .then(r => r.json())
-            .then(async result => {
-                formData.append('upload_token', result.upload_token)
-                fetch(`{{upload_action}}`, {
-                    method: "POST",
-                    body: formData,
-                    credentials: "include"
-                })
-                return result.upload_token
-            })
-            .then(async upload_token => {
-
-                function later(delay, value) {
-                    return new Promise(resolve => setTimeout(resolve, delay, value));
-                }
-
-                function askForProgress() {
-                    return fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, { credentials: "include" })
-                        .then(r => r.json())
-                        .then(j => {
-                            let percentage = Math.floor((j.current_position / j.end_position) * 100);
-                            document.getElementById('percentage').textContent = `${percentage}%`;
-                        })
-                }
-
-                for (let i = 0; i < 10; i++) {
-                    await later(1000, askForProgress).then(value => value())
-                }
-            })
-
-            document.getElementById('content_from_local_file').disabled = false;
-            document.getElementById('spinner').style.display = "none";
-            document.getElementById('spinner-text').style.display = "none";
 
         }
     </script>
