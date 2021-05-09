@@ -18,7 +18,7 @@ async def test_get_registration_form(client):
     }
     response = await client.request(
         method='GET',
-        path='/register',
+        path='/register/graph',
         headers=headers,
         params=params,
         )

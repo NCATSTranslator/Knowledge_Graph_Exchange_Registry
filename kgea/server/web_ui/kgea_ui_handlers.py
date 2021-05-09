@@ -225,7 +225,14 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
     """
     session = await get_session(request)
     if not session.empty:
+        
+        kg_id = request.query.get('kg_id', default='')
+        kg_name = request.query.get('kg_name', default='')
+
         context = {
+            "kg_id": kg_id,
+            "kg_name": kg_name,
+
             "submitter": session['name'],
             "submitter_email": session['email'],
     

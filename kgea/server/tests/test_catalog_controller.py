@@ -61,7 +61,7 @@ async def test_register_file_set(client):
         }
     response = await client.request(
         method='POST',
-        path='/archive/register',
+        path='/archive/register/graph',
         headers=headers,
         data=data,
         )

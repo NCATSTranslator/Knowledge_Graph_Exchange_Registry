@@ -222,7 +222,17 @@ async def register_kge_knowledge_graph(request: web.Request):
                 # Also publish a new 'provider.yaml' metadata file to the KGE Archive
                 knowledge_graph.publish_provider_metadata()
                 
-                await redirect(request, FILESET_REGISTRATION_FORM_PATH)
+                await redirect(
+                    request,
+                    Template(
+                        FILESET_REGISTRATION_FORM_PATH +
+                        '?kg_id=$kg_id&kg_name=$kg_name'
+                    ).substitute(
+                        kg_id=kg_id,
+                        kg_name=knowledge_graph.get_name()
+                    ),
+                    active_session=True
+                )
 
         #     else:
         #         # TODO: more graceful front end failure signal
