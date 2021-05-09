@@ -266,7 +266,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
         
         file_set: KgeFileSet = knowledge_graph.get_file_set(kg_version)
         
-        if not(file_set or file_set.publish()):
+        if not(file_set and file_set.publish()):
             raise report_error(
                     request,
                     "publish_kge_file_set() errors: file set version '" +
