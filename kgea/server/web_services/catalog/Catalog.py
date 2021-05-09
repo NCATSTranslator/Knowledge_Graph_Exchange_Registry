@@ -30,6 +30,9 @@ from string import Template
 from json import dumps
 
 import yaml
+
+from kgea.server.web_services.models import KgeFileSetStatus
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -522,6 +525,31 @@ class KgeFileSet:
                 "file_name": file_name,
                 "object_key": object_key
             }
+
+    def get_status(self) -> Optional[KgeFileSetStatus]:
+        # # TODO: need to retrieve metadata by kg_version
+        # file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
+        #
+        # # Listings Approach
+        # # - Introspect on Bucket
+        # # - Create URL per Item Listing
+        # # - Send Back URL with Dictionary
+        # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+        # # TODO: convert into redirect approach with cross-origin scripting?
+        # kg_files = kg_files_in_location(
+        #     bucket_name=_KGEA_APP_CONFIG['bucket'],
+        #     object_location=file_set_location
+        # )
+        # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
+        # kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+        # kg_urls = dict(
+        #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
+        #         kg_listing))
+        # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
+        
+        file_set_status = KgeFileSetStatus()
+        
+        return None
 
 
 class KgeKnowledgeGraph:

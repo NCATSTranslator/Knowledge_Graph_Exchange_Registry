@@ -409,7 +409,7 @@ components:
         KGE File Set Status including inventory of associated files.
       type: object
       properties:
-        kd_id:
+        kg_id:
           description: >-
             Identifier of the knowledge graph that owns the file set.
           type: string

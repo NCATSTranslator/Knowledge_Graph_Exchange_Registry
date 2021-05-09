@@ -321,7 +321,7 @@ components:
     KgeFileSetStatus:
       description: KGE File Set Status including inventory of associated files.
       example:
-        kd_id: semmeddb
+        kg_id: semmeddb
         files:
         - kgx_compliance_status: kgx_compliance_status
           file_type: file_type
@@ -341,10 +341,10 @@ components:
           - errors
         kg_version: "1.0"
       properties:
-        kd_id:
+        kg_id:
           description: Identifier of the knowledge graph that owns the file set.
           example: semmeddb
-          title: kd_id
+          title: kg_id
           type: string
         kg_version:
           description: Version identifier of the file set.

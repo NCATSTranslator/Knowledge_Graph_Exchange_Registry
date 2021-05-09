@@ -13,26 +13,26 @@ class KgeFileSetStatus(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, kd_id: str=None, kg_version: str=None, files: List[KgeFile]=None):
+    def __init__(self, kg_id: str=None, kg_version: str=None, files: List[KgeFile]=None):
         """KgeFileSetStatus - a model defined in OpenAPI
 
-        :param kd_id: The kd_id of this KgeFileSetStatus.
+        :param kg_id: The kg_id of this KgeFileSetStatus.
         :param kg_version: The kg_version of this KgeFileSetStatus.
         :param files: The files of this KgeFileSetStatus.
         """
         self.openapi_types = {
-            'kd_id': str,
+            'kg_id': str,
             'kg_version': str,
             'files': List[KgeFile]
         }
 
         self.attribute_map = {
-            'kd_id': 'kd_id',
+            'kg_id': 'kg_id',
             'kg_version': 'kg_version',
             'files': 'files'
         }
 
-        self._kd_id = kd_id
+        self._kg_id = kg_id
         self._kg_version = kg_version
         self._files = files
 
@@ -46,27 +46,27 @@ class KgeFileSetStatus(Model):
         return util.deserialize_model(dikt, cls)
 
     @property
-    def kd_id(self):
-        """Gets the kd_id of this KgeFileSetStatus.
+    def kg_id(self):
+        """Gets the kg_id of this KgeFileSetStatus.
 
         Identifier of the knowledge graph that owns the file set.
 
-        :return: The kd_id of this KgeFileSetStatus.
+        :return: The kg_id of this KgeFileSetStatus.
         :rtype: str
         """
-        return self._kd_id
+        return self._kg_id
 
-    @kd_id.setter
-    def kd_id(self, kd_id):
-        """Sets the kd_id of this KgeFileSetStatus.
+    @kg_id.setter
+    def kg_id(self, kg_id):
+        """Sets the kg_id of this KgeFileSetStatus.
 
         Identifier of the knowledge graph that owns the file set.
 
-        :param kd_id: The kd_id of this KgeFileSetStatus.
-        :type kd_id: str
+        :param kg_id: The kg_id of this KgeFileSetStatus.
+        :type kg_id: str
         """
 
-        self._kd_id = kd_id
+        self._kg_id = kg_id
 
     @property
     def kg_version(self):
