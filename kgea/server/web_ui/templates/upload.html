@@ -1,5 +1,9 @@
 {% extends "layout.html" %}
 {% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"
+            integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
+            crossorigin="anonymous"></script>
     <link rel="stylesheet" type="text/css" href="https://raw.githubusercontent.com/loadingio/loading-bar/master/dist/loading-bar.css"/>
     <script type="text/javascript" src="https://raw.githubusercontent.com/loadingio/loading-bar/master/dist/loading-bar.js"></script>
     {#    Spinner   #}
@@ -24,11 +28,27 @@
           -webkit-transform: rotate(360deg);
         }
       }
+
+    </style>
+    <style>
+        #ldBar .ui-progressbar-value {
+            background-color: var(--nc-lk-1);
+        }
+        .progress-label {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--nc-tx-2);
+            padding-left: 16px;
+        }
     </style>
     <script>
         /* UI Elements */
         // Progress Bar //
-
+        $( "#ldBar" ).progressbar({
+            value: 0,
+        })
+        $( "#ldBar" ).css('display', 'none')
         let content_name = 'unknown';
         function SetFileName(value) {
             // TODO: Sanitize content_names as per AWS Object Key naming guidelines?
@@ -102,9 +122,10 @@
                     formData.append("content_name", uploaded_file.name);
 
                     document.getElementById('content_from_local_file').disabled = true;
-                    document.getElementById('spinner').style.display = "inline-block";
+                    {#document.getElementById('spinner').style.display = "inline-block";#}
                     document.getElementById('percentage').style.display = "inline-block";
                     document.getElementById('spinner-text').style.display = "inline-block";
+                    $( "#ldBar" ).css('display', 'block')
 
                     const url =  new URL(window.location.href);
                     await fetch(`{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
@@ -129,37 +150,64 @@
 
                         document.getElementById('percentage').textContent = `0.0%`;
 
+                        // callback for mutual recursion
                         async function askForProgress() {
                             return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, { credentials: "include" })
                                 .then(r => r.json())
                                 .then(j => {
                                     let percentage = Number((j.current_position / j.end_position) * 100).toFixed(1);
                                     document.getElementById('percentage').textContent = `${percentage}%`;
-
+                                    let progressbar = $( "#ldBar");
+                                    progressbar.progressbar({
+                                        // ceil to err on the side of displaying progress
+                                        value: Math.ceil((j.current_position / j.end_position) * 100)
+                                    })
                                     return j;
                                 })
                         }
 
+                        // timer helper for deferring execution of next recursion step
+                        // "value" will be a function here
                         function later(delay, value) {
                             return new Promise(resolve => setTimeout(resolve, delay, value));
                         }
 
+                        // control flow for mutual recursion
                         async function execute(callback) {
-                            return await callback().then(async j => {
-                                if (!(j.current_position === j.end_position)) {
+                            return await callback().then(async received => {
+                                // NOTE: Sometimes it takes awhile for received.end_position to initialize, particularly if the
+                                // file size is > ~1GB (works fine at ~300mb).
+                                // In that case, received.end_position is going to be undefined. So this will still execute and
+                                // essentially wait until received.end_position is defined, and will stop once received.current_position
+                                // is equal to j.end_position (because the file has been completely read and uploaded).
+                                if (received.current_position < received.end_position) {
                                     return await later(1000, askForProgress).then(execute)
+                                } else if (received.current_position > received.end_position) {
+                                    throw Error('[ERROR] received.current_position > received.end_position - was received.end_position miscalculated?');
+                                } else {
+                                    // recursion will terminate when we've seeked all the way to the end position
+                                    return true;
                                 }
                             })
                         }
 
-                        await later(1000, askForProgress).then(execute);
+                        // put the pieces together
+                        try {
+                            return await later(1000, askForProgress).then(execute);
+                        } catch(e) {
+                            console.error(e);
+                        }
 
                     })
 
                     document.getElementById('content_from_local_file').disabled = false;
-                    document.getElementById('spinner').style.display = "none";
+                    {#document.getElementById('spinner').style.display = "none";#}
                     document.getElementById('percentage').style.display = "none";
                     document.getElementById('spinner-text').style.display = "none";
+                    $( "#ldBar" ).css('display', 'none')
+                    $( "#ldBar" ).progressbar({
+                        value: 0
+                    })
 
                 } else  {
                     console.log("KGX "+kgx_file_content+" file is undefined?");
@@ -238,15 +286,22 @@
 
             <p>Choose a KGX content type for uploading</p>
 
-            <label for="content_file"><b>Select File</b></label>
-            <input id="content_file"  class="textbox" type="file"/>
-            <button id="content_from_local_file" onclick="UploadFile(this)" >
-                Upload
-            </button>
-            <div id="spinner" class="spin"></div>
-            <span id="percentage" style="display:none;"></span>
-            <span id="spinner-text" style="display:none;">Uploading file, please don't navigate away from the page...</span>
-            <div class="ldBar" data-value="50"></div>
+            <span>
+                <label for="content_file"><b>Select File</b></label><br>
+                <input id="content_file"  class="textbox" type="file" style="display: inline-block"/>
+                <button id="content_from_local_file" onclick="UploadFile(this)" style="display: inline-block">
+                    Upload
+                </button>
+                <br>
+                <div id="ldBar" style="background: transparent; height: 1em;">
+                    <span id="percentage" class="progress-label" style="display:none;"></span>
+                </div>
+                <span id="spinner-text" style="display:none;">Uploading file, please don't navigate away from the page...</span>
+{#                <div id="spinner" class="spin"></div>#}
+
+            </span>
+
+
 
         </td>
     </tr>
@@ -254,10 +309,10 @@
         <td>
             <h4>Transfer from a URL</h4>
 
-            <label for="content_url"><b>URL to File</b></label>
+            <label for="content_url"><b>URL to File</b></label><br>
             <input id="content_url" type="text" oninput="GetUrl(this)"/>
-            <br><label for="file_name"><b>File Name</b></label>
-            <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
+            <br><label for="file_name"><b>File Name</b></label><br>
+            <input id="file_name" type="text" onchange="SetFileName(this.value)"/><br>
             <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
         </td>
     </tr>

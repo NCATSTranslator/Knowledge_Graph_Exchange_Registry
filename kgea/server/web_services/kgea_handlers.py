@@ -502,8 +502,8 @@ async def setup_kge_upload_context(
             print('session upload token', token, upload_tracker['upload'])
             upload_token = UploadTokenObject(token).to_dict()
 
-        response = web.json_response(upload_token)
-        return await with_session(request, response)
+            response = web.json_response(upload_token)
+            return await with_session(request, response)
 
     else:
         # If session is not active, then just a redirect
@@ -523,32 +523,21 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 
     """
 
-# <<<<<<< HEAD
     session = await get_session(request)
     if not session.empty:
-# =======
-#         elif upload_mode == 'content_from_local_file':
-#
-#             """
-#             Although earlier on I experimented with approaches that streamed directly into an archive,
-#             it failed for what should have been obvious reasons: gzip is non-commutative, so without unpacking
-#             then zipping up consecutively uploaded files I can't add new gzip files to the package after compression.
-#
-#             So for now we're just streaming into the bucket, only archiving when required - on download.
-#             """
-#
-#             uploaded_file_object_key = upload_file_multipart(
-#                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
-#                 file_name=content_name,        # The new name for the file
-#                 bucket=_KGEA_APP_CONFIG['bucket'],
-#                 object_location=file_set_location
-#             )
-# >>>>>>> master
+
+        """
+        NOTE: Sometimes it takes awhile for end_position to be calculated initialize, particularly if the
+        file size is > ~1GB (works fine at ~300mb).
+        
+        In that case, we leave end_position is going to be undefined. The consumer of this endpoint must be willing
+        to consistently poll until end_position is given a value.
+        """
 
         progress_token = UploadProgressToken(
             upload_token=upload_token,
             current_position=upload_tracker['upload'][upload_token]['current_position'] if 'current_position' in upload_tracker['upload'][upload_token] else 0,
-            end_position=upload_tracker['upload'][upload_token]['end_position'] if 'end_position' in upload_tracker['upload'][upload_token] else 0,
+            end_position=upload_tracker['upload'][upload_token]['end_position'] if 'end_position' in upload_tracker['upload'][upload_token] else None,
         ).to_dict()
         response = web.json_response(progress_token)
         return await with_session(request, response)
@@ -578,6 +567,7 @@ async def upload_kge_file(
 
     session = await get_session(request)
     if not session.empty:
+        global upload_tracker
 
         # get details of file upload from token
         details = upload_tracker['upload'][upload_token]
@@ -602,20 +592,16 @@ async def upload_kge_file(
             :param data_file:
             :return size:
             """
-            lock = threading.Lock()
-            with lock:
-                if not data_file.closed:
-                    data_file.seek(0, 2)
-                    size = data_file.tell()
-                    data_file.seek(0, 0)
-                    return size
-                else:
-                    return 0
-
-        upload_tracker['upload'][upload_token]['end_position'] = pathless_file_size(uploaded_file.file)
+            if not data_file.closed:
+                data_file.seek(0, 2)
+                size = data_file.tell()
+                print(size)
+                data_file.seek(0, 0)
+                return size
+            else:
+                return 0
 
         def update_session(bytes):
-            global upload_tracker
             upload_tracker['upload'][upload_token]['current_position'] = bytes
 
         class ProgressPercentage(object):
@@ -644,6 +630,9 @@ async def upload_kge_file(
 
         num_threads = 16
         cfg = Config(signature_version='s3v4', max_pool_connections=num_threads)
+
+        filesize = pathless_file_size(uploaded_file.file)
+        upload_tracker['upload'][upload_token]['end_position'] = filesize
 
         def threaded_upload():
             session_ = boto3.Session()
@@ -811,7 +800,7 @@ async def upload_kge_file(
         #     await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
 
         response = web.Response(text=str(upload_tracker['upload'][upload_token]['end_position']), status=200)
-        return with_session(request, response)
+        await with_session(request, response)
 
     else:
         # If session is not active, then just a redirect
