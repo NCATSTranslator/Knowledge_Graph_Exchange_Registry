@@ -1,6 +1,25 @@
 {% extends "layout.html" %}
 {% block scripts %}
+    <script type="text/javascript" src="https://raw.githubusercontent.com/mdix/progress.js/master/progress.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://github.com/mdix/progress.js/blob/master/progress.css"/>
     <script>
+
+        let kg_version = "1.0"
+        async function getVersion() {
+            // TODO: need to free version once set?
+            //  Or set in advance of uploading (maybe with a startup popup dialog box?)
+            // kg_major_version: major release version of knowledge graph file set
+            // let kg_major_version = document.getElementById("kg_major_version")
+
+            // // kg_major_version: minor release version of knowledge graph file set
+            // let kg_minor_version = document.getElementById("minor_version")
+
+            // Simple minded first iteration - perhaps need something more?
+            // kg_version = kg_major_version + "." + kg_minor_version
+            kg_version = prompt("Specify File Set version for Knowledge Graph '{{kg_name}}': ", kg_version);
+            document.getElementById("kg_version").innerText = kg_version;
+        }
+
         let content_name = 'unknown';
         function SetFileName(value) {
             // TODO: Sanitize content_names as per AWS Object Key naming guidelines?
@@ -28,7 +47,7 @@
             let formData = new FormData();
 
             formData.append("kg_id", "{{kg_id}}");
-            formData.append("kg_version", "{{kg_version}}");
+            formData.append("kg_version", kg_version);
 
             let kfc_radio = document.querySelector("input[name=kgx_file_content]:checked");
             let kgx_file_content = kfc_radio ? kfc_radio.value : "";
@@ -78,14 +97,19 @@
             }
 
             formData.append("content_name", content_name);
-
-            fetch(
+            document.getElementById('content_from_local_file').disabled = true;
+            await fetch(
                 "{{upload_action}}",
                 {
                     method: "POST",
                     body: formData,
                     credentials: "include"
-                }).then(
+                })
+                // block button
+                .then(response => {
+                    return response;
+                })
+                .then(
                     response => {
                         console.log('HTTP response code:', response.status);
                         response.text(
@@ -104,37 +128,53 @@
                             console.log(err_msg);
                             window.alert(err_msg);
                         })
-                }).catch(error => {
+                })
+                .catch(error => {
                     let err_msg =
                             "File upload error encountered\nfor " + kgx_file_content + " file '" + content_name +
                             "'\nfor knowledge graph '{{kg_name}}: " + error;
                     console.log(err_msg);
                     window.alert(err_msg);
                 });
+            document.getElementById('content_from_local_file').disabled = false;
+        }
+
+        async function DoneUploading(source) {
+            if (source.id === 'done_uploading') {
+                try {
+                    let a = document.createElement('a');
+                    a.href = "{{publish_file_set_action}}/{{kg_id}}/" + kg_version;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } catch(e) {
+                   console.log('DoneUploading error:', e);
+                }
+                // return done_url;
+            }
         }
     </script>
 {% endblock %}
+{% block body %}<body onload="getVersion()">{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
 <div class="menu_item">
-<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}/{{kg_version}}">
-    <input type="submit" value="Done Uploading" />
-</form>
+<button id="done_uploading" onclick="DoneUploading(this)">Done Uploading</button>
 </div>
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'{% endblock %}
-{% block subtitle %}Version: '{{kg_version}}', Submitted by '{{submitter}}'{% endblock %}
+{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>Version <span id="kg_version"></span>{% endblock %}
+{% block subtitle %}Submitted by '{{submitter}}'{% endblock %}
 {% block content %}
 <div class="subtitle"></div>
 <table>
     <tr>
         <td rowspan="2">
             <h4>KGX Content Type</h4>
-            <input type="radio" id="metadata" name="kgx_file_content" value="metadata">
+            <input type="radio" id="metadata" name="kgx_file_content" value="metadata" checked>
             <label  class="label" for="metadata">Metadata</label>
             <div class="tooltip">
-                <img class="tooltip_target" src="images/help-icon.png"/>
+                <img class="tooltip_target" src="images/help-icon.png" width="12" height="12"/>
                 <span class="tooltiptext">
                     (*) Must be a valid KGX metadata JSON file generated from your dataset.
                 </span>
@@ -143,7 +183,7 @@
             <input type="radio" id="nodes" name="kgx_file_content" value="nodes">
             <label class="label" for="nodes">Nodes</label>
             <div class="tooltip">
-                <img class="tooltip_target" src="images/help-icon.png"/>
+                <img class="tooltip_target" src="images/help-icon.png" width="12" height="12"/>
                 <span class="tooltiptext">
                     (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'nodes' file.
                 </span>
@@ -152,7 +192,7 @@
             <input type="radio" id="edges" name="kgx_file_content" value="edges">
             <label class="label" for="edges">Edges</label>
             <div class="tooltip">
-                <img class="tooltip_target" src="images/help-icon.png"/>
+                <img class="tooltip_target" src="images/help-icon.png" width="12" height="12"/>
                 <span class="tooltiptext">
                         (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'edges' file.
                 </span>
@@ -162,7 +202,7 @@
             <input type="radio" id="archive" name="kgx_file_content" value="archive">
             <label class="label" for="archive">KGX Archive</label>
             <div class="tooltip">
-                <img class="tooltip_target" src="images/help-icon.png"/>
+                <img class="tooltip_target" src="images/help-icon.png" width="12" height="12"/>
                 <span class="tooltiptext">
                         If a KGX Archive is given, then the local
                             uploaded file or a transfer from URL is assumed to be a gzip'd

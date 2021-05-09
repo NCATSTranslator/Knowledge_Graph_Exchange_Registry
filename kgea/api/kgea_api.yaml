@@ -87,8 +87,6 @@ paths:
                   type: string
                 kg_name:
                   type: string
-                kg_version:
-                  type: string
                 kg_description:
                   type: string
                 license_name:
@@ -103,7 +101,6 @@ paths:
                 - translator_component
                 - translator_team
                 - kg_name
-                - kg_version
       responses:
         '201':
           description: Upload successfully completed.

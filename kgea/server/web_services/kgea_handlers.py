@@ -32,6 +32,7 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     upload_file,
+    upload_file_multipart,
     # download_file,
     compress_download,
     create_presigned_url,
@@ -142,13 +143,10 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
         # kg_name: human readable name of the knowledge graph
         kg_name = data['kg_name']
 
-        # kg_version: release version of knowledge graph
-        kg_version = data['kg_version']
-
         # submitter: name of submitter of the KGE file set
         submitter = data['submitter']
 
-        if not (kg_name and kg_version and submitter):
+        if not (kg_name and submitter):
             await report_error(request, "register_kge_file_set(): either name, version or submitter are empty?")
 
         # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
@@ -187,7 +185,6 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
             "register_kge_knowledge_graph() form parameters:\n\t" +
             "\n\tkg_name: " + kg_name +
             "\n\tkg_description: " + kg_description +
-            "\n\tCurrently active kg_version: " + kg_version +
             "\n\ttranslator_component: " + translator_component +
             "\n\ttranslator_team: " + translator_team +
             "\n\tsubmitter: " + submitter +
@@ -200,10 +197,6 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
         kg_id = KgeArchiveCatalog.normalize_name(kg_name)
-
-        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
-
-        logger.debug("register_kge_file_set(file_set_location: " + file_set_location + ")")
 
         if True:  # location_available(bucket_name, object_key):
             if True:  # api_specification and url:
@@ -224,10 +217,6 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
                     license_name=license_name,
                     license_url=license_url,
                     terms_of_service=terms_of_service,
-
-                    # Register an initial submitter-specified KGE File Set version
-                    kg_version=assigned_version,
-                    file_set_location=file_set_location
                 )
 
                 # Also publish a new 'provider.yaml' metadata file to the KGE Archive
@@ -236,8 +225,8 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
                 await redirect(request,
                                Template(
                                    UPLOAD_FORM_PATH +
-                                   '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter=$submitter'
-                               ).substitute(kg_id=kg_id, kg_name=kg_name, kg_version=kg_version, submitter=submitter),
+                                   '?kg_id=$kg_id&kg_name=$kg_name&submitter=$submitter'
+                               ).substitute(kg_id=kg_id, kg_name=kg_name, submitter=submitter),
                                active_session=True
                                )
         #     else:
@@ -431,7 +420,7 @@ async def upload_kge_file(
             So for now we're just streaming into the bucket, only archiving when required - on download.
             """
 
-            uploaded_file_object_key = upload_file(
+            uploaded_file_object_key = upload_file_multipart(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
                 file_name=content_name,        # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],

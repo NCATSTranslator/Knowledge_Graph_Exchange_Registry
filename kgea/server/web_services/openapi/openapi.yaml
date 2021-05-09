@@ -569,8 +569,6 @@ components:
           type: string
         kg_name:
           type: string
-        kg_version:
-          type: string
         kg_description:
           type: string
         license_name:
@@ -581,7 +579,6 @@ components:
           type: string
       required:
       - kg_name
-      - kg_version
       - submitter
       - submitter_email
       - translator_component
