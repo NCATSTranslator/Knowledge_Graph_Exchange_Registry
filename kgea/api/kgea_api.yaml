@@ -629,17 +629,17 @@ components:
       properties:
         kg_id:
           type: string
-        kg_major_version:
+        major_version:
           type: integer
-        kg_minor_version:
+        minor_version:
           type: integer
-        kg_date_stamp:
+        date_stamp:
           type: string
           format: date
       required:
       - kg_id
-      - kg_major_version
-      - kg_minor_version
+      - major_version
+      - minor_version
     UploadRequestBody:
       description: Uploading form posting of (meta-)data files to a specific KGE File
         Set version, belonging to a specific Knowledge Graph. The 'upload_mode' argument

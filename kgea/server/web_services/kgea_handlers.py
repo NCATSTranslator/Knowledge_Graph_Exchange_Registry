@@ -127,7 +127,7 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
      # noqa: E501
 
     :param request:
-    :type request: web.Request - contains register.html form parameters
+    :type request: web.Request - contains graph.html form parameters
 
     """
     logger.debug("Entering register_kge_file_set()")
