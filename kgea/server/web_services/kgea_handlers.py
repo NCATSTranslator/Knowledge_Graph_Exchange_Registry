@@ -241,6 +241,17 @@ async def register_kge_knowledge_graph(request: web.Request):  # noqa: E501
         await redirect(request, LANDING)
 
 
+def register_kge_file_set():
+    """Register core metadata for a distinctly versioned file set of a KGE Knowledge Graph
+
+    Register core metadata for a newly persisted file set version of a KGE persisted Knowledge Graph. Since this endpoint assumes a web session authenticated session user, this user is automatically designated as the &#39;owner&#39; of the new versioned file set.
+
+    :param request:
+    :type request: web.Request
+
+    """
+    return web.Response(status=200)
+
 async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str):
     """Publish a registered File Set
 

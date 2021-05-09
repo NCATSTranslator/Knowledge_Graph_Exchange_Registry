@@ -88,11 +88,15 @@ paths:
       tags:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
-  /register:
+  /register/fileset:
     post:
-      operationId: register_knowledge_graph
+      description: Register core metadata for a newly persisted file set version of
+        a KGE persisted Knowledge Graph. Since this endpoint assumes a web session
+        authenticated session user, this user is automatically designated as the 'owner'
+        of the new versioned file set.
+      operationId: register_file_set
       requestBody:
-        $ref: '#/components/requestBodies/RegisterRequestBody'
+        $ref: '#/components/requestBodies/RegisterFileSetRequestBody'
         x-body-name: body
       responses:
         "201":
@@ -100,7 +104,7 @@ paths:
             application/json:
               schema:
                 type: string
-          description: Upload successfully completed.
+          description: New file set registration operation successfully completed.
         "400":
           content:
             application/json:
@@ -109,7 +113,37 @@ paths:
           description: Bad request. Request is invalid according to this OpenAPI schema
             OR a specific parameter is believed to be invalid somehow (or not just
             recognized).
-      summary: Register core metadata for a KGE Knowledge Graph
+      summary: Register core metadata for a distinctly versioned file set of a KGE
+        Knowledge Graph
+      tags:
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
+      x-codegen-request-body-name: body
+  /register/graph:
+    post:
+      description: Register core metadata for a new KGE persisted Knowledge Graph.
+        Since this endpoint assumes assumes a web session authenticated user, this
+        user is automatically designated as the 'owner' of the new KGE graph.
+      operationId: register_knowledge_graph
+      requestBody:
+        $ref: '#/components/requestBodies/RegisterGraphRequestBody'
+        x-body-name: body
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: New knowledge graph registration operation  successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or not just
+            recognized).
+      summary: Register core metadata for a distinct KGE Knowledge Graph
       tags:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
@@ -284,17 +318,23 @@ paths:
       x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
 components:
   requestBodies:
+    RegisterGraphRequestBody:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/RegisterGraphRequestBody'
+      required: true
+    RegisterFileSetRequestBody:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/RegisterFileSetRequestBody'
+      required: true
     UploadRequestBody:
       content:
         multipart/form-data:
           schema:
             $ref: '#/components/schemas/UploadRequestBody'
-      required: true
-    RegisterRequestBody:
-      content:
-        application/x-www-form-urlencoded:
-          schema:
-            $ref: '#/components/schemas/RegisterRequestBody'
       required: true
   schemas:
     KgeFileSetEntry:
@@ -607,12 +647,9 @@ components:
       - subject
       title: MetaEdge
       type: object
-    RegisterRequestBody:
+    RegisterGraphRequestBody:
+      description: KGE Knowledge Graph registration metadata.
       properties:
-        submitter:
-          type: string
-        submitter_email:
-          type: string
         translator_component:
           type: string
         translator_team:
@@ -629,10 +666,25 @@ components:
           type: string
       required:
       - kg_name
-      - submitter
-      - submitter_email
       - translator_component
       - translator_team
+      type: object
+    RegisterFileSetRequestBody:
+      description: Versioned KGE File Set registration metadata.
+      properties:
+        kg_id:
+          type: string
+        kg_major_version:
+          type: integer
+        kg_minor_version:
+          type: integer
+        kg_date_stamp:
+          format: date
+          type: string
+      required:
+      - kg_id
+      - kg_major_version
+      - kg_minor_version
       type: object
     UploadRequestBody:
       description: Uploading form posting of (meta-)data files to a specific KGE File
