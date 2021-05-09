@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block scripts %}
-    <script type="text/javascript" src="https://raw.githubusercontent.com/mdix/progress.js/master/progress.js"></script>
-    <link type="text/css" rel="stylesheet" href="https://github.com/mdix/progress.js/blob/master/progress.css"/>
+    <link rel="stylesheet" type="text/css" href="https://raw.githubusercontent.com/loadingio/loading-bar/master/dist/loading-bar.css"/>
+    <script type="text/javascript" src="https://raw.githubusercontent.com/loadingio/loading-bar/master/dist/loading-bar.js"></script>
     {#    Spinner   #}
     <style>
       .spin {
@@ -28,8 +28,6 @@
     <script>
         /* UI Elements */
         // Progress Bar //
-        progressBar = Progress.bar(configObj);
-        progressBar.renderTo(document.getElementById('percentage'))
 
         let content_name = 'unknown';
         function SetFileName(value) {
@@ -137,6 +135,7 @@
                                 .then(j => {
                                     let percentage = Number((j.current_position / j.end_position) * 100).toFixed(1);
                                     document.getElementById('percentage').textContent = `${percentage}%`;
+
                                     return j;
                                 })
                         }
@@ -247,6 +246,7 @@
             <div id="spinner" class="spin"></div>
             <span id="percentage" style="display:none;"></span>
             <span id="spinner-text" style="display:none;">Uploading file, please don't navigate away from the page...</span>
+            <div class="ldBar" data-value="50"></div>
 
         </td>
     </tr>

@@ -483,19 +483,25 @@ async def setup_kge_upload_context(
 
         import uuid
         import os
+
         object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
             ROOT=file_set_location,
             FILENAME=Path(content_name).stem,
             EXTENSION=os.path.splitext(content_name)[1]
         )
 
-        token = str(uuid.uuid4())
-        upload_tracker['upload'] = {}
-        upload_tracker['upload'][token] = {
-            "object_key": object_key
-        }
-        print('session upload token', token, upload_tracker['upload'])
-        upload_token = UploadTokenObject(token).to_dict()
+        with threading.Lock():
+            token = str(uuid.uuid4())
+            if 'upload' not in upload_tracker:
+                upload_tracker['upload'] = {}
+            if token not in upload_tracker['upload']:
+                upload_tracker['upload'][token] = {
+                    "file_set_location": file_set_location,
+                    "object_key": object_key
+                }
+            print('session upload token', token, upload_tracker['upload'])
+            upload_token = UploadTokenObject(token).to_dict()
+
         response = web.json_response(upload_token)
         return await with_session(request, response)
 
@@ -538,7 +544,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 #                 object_location=file_set_location
 #             )
 # >>>>>>> master
-        global upload_tracker
+
         progress_token = UploadProgressToken(
             upload_token=upload_token,
             current_position=upload_tracker['upload'][upload_token]['current_position'] if 'current_position' in upload_tracker['upload'][upload_token] else 0,
@@ -572,7 +578,6 @@ async def upload_kge_file(
 
     session = await get_session(request)
     if not session.empty:
-        global upload_tracker
 
         # get details of file upload from token
         details = upload_tracker['upload'][upload_token]
@@ -622,8 +627,6 @@ async def upload_kge_file(
                 self._lock = threading.Lock()
 
             def __call__(self, bytes_amount):
-                global upload_tracker
-
                 # To simplify we'll assume this is hooked up
                 # to a single filename.
                 # with self._lock:
@@ -649,7 +652,7 @@ async def upload_kge_file(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
                 file_name=uploaded_file.filename,  # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],
-                object_location=details['object_key'],
+                object_location=details['file_set_location'],
                 callback=ProgressPercentage(uploaded_file.filename, upload_tracker['upload'][upload_token]['end_position']),
                 client=client
             )
