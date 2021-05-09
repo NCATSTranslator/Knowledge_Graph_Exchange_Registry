@@ -54,7 +54,7 @@ from kgea.server.config import (
 )
 
 from kgea.server.web_services.kgea_file_ops import (
-    # get_default_date_stamp,
+    get_default_date_stamp,
     get_object_location,
     get_archive_contents,
     with_version,
@@ -153,20 +153,21 @@ class KgeFileSet:
     Class wrapping information about a specific released version of
     KGE Archive managed File Set, effectively 'owned' (hence revisable) by a submitter.
     """
-    def get_version(self):
-        return self.kg_version
-
     def get_submitter(self):
         return self.submitter
 
     def get_submitter_email(self):
         return self.submitter_email
+    
+    def get_version(self):
+        return self.kg_version
 
+    def get_date_stamp(self):
+        return self.date_stamp
+    
     def get_data_file_names(self) -> Set[str]:
         return set(self.data_files.keys())
 
-    # TODO: perhaps a 'file_set_metadata.yaml' should
-    #       be persisted to S3 in each File Set version folder?
     def __init__(
             self,
             kg_id: str,
@@ -175,6 +176,7 @@ class KgeFileSet:
             submitter_email: str,
             size: str = 'unknown',
             revisions: str = 'creation',
+            date_stamp: str = get_default_date_stamp(),
             validate: bool = True
     ):
         """
@@ -193,6 +195,7 @@ class KgeFileSet:
         # KGE File Set archive size, may initially be unknown
         self.size = size
         self.revisions = revisions
+        self.date_stamp = date_stamp
 
         # this attribute will track all metadata files of the given version of KGE File Set
         self.content_metadata: Dict[str, Union[str, bool, List[str]]] = dict()
@@ -667,15 +670,20 @@ class KgeKnowledgeGraph:
         # File Set Versions
         self._file_set_versions: Dict[str, KgeFileSet] = dict()
 
+        #
+        # Knowledge Graph registration no longer
+        # automatically adds a new KGE File Set version
+        #
         # Register an explicitly specified submitter-specified KGE File Set version
         # Sanity check: we should probably not overwrite a KgeFileSet version if it already exists?
-        if kg_version and kg_version not in self._file_set_versions:
-            self._file_set_versions[kg_version] = KgeFileSet(
-                kg_id=self.kg_id,
-                kg_version=kg_version,
-                submitter=kwargs['submitter'],
-                submitter_email=kwargs['submitter_email']
-            )
+        # if kg_version and kg_version not in self._file_set_versions:
+        #     self._file_set_versions[kg_version] = KgeFileSet(
+        #         kg_id=self.kg_id,
+        #         kg_version=kg_version,
+        #         submitter=kwargs['submitter'],
+        #         submitter_email=kwargs['submitter_email']
+        #     )
+        
         self._provider_metadata_object_key: Optional[str] = None
 
     def set_provider_metadata_object_key(self, object_key: str):
@@ -769,7 +777,21 @@ class KgeKnowledgeGraph:
                             )
             file_set.load_data_files(entry['file_object_keys'])
 
+    def add_file_set(self, kg_version: str, file_set: KgeFileSet):
+        """
+        
+        :param kg_version:
+        :param file_set:
+        :return:
+        """
+        self._file_set_versions[kg_version] = file_set
+    
     def load_file_set_metadata(self, metadata_text: str) -> KgeFileSet:
+        """
+        
+        :param metadata_text:
+        :return:
+        """
 
         # Assumed to be a YAML string to be parsed into a Python dictionary
         mf = io.StringIO(metadata_text)
@@ -817,7 +839,7 @@ class KgeKnowledgeGraph:
         )
 
         # ...add it to the knowledge graph...
-        self._file_set_versions[kg_version] = file_set
+        self.add_file_set(kg_version, file_set)
 
         # then return it for further processing
         return file_set

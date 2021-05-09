@@ -1,7 +1,6 @@
 from os import getenv
 from typing import List, Dict
 
-
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -105,16 +104,13 @@ async def get_kge_home(request: web.Request) -> web.Response:
     """
     session = await get_session(request)
     if not session.empty:
-        response = aiohttp_jinja2.render_template(
-            'home.html',
-            request=request,
-            context={
-                "submitter": session['name'],
-                "get_catalog": GET_CATALOG_URL,
-                "archive_path": ARCHIVE_PATH,
-
-            }
-        )
+        context = {
+            "submitter": session['name'],
+            "get_catalog": GET_CATALOG_URL,
+            "archive_path": ARCHIVE_PATH,
+        
+        }
+        response = aiohttp_jinja2.render_template( 'home.html', request=request, context=context)
         return await with_session(request, response)
     else:
         # If session is not active, then just a await redirect

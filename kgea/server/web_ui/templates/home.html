@@ -64,6 +64,7 @@
                     "kg_version: '" + kg_version + "'" +
                 "')"
             );
+
             // window.alert(
             //     "DownloadFile(" +
             //         "action: '" + source.target.id+"', " +
@@ -86,7 +87,7 @@
                 a.click();
                 a.remove();  //afterwards we remove the element again
 
-                console.log('HTTP response code:',r.status);
+                // console.log('HTTP response code:', r.status);
 
             } catch(e) {
                console.log('File download error:', e);

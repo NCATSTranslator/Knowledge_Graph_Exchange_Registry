@@ -20,7 +20,9 @@ async def get_knowledge_graph_catalog(request: web.Request) -> web.Response:
 async def register_knowledge_graph(request: web.Request):
     """Register core metadata for a distinct KGE Knowledge Graph
 
-    Register core metadata for a new KGE persisted Knowledge Graph. Since this endpoint assumes assumes a web session authenticated user, this user is automatically designated as the &#39;owner&#39; of the new KGE graph.
+    Register core metadata for a new KGE persisted Knowledge Graph.
+    Since this endpoint assumes assumes a web session authenticated user,
+    this user is automatically designated as the &#39;owner&#39; of the new KGE graph.
 
     :param request:
     :type request: web.Request
@@ -34,7 +36,10 @@ async def register_knowledge_graph(request: web.Request):
 async def register_file_set(request: web.Request):
     """Register core metadata for a distinctly versioned file set of a KGE Knowledge Graph
 
-    Register core metadata for a newly persisted file set version of a KGE persisted Knowledge Graph. Since this endpoint assumes a web session authenticated session user, this user is automatically designated as the &#39;owner&#39; of the new versioned file set.
+    Register core metadata for a newly persisted file set version of a
+    KGE persisted Knowledge Graph. Since this endpoint assumes a web session
+    authenticated session user, this user is automatically designated
+    as the &#39;owner&#39; of the new versioned file set.
 
     :param request:
     :type request: web.Request
