@@ -254,8 +254,10 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             missing.append("kg_name")
 
         if missing:
-            await report_error( request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
+            await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
 
+        # TODO: might wish to look up "latest" KGE file set version, increment it and send it to the upload form.
+        
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,

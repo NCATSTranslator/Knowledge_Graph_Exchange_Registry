@@ -1,7 +1,7 @@
 import sys
 from os import getenv
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .models import KgeFile
 
@@ -51,8 +51,10 @@ from .kgea_file_ops import (
 from .kgea_stream import transfer_file_from_url
 
 from kgea.server.web_services.catalog.Catalog import (
-    KgeFileType,
-    KgeArchiveCatalog
+    KgeArchiveCatalog,
+    KgeKnowledgeGraph,
+    KgeFileSet,
+    KgeFileType
 )
 
 import logging
@@ -255,14 +257,17 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
     if not (kg_id and kg_version):
         await report_not_found(request, "publish_kge_file_set(): knowledge graph id or file set version are null?")
 
-    kge_file_set = KgeArchiveCatalog.catalog().get_kge_graph(kg_id)
-    errors: List[str] = await KgeArchiveCatalog.catalog().publish_file_set(kg_id, kg_version)
-
-    if DEV_MODE and errors:
+    knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+    
+    file_set: KgeFileSet = knowledge_graph.get_file_set(kg_version)
+    
+    if not(file_set or file_set.publish()):
         raise report_error(
-            request,
-            "publish_kge_file_set() errors:\n\t" + "\n\t".join([str(e) for e in errors])
-        )
+                request,
+                "publish_kge_file_set() errors: file set version '" +
+                kg_version + "' for knowledge graph '" + kg_id + "'" +
+                "count not be published?"
+            )
 
     await redirect(request, HOME)
 
@@ -477,40 +482,42 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
     :param kg_version: Specific version of KGE File Set for the knowledge graph for which metadata are being accessed
     :type kg_version: str
 
+    :return:  KgeFileSetStatus including an annotated list of KgeFile entries
     """
-
-    if not (kg_id and kg_version):
-        await report_not_found(
-            request,
-            "get_kge_file_set_contents(): KGE File Set identifier or version must not be null?"
-        )
-
-    logger.debug("Entering get_kge_file_set_contents(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
 
     session = await get_session(request)
     if not session.empty:
+    
+        if not (kg_id and kg_version):
+            await report_not_found(
+                request,
+                "get_kge_file_set_contents(): Knowledge Graph identifier and File Set version is not specified?"
+            )
+    
+        logger.debug("Entering get_kge_file_set_contents(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
+        
+        # # TODO: need to retrieve metadata by kg_version
+        # file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
+        #
+        # # Listings Approach
+        # # - Introspect on Bucket
+        # # - Create URL per Item Listing
+        # # - Send Back URL with Dictionary
+        # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+        # # TODO: convert into redirect approach with cross-origin scripting?
+        # kg_files = kg_files_in_location(
+        #     bucket_name=_KGEA_APP_CONFIG['bucket'],
+        #     object_location=file_set_location
+        # )
+        # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
+        # kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+        # kg_urls = dict(
+        #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
+        #         kg_listing))
+        # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
 
-        # TODO: need to retrieve metadata by kg_version
-        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
-
-        # Listings Approach
-        # - Introspect on Bucket
-        # - Create URL per Item Listing
-        # - Send Back URL with Dictionary
-        # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-        # TODO: convert into redirect approach with cross-origin scripting?
-        kg_files = kg_files_in_location(
-            bucket_name=_KGEA_APP_CONFIG['bucket'],
-            object_location=file_set_location
-        )
-        pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
-        kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-        kg_urls = dict(
-            map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
-                kg_listing))
-        # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
-
-        response = web.Response(text=str(kg_urls), status=200)
+        file_set_status:  Optional[KgeFileSetStatus] = None
+        response = web.json_response(file_set_status, status=200)
 
         return await with_session(request, response)
 

@@ -268,11 +268,7 @@ paths:
           content:
             application/json:
               schema:
-                description: >-
-                  Annotated list of files within a given KGE File Set version.
-                type: array
-                items:
-                  $ref: '#/components/schemas/KgeFile'
+                $ref: '#/components/schemas/KgeFileSetStatus'
         '404':
           description: >-
             Specified KGE File Set was not found.
@@ -408,6 +404,27 @@ components:
             type: string
           minItems: 1
           example: ["4.1", "4.2", "4.3"]
+    KgeFileSetStatus:
+      description: >-
+        KGE File Set Status including inventory of associated files.
+      type: object
+      properties:
+        kd_id:
+          description: >-
+            Identifier of the knowledge graph that owns the file set.
+          type: string
+          example: "semmeddb"
+        kg_version:
+          description: >-
+            Version identifier of the file set.
+          type: string
+          example: "1.0"
+        files:
+          description: >-
+            Annotated list of files within a given file set.
+          type: array
+          items:
+            $ref: '#/components/schemas/KgeFile'
     KgeFile:
       description: >-
         Annotated file in a KGE File Set.
