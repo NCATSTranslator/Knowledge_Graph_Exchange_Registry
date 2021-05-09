@@ -180,13 +180,8 @@
                                 // In that case, received.end_position is going to be undefined. So this will still execute and
                                 // essentially wait until received.end_position is defined, and will stop once received.current_position
                                 // is equal to j.end_position (because the file has been completely read and uploaded).
-                                if (received.current_position < received.end_position) {
+                                if (!(received.current_position === received.end_position)) {
                                     return await later(1000, askForProgress).then(execute)
-                                } else if (received.current_position > received.end_position) {
-                                    throw Error('[ERROR] received.current_position > received.end_position - was received.end_position miscalculated?');
-                                } else {
-                                    // recursion will terminate when we've seeked all the way to the end position
-                                    return true;
                                 }
                             })
                         }
