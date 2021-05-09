@@ -20,6 +20,8 @@ import re
 from aiohttp import web
 from aiohttp_session import get_session
 
+import threading
+
 #############################################################
 # Application Configuration
 #############################################################
@@ -595,13 +597,15 @@ async def upload_kge_file(
             :param data_file:
             :return size:
             """
-            if not data_file.closed:
-                data_file.seek(0, 2)
-                size = data_file.tell()
-                data_file.seek(0, 0)
-                return size
-            else:
-                return 0
+            lock = threading.Lock()
+            with lock:
+                if not data_file.closed:
+                    data_file.seek(0, 2)
+                    size = data_file.tell()
+                    data_file.seek(0, 0)
+                    return size
+                else:
+                    return 0
 
         upload_tracker['upload'][upload_token]['end_position'] = pathless_file_size(uploaded_file.file)
 
@@ -609,7 +613,6 @@ async def upload_kge_file(
             global upload_tracker
             upload_tracker['upload'][upload_token]['current_position'] = bytes
 
-        import threading
         class ProgressPercentage(object):
 
             def __init__(self, filename, filesize):

@@ -129,13 +129,13 @@
 
                         // use mutual recursion to create a progress element that always updates the exact amount required
 
-                        document.getElementById('percentage').textContent = `0%`;
+                        document.getElementById('percentage').textContent = `0.0%`;
 
-                       async function askForProgress() {
+                        async function askForProgress() {
                             return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, { credentials: "include" })
                                 .then(r => r.json())
                                 .then(j => {
-                                    let percentage = Math.floor((j.current_position / j.end_position) * 100);
+                                    let percentage = Number((j.current_position / j.end_position) * 100).toFixed(1);
                                     document.getElementById('percentage').textContent = `${percentage}%`;
                                     return j;
                                 })
