@@ -3,8 +3,7 @@ from aiohttp import web
 from ..kgea_handlers import (
     get_kge_knowledge_graph_catalog,
     register_kge_knowledge_graph,
-    publish_kge_file_set,
-    kge_file_set_status
+    publish_kge_file_set
 )
 
 
@@ -18,10 +17,12 @@ async def get_knowledge_graph_catalog(request: web.Request) -> web.Response:
 
 
 async def register_knowledge_graph(request: web.Request):
-    """Register core parameters for the KGE File Set upload
+    """Register core metadata for a KGE Knowledge Graph
 
     :param request:
     :type request: web.Request
+    :param body:
+    :type body: dict | bytes
 
     """
     # This method raises an obligatory web.HTTPFound

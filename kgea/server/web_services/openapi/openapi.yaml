@@ -173,10 +173,7 @@ paths:
           content:
             application/json:
               schema:
-                description: Annotated list of files within a given KGE File Set version.
-                items:
-                  $ref: '#/components/schemas/KgeFile'
-                type: array
+                $ref: '#/components/schemas/KgeFileSetStatus'
           description: Annotated list of files of for a given version of a specified
             KGE File Set.
         "404":
@@ -320,6 +317,47 @@ components:
           title: versions
           type: array
       title: KgeFileSetEntry
+      type: object
+    KgeFileSetStatus:
+      description: KGE File Set Status including inventory of associated files.
+      example:
+        kd_id: semmeddb
+        files:
+        - kgx_compliance_status: kgx_compliance_status
+          file_type: file_type
+          original_name: original_name
+          assigned_name: assigned_name
+          file_size: 0.8008282
+          errors:
+          - errors
+          - errors
+        - kgx_compliance_status: kgx_compliance_status
+          file_type: file_type
+          original_name: original_name
+          assigned_name: assigned_name
+          file_size: 0.8008282
+          errors:
+          - errors
+          - errors
+        kg_version: "1.0"
+      properties:
+        kd_id:
+          description: Identifier of the knowledge graph that owns the file set.
+          example: semmeddb
+          title: kd_id
+          type: string
+        kg_version:
+          description: Version identifier of the file set.
+          example: "1.0"
+          title: kg_version
+          type: string
+        files:
+          description: Annotated list of files within a given file set.
+          items:
+            $ref: '#/components/schemas/KgeFile'
+          title: files
+          type: array
+      title: KgeFileSetStatus
       type: object
     KgeFile:
       additionalProperties: false
@@ -569,6 +607,8 @@ components:
           type: string
         kg_name:
           type: string
+        kg_version:
+          type: string
         kg_description:
           type: string
         license_name:
@@ -579,6 +619,7 @@ components:
           type: string
       required:
       - kg_name
+      - kg_version
       - submitter
       - submitter_email
       - translator_component
