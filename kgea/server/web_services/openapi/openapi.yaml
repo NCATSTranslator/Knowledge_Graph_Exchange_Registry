@@ -335,6 +335,7 @@ components:
         multipart/form-data:
           schema:
             $ref: '#/components/schemas/UploadRequestBody'
+      description: KGE File Set metadata or data file submitted
       required: true
   schemas:
     KgeFileSetEntry:
