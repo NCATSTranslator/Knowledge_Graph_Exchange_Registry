@@ -419,12 +419,24 @@ components:
             Version identifier of the file set.
           type: string
           example: "1.0"
+        status:
+          $ref: '#/components/schemas/KgeFileSetStatusCode'
         files:
           description: >-
             Annotated list of files within a given file set.
           type: array
           items:
             $ref: '#/components/schemas/KgeFile'
+    KgeFileSetStatusCode:
+      description: >-
+        Version identifier of the file set.
+      type: string
+      enum:
+        - Created
+        - Loaded
+        - Processing
+        - Validated
+        - Error
     KgeFile:
       description: >-
         Annotated file in a KGE File Set.
