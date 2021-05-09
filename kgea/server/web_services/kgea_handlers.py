@@ -99,6 +99,7 @@ else:
 # )
 #############################################################
 
+upload_tracker = {}
 
 async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
     """Returns the catalog of available KGE File Sets
@@ -477,7 +478,22 @@ async def setup_kge_upload_context(
         #         await report_error(request, error_msg)
         # else:
         #     await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
-        upload_token = UploadTokenObject()
+
+        import uuid
+        import os
+        object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
+            ROOT=file_set_location,
+            FILENAME=Path(content_name).stem,
+            EXTENSION=os.path.splitext(content_name)[1]
+        )
+
+        token = str(uuid.uuid4())
+        upload_tracker['upload'] = {}
+        upload_tracker['upload'][token] = {
+            "object_key": object_key
+        }
+        print('session upload token', token, upload_tracker['upload'])
+        upload_token = UploadTokenObject(token).to_dict()
         response = web.json_response(upload_token)
         return await with_session(request, response)
 
@@ -520,8 +536,12 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 #                 object_location=file_set_location
 #             )
 # >>>>>>> master
-
-        progress_token = UploadProgressToken(upload_token=upload_token)
+        global upload_tracker
+        progress_token = UploadProgressToken(
+            upload_token=upload_token,
+            current_position=upload_tracker['upload'][upload_token]['current_position'] if 'current_position' in upload_tracker['upload'][upload_token] else 0,
+            end_position=upload_tracker['upload'][upload_token]['end_position'] if 'end_position' in upload_tracker['upload'][upload_token] else 0,
+        ).to_dict()
         response = web.json_response(progress_token)
         return await with_session(request, response)
 
@@ -550,6 +570,97 @@ async def upload_kge_file(
 
     session = await get_session(request)
     if not session.empty:
+        global upload_tracker
+
+        # get details of file upload from token
+        details = upload_tracker['upload'][upload_token]
+
+        # TODO: turn into withable
+        def pathless_file_size(data_file):
+            """
+            pathless_file_size
+
+            Takes an open file-like object, gets its end location (in bytes), and returns it as a measure of the file size.
+
+            Traditionally, one would use a systems-call to get the size of a file (using the `os` module).
+            But `TemporaryFileWrapper`s do not feature a location in the filesystem, and so cannot be tested with `os` methods,
+            as they require access to a filepath, or a file-like object that supports a path, in order to work.
+
+            This function seeks the end of a file-like object, records the location, and then seeks back to the beginning so that
+            the file behaves as if it was opened for the first time. This way you can get a file's size before reading it.
+
+            (Note how we aren't using a `with` block, which would close the file after use. So this function leaves the file
+            open, as an implicit non-effect. Closing is problematic for TemporaryFileWrappers which wouldn't be operable again.)
+
+            :param data_file:
+            :return size:
+            """
+            if not data_file.closed:
+                data_file.seek(0, 2)
+                size = data_file.tell()
+                data_file.seek(0, 0)
+                return size
+            else:
+                return 0
+
+        upload_tracker['upload'][upload_token]['end_position'] = pathless_file_size(uploaded_file.file)
+
+        def update_session(bytes):
+            global upload_tracker
+            upload_tracker['upload'][upload_token]['current_position'] = bytes
+
+        import threading
+        class ProgressPercentage(object):
+
+            def __init__(self, filename, filesize):
+                self._filename = filename
+                self.size = filesize
+                self._seen_so_far = 0
+                self._lock = threading.Lock()
+
+            def __call__(self, bytes_amount):
+                global upload_tracker
+
+                # To simplify we'll assume this is hooked up
+                # to a single filename.
+                # with self._lock:
+                self._seen_so_far += bytes_amount
+                update_session(self._seen_so_far)
+                print('progress_raw', upload_tracker['upload'][upload_token]['current_position'] / upload_tracker['upload'][upload_token]['end_position'] * 100)
+                # print('progress', upload_token, session['upload'][upload_token]['current_position'] / session['upload'][upload_token]['end_position'], percentage)
+
+
+        # new boto client instance for thread safety
+        import boto3
+        from botocore.client import Config
+        import asyncio
+        # import concurrent.futures
+
+        num_threads = 16
+        cfg = Config(signature_version='s3v4', max_pool_connections=num_threads)
+
+        def threaded_upload():
+            session_ = boto3.Session()
+            client = session_.client("s3", config=cfg)
+            upload_file(
+                data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
+                file_name=uploaded_file.filename,  # The new name for the file
+                bucket=_KGEA_APP_CONFIG['bucket'],
+                object_location=details['object_key'],
+                callback=ProgressPercentage(uploaded_file.filename, upload_tracker['upload'][upload_token]['end_position']),
+                client=client
+            )
+
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, threaded_upload)
+
+        # upload_file(
+        #     data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
+        #     file_name=uploaded_file.filename,  # The new name for the file
+        #     bucket=_KGEA_APP_CONFIG['bucket'],
+        #     object_location=details['object_key'],
+        #     callback=ProgressPercentage(uploaded_file.filename, session['upload'][upload_token]['end_position'])
+        # )
 
         # """
         # BEGIN Error Handling: checking if parameters passed are sufficient for a well-formed request
@@ -693,8 +804,8 @@ async def upload_kge_file(
         # else:
         #     await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
 
-        response = web.Response(text="To be reimplemented!", status=500)
-        return await with_session(request, response)
+        response = web.Response(text=str(upload_tracker['upload'][upload_token]['end_position']), status=200)
+        return with_session(request, response)
 
     else:
         # If session is not active, then just a redirect

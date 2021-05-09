@@ -2,7 +2,35 @@
 {% block scripts %}
     <script type="text/javascript" src="https://raw.githubusercontent.com/mdix/progress.js/master/progress.js"></script>
     <link type="text/css" rel="stylesheet" href="https://github.com/mdix/progress.js/blob/master/progress.css"/>
+    {#    Spinner   #}
+    <style>
+      .spin {
+        display: none; /*default*/
+        width: 1em;
+        height: 1em;
+        border: 3px solid rgba(255, 255, 255, .3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        -webkit-animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to {
+          -webkit-transform: rotate(360deg);
+        }
+      }
+      @-webkit-keyframes spin {
+        to {
+          -webkit-transform: rotate(360deg);
+        }
+      }
+    </style>
     <script>
+        /* UI Elements */
+        // Progress Bar //
+        progressBar = Progress.bar(configObj);
+        progressBar.renderTo(document.getElementById('percentage'))
+
         let content_name = 'unknown';
         function SetFileName(value) {
             // TODO: Sanitize content_names as per AWS Object Key naming guidelines?
@@ -80,46 +108,51 @@
             }
 
             formData.append("content_name", content_name);
+
             document.getElementById('content_from_local_file').disabled = true;
-            await fetch(
-                "{{upload_action}}",
+            document.getElementById('spinner').style.display = "inline-block";
+            document.getElementById('spinner-text').style.display = "inline-block";
+
+            const url =  new URL(window.location.href);
+            await fetch(`{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${content_name}`,
                 {
+                    method: "GET",
+                    credentials: "include"
+                }
+            )
+            .then(r => r.json())
+            .then(async result => {
+                formData.append('upload_token', result.upload_token)
+                fetch(`{{upload_action}}`, {
                     method: "POST",
                     body: formData,
                     credentials: "include"
                 })
-                // block button
-                .then(response => {
-                    return response;
-                })
-                .then(
-                    response => {
-                        console.log('HTTP response code:', response.status);
-                        response.text(
-                            // nop
-                        ).then(
-                            name => {
-                                window.alert(
-                                    "Successfully uploaded " + kgx_file_content + " file\n'" + content_name +
-                                    "'\n for knowledge graph '{{kg_name}}'!"
-                                );
-                            }
-                        ).catch(error => {
-                            let err_msg =
-                                "Error accessing KGE File Set ID\nfor " + kgx_file_content + " file '" + content_name +
-                                "'\nfor knowledge graph '{{kg_name}}: " + error;
-                            console.log(err_msg);
-                            window.alert(err_msg);
+                return result.upload_token
+            })
+            .then(async upload_token => {
+
+                function later(delay, value) {
+                    return new Promise(resolve => setTimeout(resolve, delay, value));
+                }
+
+                function askForProgress() {
+                    return fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, { credentials: "include" })
+                        .then(r => r.json())
+                        .then(j => {
+                            let percentage = Math.floor((j.current_position / j.end_position) * 100);
+                            document.getElementById('percentage').textContent = `${percentage}%`;
                         })
-                })
-                .catch(error => {
-                    let err_msg =
-                            "File upload error encountered\nfor " + kgx_file_content + " file '" + content_name +
-                            "'\nfor knowledge graph '{{kg_name}}: " + error;
-                    console.log(err_msg);
-                    window.alert(err_msg);
-                });
+                }
+
+                for (let i = 0; i < 10; i++) {
+                    await later(1000, askForProgress).then(value => value())
+                }
+            })
+
             document.getElementById('content_from_local_file').disabled = false;
+            document.getElementById('spinner').style.display = "none";
+            document.getElementById('spinner-text').style.display = "none";
 
         }
     </script>
@@ -191,7 +224,13 @@
 
             <label for="content_file"><b>Select File</b></label>
             <input id="content_file"  class="textbox" type="file"/>
-            <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
+            <button id="content_from_local_file" onclick="UploadFile(this)" >
+                Upload
+            </button>
+            <div id="spinner" class="spin"></div>
+            <span id="percentage" style="display:none;"></span>
+            <span id="spinner-text" style="display:none;">Uploading file, please don't navigate away from the page...</span>
+
         </td>
     </tr>
     <tr>
