@@ -366,6 +366,7 @@ async def register_kge_file_set(request: web.Request):
                         ).substitute(
                            kg_id=kg_id,
                            kg_name=knowledge_graph.get_name(),
+                           kg_version=kg_version,
                            submitter=submitter
                         ),
                         active_session=True
