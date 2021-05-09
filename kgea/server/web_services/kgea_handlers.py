@@ -301,12 +301,11 @@ async def register_kge_file_set(request: web.Request):
         # Consolidated version of new KGE File Set
         kg_version = str(major_version) + "." + str(minor_version)
         
-        # TODO: do we need to check if this version of file set already exists? If so, then what?
+        # TODO: do we need to check if this kg_version of
+        #       file set already exists? If so, then what?
         
         # Date stamp of the new KGE File Set
-        date_stamp = data['data_stamp']
-        if not date_stamp:
-            date_stamp = get_default_date_stamp()
+        date_stamp = data['date_stamp'] if 'date_stamp' in data else get_default_date_stamp()
         
         logger.debug(
             "register_kge_file_set() form parameters:\n\t" +

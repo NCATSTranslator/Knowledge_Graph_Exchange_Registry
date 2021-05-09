@@ -38,13 +38,30 @@
             <td>
                 <b><span style="color: red; font-weight: bold">*</span>SemVer Version:</b><br>
                 <label  class="label" for="major_version">Major:</label>
-                <input id="major_version" type="number" min="1" step="1" value="{{major_version}}" size="5"/><br>
+                <input id="major_version"
+                       name="major_version"
+                       type="number"
+                       min="1" step="1"
+                       value="{{major_version}}"
+                       size="5"
+                /><br>
                 <label  class="label" for="minor_version">Minor:</label>
-                <input id="minor_version" type="number" min="0" step="1" value="{{minor_version}}" size="5"/><br>
+                <input id="minor_version"
+                       name="minor_version"
+                       type="number"
+                       min="0" step="1"
+                       value="{{minor_version}}"
+                       size="5"
+                /><br>
             </td>
             <td>
                 <label  class="label" for="date_stamp">Date Stamp:</label>
-                <input id="date_stamp" type="date" min="0" step="1" value="{{date_stamp}}"/>
+                <input id="date_stamp"
+                       name="date_stamp"
+                       type="date" min="0"
+                       step="1"
+                       value="{{date_stamp}}"
+                />
             </td>
         </tr>
 </table>
