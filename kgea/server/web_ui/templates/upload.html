@@ -3,6 +3,23 @@
     <script type="text/javascript" src="https://raw.githubusercontent.com/mdix/progress.js/master/progress.js"></script>
     <link type="text/css" rel="stylesheet" href="https://github.com/mdix/progress.js/blob/master/progress.css"/>
     <script>
+
+        let kg_version = "1.0"
+        async function getVersion() {
+            // TODO: need to free version once set?
+            //  Or set in advance of uploading (maybe with a startup popup dialog box?)
+            // kg_major_version: major release version of knowledge graph file set
+            // let kg_major_version = document.getElementById("kg_major_version")
+
+            // // kg_major_version: minor release version of knowledge graph file set
+            // let kg_minor_version = document.getElementById("minor_version")
+
+            // Simple minded first iteration - perhaps need something more?
+            // kg_version = kg_major_version + "." + kg_minor_version
+            kg_version = prompt("Specify File Set version for Knowledge Graph '{{kg_name}}': ", kg_version);
+            document.getElementById("kg_version").innerText = kg_version;
+        }
+
         let content_name = 'unknown';
         function SetFileName(value) {
             // TODO: Sanitize content_names as per AWS Object Key naming guidelines?
@@ -30,18 +47,6 @@
             let formData = new FormData();
 
             formData.append("kg_id", "{{kg_id}}");
-
-            // TODO: need to free version once set?
-            //  Or set in advance of uploading (maybe with a startup popup dialog box?)
-            // kg_major_version: major release version of knowledge graph file set
-            let kg_major_version = document.getElementById("kg_major_version")
-
-            // kg_major_version: minor release version of knowledge graph file set
-            let kg_minor_version = document.getElementById("minor_version")
-
-            // Simple minded first iteration - perhaps need something more?
-            let kg_version = kg_major_version + "." + kg_minor_version
-
             formData.append("kg_version", kg_version);
 
             let kfc_radio = document.querySelector("input[name=kgx_file_content]:checked");
@@ -132,33 +137,37 @@
                     window.alert(err_msg);
                 });
             document.getElementById('content_from_local_file').disabled = false;
+        }
 
+        async function DoneUploading(source) {
+            if (source.id === 'done_uploading') {
+                try {
+                    let a = document.createElement('a');
+                    a.href = "{{publish_file_set_action}}/{{kg_id}}/" + kg_version;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } catch(e) {
+                   console.log('DoneUploading error:', e);
+                }
+                // return done_url;
+            }
         }
     </script>
 {% endblock %}
+{% block body %}<body onload="getVersion()">{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
 <div class="menu_item">
-<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}/{{kg_version}}">
-    <input type="submit" value="Done Uploading" />
-</form>
+<button id="done_uploading" onclick="DoneUploading(this)">Done Uploading</button>
 </div>
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'{% endblock %}
+{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>Version <span id="kg_version"></span>{% endblock %}
 {% block subtitle %}Submitted by '{{submitter}}'{% endblock %}
 {% block content %}
 <div class="subtitle"></div>
 <table>
-    <tr>
-        <th>KGE File Set Version:</th>
-        <td>
-            <label for="kg_major_version"><b>Major:</b></label>
-            <input class="version_number" id="kg_major_version" type="number" min="1" step="1" value="1" size="2"/>
-            <label for="kg_minor_version"><b>Minor:</b></label>
-            <input class="version_number" id="kg_minor_version" type="number" min="0" step="1" value="0" size="2"/>
-        </td>
-    </tr>
     <tr>
         <td rowspan="2">
             <h4>KGX Content Type</h4>
