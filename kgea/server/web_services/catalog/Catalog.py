@@ -31,7 +31,11 @@ from json import dumps
 
 import yaml
 
-from kgea.server.web_services.models import KgeFileSetStatus
+from kgea.server.web_services.models import (
+    KgeFileSetStatus,
+    KgeFileSetStatusCode,
+    KgeFile
+)
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -48,6 +52,7 @@ from kgea.server.config import (
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE
 )
+
 from kgea.server.web_services.kgea_file_ops import (
     # get_default_date_stamp,
     get_object_location,
@@ -117,14 +122,6 @@ class KgeFileType(Enum):
     KGE_ARCHIVE = "KGE data archive"
 
 
-class KgeFileSetStatusCode(Enum):
-    Created = "KGX File Set created"
-    Loaded = "KGX File Set loaded"
-    Processing = "KGX File Set is being processed"
-    Validated = "KGX File Set is Validated"
-    Error = "KGX File Set Validation Error"
-
-
 class KgeFileSet:
     """
     Class wrapping information about a specific released version of
@@ -173,7 +170,9 @@ class KgeFileSet:
         # Aiming for a more economical design with reduced process overheads
         # may suggest use of a single "class level" central Queue
         # for validation across all file sets from all knowledge graphs.
-        self.status: KgeFileSetStatusCode = KgeFileSetStatusCode.Created
+        self.status: KgeFileSetStatusCode = KgeFileSetStatusCode.CREATED
+
+        # no errors to start
         self.errors: List[str] = list()
         
         if validate:
@@ -200,7 +199,7 @@ class KgeFileSet:
         else:
             # File Set read in from the Archive
             # TODO: need to verify that the file set is indeed KGX compliant
-            self.status = KgeFileSetStatusCode.Loaded
+            self.status = KgeFileSetStatusCode.LOADED
 
     def get_version(self):
         return self.kg_version
@@ -419,7 +418,7 @@ class KgeFileSet:
             # Wait until all worker tasks are cancelled.
             await asyncio.gather(*self.tasks, return_exceptions=True)
         except Exception as exc:
-            self.status = KgeFileSetStatusCode.Error
+            self.status = KgeFileSetStatusCode.ERROR
             msg = "KgeaFileSet() KGX worker task exception: " + str(exc)
             logger.error(msg)
             self.errors.append(msg)
@@ -444,10 +443,10 @@ class KgeFileSet:
 
         :return: list of any generated (string) error messages
         """
-        self.status = KgeFileSetStatusCode.Processing
+        self.status = KgeFileSetStatusCode.PROCESSING
         
         if not self.post_process_file_set():
-            self.status = KgeFileSetStatusCode.Error
+            self.status = KgeFileSetStatusCode.ERROR
             msg = "post_process_file_set(): failed for" + \
                   "' for KGE File Set version '" + self.kg_version + \
                   "' of knowledge graph '" + self.kg_id + "'"
@@ -468,7 +467,7 @@ class KgeFileSet:
         if file_set_metadata_object_key:
             return True
         else:
-            self.status = KgeFileSetStatusCode.Error
+            self.status = KgeFileSetStatusCode.ERROR
             msg = "publish_file_set(): metadata '" + FILE_SET_METADATA_FILE + \
                   "' file for KGE File Set version '" + self.kg_version + \
                   "' of knowledge graph '" + self.kg_id + \
@@ -547,9 +546,12 @@ class KgeFileSet:
         #         kg_listing))
         # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
         
-        file_set_status = KgeFileSetStatus()
-        
-        return None
+        file_set_status = KgeFileSetStatus(self.kg_id, self.kg_version, self.status)
+        file_set: List[KgeFile] = list()
+        # TODO: populate the file_set information here
+        file_set_status.files = file_set
+
+        return file_set_status
 
 
 class KgeKnowledgeGraph:
