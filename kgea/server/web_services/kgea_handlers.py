@@ -267,7 +267,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
         file_set: KgeFileSet = knowledge_graph.get_file_set(kg_version)
         
         if not(file_set and file_set.publish()):
-            raise report_error(
+            await report_error(
                     request,
                     "publish_kge_file_set() errors: file set version '" +
                     kg_version + "' for knowledge graph '" + kg_id + "'" +
@@ -511,7 +511,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
             response = web.json_response(file_set_status, status=200)
             return await with_session(request, response)
         else:
-            raise report_error(
+            await report_error(
                     request,
                     "get_kge_file_set_contents() errors: file set version '" +
                     kg_version + "' for knowledge graph '" + kg_id + "'" +
