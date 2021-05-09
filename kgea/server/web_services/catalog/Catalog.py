@@ -748,7 +748,7 @@ class KgeArchiveCatalog:
     @classmethod
     def catalog(cls):
         """
-        :return: singleton of KgeaCatalog
+        :return: singleton of KgeArchiveCatalog
         """
         if not cls._the_catalog:
             raise RuntimeError("KGE Archive Catalog is uninitialized?")
@@ -1279,7 +1279,7 @@ if __name__ == '__main__':
 
         assert (test_get_catalog_entries())
         
-        print("all KGEA Catalog tests passed")
+        print("all KGE Archive Catalog tests passed")
         
     # if CLEAN_TESTS:
     #     clean_tests()

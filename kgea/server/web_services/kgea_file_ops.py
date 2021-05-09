@@ -124,7 +124,8 @@ def get_default_date_stamp():
     return datetime.now().strftime('%Y-%m-%d')
 
 
-def with_version(func, version=get_default_date_stamp()):
+# Don't use date stamp for versioning anymore
+def with_version(func, version="1.0"):
     def wrapper(kg_id):
         return func(kg_id + '/' + version), version
 

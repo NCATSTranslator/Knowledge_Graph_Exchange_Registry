@@ -255,6 +255,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
     if not (kg_id and kg_version):
         await report_not_found(request, "publish_kge_file_set(): knowledge graph id or file set version are null?")
 
+    kge_file_set = KgeArchiveCatalog.catalog().get_kge_graph(kg_id)
     errors: List[str] = await KgeArchiveCatalog.catalog().publish_file_set(kg_id, kg_version)
 
     if DEV_MODE and errors:
@@ -273,17 +274,6 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
 #
 # from ..kge_handlers import upload_kge_file
 #############################################################
-
-
-async def get_file_set_location(kg_id: str, kg_version: str = None):
-    kge_file_set = KgeArchiveCatalog.catalog().get_kge_graph(kg_id)
-
-    if not kg_version:
-        kg_version = kge_file_set.get_version()
-
-    file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
-
-    return file_set_location, assigned_version
 
 
 async def upload_kge_file(
@@ -358,13 +348,7 @@ async def upload_kge_file(
         # nodes -> <file_set_location>/nodes/
         # archive -> <file_set_location>/archive/
 
-        file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
-        if not file_set_location:
-            await report_not_found(
-                request,
-                "upload_kge_file(): unknown version '" + kg_version +
-                "' or Knowledge Graph '" + kg_id + "'?"
-            )
+        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
 
@@ -507,9 +491,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
     if not session.empty:
 
         # TODO: need to retrieve metadata by kg_version
-        file_set_location, assigned_version = await get_file_set_location(kg_id)
-        if not file_set_location:
-            await report_not_found(request, "get_kge_file_set_contents(): unknown KGE File Set '" + kg_id + "'?")
+        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
         # Listings Approach
         # - Introspect on Bucket
@@ -562,12 +544,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
     session = await get_session(request)
     if not session.empty:
 
-        file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
-        if not file_set_location:
-            await report_not_found(
-                request,
-                "kge_meta_knowledge_graph(): unknown KGE File Set version '" + kg_id + "' for graph '" + kg_id + "'?"
-            )
+        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
         content_metadata_file_key = file_set_location + "content_metadata.json"
         
@@ -628,10 +605,9 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
 
     session = await get_session(request)
     if not session.empty:
-
-        # TODO: need to do something reasonable here for kg_version == 'latest'
-
+        
         file_set_object_key, _ = with_version(get_object_location, kg_version)(kg_id)
+        
         kg_files_for_version = kg_files_in_location(
             _KGEA_APP_CONFIG['bucket'],
             file_set_object_key,
