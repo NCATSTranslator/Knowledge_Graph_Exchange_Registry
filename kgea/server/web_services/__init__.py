@@ -17,7 +17,7 @@ def main():
         specification_dir=specification_dir,
         options=options,
         server_args={
-            "client_max_size": 1024**4
+            "client_max_size": 256*1024**3
         }
     )
     
