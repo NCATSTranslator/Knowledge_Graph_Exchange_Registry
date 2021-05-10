@@ -701,7 +701,7 @@ class KgeKnowledgeGraph:
             text=provider_metadata_file,
             file_name=PROVIDER_METADATA_FILE
         )
-        if not object_key:
+        if object_key:
             self.set_provider_metadata_object_key(object_key)
         else:
             logger.warning(
