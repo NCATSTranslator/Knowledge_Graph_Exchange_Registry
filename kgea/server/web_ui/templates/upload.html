@@ -125,7 +125,8 @@
                     $("#ldBar").css('display', 'block')
 
                     const url = new URL(window.location.href);
-                    await fetch(`{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
+                    await fetch(
+                            `{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
                         {
                             method: "GET",
                             credentials: "include"
@@ -143,17 +144,22 @@
                         })
                         .then(async upload_token => {
 
-                            // use mutual recursion to create a progress element that always updates the exact amount required
+                            // use mutual recursion to create a progress element
+                            // that always updates the exact amount required
 
                             document.getElementById('percentage').textContent = `(0.0%)`;
 
                             // callback for mutual recursion
                             async function askForProgress() {
-                                return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
-                                    .then(r => r.json())
+                                return await fetch(
+                                        `{{upload_action}}/progress?upload_token=${upload_token}`,
+                                        {credentials: "include"}
+                                    ).then(r => r.json())
                                     .then(j => {
                                         if(!!j.end_position) {
-                                            let percentage = Number((j.current_position / j.end_position) * 100).toFixed(1);
+                                            let percentage = Number(
+                                                                (j.current_position / j.end_position) * 100
+                                                             ).toFixed(1);
                                             document.getElementById('percentage').textContent = `(${percentage}%)`;
                                             let progressbar = $("#ldBar");
                                             progressbar.progressbar({
@@ -174,11 +180,12 @@
                             // control flow for mutual recursion
                             async function execute(callback) {
                                 return await callback().then(async received => {
-                                    // NOTE: Sometimes it takes awhile for received.end_position to initialize, particularly if the
-                                    // file size is > ~1GB (works fine at ~300mb).
-                                    // In that case, received.end_position is going to be undefined. So this will still execute and
-                                    // essentially wait until received.end_position is defined, and will stop once received.current_position
-                                    // is equal to j.end_position (because the file has been completely read and uploaded).
+                                    // NOTE: Sometimes it takes awhile for 'received.end_position' to initialize,
+                                    // particularly if the file size is > ~1GB (works fine at ~300mb).
+                                    // In that case, received.end_position is going to be undefined.
+                                    // So this will still execute and essentially wait until 'received.end_position'
+                                    // is defined, and will stop once received.current_position is equal to
+                                    // 'j.end_position' (because the file has been completely read and uploaded).
                                     if (!(received.current_position === received.end_position)) {
                                         return await later(1000, askForProgress).then(execute)
                                     }
@@ -268,7 +275,7 @@
                 </span>
             </div>
             <p></p>
-            <!--  -->
+            <!--
             <input type="radio" id="archive" name="kgx_file_content" value="archive">
             <label class="label" for="archive">KGX Archive</label>
             <div class="tooltip">
@@ -282,6 +289,7 @@
                             KGX-compliant 'metadata.json' file.
                 </span>
             </div>
+            -->
     <p></p>
         </td>
         <td>
@@ -299,7 +307,8 @@
                 <span id="ldBar" style="background: transparent; height: 1em; display:inline">
                 </span>
                 <span id="percentage" class="progress-label" style="display:none;"></span>
-                <span id="spinner-text" style="display:none;">Uploading file, please don't navigate away from the page...</span>
+                <span id="spinner-text" style="display:none;">Uploading, please don't navigate away from the page...</span>
+
 {#                <div id="spinner" class="spin"></div>#}
 
             </span>
@@ -308,7 +317,7 @@
 
         </td>
     </tr>
-    <tr>
+    <!-- tr>
         <td>
             <h4>Transfer from a URL</h4>
 
@@ -318,7 +327,7 @@
             <input id="file_name" type="text" onchange="SetFileName(this.value)"/><br>
             <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
         </td>
-    </tr>
+    </tr -->
 </table>
 {% endblock %}
 {% block app_footer %}
