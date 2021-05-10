@@ -436,17 +436,6 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
 #############################################################
 
 
-async def get_file_set_location(kg_id: str, kg_version: str = None):
-    kge_file_set = KgeArchiveCatalog.catalog().get_kge_graph(kg_id)
-
-    if not kg_version:
-        kg_version = kge_file_set.get_version()
-
-    file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
-
-    return file_set_location, assigned_version
-
-
 async def setup_kge_upload_context(
         request: web.Request,
         kg_id: str,
@@ -497,13 +486,7 @@ async def setup_kge_upload_context(
         # nodes -> <file_set_location>/nodes/
         # archive -> <file_set_location>/archive/
 
-        file_set_location, assigned_version = await get_file_set_location(kg_id, kg_version=kg_version)
-        if not file_set_location:
-            await report_not_found(
-                request,
-                "upload_kge_file(): unknown version '" + kg_version +
-                "' or Knowledge Graph '" + kg_id + "'?"
-            )
+        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
         import uuid
         import os

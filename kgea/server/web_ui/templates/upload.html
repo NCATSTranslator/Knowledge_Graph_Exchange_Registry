@@ -80,12 +80,12 @@
             let kgx_file_content = kfc_radio ? kfc_radio.value : "";
             formData.append("kgx_file_content", kgx_file_content);
 
-            if(!kgx_file_content) {
+            if (!kgx_file_content) {
                 window.alert("Please select KGX content type to be uploaded.");
                 return;
             }
 
-            if(kgx_file_content === "archive") {
+            if (kgx_file_content === "archive") {
                 window.alert(
                     "Sorry, KGX 'tar.gz' compressed archives are not " +
                     "yet fully handled in the interface (coming soon!)");
@@ -99,10 +99,10 @@
                 // Transfer file from REST URL endpoint
                 let content_url = document.getElementById('content_url').value;
 
-                if(content_url) {
+                if (content_url) {
                     console.log("Content URL: '" + content_url + "')");
                     formData.append("content_url", content_url);
-                } else  {
+                } else {
                     console.log("KGX content file URL is undefined?");
                     window.alert("KGX content file URL is undefined");
                     return;
@@ -111,103 +111,104 @@
             } else if (source.id === 'content_from_local_file') {
 
                 let uploaded_file = document.getElementById('content_file').files[0];
-                {#content_name = uploaded_file.name;#}
 
-                if(uploaded_file) {
-                    console.log("KGX "+kgx_file_content+" file being uploaded: '" + uploaded_file.name + "'");
+                if (uploaded_file) {
+                    console.log("KGX " + kgx_file_content + " file being uploaded: '" + uploaded_file.name + "'");
                     formData.append("uploaded_file", uploaded_file);
 
                     formData.append("content_name", uploaded_file.name);
 
                     document.getElementById('content_from_local_file').disabled = true;
-                    {#document.getElementById('spinner').style.display = "inline-block";#}
+
                     document.getElementById('percentage').style.display = "inline-block";
                     document.getElementById('spinner-text').style.display = "inline-block";
-                    $( "#ldBar" ).css('display', 'block')
+                    $("#ldBar").css('display', 'block')
 
-                    const url =  new URL(window.location.href);
+                    const url = new URL(window.location.href);
                     await fetch(`{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
                         {
                             method: "GET",
                             credentials: "include"
                         }
                     )
-                    .then(r => r.json())
-                    .then(async result => {
-                        formData.append('upload_token', result.upload_token)
-                        fetch(`{{upload_action}}`, {
-                            method: "POST",
-                            body: formData,
-                            credentials: "include"
-                        })
-                        return result.upload_token
-                    })
-                    .then(async upload_token => {
-
-                        // use mutual recursion to create a progress element that always updates the exact amount required
-
-                        document.getElementById('percentage').textContent = `(0.0%)`;
-
-                        // callback for mutual recursion
-                        async function askForProgress() {
-                            return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, { credentials: "include" })
-                                .then(r => r.json())
-                                .then(j => {
-                                    let percentage = Number((j.current_position / j.end_position) * 100).toFixed(1);
-                                    document.getElementById('percentage').textContent = `(${percentage}%)`;
-                                    let progressbar = $( "#ldBar");
-                                    progressbar.progressbar({
-                                        // ceil to err on the side of displaying progress
-                                        value: Math.ceil((j.current_position / j.end_position) * 100)
-                                    })
-                                    return j;
-                                })
-                        }
-
-                        // timer helper for deferring execution of next recursion step
-                        // "value" will be a function here
-                        function later(delay, value) {
-                            return new Promise(resolve => setTimeout(resolve, delay, value));
-                        }
-
-                        // control flow for mutual recursion
-                        async function execute(callback) {
-                            return await callback().then(async received => {
-                                // NOTE: Sometimes it takes awhile for received.end_position to initialize, particularly if the
-                                // file size is > ~1GB (works fine at ~300mb).
-                                // In that case, received.end_position is going to be undefined. So this will still execute and
-                                // essentially wait until received.end_position is defined, and will stop once received.current_position
-                                // is equal to j.end_position (because the file has been completely read and uploaded).
-                                if (!(received.current_position === received.end_position)) {
-                                    return await later(1000, askForProgress).then(execute)
-                                }
+                        .then(r => r.json())
+                        .then(async result => {
+                            formData.append('upload_token', result.upload_token)
+                            fetch(`{{upload_action}}`, {
+                                method: "POST",
+                                body: formData,
+                                credentials: "include"
                             })
-                        }
+                            return result.upload_token
+                        })
+                        .then(async upload_token => {
 
-                        // put the pieces together
-                        try {
-                            return await later(1000, askForProgress).then(execute);
-                        } catch(e) {
-                            console.error(e);
-                        }
+                            // use mutual recursion to create a progress element that always updates the exact amount required
 
-                    })
+                            document.getElementById('percentage').textContent = `(0.0%)`;
+
+                            // callback for mutual recursion
+                            async function askForProgress() {
+                                return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
+                                    .then(r => r.json())
+                                    .then(j => {
+                                        if(!!j.end_position) {
+                                            let percentage = Number((j.current_position / j.end_position) * 100).toFixed(1);
+                                            document.getElementById('percentage').textContent = `(${percentage}%)`;
+                                            let progressbar = $("#ldBar");
+                                            progressbar.progressbar({
+                                                // ceil to err on the side of displaying progress
+                                                value: Math.ceil((j.current_position / j.end_position) * 100)
+                                            })
+                                        }
+                                        return j;
+                                    })
+                            }
+
+                            // timer helper for deferring execution of next recursion step
+                            // "value" will be a function here
+                            function later(delay, value) {
+                                return new Promise(resolve => setTimeout(resolve, delay, value));
+                            }
+
+                            // control flow for mutual recursion
+                            async function execute(callback) {
+                                return await callback().then(async received => {
+                                    // NOTE: Sometimes it takes awhile for received.end_position to initialize, particularly if the
+                                    // file size is > ~1GB (works fine at ~300mb).
+                                    // In that case, received.end_position is going to be undefined. So this will still execute and
+                                    // essentially wait until received.end_position is defined, and will stop once received.current_position
+                                    // is equal to j.end_position (because the file has been completely read and uploaded).
+                                    if (!(received.current_position === received.end_position)) {
+                                        return await later(1000, askForProgress).then(execute)
+                                    }
+                                })
+                            }
+
+                            // put the pieces together
+                            try {
+                                return await later(1000, askForProgress).then(execute);
+                            } catch (e) {
+                                console.error(e);
+                            }
+
+                        })
 
                     document.getElementById('content_from_local_file').disabled = false;
-                    {#document.getElementById('spinner').style.display = "none";#}
                     document.getElementById('percentage').style.display = "none";
                     document.getElementById('spinner-text').style.display = "none";
-                    $( "#ldBar" ).css('display', 'none')
-                    $( "#ldBar" ).progressbar({
+                    $("#ldBar").css('display', 'none')
+                    $("#ldBar").progressbar({
                         value: 0
                     })
 
-                } else  {
-                    console.log("KGX "+kgx_file_content+" file is undefined?");
-                    window.alert("KGX "+kgx_file_content+" file is undefined");
+                } else {
+                    console.log("KGX " + kgx_file_content + " file is undefined?");
+                    window.alert("KGX " + kgx_file_content + " file is undefined");
                     return;
                 }
             }
+        }
 
         async function DoneUploading(source) {
             if (source.id === 'done_uploading') {
