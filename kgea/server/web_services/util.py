@@ -2,7 +2,7 @@ import datetime
 
 import typing
 from typing import Union
-from . import typing_utils
+from kgea.server.web_services import typing_utils
 
 T = typing.TypeVar('T')
 Class = typing.Type[T]
@@ -39,7 +39,10 @@ def _deserialize(
         return deserialize_model(data, klass)
 
 
-def _deserialize_primitive(data, klass: Class) -> Union[Class, int, float, str, bool]:
+def _deserialize_primitive(
+        data,
+        klass: Class
+) -> Union[Class, int, float, str, bool]:
     """Deserializes to primitive type.
 
     :param data: data to deserialize.
@@ -68,8 +71,11 @@ def deserialize_date(string: str) -> datetime.date:
     :param string: str.
     :return: date.
     """
-    from dateutil.parser import parse
-    return parse(string).date()
+    try:
+        from dateutil.parser import parse
+        return parse(string).date()
+    except ImportError:
+        return string
 
 
 def deserialize_datetime(string: str) -> datetime.datetime:
@@ -80,8 +86,11 @@ def deserialize_datetime(string: str) -> datetime.datetime:
     :param string: str.
     :return: datetime.
     """
-    from dateutil.parser import parse
-    return parse(string)
+    try:
+        from dateutil.parser import parse
+        return parse(string)
+    except ImportError:
+        return string
 
 
 def deserialize_model(data: Union[dict, list], klass: T) -> T:

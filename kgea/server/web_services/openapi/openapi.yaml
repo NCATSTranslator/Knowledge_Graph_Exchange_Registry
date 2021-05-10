@@ -88,44 +88,15 @@ paths:
       tags:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
-  /register:
+  /register/fileset:
     post:
-      operationId: register_knowledge_graph
+      description: Register core metadata for a newly persisted file set version of
+        a KGE persisted Knowledge Graph. Since this endpoint assumes a web session
+        authenticated session user, this user is automatically designated as the 'owner'
+        of the new versioned file set.
+      operationId: register_file_set
       requestBody:
-        $ref: '#/components/requestBodies/inline_object'
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              properties:
-                submitter:
-                  type: string
-                submitter_email:
-                  type: string
-                translator_component:
-                  type: string
-                translator_team:
-                  type: string
-                kg_name:
-                  type: string
-                kg_version:
-                  type: string
-                kg_description:
-                  type: string
-                license_name:
-                  type: string
-                license_url:
-                  type: string
-                terms_of_service:
-                  type: string
-              required:
-              - kg_name
-              - kg_version
-              - submitter
-              - submitter_email
-              - translator_component
-              - translator_team
-              type: object
-        required: true
+        $ref: '#/components/requestBodies/RegisterFileSetRequestBody'
         x-body-name: body
       responses:
         "201":
@@ -133,7 +104,7 @@ paths:
             application/json:
               schema:
                 type: string
-          description: Upload successfully completed.
+          description: New file set registration operation successfully completed.
         "400":
           content:
             application/json:
@@ -142,43 +113,41 @@ paths:
           description: Bad request. Request is invalid according to this OpenAPI schema
             OR a specific parameter is believed to be invalid somehow (or not just
             recognized).
-      summary: Register core metadata for a KGE Knowledge Graph
+      summary: Register core metadata for a distinctly versioned file set of a KGE
+        Knowledge Graph
       tags:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
       x-codegen-request-body-name: body
-  /status/{kg_id}/{kg_version}:
-    get:
-      operationId: file_set_status
-      parameters:
-      - description: KGE Knowledge Graph identifier for the knowledge graph with a
-          versioned KGE File Se for which status is required.
-        explode: false
-        in: path
-        name: kg_id
-        required: true
-        schema:
-          type: string
-        style: simple
-      - description: Version identifier of the KGE File Set for which status is required.
-        explode: false
-        in: path
-        name: kg_version
-        required: true
-        schema:
-          type: string
-        style: simple
+  /register/graph:
+    post:
+      description: Register core metadata for a new KGE persisted Knowledge Graph.
+        Since this endpoint assumes assumes a web session authenticated user, this
+        user is automatically designated as the 'owner' of the new KGE graph.
+      operationId: register_knowledge_graph
+      requestBody:
+        $ref: '#/components/requestBodies/RegisterGraphRequestBody'
+        x-body-name: body
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KgeFileSetStatus'
-          description: Status report KGE File Set validation.
-      summary: Retrieve KGE File Set status
+                type: string
+          description: New knowledge graph registration operation  successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or not just
+            recognized).
+      summary: Register core metadata for a distinct KGE Knowledge Graph
       tags:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
+      x-codegen-request-body-name: body
   /upload:
     get:
       description: Uploading of (meta-)data files to a specific KGE File Set version,
@@ -280,36 +249,7 @@ paths:
     post:
       operationId: upload_file
       requestBody:
-        $ref: '#/components/requestBodies/inline_object_1'
-        content:
-          multipart/form-data:
-            encoding:
-              upload_token:
-                contentType: text/plain; charset=utf-8
-                style: form
-              uploaded_file:
-                contentType: text/csv, text/tab-separated-values, text/json
-                style: form
-            schema:
-              description: When 'content_from_local_file' mode wass indicated, then
-                this HTTP POST call to the /upload endpoint is expected, with the
-                upload token returned from the /upload GET call plus an  'uploaded_file'
-                parameter for the file to be uploaded.
-              properties:
-                upload_token:
-                  description: Upload token associated with a given file for Archive
-                    uploading as specified by a preceding /upload GET call.
-                  type: string
-                uploaded_file:
-                  description: File (blob) object to be uploaded.
-                  format: binary
-                  type: string
-              required:
-              - upload_token
-              - uploaded_file
-              type: object
-        description: Upload token plus data file resource for uploading.
-        required: true
+        $ref: '#/components/requestBodies/UploadRequestBody'
         x-body-name: body
       responses:
         "201":
@@ -403,10 +343,7 @@ paths:
           content:
             application/json:
               schema:
-                description: Annotated list of file in a given KGE File Set version.
-                items:
-                  $ref: '#/components/schemas/KgeFile'
-                type: array
+                $ref: '#/components/schemas/KgeFileSetStatus'
           description: Annotated list of files of for a given version of a specified
             KGE File Set.
         "404":
@@ -523,17 +460,24 @@ paths:
       x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
 components:
   requestBodies:
-    inline_object_1:
-      content:
-        multipart/form-data:
-          schema:
-            $ref: '#/components/schemas/inline_object_1'
-      required: true
-    inline_object:
+    RegisterGraphRequestBody:
       content:
         application/x-www-form-urlencoded:
           schema:
-            $ref: '#/components/schemas/inline_object'
+            $ref: '#/components/schemas/RegisterGraphRequestBody'
+      required: true
+    RegisterFileSetRequestBody:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/RegisterFileSetRequestBody'
+      required: true
+    UploadRequestBody:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/UploadRequestBody'
+      description: KGE File Set metadata or data file submitted
       required: true
   schemas:
     KgeFileSetEntry:
@@ -557,19 +501,83 @@ components:
           type: array
       title: KgeFileSetEntry
       type: object
+    KgeFileSetStatus:
+      description: KGE File Set Status including inventory of associated files.
+      example:
+        files:
+        - kgx_compliance_status: kgx_compliance_status
+          file_type: file_type
+          original_name: original_name
+          assigned_name: assigned_name
+          file_size: 0.8008282
+          errors:
+          - errors
+          - errors
+        - kgx_compliance_status: kgx_compliance_status
+          file_type: file_type
+          original_name: original_name
+          assigned_name: assigned_name
+          file_size: 0.8008282
+          errors:
+          - errors
+          - errors
+        kg_id: semmeddb
+        kg_version: "1.0"
+      properties:
+        kg_id:
+          description: Identifier of the knowledge graph that owns the file set.
+          example: semmeddb
+          title: kg_id
+          type: string
+        kg_version:
+          description: Version identifier of the file set.
+          example: "1.0"
+          title: kg_version
+          type: string
+        status:
+          $ref: '#/components/schemas/KgeFileSetStatusCode'
+        files:
+          description: Annotated list of files within a given file set.
+          items:
+            $ref: '#/components/schemas/KgeFile'
+          title: files
+          type: array
+      title: KgeFileSetStatus
+      type: object
+    KgeFileSetStatusCode:
+      description: Version identifier of the file set.
+      enum:
+      - Created
+      - Loaded
+      - Processing
+      - Validated
+      - Error
+      title: KgeFileSetStatusCode
+      type: string
     KgeFile:
+      additionalProperties: false
       description: Annotated file in a KGE File Set.
       example:
-        file_name: file_name
+        kgx_compliance_status: kgx_compliance_status
         file_type: file_type
+        original_name: original_name
+        assigned_name: assigned_name
         file_size: 0.8008282
+        errors:
+        - errors
+        - errors
       properties:
-        file_name:
+        original_name:
           description: original name of file (as uploaded)
-          title: file_name
+          title: original_name
+          type: string
+        assigned_name:
+          description: assigned name of file (by archive, for export)
+          title: assigned_name
           type: string
         file_type:
-          description: designates if the file is meta-, node or edge data
+          description: Designates if the file is (content or file set) meta-, node
+            or edge data
           title: file_type
           type: string
         file_size:
@@ -577,31 +585,23 @@ components:
           format: float
           title: file_size
           type: number
-      title: KgeFile
-      type: object
-    KgeFileSetStatus:
-      additionalProperties: false
-      description: Status report about a KGE File Set.
-      example:
-        errors:
-        - errors
-        - errors
-        status: status
-      properties:
-        status:
-          description: KGE File Set status code, one of 'processing', 'validated'
-            or 'error'.
-          title: status
+        kgx_compliance_status:
+          description: one of 'assessing', 'compliant' or 'non-compliant'
+          title: kgx_compliance_status
           type: string
         errors:
-          description: A list of error status messages with an 'error' status code.
+          description: if 'non-compliant' file, list of error messags
           items:
             type: string
           title: errors
           type: array
       required:
-      - status
-      title: KgeFileSetStatus
+      - assigned_name
+      - file_size
+      - file_type
+      - kgx_compliance_status
+      - original_name
+      title: KgeFile
       type: object
     UploadTokenObject:
       additionalProperties: false
@@ -833,19 +833,14 @@ components:
       - subject
       title: MetaEdge
       type: object
-    inline_object:
+    RegisterGraphRequestBody:
+      description: KGE Knowledge Graph registration metadata.
       properties:
-        submitter:
-          type: string
-        submitter_email:
-          type: string
         translator_component:
           type: string
         translator_team:
           type: string
         kg_name:
-          type: string
-        kg_version:
           type: string
         kg_description:
           type: string
@@ -857,17 +852,42 @@ components:
           type: string
       required:
       - kg_name
-      - kg_version
-      - submitter
-      - submitter_email
       - translator_component
       - translator_team
       type: object
-    inline_object_1:
-      description: When 'content_from_local_file' mode wass indicated, then this HTTP
-        POST call to the /upload endpoint is expected, with the upload token returned
-        from the /upload GET call plus an  'uploaded_file' parameter for the file
-        to be uploaded.
+    RegisterFileSetRequestBody:
+      description: Versioned KGE File Set registration metadata.
+      properties:
+        kg_id:
+          type: string
+        major_version:
+          type: integer
+        minor_version:
+          type: integer
+        date_stamp:
+          format: date
+          type: string
+      required:
+      - kg_id
+      - major_version
+      - minor_version
+      type: object
+    UploadRequestBody:
+      description: Uploading form posting of (meta-)data files to a specific KGE File
+        Set version, belonging to a specific Knowledge Graph. The 'upload_mode' argument
+        specifies the category and/or mode as one of 'metadata', 'content_from_local_file'
+        or 'content_from_url'. If 'metadata' or 'content_from_local_file' are indicated,
+        then the 'uploaded_file' parameter should be set to the file to be uploaded.
+        If 'upload_mode' is set to 'content_from_url' then the 'content_url' parameter
+        is taken as a REST endpoint of the file to be transferred into the Archive
+        (authentication not yet supported - URL should provide unauthenticated access).
+        The 'content_name' should be set either to the file name of the 'metadata'
+        or 'content_from_local_file', or url transfers, set by inference or as specified
+        by the caller (especially if the 'content_url' doesn't resolve to a definitive
+        file name). The specific KGX file content of the current upload file is set
+        by the `kgx_file_content' for KGX data files uploaded in the 'content_from_local_file'
+        or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
+        button.
       properties:
         upload_token:
           description: Upload token associated with a given file for Archive uploading

@@ -31,8 +31,6 @@ def login_url() -> str:
     Sends an authentication request to specified
     OAuth2 login service (i.e. AWS Cognito)
     
-    :param request:
-    :param state: string state secret (to avoid CORS)
     :return: redirection to OAuth2 login service
     """
     state = str(uuid4())

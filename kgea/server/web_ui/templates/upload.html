@@ -209,22 +209,31 @@
                 }
             }
 
-
-
+        async function DoneUploading(source) {
+            if (source.id === 'done_uploading') {
+                try {
+                    let a = document.createElement('a');
+                    a.href = "{{publish_file_set_action}}/{{kg_id}}/{{kg_version}}";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } catch(e) {
+                   console.log('DoneUploading error:', e);
+                }
+            }
         }
     </script>
 {% endblock %}
+{% block body %}{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
 <div class="menu_item">
-<form method="GET" action="{{publish_file_set_action}}/{{kg_id}}/{{kg_version}}">
-    <input type="submit" value="Done Uploading" />
-</form>
+<button id="done_uploading" onclick="DoneUploading(this)">Done Uploading</button>
 </div>
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'{% endblock %}
-{% block subtitle %}Version: '{{kg_version}}', Submitted by '{{submitter}}'{% endblock %}
+{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>Version '{{kg_version}}'{% endblock %}
+{% block subtitle %}Submitted by '{{submitter}}'{% endblock %}
 {% block content %}
 <div class="subtitle"></div>
 <table>

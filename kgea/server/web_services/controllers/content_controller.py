@@ -35,7 +35,7 @@ async def meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str
     return await kge_meta_knowledge_graph(request, kg_id, kg_version)
 
 
-async def download_file_set(request: web.Request, kg_id, kg_version):
+async def download_file_set(request: web.Request, kg_id: str, kg_version: str):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
     :param request:
