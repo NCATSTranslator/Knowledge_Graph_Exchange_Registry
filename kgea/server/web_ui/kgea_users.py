@@ -20,7 +20,7 @@ logger.setLevel(logging.DEBUG)
 # Master flag for simplified local development
 DEV_MODE = getenv('DEV_MODE', default=False)
 
-KGEA_APP_CONFIG = get_app_config()
+_KGEA_APP_CONFIG = get_app_config()
 
 # hack: short term state token cache
 _state_cache = []
@@ -31,10 +31,10 @@ def authentication_url(mode: str) -> str:
     state = str(uuid4())
     _state_cache.append(state)
 
-    host = KGEA_APP_CONFIG['host']
-    client_id = KGEA_APP_CONFIG['oauth2']['client_id']
-    redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + \
-                   KGEA_APP_CONFIG['oauth2']['login_callback']
+    host = _KGEA_APP_CONFIG['oauth2']['host']
+    client_id = _KGEA_APP_CONFIG['oauth2']['client_id']
+    redirect_uri = _KGEA_APP_CONFIG['oauth2']['site_uri'] + \
+                   _KGEA_APP_CONFIG['oauth2']['login_callback']
 
     url = host + '/' + mode + '?response_type=code&client_id=' + client_id + \
         '&redirect_uri=' + redirect_uri + '&state=' + state + \
@@ -96,10 +96,10 @@ async def _get_user_attributes(code: str) -> Dict:
         #   client_id=55pb79dl8gm0i1ho9hdrXXXXXX&scope=openid%20email' \
         #
 
-        host = KGEA_APP_CONFIG['host']
-        redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + KGEA_APP_CONFIG['oauth2']['login_callback']
-        client_id = KGEA_APP_CONFIG['oauth2']['client_id']
-        client_secret = KGEA_APP_CONFIG['oauth2']['client_secret']
+        host = _KGEA_APP_CONFIG['oauth2']['host']
+        redirect_uri = _KGEA_APP_CONFIG['oauth2']['site_uri'] + _KGEA_APP_CONFIG['oauth2']['login_callback']
+        client_id = _KGEA_APP_CONFIG['oauth2']['client_id']
+        client_secret = _KGEA_APP_CONFIG['oauth2']['client_secret']
 
         token_url = host + '/oauth2/token?' + \
             'grant_type=authorization_code&code=' + code + \

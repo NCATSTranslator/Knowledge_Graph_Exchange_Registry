@@ -7,10 +7,21 @@ server {
 
     root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates;
 
+    client_max_body_size 256G;
+
     location / {
         # 'kge' is the docker-compose.yaml service name of
         # the KGE Archive dockerized web service container
-        proxy_pass http://localhost:8080/;
+        proxy_pass http://localhost:8090;
+    }
+
+    location /archive {
+        # 'kge' is the docker-compose.yaml service name of
+        # the KGE Archive dockerized web service container
+        proxy_pass http://localhost:8080/archive;
+    }
+
+    location /favicon.ico {
     }
 
     location /css/ {
@@ -19,4 +30,3 @@ server {
     location /images/ {
     }
 }
-

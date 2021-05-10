@@ -92,7 +92,7 @@ KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
-# one could perhaps parameterize this in the KGEA_APP_CONFIG
+# one could perhaps parameterize this in the _KGEA_APP_CONFIG
 _NUMBER_OF_KGX_VALIDATION_WORKER_TASKS = _KGEA_APP_CONFIG.setdefault("Number_of_KGX_Validation_Worker_Tasks", 3)
 
 
@@ -565,7 +565,7 @@ class KgeFileSet:
         self.size = 'unknown'
         self.revisions = 'Creation'
         return _populate_template(
-            host=_KGEA_APP_CONFIG['host'],
+            host=_KGEA_APP_CONFIG['site_uri'],
             filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
             kg_id=self.kg_id,
             kg_version=self.kg_version,
@@ -739,13 +739,13 @@ class KgeKnowledgeGraph:
     def generate_provider_metadata_file(self) -> str:
         return _populate_template(
             filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
-            host=_KGEA_APP_CONFIG['host'], kg_id=self.kg_id, **self.parameter
+            host=_KGEA_APP_CONFIG['site_uri'], kg_id=self.kg_id, **self.parameter
         )
 
     def generate_translator_registry_entry(self) -> str:
         return _populate_template(
             filename=TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH,
-            host=_KGEA_APP_CONFIG['host'], kg_id=self.kg_id, **self.parameter
+            host=_KGEA_APP_CONFIG['site_uri'], kg_id=self.kg_id, **self.parameter
         )
 
     def get_version_names(self) -> List[str]:
@@ -1130,7 +1130,7 @@ def test_get_catalog_entries():
 
 
 _TEST_TSE_PARAMETERS = dict(
-    host=_KGEA_APP_CONFIG['host'],
+    host=_KGEA_APP_CONFIG['site_uri'],
     kg_id="disney_small_world_graph",
     kg_name="Disneyland Small World Graph",
     kg_description="""Voyage along the Seven Seaways canal and behold a cast of

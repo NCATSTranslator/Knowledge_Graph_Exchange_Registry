@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
-KGEA_APP_CONFIG = get_app_config()
+_KGEA_APP_CONFIG = get_app_config()
 
 #############################################################
 # Controller Handlers
