@@ -125,21 +125,20 @@
                     document.getElementById('spinner-text').style.display = "inline-block";
                     $( "#ldBar" ).css('display', 'block')
 
-                    const url =  new URL(window.location.href);
-                    await fetch(`{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
-                        {
-                            method: "GET",
-                            credentials: "include"
-                        }
-                    )
+                    const url = new URL(window.location.href);
+                    let upload_action = '{{upload_action}}';
+                    upload_action.concat(
+                        `?kg_id=${url.searchParams.get("kg_id")}`,
+                        `&kg_version=${url.searchParams.get("kg_version")}`,
+                        `&kgx_file_content=${kgx_file_content}`,
+                        `&upload_mode=${source.id}`,
+                        `&content_name=${uploaded_file.name}`
+                    );
+                    await fetch(upload_action, {method: "GET", credentials: "include"})
                     .then(r => r.json())
                     .then(async result => {
                         formData.append('upload_token', result.upload_token)
-                        fetch(`{{upload_action}}`, {
-                            method: "POST",
-                            body: formData,
-                            credentials: "include"
-                        })
+                        fetch(`{{upload_action}}`, {method: "POST",body: formData,credentials: "include"})
                         return result.upload_token
                     })
                     .then(async upload_token => {
@@ -258,7 +257,7 @@
                 </span>
             </div>
             <p></p>
-            <!--  -->
+            <!--
             <input type="radio" id="archive" name="kgx_file_content" value="archive">
             <label class="label" for="archive">KGX Archive</label>
             <div class="tooltip">
@@ -272,6 +271,7 @@
                             KGX-compliant 'metadata.json' file.
                 </span>
             </div>
+            -->
     <p></p>
         </td>
         <td>
@@ -289,7 +289,8 @@
                 <span id="ldBar" style="background: transparent; height: 1em; display:inline">
                 </span>
                 <span id="percentage" class="progress-label" style="display:none;"></span>
-                <span id="spinner-text" style="display:none;">Uploading file, please don't navigate away from the page...</span>
+                <span id="spinner-text" style="display:none;">Uploading, please don't navigate away from the page...</span>
+
 {#                <div id="spinner" class="spin"></div>#}
 
             </span>
@@ -298,7 +299,7 @@
 
         </td>
     </tr>
-    <tr>
+    <!-- tr>
         <td>
             <h4>Transfer from a URL</h4>
 
@@ -308,7 +309,7 @@
             <input id="file_name" type="text" onchange="SetFileName(this.value)"/><br>
             <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
         </td>
-    </tr>
+    </tr -->
 </table>
 {% endblock %}
 {% block app_footer %}
