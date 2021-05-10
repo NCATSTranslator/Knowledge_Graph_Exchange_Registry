@@ -18,7 +18,7 @@ def main():
         options=options,
         # TODO: abstract this configuration
         server_args={
-            "client_max_size": 1024**3
+            "client_max_size": 1024**4
         }
     )
     
