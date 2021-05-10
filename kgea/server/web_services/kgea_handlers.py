@@ -432,7 +432,11 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
 #
 # Insert imports and return calls into upload_controller.py:
 #
-# from ..kge_handlers import upload_kge_file
+# from ..kgea_handlers import (
+#     setup_kge_upload_context,
+#     get_kge_upload_status,
+#     upload_kge_file
+# )
 #############################################################
 
 
@@ -455,26 +459,30 @@ async def setup_kge_upload_context(
         """
         if not kg_id:
             # must not be empty string
-            await report_error(request, "upload_kge_file(): empty Knowledge Graph Identifier?")
+            await report_error(request, "setup_kge_upload_context(): empty Knowledge Graph Identifier?")
         
         if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
             # must not be empty string
             await report_error(
                 request,
-                "upload_kge_file(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
+                "setup_kge_upload_context(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
             )
         
         if upload_mode not in ['content_from_local_file', 'content_from_url']:
             # Invalid upload mode
             await report_error(
                 request,
-                "upload_kge_file(): empty or invalid upload_mode: '" + str(upload_mode) + "'?"
+                "setup_kge_upload_context(): empty or invalid upload_mode: '" + str(upload_mode) + "'?"
             )
         
         if not content_name:
             # must not be empty string
-            await report_error(request, "upload_kge_file(): empty Content Name?")
+            await report_error(request, "setup_kge_upload_context(): empty Content Name?")
         
+        if kgx_file_content == 'metadata':
+            # we standardize the content metadata file names here
+            content_name = CONTENT_METADATA_FILE
+
         """
         END Error Handling
         """
@@ -500,13 +508,22 @@ async def setup_kge_upload_context(
         with threading.Lock():
             token = str(uuid.uuid4())
             if 'upload' not in upload_tracker:
+                # TODO: not quite sure why we wouldn't
+                #       rather store this in the 'session' context?
+                #       i.e. session[token] = dict() ?
                 upload_tracker['upload'] = {}
+                
             if token not in upload_tracker['upload']:
                 upload_tracker['upload'][token] = {
                     "file_set_location": file_set_location,
-                    "object_key": object_key
+                    "object_key": object_key,
+                    "kgx_file_content": kgx_file_content,
+                    "upload_mode": upload_mode,
+                    "content_name": content_name,
                 }
+ 
             print('session upload token', token, upload_tracker['upload'])
+            
             upload_token = UploadTokenObject(token).to_dict()
 
             response = web.json_response(upload_token)
@@ -641,12 +658,17 @@ async def upload_kge_file(
         filesize = await pathless_file_size(uploaded_file.file)
         upload_tracker['upload'][upload_token]['end_position'] = filesize
 
+        if 'content_name' in upload_tracker['upload'][upload_token]:
+            content_name = upload_tracker['upload'][upload_token]['content_name']
+        else:
+            content_name = uploaded_file.filename
+        
         def threaded_upload():
             session_ = boto3.Session()
             client = session_.client("s3", config=cfg)
             upload_file(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
-                file_name=uploaded_file.filename,  # The new name for the file
+                file_name=content_name,        # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],
                 object_location=details['file_set_location'],
                 callback=ProgressPercentage(uploaded_file.filename, upload_tracker['upload'][upload_token]['end_position']),
