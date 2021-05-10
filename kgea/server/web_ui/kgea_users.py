@@ -31,7 +31,7 @@ def authentication_url(mode: str) -> str:
     state = str(uuid4())
     _state_cache.append(state)
 
-    host = KGEA_APP_CONFIG['oauth2']['host']
+    host = KGEA_APP_CONFIG['host']
     client_id = KGEA_APP_CONFIG['oauth2']['client_id']
     redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + \
                    KGEA_APP_CONFIG['oauth2']['login_callback']
@@ -96,7 +96,7 @@ async def _get_user_attributes(code: str) -> Dict:
         #   client_id=55pb79dl8gm0i1ho9hdrXXXXXX&scope=openid%20email' \
         #
 
-        host = KGEA_APP_CONFIG['oauth2']['host']
+        host = KGEA_APP_CONFIG['host']
         redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + KGEA_APP_CONFIG['oauth2']['login_callback']
         client_id = KGEA_APP_CONFIG['oauth2']['client_id']
         client_secret = KGEA_APP_CONFIG['oauth2']['client_secret']

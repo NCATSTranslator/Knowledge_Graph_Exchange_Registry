@@ -9,4 +9,4 @@ submitter:
 # SmartAPI Registered Server access
 # point for data (with KGE Archive Web Service)
 size: "${size}"
-access: "https://kge.starinformatics.ca/${kg_id}/${kg_version}"
+access: "${host}/${kg_id}/${kg_version}"
