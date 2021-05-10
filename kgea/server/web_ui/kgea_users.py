@@ -26,27 +26,37 @@ KGEA_APP_CONFIG = get_app_config()
 _state_cache = []
 
 
-def login_url() -> str:
-    """
-    Sends an authentication request to specified
-    OAuth2 login service (i.e. AWS Cognito)
-    
-    :return: redirection to OAuth2 login service
-    """
+def authentication_url(mode: str) -> str:
+
     state = str(uuid4())
     _state_cache.append(state)
 
     host = KGEA_APP_CONFIG['oauth2']['host']
     client_id = KGEA_APP_CONFIG['oauth2']['client_id']
-    redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + KGEA_APP_CONFIG['oauth2']['login_callback']
+    redirect_uri = KGEA_APP_CONFIG['oauth2']['site_uri'] + \
+                   KGEA_APP_CONFIG['oauth2']['login_callback']
 
-    url = host + '/login?response_type=code&client_id=' + client_id + \
+    url = host + '/' + mode + '?response_type=code&client_id=' + client_id + \
         '&redirect_uri=' + redirect_uri + '&state=' + state + \
         '&scope=openid+profile+aws.cognito.signin.user.admin'
 
-    print("login_url(): "+url, file=sys.stderr)
+    print(mode+"_url(): "+url, file=sys.stderr)
 
     return url
+
+
+def login_url() -> str:
+    """
+    :return: the authentication login URL to specified OAuth2 login service (i.e. AWS Cognito)
+    """
+    return authentication_url('login')
+
+
+def logout_url() -> str:
+    """
+    :return: the authentication logout URL to specified OAuth2 login service (i.e. AWS Cognito)
+    """
+    return authentication_url('logout')
 
 
 def mock_user_attributes() -> Dict:
@@ -230,17 +240,3 @@ async def authenticate_user(code: str, state: str):
             return user_attributes
             
     return None
-
-
-def logout_url() -> str:
-    """
-    Redirection to signal logout_url at the Oauth2 host
-    :param request:
-    :return: redirection exception to OAuth2 service
-    """
-    url = KGEA_APP_CONFIG['oauth2']['host'] + \
-        '/logout_url?client_id=' + \
-        KGEA_APP_CONFIG['oauth2']['client_id'] + \
-        '&logout_uri=' + \
-        KGEA_APP_CONFIG['oauth2']['site_uri']
-    return url
