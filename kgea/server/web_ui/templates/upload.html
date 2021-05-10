@@ -126,7 +126,7 @@
                     $( "#ldBar" ).css('display', 'block')
 
                     const url =  new URL(window.location.href);
-                    await fetch(`{{upload_action}}/?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
+                    await fetch(`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
                         {
                             method: "GET",
                             credentials: "include"
