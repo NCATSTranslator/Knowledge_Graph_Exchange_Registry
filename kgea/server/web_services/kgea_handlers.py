@@ -580,7 +580,7 @@ async def upload_kge_file(
         details = upload_tracker['upload'][upload_token]
 
         # TODO: turn into withable
-        def pathless_file_size(data_file):
+        async def pathless_file_size(data_file):
             """
             pathless_file_size
 
@@ -638,7 +638,7 @@ async def upload_kge_file(
         num_threads = 16
         cfg = Config(signature_version='s3v4', max_pool_connections=num_threads)
 
-        filesize = pathless_file_size(uploaded_file.file)
+        filesize = await pathless_file_size(uploaded_file.file)
         upload_tracker['upload'][upload_token]['end_position'] = filesize
 
         def threaded_upload():
