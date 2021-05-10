@@ -2,14 +2,52 @@
 <html lang="en">
 <head>
     {% block head %}
+
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1/new.min.css">
     <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+    <style>
+    /* Tooltip container */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 350px;
+      font-size: 14px;
+      background-color: var(--nc-bg-3);
+      color: #fff;
+      text-align: left;
+      padding: 5px;
+      border-radius: 6px;
+
+      /* Position the tooltip text - see examples below! */
+      position: absolute;
+      z-index: 1;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+    }
+    .tooltip .tooltiptext {
+      top: -5px;
+      left: 105%;
+    }
+    .tooltip img.tooltip_target {
+        margin-bottom: 0;
+    }
+
+    </style>
     <title>Translator KGE Archive</title>
     {% endblock %}
-    {% block scripts %}{% endblock %}
+
 </head>
 {% block body %}<body>{% endblock %}
     <p><div id="header">
@@ -34,4 +72,10 @@
         </div>
     </div>
 </body>
+<footer>
+   {% block scripts %}
+
+{% endblock %}
+</footer>
+
 </html>

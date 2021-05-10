@@ -16,7 +16,6 @@ def main():
         __name__,
         specification_dir=specification_dir,
         options=options,
-        # TODO: abstract this configuration
         server_args={
             "client_max_size": 256*1024**3
         }

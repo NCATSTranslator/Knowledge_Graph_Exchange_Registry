@@ -1,7 +1,7 @@
 from string import Template
 from os import getenv
 from typing import List, Dict
-
+import requests
 from asyncio import (
     ensure_future,
     wait,
@@ -52,7 +52,7 @@ async def stream_from_url(url) -> AsyncIterable:
     :yield: chunk of data
     :rtype: str
     """
-    async with KgeaSession.get_global_session().get(url, chunked=True, read_bufsize=S3_CHUNK_SIZE) as resp:
+    async with KgeaSession.get_global_session().get(url, chunked=True) as resp:
         data = await resp.content.read(S3_CHUNK_SIZE)
         yield data
 
@@ -72,13 +72,17 @@ async def merge_file_from_url(url):
     file_data = b''
     async for data in stream_from_url(url):
         file_data += data
+        print(file_data)
     return file_data
 
 
 def test_data_stream_from_url(test_url):
+    merge_file_from_url(test_url)
     tasks = [ensure_future(merge_file_from_url(test_url))]
-    KgeaSession.get_event_loop().run_until_complete(wait(tasks))
-    print("Data from URL: %s" % [task.result() for task in tasks])
+    print(tasks)
+    session.get_event_loop().run_until_complete(wait(tasks))
+    import pprint
+    pprint.pp([task.result() for task in tasks])
     return True
 
 
@@ -139,17 +143,17 @@ def transfer_file_from_url(
         # initiate MultiPartUpload
         mpu = target_s3obj.initiate_multipart_upload()
 
-        transfer_task = ensure_future(_mpu_transfer_from_url(mpu, url))
-        KgeaSession.get_event_loop().run_until_complete(wait_for(transfer_task, timeout=timeout))
+        # transfer_task = ensure_future(_mpu_transfer_from_url(mpu, url))
+        # KgeaSession.get_event_loop().run_until_complete(wait_for(transfer_task, timeout=timeout))
         
         # MPU Parts returned as the result
-        parts = transfer_task.result()
+        # parts = transfer_task.result()
 
-        logging.debug(parts)
+        # logging.debug(parts)
 
         # no more data, complete the multipart upload
-        part_info = {"Parts": parts}
-        mpu_result = mpu.complete(MultipartUpload=part_info)
+        # part_info = {"Parts": parts}
+        # mpu_result = mpu.complete(MultipartUpload=part_info)
 
     except ClientError as ce_error:
         if mpu:
@@ -208,10 +212,14 @@ if __name__ == '__main__':
         # TEST_FILE_NAME = "somedata.csv"
         TEST_BUCKET = 'kgea-test-bucket'
         TEST_KG_NAME = 'test_kg'
-        
-        KgeaSession()
-        
-        assert(test_data_stream_from_url(test_url=TEST_FILE_URL))
+
+        from aiohttp import web
+        app = web.Application()
+        session = KgeaSession()
+        session.initialize(app)
+
+        print(session)
+        assert(test_data_stream_from_url(test_url=TEST_FILE_URL, session=session))
         print("test_data_stream_from_url passed")
     
         assert(test_transfer_file_from_url(
