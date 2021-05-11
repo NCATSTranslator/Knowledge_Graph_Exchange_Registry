@@ -1,3 +1,8 @@
+# the actual base URL of a deployed KGE Archive site
+# should also be set as the base URI in the configuration
+# of the 'redirect_uri' of the AWS Cognito User Pool app
+site_hostname: 'https://kge.translator.ncats.io'
+
 # Amazon S3 storage structure
 bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
 archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
@@ -6,10 +11,9 @@ archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder conta
 # These parameters should match those set as 'app client' parameters in Cognito
 # i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
 oauth2:
-  host:      '<AWS Cognito URL>'
-  client_id: '<myClientid>'     # get from AWS Cognito User Pool app
+  host:      '<AWS Cognito URL>' # AWS Cognito host for the user authorization code flow
+  client_id: '<myClientid>'      # get from AWS Cognito User Pool app
   client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
-  site_uri:  '<myArchiveSiteURL>' # get from AWS Cognito User Pool app
   login_callback:  '/oauth2callback'
 
 # Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
