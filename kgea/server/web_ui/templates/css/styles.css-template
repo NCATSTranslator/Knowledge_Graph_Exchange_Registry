@@ -30,7 +30,7 @@ img.banner {
 }
 
 .title {
-  /*color: #5e2ca5;*/
+  color: #5e2ca5;
   font-family: Arial, sans-serif;
   font-weight: bold;
   font-size: x-large;
@@ -42,7 +42,7 @@ img.banner {
 }
 
 .subtitle {
-  /*color: #5e2ca5;*/
+  color: #5e2ca5;
   font-family: Arial, sans-serif;
   font-style: italic;
   font-weight: lighter;
@@ -55,7 +55,7 @@ img.banner {
 }
 
 .app_footer {
-  /*color: #5e2ca5;*/
+  color: #5e2ca5;
   font-family: Arial, sans-serif;
   font-style: italic;
   font-weight: bold;
@@ -78,7 +78,15 @@ img.banner {
   padding: 5px;
 }
 
-label{
+.header {
+  color: #008682;
+  font-size: larger;
+  font-weight: bold;
+}
+
+
+.label {
+  color: #5e2ca5;
   font-weight: bold;
 }
 
@@ -90,7 +98,6 @@ label{
   width: 80%;
 }
 */
-
 
 .tooltip {
   position: relative;
@@ -114,15 +121,22 @@ label{
   position: absolute;
   z-index: 1;
   top: -5px;
-  left: 125%;
+  right: 125%;
 }
 
 .tooltip:hover .tooltiptext {
   visibility: visible;
-  background-color: #5e2ca5;
 }
 
 .tooltip_target {
-  /*color: #5e2ca5;*/
+  color: #5e2ca5;
   font-weight: bold;
+}
+
+input.version_number {
+  width: 5em;
+}
+
+#spinner-text {
+  font-size: smaller;
 }

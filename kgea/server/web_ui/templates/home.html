@@ -53,6 +53,30 @@
                 });
         }
 
+        async function AddNewFileSet(source) {
+            let kg_id = document.getElementById('select_kg_id').value;
+            let kg_version = document.getElementById('select_kg_version').value;
+            if(!kg_id) {
+                window.alert("To add a new KGE file set, first register or choose a knowledge graph.");
+                return
+            }
+
+            console.log(
+                "DownloadFile(" +
+                    "action: '" + source.target.id + "', " +
+                    "kg_id: '" + kg_id + "', " +
+                    "kg_version: '" + kg_version + "'" +
+                "')"
+            );
+            window.alert(
+                "DownloadFile(" +
+                    "action: '" + source.target.id+"', " +
+                    "kg_id: '" + kg_id + "', " +
+                    "kg_version: '" + kg_version + "'" +
+                "')"
+            );
+        }
+
         async function DownloadFile(source)
         {
             let kg_id = document.getElementById('select_kg_id').value;
@@ -120,6 +144,8 @@
                 }
             });
 
+            $('#add_new_file_set').on('click', AddNewFileSet);
+
             $('#meta_knowledge_graph').on('click', DownloadFile);
             $('#download').on('click', DownloadFile);
 
@@ -137,20 +163,20 @@
     <table width="50%">
         <tr>
             <td>
-                <div style="text-align: center;">
-                    <h3>Upload a Knowledge Graph</h3>
+                <div class="header" style="text-align: center;">
+                    Upload a Knowledge Graph
                 </div>
             </td>
             <td>
-                <div style="text-align: center;">
-                    <h3>Access a Knowledge Graph</h3>
+                <div class="header"  style="text-align: center;">
+                    Access a Knowledge Graph
                 </div>
             </td>
         </tr>
         <tr>
             <td>
                 <div style="text-align: center;">
-                    <a href="/register/graph"><button>Register KGE File Set</button></a>
+                    <a href="/register/graph"><button>Register a Knowledge Graph</button></a>
                     <!-- Don't need a form here - don't have the session_id anymore.
                          Simple clickable button is better, and is CSS formatted the same.
                          Use it now to avoid the trailing query parameter '?'-->
@@ -171,19 +197,21 @@
                      their associated versions (dynamically presented)-->
                 <!-- TODO: When the catalog gets large, this could
                            also include a kind of type head search? -->
-                <p><label for="select_kg_id">Choose a Graph</label>
+                <p><label class="label" for="select_kg_id">Choose a Knowledge Graph:</label>
                 <select id="select_kg_id" onchange="showVersions(this)">
                 </select>
                 <br>
                 <!-- Once the given kg_name is selected, then the set of
                      associated versions need to be dynamically listed here? -->
-                <label for="select_kg_version">Version</label>
+                <label class="label" for="select_kg_version">File Set Version:</label>
                 <select id="select_kg_version">
                 </select>
                 <br>
                 <p>
+
                 <button id="meta_knowledge_graph">Download Metadata</button>
                 <button id="download">Download Data File(s)</button>
+                <p><button id="add_new_file_set">Add New File Set</button></p>
             </td>
         </tr>
     </table>
