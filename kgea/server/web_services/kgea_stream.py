@@ -150,15 +150,18 @@ async def merge_file_from_url(url):
 
 
 def test_data_stream_from_url(test_url):
-    tasks = [ensure_future(merge_file_from_url2(test_url))]
-    KgeaSession.get_event_loop().run_until_complete(wait(tasks))
-    print("Data from URL: %s" % [task.result() for task in tasks])
+    # tasks = [ensure_future(merge_file_from_url2(test_url))]
+    # print("Data from URL: %s" % [task.result() for task in tasks])
     # merge_file_from_url(test_url)
     # tasks = [ensure_future(merge_file_from_url(test_url))]
     # print(tasks)
     # session.get_event_loop().run_until_complete(wait(tasks))
     # import pprint
     # pprint.pp([task.result() for task in tasks])
+    tasks = [ensure_future(merge_file_from_url2(test_url))]
+    KgeaSession.get_event_loop().run_until_complete(wait(tasks))
+    import pprint
+    pprint.pp("Data from URL: %s" % [task for task in tasks])
     return True
 
 
@@ -291,7 +294,7 @@ if __name__ == '__main__':
         #     test_bucket=TEST_BUCKET,
         #     test_kg=TEST_KG_NAME)
         # )
-        print("test_transfer_file_from_url passed")
+        # print("test_transfer_file_from_url passed")
         
         KgeaSession.close_global_session()
         
