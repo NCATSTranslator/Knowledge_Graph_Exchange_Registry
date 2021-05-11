@@ -2,6 +2,9 @@ from string import Template
 from os import getenv
 from typing import List, Dict
 
+from aiohttp import web
+import smart_open
+
 from asyncio import (
     ensure_future,
     wait,
@@ -17,6 +20,14 @@ from .kgea_file_ops import (
     kg_files_in_location,
     with_version
 )
+
+from kgea.server.config import (
+    s3_client,
+    get_app_config,
+    PROVIDER_METADATA_FILE,
+    FILE_SET_METADATA_FILE
+)
+
 
 from .kgea_session import KgeaSession
 
@@ -39,6 +50,18 @@ S3_CHUNK_SIZE = 8 * MB  # MPU threshold 8 MB at a time for production AWS transf
 
 URL_TRANSFER_TIMEOUT = 300   # default timeout, in seconds
 
+# TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
+#                 "Knowledge_Graph_Exchange_Registry/master/LICENSE"
+TEST_FILE_URL='https://archive.monarchinitiative.org/202012/kgx/sri-reference-kg_edges.tsv.gz'
+TEST_FILE_NAME = "MIT_LICENSE"
+# TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
+#                 "Knowledge_Graph_Exchange_Registry/blob/consolidate_web_apps/kgea/server/test/data/" + \
+#                 "somedata.csv"
+# TEST_FILE_NAME = "somedata.csv"
+TEST_BUCKET = 'kgea-test-bucket'
+TEST_KG_NAME = 'test_kg'
+
+
 
 # TODO: Perhaps need to manage the aiohttp sessions globally in the application?
 # See https://docs.aiohttp.org/en/stable/client_quickstart.html#make-a-request
@@ -52,9 +75,53 @@ async def stream_from_url(url) -> AsyncIterable:
     :yield: chunk of data
     :rtype: str
     """
-    async with KgeaSession.get_global_session().get(url, chunked=True, read_bufsize=S3_CHUNK_SIZE) as resp:
-        data = await resp.content.read(S3_CHUNK_SIZE)
+    async with KgeaSession.get_global_session().get(
+            url
+            # chunked=True,
+            # read_bufsize=S3_CHUNK_SIZE
+    ) as resp:
+        data = await resp.content.read()
         yield data
+
+
+S3_CHUNK_SIZE = '5MB'
+async def stream_from_url2(url):
+    with smart_open.open(url, 'rb') as file:
+        for line in file:
+            yield line
+
+async def merge_file_from_url2(test_url):
+    # stream content *into* S3 (write mode) using a custom session
+    target_url = Template('s3://$BUCKET/$DIRECTORY/$FILENAME$EXTENSION').substitute(
+        BUCKET=TEST_BUCKET,
+        DIRECTORY=TEST_KG_NAME,
+        FILENAME='LICENSE',
+        EXTENSION=''
+    )
+    transport_params = { 'client': s3_client }
+    i = 0
+    # https://github.com/RaRe-Technologies/smart_open/blob/a9b127de79063f6df6f20272076fb304db2904ad/smart_open/s3.py#L227
+    with smart_open.s3.open(
+            TEST_BUCKET,
+            Template('$DIRECTORY/$FILENAME').substitute(
+                DIRECTORY=TEST_KG_NAME,
+                FILENAME='LICENSE'
+            ),
+            'wb',
+            client=s3_client,
+            min_part_size=7 * 1024 ** 2
+    ) as fout:
+        async for data in stream_from_url2(test_url):
+           i += 1
+           print(i, data)
+           fout.write(data)
+
+    # with smart_open.open(target_url, 'wb', transport_params) as fout:
+    #     i = 0
+    #     async for data in stream_from_url2(test_url):
+    #        i += 1
+    #        print(i, data)
+    #        fout.write(data)
 
 
 async def merge_file_from_url(url):
@@ -70,13 +137,16 @@ async def merge_file_from_url(url):
     :rtype: str
     """
     file_data = b''
-    async for data in stream_from_url(url):
+    i = 0
+    async for data in stream_from_url2(url):
+        i += 1
+        print(i)
         file_data += data
     return file_data
 
 
 def test_data_stream_from_url(test_url):
-    tasks = [ensure_future(merge_file_from_url(test_url))]
+    tasks = [ensure_future(merge_file_from_url2(test_url))]
     KgeaSession.get_event_loop().run_until_complete(wait(tasks))
     print("Data from URL: %s" % [task.result() for task in tasks])
     return True
@@ -198,28 +268,20 @@ Unit Tests
 if __name__ == '__main__':
     
     if RUN_TESTS:
-    
-        TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-                        "Knowledge_Graph_Exchange_Registry/master/LICENSE"
-        TEST_FILE_NAME = "MIT_LICENSE"
-        # TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-        #                 "Knowledge_Graph_Exchange_Registry/blob/consolidate_web_apps/kgea/server/test/data/" + \
-        #                 "somedata.csv"
-        # TEST_FILE_NAME = "somedata.csv"
-        TEST_BUCKET = 'kgea-test-bucket'
-        TEST_KG_NAME = 'test_kg'
-        
-        KgeaSession()
+
+
+        session = KgeaSession()
+        session.initialize(web.Application())
         
         assert(test_data_stream_from_url(test_url=TEST_FILE_URL))
         print("test_data_stream_from_url passed")
     
-        assert(test_transfer_file_from_url(
-            test_url=TEST_FILE_URL,
-            test_file_name=TEST_FILE_NAME,
-            test_bucket=TEST_BUCKET,
-            test_kg=TEST_KG_NAME)
-        )
+        # assert(test_transfer_file_from_url(
+        #     test_url=TEST_FILE_URL,
+        #     test_file_name=TEST_FILE_NAME,
+        #     test_bucket=TEST_BUCKET,
+        #     test_kg=TEST_KG_NAME)
+        # )
         print("test_transfer_file_from_url passed")
         
         KgeaSession.close_global_session()
