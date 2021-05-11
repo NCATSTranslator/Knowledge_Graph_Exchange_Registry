@@ -1,161 +1,246 @@
 {% extends "layout.html" %}
 {% block scripts %}
-    <script type="text/javascript" src="https://raw.githubusercontent.com/mdix/progress.js/master/progress.js"></script>
-    <link type="text/css" rel="stylesheet" href="https://github.com/mdix/progress.js/blob/master/progress.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"
+            integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" type="text/css" href="https://raw.githubusercontent.com/loadingio/loading-bar/master/dist/loading-bar.css"/>
+    <script type="text/javascript" src="https://raw.githubusercontent.com/loadingio/loading-bar/master/dist/loading-bar.js"></script>
+    {#    Spinner   #}
+    <style>
+      .spin {
+        display: none; /*default*/
+        width: 1em;
+        height: 24px;
+        border: 3px solid rgba(255, 255, 255, .3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        -webkit-animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to {
+          -webkit-transform: rotate(360deg);
+        }
+      }
+      @-webkit-keyframes spin {
+        to {
+          -webkit-transform: rotate(360deg);
+        }
+      }
+
+    </style>
+    <style>
+        #ldBar .ui-progressbar-value {
+            background-color: var(--nc-lk-1);
+        }
+
+        .progress-label {
+            color: var(--nc-tx-2);
+            padding-left: 16px;
+        }
+    </style>
     <script>
+/* UI Elements */
+// Progress Bar //
+$("#ldBar").progressbar({
+    value: 0,
+})
+$("#ldBar").css("display", "none")
+let content_name = "unknown";
 
-        let kg_version = "1.0"
-        async function getVersion() {
-            // TODO: need to free version once set?
-            //  Or set in advance of uploading (maybe with a startup popup dialog box?)
-            // kg_major_version: major release version of knowledge graph file set
-            // let kg_major_version = document.getElementById("kg_major_version")
+// TODO: Sanitize content_names as
+// per AWS Object Key naming guidelines?
+//docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
+function SetFileName(value) {
+    content_name = value;
+}
 
-            // // kg_major_version: minor release version of knowledge graph file set
-            // let kg_minor_version = document.getElementById("minor_version")
+async function GetUrl(source) {
+    // TODO: need a sensible heuristic here to guess a
+    //       reasonable file name from a given content_url
+    let url = new URL(source.value.trim());
+    let pathname = url.pathname;
+    if (pathname === "/") {
+        content_name =
+            Math.random().toString(16).substr(2, 8).toUpperCase() + ".kgx";
+    } else {
+        content_name = pathname.split("/")[1];
+    }
+    document.getElementById("file_name").value = content_name;
+    SetFileName(content_name)
+}
 
-            // Simple minded first iteration - perhaps need something more?
-            // kg_version = kg_major_version + "." + kg_minor_version
-            kg_version = prompt("Specify File Set version for Knowledge Graph '{{kg_name}}': ", kg_version);
-            document.getElementById("kg_version").innerText = kg_version;
+async function UploadFile(source) {
+
+    console.log("UploadFile(upload_mode: '" + source.id + "')");
+
+    let formData = new FormData();
+
+    formData.append("kg_id", "{{kg_id}}");
+    formData.append("kg_version", "{{kg_version}}");
+
+    let kfc_radio = document.querySelector(
+        "input[name=kgx_file_content]:checked"
+    );
+    let kgx_file_content = kfc_radio ? kfc_radio.value : "";
+    formData.append("kgx_file_content", kgx_file_content);
+
+    if (!kgx_file_content) {
+        window.alert("Please select KGX content type to be uploaded.");
+        return;
+    }
+
+    if (kgx_file_content === "archive") {
+        window.alert(
+            "Sorry, KGX 'tar.gz' compressed archives are not " +
+            "yet fully handled in the interface (coming soon!)");
+        return;
+    }
+
+    formData.append("upload_mode", source.id);
+
+    if (source.id === "content_from_url") {
+
+        // Transfer file from REST URL endpoint
+        let content_url = document.getElementById("content_url").value;
+
+        if (content_url) {
+            console.log("Content URL: '" + content_url + "')");
+            formData.append("content_url", content_url);
+        } else {
+            console.log("KGX content file URL is undefined?");
+            window.alert("KGX content file URL is undefined");
+            return;
         }
 
-        let content_name = 'unknown';
-        function SetFileName(value) {
-            // TODO: Sanitize content_names as per AWS Object Key naming guidelines?
-            // https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
-            content_name = value;
-        }
+    } else if (source.id === "content_from_local_file") {
 
-        async function GetUrl(source) {
-            // TODO: need a sensible heuristic here to guess a reasonable file name from a given content_url
-            let url = new URL(source.value.trim());
-            let pathname = url.pathname;
-            if(pathname === '/') {
-                content_name = Math.random().toString(16).substr(2, 8).toUpperCase()+".kgx";
-            } else {
-                content_name = pathname.split("/")[1];
-            }
-            document.getElementById("file_name").value = content_name;
-            SetFileName(content_name)
-        }
+        let uploaded_file =
+            document.getElementById("content_file").files[0];
+        // content_name = uploaded_file.name;
 
-        async function UploadFile(source) {
+        if (uploaded_file) {
+            console.log(
+                "KGX " + kgx_file_content +
+                " file being uploaded: '" +
+                uploaded_file.name + "'"
+            );
+            formData.append("uploaded_file", uploaded_file);
+            formData.append("content_name", uploaded_file.name);
 
-            console.log("UploadFile(upload_mode: '" + source.id + "')");
+            document.getElementById("content_from_local_file").disabled = true;
+            // document.getElementById('spinner').style.display = "inline-block";
+            document.getElementById('percentage').style.display = "inline-block";
+            document.getElementById('spinner-text').style.display = "inline-block";
+            $("#ldBar").css('display', 'block')
 
-            let formData = new FormData();
-
-            formData.append("kg_id", "{{kg_id}}");
-            formData.append("kg_version", kg_version);
-
-            let kfc_radio = document.querySelector("input[name=kgx_file_content]:checked");
-            let kgx_file_content = kfc_radio ? kfc_radio.value : "";
-            formData.append("kgx_file_content", kgx_file_content);
-
-            if(!kgx_file_content) {
-                window.alert("Please select KGX content type to be uploaded.");
-                return;
-            }
-
-            if(kgx_file_content === "archive") {
-                window.alert(
-                    "Sorry, KGX 'tar.gz' compressed archives are not " +
-                    "yet fully handled in the interface (coming soon!)");
-                return;
-            }
-
-            formData.append("upload_mode", source.id);
-
-            if (source.id === 'content_from_url') {
-
-                // Transfer file from REST URL endpoint
-                let content_url = document.getElementById('content_url').value;
-
-                if(content_url) {
-                    console.log("Content URL: '" + content_url + "')");
-                    formData.append("content_url", content_url);
-                } else  {
-                    console.log("KGX content file URL is undefined?");
-                    window.alert("KGX content file URL is undefined");
-                    return;
-                }
-
-            } else if (source.id === 'content_from_local_file') {
-
-                let uploaded_file = document.getElementById('content_file').files[0];
-                content_name = uploaded_file.name;
-
-                if(uploaded_file) {
-                    console.log("KGX "+kgx_file_content+" file being uploaded: '" + uploaded_file.name + "'");
-                    formData.append("uploaded_file", uploaded_file);
-                } else  {
-                    console.log("KGX "+kgx_file_content+" file is undefined?");
-                    window.alert("KGX "+kgx_file_content+" file is undefined");
-                    return;
-                }
-            }
-
-            formData.append("content_name", content_name);
-            document.getElementById('content_from_local_file').disabled = true;
-            await fetch(
-                "{{upload_action}}",
+            const url = new URL(window.location.href);
+            await fetch(`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
                 {
-                    method: "POST",
-                    body: formData,
+                    method: "GET",
                     credentials: "include"
-                })
-                // block button
-                .then(response => {
-                    return response;
-                })
-                .then(
-                    response => {
-                        console.log('HTTP response code:', response.status);
-                        response.text(
-                            // nop
-                        ).then(
-                            name => {
-                                window.alert(
-                                    "Successfully uploaded " + kgx_file_content + " file\n'" + content_name +
-                                    "'\n for knowledge graph '{{kg_name}}'!"
-                                );
-                            }
-                        ).catch(error => {
-                            let err_msg =
-                                "Error accessing KGE File Set ID\nfor " + kgx_file_content + " file '" + content_name +
-                                "'\nfor knowledge graph '{{kg_name}}: " + error;
-                            console.log(err_msg);
-                            window.alert(err_msg);
-                        })
-                })
-                .catch(error => {
-                    let err_msg =
-                            "File upload error encountered\nfor " + kgx_file_content + " file '" + content_name +
-                            "'\nfor knowledge graph '{{kg_name}}: " + error;
-                    console.log(err_msg);
-                    window.alert(err_msg);
-                });
-            document.getElementById('content_from_local_file').disabled = false;
-        }
-
-        async function DoneUploading(source) {
-            if (source.id === 'done_uploading') {
-                try {
-                    let a = document.createElement('a');
-                    a.href = "{{publish_file_set_action}}/{{kg_id}}/" + kg_version;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                } catch(e) {
-                   console.log('DoneUploading error:', e);
                 }
-                // return done_url;
-            }
+            )
+                .then(r => r.json())
+                .then(async result => {
+                    formData.append('upload_token', result.upload_token)
+                    fetch(`{{upload_action}}`, {
+                        method: "POST",
+                        body: formData,
+                        credentials: "include"
+                    })
+                    return result.upload_token
+                })
+                .then(async upload_token => {
+
+                    // use mutual recursion to create a progress element that always updates the exact amount required
+                    document.getElementById('percentage').textContent = `(0.0%)`;
+
+                    // callback for mutual recursion
+                    async function askForProgress() {
+                        return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
+                            .then(r => r.json())
+                            .then(j => {
+                                if (!!j.end_position) {
+                                    let percentage = Number((j.current_position / j.end_position) * 100).toFixed(1);
+                                    document.getElementById('percentage').textContent = `(${percentage}%)`;
+                                    let progressbar = $("#ldBar");
+                                    progressbar.progressbar({
+                                        // ceil to err on the side of displaying progress
+                                        value: Math.ceil((j.current_position / j.end_position) * 100)
+                                    })
+                                }
+                                return j;
+                            })
+                    }
+
+                    // timer helper for deferring execution of next recursion step
+                    // "value" will be a function here
+                    function later(delay, value) {
+                        return new Promise(resolve => setTimeout(resolve, delay, value));
+                    }
+
+                    // control flow for mutual recursion
+                    async function execute(callback) {
+                        return await callback().then(async received => {
+                            // NOTE: Sometimes it takes awhile for
+                            // received.end_position to initialize, particularly
+                            // if the file size is > ~1GB (works fine at ~300mb).
+                            // In that case, received.end_position is going
+                            // to be undefined. So this will still execute and
+                            // essentially wait until received.end_position is
+                            // defined, and will stop once received.current_position
+                            // is equal to j.end_position (because the file has
+                            // been completely read and uploaded).
+                            if (!(received.current_position === received.end_position)) {
+                                return await later(1000, askForProgress).then(execute)
+                            }
+                        })
+                    }
+
+                    // put the pieces together
+                    try {
+                        return await later(1000, askForProgress).then(execute);
+                    } catch (e) {
+                        console.error(e);
+                    }
+
+                })
+
+            document.getElementById("content_from_local_file").disabled = false;
+            // document.getElementById('spinner").style.display = "none";
+            document.getElementById("percentage").style.display = "none";
+            document.getElementById("spinner-text").style.display = "none";
+            $("#ldBar").css('display', 'none')
+            $("#ldBar").progressbar({
+                value: 0
+            })
+
+        } else {
+            console.log("KGX " + kgx_file_content + " file is undefined?");
+            window.alert("KGX " + kgx_file_content + " file is undefined");
+            return;
         }
-    </script>
+    }
+}
+
+async function DoneUploading(source) {
+    if (source.id === 'done_uploading') {
+        try {
+            let a = document.createElement("a");
+            a.href = "{{publish_file_set_action}}/{{kg_id}}/{{kg_version}}";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch (e) {
+            console.log("DoneUploading error:", e);
+        }
+    }
+}
+</script>
 {% endblock %}
-{% block body %}<body onload="getVersion()">{% endblock %}
+{% block body %}{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
@@ -163,7 +248,7 @@
 <button id="done_uploading" onclick="DoneUploading(this)">Done Uploading</button>
 </div>
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>Version <span id="kg_version"></span>{% endblock %}
+{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>Version '{{kg_version}}'{% endblock %}
 {% block subtitle %}Submitted by '{{submitter}}'{% endblock %}
 {% block content %}
 <div class="subtitle"></div>
@@ -198,7 +283,7 @@
                 </span>
             </div>
             <p></p>
-            <!--  -->
+            <!--
             <input type="radio" id="archive" name="kgx_file_content" value="archive">
             <label class="label" for="archive">KGX Archive</label>
             <div class="tooltip">
@@ -212,29 +297,40 @@
                             KGX-compliant 'metadata.json' file.
                 </span>
             </div>
+            -->
     <p></p>
         </td>
         <td>
             <h4>Upload from your computer</h4>
+            <p>Choose a KGX content type for uploading.</p>
+            <span>
+                <label for="content_file"><b>Select File</b></label><br>
+                <input id="content_file"  class="textbox" type="file" style="display: inline-block"/>
+                <button id="content_from_local_file" onclick="UploadFile(this)" style="display: inline-block">
+                    Upload
+                </button>
+                <br>
+                <span id="ldBar" style="background: transparent; height: 1em; display:inline">
+                </span>
+                <span id="percentage" class="progress-label" style="display:none;"></span>
+                <span id="spinner-text" style="font-size: smaller; display:none;">
+Uploading file, please don't navigate away from the page...</span>
+               <!-- div id="spinner" class="spin"></div -->
 
-            <p>Choose a KGX content type for uploading</p>
 
-            <label for="content_file"><b>Select File</b></label>
-            <input id="content_file"  class="textbox" type="file"/>
-            <button id="content_from_local_file" onclick="UploadFile(this)">Upload</button>
+            </span>
         </td>
     </tr>
-    <tr>
+    <!-- <tr>
         <td>
             <h4>Transfer from a URL</h4>
-
-            <label for="content_url"><b>URL to File</b></label>
+            <label for="content_url"><b>URL to File</b></label><br>
             <input id="content_url" type="text" oninput="GetUrl(this)"/>
-            <br><label for="file_name"><b>File Name</b></label>
-            <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
+            <br><label for="file_name"><b>File Name</b></label><br>
+            <input id="file_name" type="text" onchange="SetFileName(this.value)"/><br>
             <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
         </td>
-    </tr>
+    </tr> -->
 </table>
 {% endblock %}
 {% block app_footer %}

@@ -28,7 +28,7 @@ CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
 
 PROVIDER_METADATA_FILE = 'provider.yaml'
 FILE_SET_METADATA_FILE = 'file_set.yaml'
-CONTENT_METADATA_FILE  = 'content_metadata.json'  # this particular file is expected to be JSON and explicitly named
+CONTENT_METADATA_FILE = 'content_metadata.json'  # this particular file is expected to be JSON and explicitly named
 
 
 def validate_session_configuration():

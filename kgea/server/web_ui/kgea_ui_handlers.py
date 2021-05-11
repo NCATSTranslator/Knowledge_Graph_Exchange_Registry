@@ -1,8 +1,6 @@
 from os import getenv
 from typing import List, Dict
 
-from datetime import datetime
-
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -13,20 +11,20 @@ import aiohttp_jinja2
 
 from aiohttp_session import get_session
 
+from kgea.server.config import get_app_config
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     redirect,
     with_session,
     report_error
 )
-
-from kgea.server.config import get_app_config
 from .kgea_users import (
     login_url,
     logout_url,
     authenticate_user,
     mock_user_attributes
 )
+from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
 
 import logging
 
@@ -37,19 +35,22 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
-KGEA_APP_CONFIG = get_app_config()
+_KGEA_APP_CONFIG = get_app_config()
 
 #############################################################
-# Site Controller Handlers
+# Controller Handlers
 #
-# Insert imports and return calls into web_ui/__init__.py:
+# Insert imports and return calls into into web_ui/__init__.py:
 #
-# from ..kge_ui_handlers import (
+# from .kgea_ui_handlers import (
 #     kge_landing_page,
 #     kge_login,
 #     kge_client_authentication,
 #     get_kge_home,
-#     kge_logout
+#     kge_logout,
+#     get_kge_graph_registration_form,
+#     get_kge_fileset_registration_form,
+#     get_kge_file_upload_form
 # )
 #############################################################
 
@@ -65,7 +66,8 @@ if DEV_MODE:
     ARCHIVE_PATH = 'http://localhost:8080/archive/'
 
 GET_CATALOG_URL = ARCHIVE_PATH+"catalog"
-ARCHIVE_REGISTRATION_FORM_ACTION = ARCHIVE_PATH+"register"
+ARCHIVE_GRAPH_REGISTRATION_FORM_ACTION = ARCHIVE_PATH + "register/graph"
+ARCHIVE_FILESET_REGISTRATION_FORM_ACTION = ARCHIVE_PATH + "register/fileset"
 UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
 PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
 
@@ -102,16 +104,13 @@ async def get_kge_home(request: web.Request) -> web.Response:
     """
     session = await get_session(request)
     if not session.empty:
-        response = aiohttp_jinja2.render_template(
-            'home.html',
-            request=request,
-            context={
-                "submitter": session['name'],
-                "get_catalog": GET_CATALOG_URL,
-                "archive_path": ARCHIVE_PATH,
-
-            }
-        )
+        context = {
+            "submitter": session['name'],
+            "get_catalog": GET_CATALOG_URL,
+            "archive_path": ARCHIVE_PATH,
+        
+        }
+        response = aiohttp_jinja2.render_template( 'home.html', request=request, context=context)
         return await with_session(request, response)
     else:
         # If session is not active, then just a await redirect
@@ -193,20 +192,8 @@ async def kge_logout(request: web.Request):
         await redirect(request, LANDING)
 
 
-#############################################################
-# Upload Controller Handlers
-#
-# Insert imports and return calls into into web_ui/__init__.py:
-#
-# from ..kge_handlers import (
-#     get_kge_registration_form,
-#     get_kge_file_upload_form
-# )
-#############################################################
-
-
-async def get_kge_registration_form(request: web.Request) -> web.Response:
-    """Get web form for specifying KGE File Set name and submitter
+async def get_kge_graph_registration_form(request: web.Request) -> web.Response:
+    """Get web form for specifying KGE Knowledge Graph metadata
 
     :param request:
     :type request: web.Request
@@ -215,17 +202,49 @@ async def get_kge_registration_form(request: web.Request) -> web.Response:
     """
     session = await get_session(request)
     if not session.empty:
-        #  TODO: if user is authenticated, why do we need to ask them for a submitter name?
         context = {
-            "registration_action": ARCHIVE_REGISTRATION_FORM_ACTION,
-            
-            # Now going to 'hard code' these to the
-            # authenticated user values captured
-            # in the 'kge_login' handler above
             "submitter": session['name'],
-            "submitter_email": session['email']
+            "submitter_email": session['email'],
+            "registration_action": ARCHIVE_GRAPH_REGISTRATION_FORM_ACTION
         }
-        response = aiohttp_jinja2.render_template('register.html', request=request, context=context)
+        response = aiohttp_jinja2.render_template('graph.html', request=request, context=context)
+        return await with_session(request, response)
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING)
+
+
+async def get_kge_fileset_registration_form(request: web.Request) -> web.Response:
+    """Get web form for specifying Versioned KGE File Set Metadata
+
+    :param request:
+    :type request: web.Request
+
+    :rtype: web.Response
+    """
+    session = await get_session(request)
+    if not session.empty:
+        
+        kg_id = request.query.get('kg_id', default='')
+        kg_name = request.query.get('kg_name', default='')
+
+        context = {
+            "kg_id": kg_id,
+            "kg_name": kg_name,
+
+            "submitter": session['name'],
+            "submitter_email": session['email'],
+    
+            # TODO: might be best to look up "latest" KGE file set version,
+            #       increment it and send it to the form here?
+            "major_version": "1",
+            "minor_version": "0",
+            "date_stamp": get_default_date_stamp(),
+            
+            "registration_action": ARCHIVE_FILESET_REGISTRATION_FORM_ACTION
+        }
+        response = aiohttp_jinja2.render_template('fileset.html', request=request, context=context)
         return await with_session(request, response)
     else:
         # If session is not active, then just a redirect
@@ -246,19 +265,23 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
 
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
-        
+        kg_version = request.query.get('kg_version', default='')
+
         missing: List[str] = []
         if not kg_id:
             missing.append("kg_id")
         if not kg_name:
             missing.append("kg_name")
+        if not kg_version:
+            missing.append("kg_version")
 
         if missing:
-            await report_error( request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
-
+            await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
+        
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
+            "kg_version": kg_version,
             "submitter": submitter,
             "upload_action": UPLOAD_FORM_ACTION,
             "publish_file_set_action": PUBLISH_FILE_SET_ACTION

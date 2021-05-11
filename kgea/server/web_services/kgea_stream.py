@@ -4,6 +4,7 @@ from typing import List, Dict
 
 from aiohttp import web
 import smart_open
+import requests
 
 from asyncio import (
     ensure_future,
@@ -81,10 +82,12 @@ async def stream_from_url(url) -> AsyncIterable:
             # read_bufsize=S3_CHUNK_SIZE
     ) as resp:
         data = await resp.content.read()
-        yield data
+    # async with KgeaSession.get_global_session().get(url, chunked=True) as resp:
+    #     data = await resp.content.read(S3_CHUNK_SIZE)
+    #     yield data
 
 
-S3_CHUNK_SIZE = '5MB'
+S3_CHUNK_SIZE = 7 * 1024 ** 2
 async def stream_from_url2(url):
     with smart_open.open(url, 'rb') as file:
         for line in file:
@@ -109,7 +112,7 @@ async def merge_file_from_url2(test_url):
             ),
             'wb',
             client=s3_client,
-            min_part_size=7 * 1024 ** 2
+            min_part_size=S3_CHUNK_SIZE
     ) as fout:
         async for data in stream_from_url2(test_url):
            i += 1
@@ -142,6 +145,7 @@ async def merge_file_from_url(url):
         i += 1
         print(i)
         file_data += data
+        print(file_data)
     return file_data
 
 
@@ -149,6 +153,12 @@ def test_data_stream_from_url(test_url):
     tasks = [ensure_future(merge_file_from_url2(test_url))]
     KgeaSession.get_event_loop().run_until_complete(wait(tasks))
     print("Data from URL: %s" % [task.result() for task in tasks])
+    # merge_file_from_url(test_url)
+    # tasks = [ensure_future(merge_file_from_url(test_url))]
+    # print(tasks)
+    # session.get_event_loop().run_until_complete(wait(tasks))
+    # import pprint
+    # pprint.pp([task.result() for task in tasks])
     return True
 
 
@@ -209,17 +219,17 @@ def transfer_file_from_url(
         # initiate MultiPartUpload
         mpu = target_s3obj.initiate_multipart_upload()
 
-        transfer_task = ensure_future(_mpu_transfer_from_url(mpu, url))
-        KgeaSession.get_event_loop().run_until_complete(wait_for(transfer_task, timeout=timeout))
+        # transfer_task = ensure_future(_mpu_transfer_from_url(mpu, url))
+        # KgeaSession.get_event_loop().run_until_complete(wait_for(transfer_task, timeout=timeout))
         
         # MPU Parts returned as the result
-        parts = transfer_task.result()
+        # parts = transfer_task.result()
 
-        logging.debug(parts)
+        # logging.debug(parts)
 
         # no more data, complete the multipart upload
-        part_info = {"Parts": parts}
-        mpu_result = mpu.complete(MultipartUpload=part_info)
+        # part_info = {"Parts": parts}
+        # mpu_result = mpu.complete(MultipartUpload=part_info)
 
     except ClientError as ce_error:
         if mpu:
@@ -268,7 +278,6 @@ Unit Tests
 if __name__ == '__main__':
     
     if RUN_TESTS:
-
 
         session = KgeaSession()
         session.initialize(web.Application())

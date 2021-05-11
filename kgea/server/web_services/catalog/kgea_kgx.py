@@ -67,14 +67,32 @@ class KgxValidator:
         :param output: default None
         :return: (possibly empty) List of errors returned
         """
-        
+        logger.debug(
+            "Entering KgxValidator.validate_data_file() with arguments:" +
+            "\n\tfile_path:"+str(file_path) +
+            "\n\tinput_format:" + str(input_format) +
+            "\n\tinput_compression:" + str(input_compression) +
+            "\n\toutput:" + str(output)
+        )
+
         if file_path:
             # The putative KGX file 'source' is currently sitting at the end
             # of an S3 signed URL(!?) for streaming into the validation.
-            
-            validator = Validator()
+
+            logger.debug("...initializing Validator...")
+
+            class ProgressMonitor:
+                def __call__(self):
+                    pass
+
+
+            validator = Validator(progress_monitor=ProgressMonitor)
+
+            logger.debug("...initializing Transformer...")
 
             transformer = Transformer(stream=True)
+
+            logger.debug("...initiating transform data flow...")
 
             transformer.transform(
                 input_args={'filename': [file_path], 'format': input_format, 'compression': input_compression},
@@ -82,8 +100,11 @@ class KgxValidator:
                 inspector=validator
             )
 
+            logger.debug("...retrieving errors (if any):")
+
             errors = validator.get_errors()
             if errors:
+                logger.debug(str(errors))
                 if output:
                     self.kgx_data_validator.write_report(open(output, 'w'))
                 else:

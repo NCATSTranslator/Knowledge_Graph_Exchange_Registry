@@ -30,6 +30,13 @@ from string import Template
 from json import dumps
 
 import yaml
+
+from kgea.server.web_services.models import (
+    KgeFileSetStatus,
+    KgeFileSetStatusCode,
+    KgeFile
+)
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -45,8 +52,9 @@ from kgea.server.config import (
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE
 )
+
 from kgea.server.web_services.kgea_file_ops import (
-    # get_default_date_stamp,
+    get_default_date_stamp,
     get_object_location,
     get_archive_contents,
     with_version,
@@ -84,7 +92,7 @@ KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
-# one could perhaps parameterize this in the KGEA_APP_CONFIG
+# one could perhaps parameterize this in the _KGEA_APP_CONFIG
 _NUMBER_OF_KGX_VALIDATION_WORKER_TASKS = _KGEA_APP_CONFIG.setdefault("Number_of_KGX_Validation_Worker_Tasks", 3)
 
 
@@ -107,6 +115,32 @@ def _populate_template(filename, **kwargs) -> str:
         return populated_template
 
 
+def format_and_compression(file_name):
+    # assume that format and compression is encoded in the file_name
+    # as standardized period-delimited parts of the name. This is a
+    # hacky first version of this method that only recognizes common
+    # KGX file input format and compression.
+    part = file_name.split('.')
+    if 'tsv' in part:
+        input_format = 'tsv'
+    else:
+        input_format = ''
+
+    if 'tar' in part:
+        archive = 'tar'
+    else:
+        archive = None
+
+    if 'gz' in part:
+        compression = ''
+        if archive:
+            compression = archive + "."
+        compression += 'gz'
+    else:
+        compression = None
+
+    return input_format, compression
+
 class KgeFileType(Enum):
     KGX_UNKNOWN = "unknown file type"
     KGX_CONTENT_METADATA_FILE = "KGX metadata file"
@@ -114,19 +148,26 @@ class KgeFileType(Enum):
     KGE_ARCHIVE = "KGE data archive"
 
 
-class KgeFileSetStatusCode(Enum):
-    Processing = "KGX File Set is being processed"
-    Validated = "KGX File Set is Validated"
-    Error = "Validation Error"
-
-
 class KgeFileSet:
     """
     Class wrapping information about a specific released version of
     KGE Archive managed File Set, effectively 'owned' (hence revisable) by a submitter.
     """
-    # TODO: perhaps a 'file_set_metadata.yaml' should
-    #       be persisted to S3 in each File Set version folder?
+    def get_submitter(self):
+        return self.submitter
+
+    def get_submitter_email(self):
+        return self.submitter_email
+    
+    def get_version(self):
+        return self.kg_version
+
+    def get_date_stamp(self):
+        return self.date_stamp
+    
+    def get_data_file_names(self) -> Set[str]:
+        return set(self.data_files.keys())
+
     def __init__(
             self,
             kg_id: str,
@@ -135,6 +176,7 @@ class KgeFileSet:
             submitter_email: str,
             size: str = 'unknown',
             revisions: str = 'creation',
+            date_stamp: str = get_default_date_stamp(),
             validate: bool = True
     ):
         """
@@ -153,6 +195,7 @@ class KgeFileSet:
         # KGE File Set archive size, may initially be unknown
         self.size = size
         self.revisions = revisions
+        self.date_stamp = date_stamp
 
         # this attribute will track all metadata files of the given version of KGE File Set
         self.content_metadata: Dict[str, Union[str, bool, List[str]]] = dict()
@@ -168,9 +211,12 @@ class KgeFileSet:
         # Aiming for a more economical design with reduced process overheads
         # may suggest use of a single "class level" central Queue
         # for validation across all file sets from all knowledge graphs.
-        self.status: KgeFileSetStatusCode
+        self.status: KgeFileSetStatusCode = KgeFileSetStatusCode.CREATED
+
+        # no errors to start
+        self.errors: List[str] = list()
+        
         if validate:
-            self.status = KgeFileSetStatusCode.Processing
 
             # KGX Validator singleton for this KGE File Set
             self.validator = KgxValidator()
@@ -192,16 +238,9 @@ class KgeFileSet:
                 )
                 self.tasks.append(task)
         else:
-            self.status = KgeFileSetStatusCode.Validated
-
-    def get_version(self):
-        return self.kg_version
-
-    def get_submitter(self):
-        return self.submitter
-
-    def get_submitter_email(self):
-        return self.submitter_email
+            # File Set read in from the Archive
+            # TODO: need to verify that the file set is indeed KGX compliant
+            self.status = KgeFileSetStatusCode.LOADED
 
     # Note: content metadata file is already normalized on S3 to 'content_metadata.yaml'
     def set_content_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
@@ -233,33 +272,6 @@ class KgeFileSet:
             self.content_metadata["kgx_compliant"] = True
         else:
             self.content_metadata["errors"] = errors
-
-    @staticmethod
-    def format_and_compression(file_name):
-        # assume that format and compression is encoded in the file_name
-        # as standardized period-delimited parts of the name. This is a
-        # hacky first version of this method that only recognizes common
-        # KGX file input format and compression.
-        part = file_name.split('.')
-        if 'tsv' in part:
-            input_format = 'tsv'
-        else:
-            input_format = ''
-
-        if 'tar' in part:
-            archive = 'tar'
-        else:
-            archive = None
-
-        if 'gz' in part:
-            compression = ''
-            if archive:
-                compression = archive + "."
-            compression += 'gz'
-        else:
-            compression = None
-
-        return input_format, compression
 
     def add_data_file(
             self,
@@ -294,8 +306,10 @@ class KgeFileSet:
 
         # trigger asynchronous KGX metadata file validation process here?
         logger.debug(
-            "Checking if " + str(file_type) + " data file, with object_key = '" + object_key + "'" +
-            "and with S3 object URL = '" + s3_file_url + "' is KGX compliant")
+            "Checking if " + str(file_type) +
+            " data file, with object_key = '" + object_key +
+            "' is KGX compliant"
+        )
 
         if file_type == KgeFileType.KGX_DATA_FILE:
             input_format = self.data_files[object_key]["input_format"]
@@ -341,9 +355,20 @@ class KgeFileSet:
             )
         return details
 
-    def get_data_file_names(self) -> Set[str]:
-        return set(self.data_files.keys())
+    def load_data_files(self, file_object_keys: List[str]):
+        # TODO: is there any other information here to be captured or inferred,
+        #       e.g. file compression (from file extension), file type, size, etc.
+        for object_key in file_object_keys:
+            part = object_key.split('/')
+            file_name = part[-1]
+            self.data_files[object_key] = {
+                "file_name": file_name,
+                "object_key": object_key
+            }
 
+    ############################################################################
+    # KGX Validation Framework #################################################
+    ############################################################################
     # TODO: Review this design - may not be optimal in that the KGX Transformer
     #       (and likely, KGX Validation) seems to handle multiple input files,
     #       (in the Transformer) thus collecting those input files first then
@@ -361,12 +386,11 @@ class KgeFileSet:
             input_format = kge_file_spec['input_format']
             input_compression = kge_file_spec['input_compression']
 
-            logging.debug(
+            print(
                 f"{name} working on file '{object_key}' of " +
                 f"type '{file_type}', input format '{input_format}' " +
-                f"and with compression '{input_compression}', "
-                # + f"located at S3 endpoint '{s3_file_url}',  "  # the URL is pretty long... only print out if needed
-                # , file=stderr  # converted the print statement to a logging.debug() call
+                f"and with compression '{input_compression}', ",
+                file=stderr
             )
 
             errors: List = list()
@@ -402,15 +426,113 @@ class KgeFileSet:
 
             self.validation_queue.task_done()
 
-    async def release_workers(self):
-        try:
-            # Cancel the KGX validation worker tasks.
-            for task in self.tasks:
-                task.cancel()
-            # Wait until all worker tasks are cancelled.
-            await asyncio.gather(*self.tasks, return_exceptions=True)
-        except Exception as exc:
-            logger.error("KgeaFileSet() KGX worker task exception: " + str(exc))
+    ############################################################################
+    # KGE Publication to the Archive ###########################################
+    ############################################################################
+    def publish(self) -> bool:
+        """
+        Publish file set in the Archive.
+
+        :return: True if successful; False otherwise
+        """
+        self.status = KgeFileSetStatusCode.PROCESSING
+
+        if not self.post_process_file_set():
+            self.status = KgeFileSetStatusCode.ERROR
+            msg = "post_process_file_set(): failed for" + \
+                  "' for KGE File Set version '" + self.kg_version + \
+                  "' of knowledge graph '" + self.kg_id + "'"
+            logger.warning(msg)
+            self.errors.append(msg)
+            return False
+
+        # Publish a 'file_set.yaml' metadata file to the
+        # versioned archive subdirectory containing the KGE File Set
+        file_set_metadata_file = self.generate_file_set_metadata_file()
+        file_set_metadata_object_key = add_to_s3_archive(
+            kg_id=self.kg_id,
+            kg_version=self.kg_version,
+            text=file_set_metadata_file,
+            file_name=FILE_SET_METADATA_FILE
+        )
+
+        if file_set_metadata_object_key:
+            return True
+        else:
+            self.status = KgeFileSetStatusCode.ERROR
+            msg = "publish_file_set(): metadata '" + FILE_SET_METADATA_FILE + \
+                  "' file for KGE File Set version '" + self.kg_version + \
+                  "' of knowledge graph '" + self.kg_id + \
+                  "' not successfully posted to the Archive?"
+            logger.warning(msg)
+            self.errors.append(msg)
+            return False
+
+    # TODO: need here to fully implement required post-processing of
+    #       the completed file set (after files are uploaded by the client)
+    def post_process_file_set(self) -> bool:
+        """
+        Stub file for KGE File Set upload post-processing code.
+        """
+        return True
+
+    # async def publish_file_set(self, kg_id: str, kg_version: str):
+    #
+    #     logger.debug(
+    #         "Calling Registry.publish_file_set(" +
+    #         "kg_version: '"+kg_version+"' of graph kg_id: '"+kg_id+"')"
+    #     )
+    #
+    #     errors: List[str] = list()
+    #
+    #     if kg_id in self._kge_knowledge_graph_catalog:
+    #
+    #         knowledge_graph = self._kge_knowledge_graph_catalog[kg_id]
+    #
+    #         file_set = knowledge_graph.get_file_set(kg_version)
+    #
+    #         if file_set:
+    #             errors = await file_set.publish_file_set()
+    #         else:
+    #             logger.warning(
+    #                 "publish_file_set(): KGE File Set version '" + str(kg_version) +
+    #                 "' of knowledge graph '" + kg_id + "' is unrecognized?"
+    #             )
+    #
+    #         if not errors:
+    #             # After KGX validation and related post-processing is successfully validated,
+    #             # also publish provider metadata externally, to the Translator SmartAPI Registry
+    #             translator_registry_entry = knowledge_graph.generate_translator_registry_entry()
+    #
+    #             successful = add_to_github(kg_id, translator_registry_entry)
+    #             if not successful:
+    #                 logger.warning("publish_file_set(): Translator Registry entry not posted. " +
+    #                                "Is a valid 'github token' properly configured in site config.yaml?")
+    #         else:
+    #             logger.debug("publish_file_set(): KGX validation errors encountered:\n" + str(errors))
+    #
+    #     else:
+    #         logger.error("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
+    #         errors.append("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
+    #
+    #     return errors
+
+    #
+    # Delegating this error checking function to another part of the application.
+    #
+    # Next, ensure that the set of files for the current version are KGX validated.
+    # The content metadata file was checked separately when it was uploaded...
+    # (sanity check: self.content_metadata may not be initialized if no metadata file was uploaded?)
+    # if self.content_metadata and "errors" in self.content_metadata:
+    #     errors.extend(self.content_metadata["errors"])
+
+    # .. from the KGX graph (nodes and edges) data files, asynchronously checked here.
+    # errors.extend(await self.confirm_kgx_data_file_set_validation())
+    #
+    # logger.debug("KGX format validation() completed for KGE File Set version '" + self.kg_version +
+    #              "' of KGE Knowledge Graph '" + self.kg_id + "'")
+    #
+    # return errors
 
     async def confirm_kgx_data_file_set_validation(self):
 
@@ -426,10 +548,24 @@ class KgeFileSet:
 
         return errors
 
+    async def release_workers(self):
+        try:
+            # Cancel the KGX validation worker tasks.
+            for task in self.tasks:
+                task.cancel()
+            # Wait until all worker tasks are cancelled.
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+        except Exception as exc:
+            self.status = KgeFileSetStatusCode.ERROR
+            msg = "KgeaFileSet() KGX worker task exception: " + str(exc)
+            logger.error(msg)
+            self.errors.append(msg)
+
     def generate_file_set_metadata_file(self) -> str:
         self.size = 'unknown'
         self.revisions = 'Creation'
         return _populate_template(
+            host=_KGEA_APP_CONFIG['site_uri'],
             filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
             kg_id=self.kg_id,
             kg_version=self.kg_version,
@@ -439,65 +575,33 @@ class KgeFileSet:
             revisions=self.revisions
         )
 
-    async def publish_file_set(self) -> List[str]:
-        """
-        Publish file set metadata in the Archive S3 repository.
+    def get_status(self) -> Optional[KgeFileSetStatus]:
+        # # TODO: need to retrieve metadata by kg_version
+        # file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
+        #
+        # # Listings Approach
+        # # - Introspect on Bucket
+        # # - Create URL per Item Listing
+        # # - Send Back URL with Dictionary
+        # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+        # # TODO: convert into redirect approach with cross-origin scripting?
+        # kg_files = kg_files_in_location(
+        #     bucket_name=_KGEA_APP_CONFIG['bucket'],
+        #     object_location=file_set_location
+        # )
+        # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
+        # kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+        # kg_urls = dict(
+        #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
+        #         kg_listing))
+        # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
+        
+        file_set_status = KgeFileSetStatus(self.kg_id, self.kg_version, self.status)
+        file_set: List[KgeFile] = list()
+        # TODO: populate the file_set information here
+        file_set_status.files = file_set
 
-        :return: list of any generated (string) error messages
-        """
-
-        # TODO: need here to fully implement post-processing of the completed
-        #       file set (with all files, as uploaded by the client)
-        errors: List[str] = self.post_process_file_set()
-
-        file_set_metadata_file = self.generate_file_set_metadata_file()
-        file_set_metadata_object_key = add_to_s3_archive(
-            kg_id=self.kg_id,
-            kg_version=self.kg_version,
-            text=file_set_metadata_file,
-            file_name=FILE_SET_METADATA_FILE
-        )
-
-        if not file_set_metadata_object_key:
-            msg = "publish_file_set(): '" + FILE_SET_METADATA_FILE + \
-                "' for KGE File Set version '" + self.kg_version + \
-                "' of knowledge graph '" + self.kg_id + "' not successfully added to archive?"
-            logger.warning(msg)
-            errors.append(msg)
-
-        # Next, ensure that the set of files for the current version are KGX validated.
-        # The content metadata file was checked separately when it was uploaded...
-        # (sanity check: self.content_metadata may not be initialized if no metadata file was uploaded?)
-        if self.content_metadata and "errors" in self.content_metadata:
-            errors.extend(self.content_metadata["errors"])
-
-        # .. from the KGX graph (nodes and edges) data files, asynchonously checked here.
-        errors.extend(await self.confirm_kgx_data_file_set_validation())
-
-        logger.debug("KGX format validation() completed for KGE File Set version '" + self.kg_version +
-                     "' of KGE Knowledge Graph '" + self.kg_id + "'")
-
-        return errors
-
-    @staticmethod
-    def post_process_file_set() -> List[str]:
-        """
-        Stub file for KGE File Set upload post-processing code.
-
-        :return: list of any generated (string) error messages
-        """
-        return []
-
-    def load_data_files(self, file_object_keys: List[str]):
-        # TODO: is there any other information here to be captured or inferred,
-        #       e.g. file compression (from file extension), file type, size, etc.
-        for object_key in file_object_keys:
-            part = object_key.split('/')
-            file_name = part[-1]
-            self.data_files[object_key] = {
-                "file_name": file_name,
-                "object_key": object_key
-            }
+        return file_set_status
 
 
 class KgeKnowledgeGraph:
@@ -567,15 +671,20 @@ class KgeKnowledgeGraph:
         # File Set Versions
         self._file_set_versions: Dict[str, KgeFileSet] = dict()
 
+        #
+        # Knowledge Graph registration no longer
+        # automatically adds a new KGE File Set version
+        #
         # Register an explicitly specified submitter-specified KGE File Set version
         # Sanity check: we should probably not overwrite a KgeFileSet version if it already exists?
-        if kg_version and kg_version not in self._file_set_versions:
-            self._file_set_versions[kg_version] = KgeFileSet(
-                kg_id=self.kg_id,
-                kg_version=kg_version,
-                submitter=kwargs['submitter'],
-                submitter_email=kwargs['submitter_email']
-            )
+        # if kg_version and kg_version not in self._file_set_versions:
+        #     self._file_set_versions[kg_version] = KgeFileSet(
+        #         kg_id=self.kg_id,
+        #         kg_version=kg_version,
+        #         submitter=kwargs['submitter'],
+        #         submitter_email=kwargs['submitter_email']
+        #     )
+        
         self._provider_metadata_object_key: Optional[str] = None
 
     def set_provider_metadata_object_key(self, object_key: str):
@@ -593,7 +702,7 @@ class KgeKnowledgeGraph:
             text=provider_metadata_file,
             file_name=PROVIDER_METADATA_FILE
         )
-        if not object_key:
+        if object_key:
             self.set_provider_metadata_object_key(object_key)
         else:
             logger.warning(
@@ -605,13 +714,15 @@ class KgeKnowledgeGraph:
     def get_name(self) -> str:
         return self.parameter.setdefault("kg_name", self.kg_id)
 
-    def get_kge_file_set(self, kg_version: str) -> Optional[KgeFileSet]:
+    def get_file_set(self, kg_version: str) -> Optional[KgeFileSet]:
         """
         :return: KgeFileSet entry tracking for data files in the KGE File Set
         """
         if kg_version not in self._file_set_versions:
-            logger.warning("KGE File Set version '"+kg_version+"' unknown for Knowledge Graph '"+self.kg_id+"'?")
+            logger.warning("KgeKnowledgeGraph.get_file_set(): KGE File Set version '"
+                           + kg_version + "' unknown for Knowledge Graph '" + self.kg_id + "'?")
             return None
+        
         return self._file_set_versions[kg_version]
 
     # KGE File Set Translator SmartAPI parameters (March 2021 release):
@@ -628,13 +739,13 @@ class KgeKnowledgeGraph:
     def generate_provider_metadata_file(self) -> str:
         return _populate_template(
             filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
-            kg_id=self.kg_id, **self.parameter
+            host=_KGEA_APP_CONFIG['site_uri'], kg_id=self.kg_id, **self.parameter
         )
 
     def generate_translator_registry_entry(self) -> str:
         return _populate_template(
             filename=TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH,
-            kg_id=self.kg_id, **self.parameter
+            host=_KGEA_APP_CONFIG['site_uri'], kg_id=self.kg_id, **self.parameter
         )
 
     def get_version_names(self) -> List[str]:
@@ -667,7 +778,21 @@ class KgeKnowledgeGraph:
                             )
             file_set.load_data_files(entry['file_object_keys'])
 
+    def add_file_set(self, kg_version: str, file_set: KgeFileSet):
+        """
+        
+        :param kg_version:
+        :param file_set:
+        :return:
+        """
+        self._file_set_versions[kg_version] = file_set
+    
     def load_file_set_metadata(self, metadata_text: str) -> KgeFileSet:
+        """
+        
+        :param metadata_text:
+        :return:
+        """
 
         # Assumed to be a YAML string to be parsed into a Python dictionary
         mf = io.StringIO(metadata_text)
@@ -715,7 +840,7 @@ class KgeKnowledgeGraph:
         )
 
         # ...add it to the knowledge graph...
-        self._file_set_versions[kg_version] = file_set
+        self.add_file_set(kg_version, file_set)
 
         # then return it for further processing
         return file_set
@@ -747,7 +872,7 @@ class KgeArchiveCatalog:
     @classmethod
     def catalog(cls):
         """
-        :return: singleton of KgeaCatalog
+        :return: singleton of KgeArchiveCatalog
         """
         if not cls._the_catalog:
             raise RuntimeError("KGE Archive Catalog is uninitialized?")
@@ -789,7 +914,7 @@ class KgeArchiveCatalog:
             return
 
         if 'versions' in entry:
-            knowledge_graph: KgeKnowledgeGraph = self.get_kge_graph(kg_id)
+            knowledge_graph: KgeKnowledgeGraph = self.get_knowledge_graph(kg_id)
             knowledge_graph.load_file_set_versions(versions=entry['versions'])
 
     def load_provider_metadata(self, kg_id, metadata_text: str):
@@ -891,7 +1016,7 @@ class KgeArchiveCatalog:
             self._kge_knowledge_graph_catalog[kg_id] = KgeKnowledgeGraph(**kwargs)
         return self._kge_knowledge_graph_catalog[kg_id]
     
-    def get_kge_graph(self, kg_id: str) -> Union[KgeKnowledgeGraph, None]:
+    def get_knowledge_graph(self, kg_id: str) -> Union[KgeKnowledgeGraph, None]:
         """
          Get the knowledge graph provider metadata associated with
          a given knowledge graph file set identifier.
@@ -927,13 +1052,13 @@ class KgeArchiveCatalog:
         :param s3_file_url: currently active pre-signed url to access the file
         :return: None
         """
-        knowledge_graph = self.get_kge_graph(kg_id)
+        knowledge_graph = self.get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             raise RuntimeError("KGE File Set '" + kg_id + "' is unknown?")
         else:
             # Found a matching KGE Knowledge Graph?
-            file_set = knowledge_graph.get_kge_file_set(kg_version=kg_version)
+            file_set = knowledge_graph.get_file_set(kg_version=kg_version)
 
             # Add the current (meta-)data file to the KGE File Set
             # associated with this kg_version of the graph.
@@ -953,47 +1078,6 @@ class KgeArchiveCatalog:
                 )
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
-
-    async def publish_file_set(self, kg_id: str, kg_version: str):
-
-        logger.debug(
-            "Calling Registry.publish_file_set(" +
-            "kg_version: '"+kg_version+"' of graph kg_id: '"+kg_id+"')"
-        )
-        
-        errors: List[str] = list()
-        
-        if kg_id in self._kge_knowledge_graph_catalog:
-            
-            knowledge_graph = self._kge_knowledge_graph_catalog[kg_id]
-
-            file_set = knowledge_graph.get_kge_file_set(kg_version)
-
-            if file_set:
-                errors = await file_set.publish_file_set()
-            else:
-                logger.warning(
-                    "publish_file_set(): KGE File Set version '" + str(kg_version) +
-                    "' of knowledge graph '" + kg_id + "' is unrecognized?"
-                )
-
-            if not errors:
-                # After KGX validation and related post-processing is successfully validated,
-                # also publish provider metadata externally, to the Translator SmartAPI Registry
-                translator_registry_entry = knowledge_graph.generate_translator_registry_entry()
-
-                successful = add_to_github(kg_id, translator_registry_entry)
-                if not successful:
-                    logger.warning("publish_file_set(): Translator Registry entry not posted. " +
-                                   "Is a valid 'github token' properly configured in site config.yaml?")
-            else:
-                logger.debug("publish_file_set(): KGX validation errors encountered:\n" + str(errors))
-            
-        else:
-            logger.error("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
-            errors.append("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
-            
-        return errors
 
     def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
 
@@ -1046,6 +1130,7 @@ def test_get_catalog_entries():
 
 
 _TEST_TSE_PARAMETERS = dict(
+    host=_KGEA_APP_CONFIG['site_uri'],
     kg_id="disney_small_world_graph",
     kg_name="Disneyland Small World Graph",
     kg_description="""Voyage along the Seven Seaways canal and behold a cast of
@@ -1278,7 +1363,7 @@ if __name__ == '__main__':
 
         assert (test_get_catalog_entries())
         
-        print("all KGEA Catalog tests passed")
+        print("all KGE Archive Catalog tests passed")
         
     # if CLEAN_TESTS:
     #     clean_tests()
