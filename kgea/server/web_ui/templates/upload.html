@@ -40,7 +40,8 @@
             padding-left: 16px;
         }
     </style>
-    <script>
+
+    <script type="text/javascript">
 /* UI Elements */
 // Progress Bar //
 $("#ldBar").progressbar({
@@ -259,7 +260,7 @@ async function DoneUploading(source) {
             <input type="radio" id="metadata" name="kgx_file_content" value="metadata" checked>
             <label  class="label" for="metadata">Metadata</label>
             <div class="tooltip">
-                <img class="tooltip_target" src="images/help-icon.png" width="12" height="12"/>
+                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
                     (*) Must be a valid KGX metadata JSON file generated from your dataset.
                 </span>
@@ -268,7 +269,7 @@ async function DoneUploading(source) {
             <input type="radio" id="nodes" name="kgx_file_content" value="nodes">
             <label class="label" for="nodes">Nodes</label>
             <div class="tooltip">
-                <img class="tooltip_target" src="images/help-icon.png" width="12" height="12"/>
+                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
                     (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'nodes' file.
                 </span>
@@ -277,7 +278,7 @@ async function DoneUploading(source) {
             <input type="radio" id="edges" name="kgx_file_content" value="edges">
             <label class="label" for="edges">Edges</label>
             <div class="tooltip">
-                <img class="tooltip_target" src="images/help-icon.png" width="12" height="12"/>
+                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
                         (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'edges' file.
                 </span>
@@ -287,7 +288,7 @@ async function DoneUploading(source) {
             <input type="radio" id="archive" name="kgx_file_content" value="archive">
             <label class="label" for="archive">KGX Archive</label>
             <div class="tooltip">
-                <img class="tooltip_target" src="images/help-icon.png" width="12" height="12"/>
+                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
                         If a KGX Archive is given, then the local
                             uploaded file or a transfer from URL is assumed to be a gzip'd

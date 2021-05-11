@@ -119,6 +119,7 @@ label{
 
 .tooltip:hover .tooltiptext {
   visibility: visible;
+  background-color: #5e2ca5;
 }
 
 .tooltip_target {
