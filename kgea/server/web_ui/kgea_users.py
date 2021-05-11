@@ -33,7 +33,7 @@ def authentication_url(mode: str) -> str:
 
     host = _KGEA_APP_CONFIG['oauth2']['host']
     client_id = _KGEA_APP_CONFIG['oauth2']['client_id']
-    redirect_uri = _KGEA_APP_CONFIG['oauth2']['site_uri'] + \
+    redirect_uri = _KGEA_APP_CONFIG['site_hostname'] + \
                    _KGEA_APP_CONFIG['oauth2']['login_callback']
 
     url = host + '/' + mode + '?response_type=code&client_id=' + client_id + \
@@ -97,7 +97,7 @@ async def _get_user_attributes(code: str) -> Dict:
         #
 
         host = _KGEA_APP_CONFIG['oauth2']['host']
-        redirect_uri = _KGEA_APP_CONFIG['oauth2']['site_uri'] + _KGEA_APP_CONFIG['oauth2']['login_callback']
+        redirect_uri = _KGEA_APP_CONFIG['site_hostname'] + _KGEA_APP_CONFIG['oauth2']['login_callback']
         client_id = _KGEA_APP_CONFIG['oauth2']['client_id']
         client_secret = _KGEA_APP_CONFIG['oauth2']['client_secret']
 

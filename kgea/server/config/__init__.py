@@ -126,7 +126,7 @@ def _load_app_config() -> dict:
         with open(CONFIG_FILE_PATH, mode='r', encoding='utf-8') as app_config_file:
             
             app_config_raw = yaml.load(app_config_file, Loader=Loader)
-            
+
             if 'bucket' not in app_config_raw:
                 raise RuntimeError(
                     "Missing 'bucket' attribute in '~/kgea/server/config/config.yaml' configuration file."
@@ -148,6 +148,9 @@ def _load_app_config() -> dict:
                 pass
             
             _app_config = dict(app_config_raw)
+
+            # TODO: Review this: we second guess a sensible Translator site name here
+            _app_config.setdefault("site_hostname", "https://kge.translator.ncats.io")
         
         if DEV_MODE:
             # For the EncryptedCookieStorage() managed

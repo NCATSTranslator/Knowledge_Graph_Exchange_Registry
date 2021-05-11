@@ -565,7 +565,7 @@ class KgeFileSet:
         self.size = 'unknown'
         self.revisions = 'Creation'
         return _populate_template(
-            host=_KGEA_APP_CONFIG['site_uri'],
+            host=_KGEA_APP_CONFIG['site_hostname'],
             filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
             kg_id=self.kg_id,
             kg_version=self.kg_version,
@@ -739,13 +739,13 @@ class KgeKnowledgeGraph:
     def generate_provider_metadata_file(self) -> str:
         return _populate_template(
             filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
-            host=_KGEA_APP_CONFIG['site_uri'], kg_id=self.kg_id, **self.parameter
+            host=_KGEA_APP_CONFIG['site_hostname'], kg_id=self.kg_id, **self.parameter
         )
 
     def generate_translator_registry_entry(self) -> str:
         return _populate_template(
             filename=TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH,
-            host=_KGEA_APP_CONFIG['site_uri'], kg_id=self.kg_id, **self.parameter
+            host=_KGEA_APP_CONFIG['site_hostname'], kg_id=self.kg_id, **self.parameter
         )
 
     def get_version_names(self) -> List[str]:
@@ -1130,7 +1130,7 @@ def test_get_catalog_entries():
 
 
 _TEST_TSE_PARAMETERS = dict(
-    host=_KGEA_APP_CONFIG['site_uri'],
+    host=_KGEA_APP_CONFIG['site_hostname'],
     kg_id="disney_small_world_graph",
     kg_name="Disneyland Small World Graph",
     kg_description="""Voyage along the Seven Seaways canal and behold a cast of
