@@ -754,7 +754,6 @@ async def upload_kge_file(
                     # This action adds a file to the given knowledge graph,
                     # identified by the 'kg_id', initiating or continuing a
                     # the assembly process for the 'kg_version' KGE file set.
-                    #
                     # May raise an Exception if something goes wrong.
                     KgeArchiveCatalog.catalog().add_to_kge_file_set(
                         kg_id=details["kg_id"],
@@ -775,7 +774,13 @@ async def upload_kge_file(
                     logger.error(error_msg)
                     raise RuntimeError(error_msg)
             else:
-                raise RuntimeError("upload_kge_file(): " + str(details["file_type"]) + "file upload failed?")
+                error_msg: str = "upload_kge_file(" + \
+                                 "kg_id: " + details["kg_id"] + ", " \
+                                 "kg_version: " + details["kg_version"] + ", " \
+                                 "file_type: " + details["file_type"] + " " \
+                                 ") - null S3 object key... file upload failed?"
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
 
         loop = asyncio.get_event_loop()
         loop.run_in_executor(None, threaded_upload)
