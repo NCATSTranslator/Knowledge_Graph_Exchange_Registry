@@ -73,8 +73,6 @@ def main():
 
     KgeaSession.initialize(app.app)
 
-    KgeArchiveCatalog.initialize()
-
     app.run(port=8080)
 
     KgeaSession.close_global_session()

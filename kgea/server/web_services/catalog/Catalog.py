@@ -13,6 +13,7 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
+import threading
 import io
 import json
 from sys import stderr
@@ -150,24 +151,6 @@ class KgeFileSet:
     Class wrapping information about a specific released version of
     KGE Archive managed File Set, effectively 'owned' (hence revisable) by a submitter.
     """
-    def get_submitter(self):
-        return self.submitter
-
-    def get_submitter_email(self):
-        return self.submitter_email
-    
-    def get_version(self):
-        return self.kg_version
-
-    def get_date_stamp(self):
-        return self.date_stamp
-
-    def get_data_file_object_keys(self) -> Set[str]:
-        return set(self.data_files.keys())
-
-    def get_data_file_names(self) -> Set[str]:
-        return set([x["file_name"] for x in self.data_files.values()])
-
     def __init__(
             self,
             kg_id: str,
@@ -206,15 +189,7 @@ class KgeFileSet:
         self.content_metadata: Dict[str, Union[str, bool, List[str]]] = dict()
 
         # this attribute will track all data files of the given version of KGE File Set
-
-        # ### KGX VALIDATION FRAMEWORK ###
-
-        # The initial design of the system is designed to manage
-        # validation tasks locally within each distinct KGE File Set.
-
-        # Aiming for a more economical design with reduced process overheads
-        # may suggest use of a single "class level" central Queue
-        # for validation across all file sets from all knowledge graphs.
+        self.data_files: Dict[str, Dict[str, Union[str, bool, List[str]]]] = dict()
 
         # no errors to start
         self.errors: List[str] = list()
@@ -227,6 +202,24 @@ class KgeFileSet:
             self.status = KgeFileSetStatusCode.LOADED
         else:
             self.status = KgeFileSetStatusCode.CREATED
+
+    def get_submitter(self):
+        return self.submitter
+
+    def get_submitter_email(self):
+        return self.submitter_email
+
+    def get_version(self):
+        return self.kg_version
+
+    def get_date_stamp(self):
+        return self.date_stamp
+
+    def get_data_file_object_keys(self) -> Set[str]:
+        return set(self.data_files.keys())
+
+    def get_data_file_names(self) -> Set[str]:
+        return set([x["file_name"] for x in self.data_files.values()])
 
     # Note: content metadata file name is already normalized on S3 to 'content_metadata.yaml'
     def set_content_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
@@ -447,8 +440,10 @@ class KgeFileSet:
         # check if any errors were returned by KGX Validation
         errors: List = []
         for data_file in self.data_files.values():
-            if not data_file["kgx_compliant"]:
-                errors.append(data_file["errors"])
+            lock = threading.Lock()
+            with lock:
+                if not data_file["kgx_compliant"]:
+                    errors.append(data_file["errors"])
         
         if not self.content_metadata["kgx_compliant"]:
             errors.append(self.content_metadata["errors"])
@@ -762,19 +757,36 @@ class KgeArchiveCatalog:
         archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['bucket'])
         for kg_id, entry in archive_contents.items():
             self.load_archive_entry(kg_id=kg_id, entry=entry)
+    
+    # @classmethod
+    # def initialize(cls):
+    #     """
+    #     This method needs to be called before
+    #     the KgeArchiveCatalog is first used.
+    #
+    #     :return:
+    #     """
+    #     if not cls._the_catalog:
+    #         KgeArchiveCatalog._the_catalog = KgeArchiveCatalog()
 
     @classmethod
-    def initialize(cls):
-        if not cls._the_catalog:
-            KgeArchiveCatalog._the_catalog = KgeArchiveCatalog()
-
+    async def close(cls):
+        """
+        This method needs to be called after the KgeArchiveCatalog is no longer needed,
+        since it releases some program resources which may be open at the end of processing)
+        
+        :return: None
+        """
+        # Shut down KgxValidator background processing here
+        await KgxValidator.shutdown_validation_processing()
+    
     @classmethod
     def catalog(cls):
         """
         :return: singleton of KgeArchiveCatalog
         """
         if not cls._the_catalog:
-            raise RuntimeError("KGE Archive Catalog is uninitialized?")
+            KgeArchiveCatalog._the_catalog = KgeArchiveCatalog()
 
         return KgeArchiveCatalog._the_catalog
 

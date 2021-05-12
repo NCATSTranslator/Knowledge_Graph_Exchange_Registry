@@ -22,6 +22,8 @@ from kgea.server.config import get_app_config
 import logging
 
 # Master flag for simplified local development
+from kgea.server.web_services import KgeArchiveCatalog
+
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 logger = logging.getLogger(__name__)
@@ -107,6 +109,9 @@ class KgeaSession:
         # Close the global Client Session
         loop.run_until_complete(cls._close_kgea_global_session())
 
+        # Close the KgeArchiveCatalog
+        loop.run_until_complete(KgeArchiveCatalog.close())
+        
         # see https://docs.aiohttp.org/en/v3.7.4.post0/client_advanced.html#graceful-shutdown
         # Zero-sleep to allow underlying connections to close
         loop.run_until_complete(asyncio.sleep(0))

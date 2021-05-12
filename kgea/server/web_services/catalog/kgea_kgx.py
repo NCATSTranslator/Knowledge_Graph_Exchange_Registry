@@ -2,6 +2,7 @@
 Knowledge Graph eXchange (KGX) tool kit validation of
 Knowledge Graph Exchange (KGE) File Sets located on AWS S3
 """
+import threading
 import json
 from typing import List, Optional
 from sys import stderr
@@ -64,6 +65,7 @@ class KgxValidator:
     _validation_queue: asyncio.Queue = asyncio.Queue()
     _validation_tasks: List = list()
 
+    # The method should be called at the beginning of KgxValidator processing
     @classmethod
     def init_validation_tasks(cls):
         # Create _NO_KGX_VALIDATION_WORKER_TASKS worker
@@ -72,17 +74,9 @@ class KgxValidator:
             task = asyncio.create_task(KgxValidator(f"KGX Validation Worker-{i}")())
             cls._validation_tasks.append(task)
 
-    # Set up internal validation Queue when class set up
-    init_validation_tasks()
-
+    # The method should be called by at the end of KgxValidator processing
     @classmethod
-    def validate(cls, files: List):
-        # Post list of file details to the KGX validation task Queue
-        cls._validation_queue.put_nowait(files)
-
-    # TODO: not sure when and how to call this clean-up code
-    @classmethod
-    async def release_workers(cls):
+    async def shutdown_validation_processing(cls):
         await cls._validation_queue.join()
         try:
             # Cancel the KGX validation worker tasks.
@@ -93,8 +87,32 @@ class KgxValidator:
         except Exception as exc:
             msg = "KgeaFileSet() KGX worker task exception: " + str(exc)
             logger.error(msg)
-            
+
+    @classmethod
+    def validate(cls, files: List):
+        """
+        This method posts a list of files
+         to the KgxValidator for for validation.
+         
+        :param files: is a list of Python dictionaries with file details, one entry per file.
+        
+        :return: None
+        """
+        # First, initialize task queue if not running...
+        if not cls._validation_tasks:
+            cls.init_validation_tasks()
+        
+        # ...then, post the list of file details to the KGX validation task Queue
+        cls._validation_queue.put_nowait(files)
+
+    #
     async def __call__(self):
+        """
+        This Callable, undertaking the file validation,
+        is intended to be executed inside an asyncio task.
+        
+        :return:
+        """
         while True:
             data_files: List = await self._validation_queue.get()
             #
@@ -118,7 +136,11 @@ class KgxValidator:
                 print("Validating KGX compliance of data file '" + file_name + "'", file=stderr)
         
                 # KGX Compliance is faked for the moment
-                entry["kgx_compliant"] = True
+
+                # Not sure if this has too much of a performance hit?
+                lock = threading.Lock()
+                with lock:
+                    entry["kgx_compliant"] = True
         
                 # file_type = kge_file_spec['file_type']
                 # object_key = kge_file_spec['object_key']
