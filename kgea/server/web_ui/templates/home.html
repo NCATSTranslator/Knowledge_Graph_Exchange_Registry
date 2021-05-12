@@ -30,7 +30,7 @@
                             .then(catalog => {
                                 kgea_catalog = catalog;
                                 // console.log("Catalog: " + JSON.stringify(kgea_catalog));
-                                // window.alert("Catalog: " + JSON.stringify(kgea_catalog))
+                                // window.alert("Catalog: " + JSON.stringify(kgea_catalog));
                                 /* TODO: time here to inject the catalog into
                                          the kg_id/kg_version section of the UI.
                                  */
@@ -53,34 +53,67 @@
                 });
         }
 
+        function GetGraphName(kg_id) {
+            if(kg_id in kgea_catalog) {
+                return kgea_catalog[kg_id].name;
+            }
+        }
+
         async function AddNewFileSet(source) {
+
             let kg_id = document.getElementById('select_kg_id').value;
-            let kg_version = document.getElementById('select_kg_version').value;
+            console.log("Entering AddNewFileSet(kg_id: '" + kg_id + "')");
+
             if(!kg_id) {
                 window.alert("To add a new KGE file set, first register or choose a knowledge graph.");
                 return
             }
 
-            console.log(
-                "DownloadFile(" +
-                    "action: '" + source.target.id + "', " +
-                    "kg_id: '" + kg_id + "', " +
-                    "kg_version: '" + kg_version + "'" +
-                "')"
-            );
-            window.alert(
-                "DownloadFile(" +
-                    "action: '" + source.target.id+"', " +
-                    "kg_id: '" + kg_id + "', " +
-                    "kg_version: '" + kg_version + "'" +
-                "')"
-            );
+            console.log("Entering AddNewFileSet(kg_id: '" + kg_id + "')");
+
+            let add_fs_url = `{{fileset_registration_form}}?kg_id=${kg_id}&kg_name=${GetGraphName(kg_id)}`;
+
+            // console.log("AddNewFileSet() URL: '" + add_fs_url + "'");
+            // window.alert("AddNewFileSet() URL: '" + add_fs_url + "'");
+
+            try {
+                let a = document.createElement('a');
+                a.href = add_fs_url;
+
+                // we need to append the element to the DOM,
+                // otherwise it will not work in Firefox
+                document.body.appendChild(a);
+
+                a.click();
+
+                // afterwards we remove the element again
+                a.remove();
+
+                // console.log('HTTP response code:', r.status);
+
+            } catch(e) {
+               console.log('AddNewFileSet error:', e);
+            }
+
+            // block further propagation of the event here?
+            return false;
         }
 
         async function DownloadFile(source)
         {
-            let kg_id = document.getElementById('select_kg_id').value;
-            let kg_version = document.getElementById('select_kg_version').value;
+            let kg_id = document.getElementById("select_kg_id").value;
+            let kg_version = document.getElementById("select_kg_version").value;
+
+            if(!kg_id) {
+                window.alert("To download data, first choose a knowledge graph.");
+                return
+            }
+
+            if(!kg_version) {
+                window.alert("Please select the file set version to download.");
+                return
+            }
+
             console.log(
                 "DownloadFile(" +
                     "action: '" + source.target.id + "', " +
@@ -98,18 +131,21 @@
             // );
 
             let file_set = kg_id + '/' + kg_version
-            let url = '{{ archive_path }}' + file_set + '/' + source.target.id;
+            let url = '{{backend}}' + file_set + '/' + source.target.id;
 
-            console.log("Downloading  URL: '"+url+"'");
-
-            let formData = new FormData();
+            console.log("Downloading URL: '" + url + "'");
 
             try {
                 let a = document.createElement('a');
                 a.href = url;
-                document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
+
+                // we need to append the element to the DOM,
+                // otherwise it will not work in Firefox
+                document.body.appendChild(a);
                 a.click();
-                a.remove();  //afterwards we remove the element again
+
+                // afterwards we remove the element again
+                a.remove();
 
                 // console.log('HTTP response code:', r.status);
 
@@ -160,7 +196,7 @@
 {% block title %}Welcome '{{submitter}}' to the<br>Knowledge Graph Exchange (KGE) Archive{% endblock %}
 {% block content %}
     <p></p>
-    <table width="50%">
+    <table>
         <tr>
             <td>
                 <div class="header" style="text-align: center;">
@@ -168,7 +204,7 @@
                 </div>
             </td>
             <td>
-                <div class="header"  style="text-align: center;">
+                <div class="header">
                     Access a Knowledge Graph
                 </div>
             </td>

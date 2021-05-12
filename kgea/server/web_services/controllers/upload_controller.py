@@ -83,7 +83,7 @@ async def upload_file(
     :rtype: web.Response
 
     """
-    return upload_kge_file(
+    return await upload_kge_file(
         request,
         upload_token=upload_token,
         uploaded_file=uploaded_file

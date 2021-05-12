@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block menu %}
+{% include "logout.button" %}
+{% endblock %}
+{% block title %}File Set {{kg_version}} unavailable for<br>Knowledge Graph '{{kg_name}}'{% endblock %}
+{% block content %}
+<div class="header" style="text-align: center;">
+    Sorry {{submitter}}...
+</div>
+<span class="notice">
+    No '{{data_type}}' data is (yet) available for KGE File Set version
+    '{{kg_version}}' of Knowledge Graph '{{kg_name}}'?
+    <br><br>
+    Please try accessing another graph and file set from the <a href="/home"><b>Home Page</b></a>.
+</span>
+{% endblock %}

@@ -8,6 +8,7 @@ import aiohttp_jinja2
 from aiohttp import web
 # import aiohttp_cors
 
+
 from .kgea_ui_handlers import (
     kge_landing_page,
     kge_login,
@@ -16,7 +17,8 @@ from .kgea_ui_handlers import (
     kge_logout,
     get_kge_graph_registration_form,
     get_kge_fileset_registration_form,
-    get_kge_file_upload_form
+    get_kge_file_upload_form,
+    get_kge_data_unavailable
 )
 
 
@@ -36,6 +38,7 @@ async def make_app():
     app.router.add_get('/register/graph', get_kge_graph_registration_form)
     app.router.add_get('/register/fileset', get_kge_fileset_registration_form)
     app.router.add_get('/upload', get_kge_file_upload_form)
+    app.router.add_get('/unavailable', get_kge_data_unavailable)
 
     app.router.add_static('/css/',
                           path=templates_dir + '/css',

@@ -249,14 +249,16 @@ async function DoneUploading(source) {
 <button id="done_uploading" onclick="DoneUploading(this)">Done Uploading</button>
 </div>
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>'{{kg_name}}'<br>Version '{{kg_version}}'{% endblock %}
+{% block title %}Upload Knowledge Graph<br>{{kg_name}} {{kg_version}}{% endblock %}
 {% block subtitle %}Submitted by '{{submitter}}'{% endblock %}
 {% block content %}
 <div class="subtitle"></div>
 <table>
     <tr>
         <td rowspan="2">
-            <h4>KGX Content Type</h4>
+            <div class="header" style="text-align: center;">
+                KGX Content Type
+            </div>
             <input type="radio" id="metadata" name="kgx_file_content" value="metadata" checked>
             <label  class="label" for="metadata">Metadata</label>
             <div class="tooltip">
@@ -302,7 +304,9 @@ async function DoneUploading(source) {
     <p></p>
         </td>
         <td>
-            <h4>Upload from your computer</h4>
+            <div class="header">
+                Upload from your computer
+            </div>
             <p>Choose a KGX content type for uploading.</p>
             <span>
                 <label for="content_file"><b>Select File</b></label><br>

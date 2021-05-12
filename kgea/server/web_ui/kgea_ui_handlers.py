@@ -11,7 +11,24 @@ import aiohttp_jinja2
 
 from aiohttp_session import get_session
 
-from kgea.server.config import get_app_config
+from kgea.server.config import (
+    get_app_config,
+
+    LANDING_PAGE,
+    HOME_PAGE,
+    GET_KNOWLEDGE_GRAPH_CATALOG,
+    REGISTER_KNOWLEDGE_GRAPH,
+    REGISTER_FILESET,
+    FILESET_REGISTRATION_FORM,
+    PUBLISH_FILE_SET,
+    # SETUP_UPLOAD_CONTEXT,
+    UPLOAD_FILE,
+    # GET_UPLOAD_STATUS,
+    # GET_FILESET_CONTENTS,
+    BACKEND,
+) 
+
+
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     redirect,
@@ -37,6 +54,7 @@ logger.setLevel(logging.DEBUG)
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
+
 #############################################################
 # Controller Handlers
 #
@@ -54,26 +72,6 @@ _KGEA_APP_CONFIG = get_app_config()
 # )
 #############################################################
 
-# This is the home page path,
-# should match the API path spec
-LANDING = '/'
-HOME = '/home'
-
-ARCHIVE_PATH = '/archive/'
-if DEV_MODE:
-    # Point to http://localhost:8080 for Archive process host for local testing
-    # TODO: take from config
-    ARCHIVE_PATH = 'http://localhost:8080/archive/'
-
-GET_CATALOG_URL = ARCHIVE_PATH+"catalog"
-ARCHIVE_GRAPH_REGISTRATION_FORM_ACTION = ARCHIVE_PATH + "register/graph"
-ARCHIVE_FILESET_REGISTRATION_FORM_ACTION = ARCHIVE_PATH + "register/fileset"
-UPLOAD_FORM_ACTION = ARCHIVE_PATH+"upload"
-PUBLISH_FILE_SET_ACTION = ARCHIVE_PATH+"publish"
-
-DOWNLOAD_ARCHIVE = ARCHIVE_PATH+"download"
-DOWNLOAD_METADATA = ARCHIVE_PATH+"meta_knowledge_graph"
-
 
 async def kge_landing_page(request: web.Request) -> web.Response:
     """Display landing page.
@@ -87,7 +85,7 @@ async def kge_landing_page(request: web.Request) -> web.Response:
     if not session.empty:
         # if active session and no exception raised, then
         # redirect to the home page, with a session cookie
-        await redirect(request, HOME, active_session=True)
+        await redirect(request, HOME_PAGE, active_session=True)
     else:
         # Session is not active, then render the login page
         response = aiohttp_jinja2.render_template('login.html', request=request, context={})
@@ -106,16 +104,16 @@ async def get_kge_home(request: web.Request) -> web.Response:
     if not session.empty:
         context = {
             "submitter": session['name'],
-            "get_catalog": GET_CATALOG_URL,
-            "archive_path": ARCHIVE_PATH,
-        
+            "get_catalog": GET_KNOWLEDGE_GRAPH_CATALOG,
+            "backend": BACKEND,
+            "fileset_registration_form": FILESET_REGISTRATION_FORM
         }
-        response = aiohttp_jinja2.render_template( 'home.html', request=request, context=context)
+        response = aiohttp_jinja2.render_template('home.html', request=request, context=context)
         return await with_session(request, response)
     else:
         # If session is not active, then just a await redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def kge_client_authentication(request: web.Request):
@@ -144,11 +142,11 @@ async def kge_client_authentication(request: web.Request):
         
         # if active session and no exception raised, then
         # redirect to the home page, with a session cookie
-        await redirect(request, HOME, active_session=True)
+        await redirect(request, HOME_PAGE, active_session=True)
     else:
         # If authentication conditions are not met, then
         # simply redirect back to public landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def kge_login(request: web.Request):
@@ -164,7 +162,7 @@ async def kge_login(request: web.Request):
         await initialize_user_session(request, user_attributes=user_attributes)
 
         # then redirects to an authenticated home page
-        await redirect(request, HOME, active_session=True)
+        await redirect(request, HOME_PAGE, active_session=True)
 
     await redirect(request, login_url())
 
@@ -183,13 +181,13 @@ async def kge_logout(request: web.Request):
         if DEV_MODE:
             # Just bypass the AWS Cognito and directly redirect to
             # the unauthenticated landing page after session deletion
-            await redirect(request, LANDING)
+            await redirect(request, LANDING_PAGE)
         else:
             await redirect(request, logout_url())
     else:
         # If session is not active, then just a await redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def get_kge_graph_registration_form(request: web.Request) -> web.Response:
@@ -205,14 +203,14 @@ async def get_kge_graph_registration_form(request: web.Request) -> web.Response:
         context = {
             "submitter": session['name'],
             "submitter_email": session['email'],
-            "registration_action": ARCHIVE_GRAPH_REGISTRATION_FORM_ACTION
+            "registration_action": REGISTER_KNOWLEDGE_GRAPH
         }
         response = aiohttp_jinja2.render_template('graph.html', request=request, context=context)
         return await with_session(request, response)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def get_kge_fileset_registration_form(request: web.Request) -> web.Response:
@@ -242,14 +240,14 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
             "minor_version": "0",
             "date_stamp": get_default_date_stamp(),
             
-            "registration_action": ARCHIVE_FILESET_REGISTRATION_FORM_ACTION
+            "registration_action": REGISTER_FILESET
         }
         response = aiohttp_jinja2.render_template('fileset.html', request=request, context=context)
         return await with_session(request, response)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def get_kge_file_upload_form(request: web.Request) -> web.Response:
@@ -283,8 +281,8 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             "kg_name": kg_name,
             "kg_version": kg_version,
             "submitter": submitter,
-            "upload_action": UPLOAD_FORM_ACTION,
-            "publish_file_set_action": PUBLISH_FILE_SET_ACTION
+            "upload_action": UPLOAD_FILE,
+            "publish_file_set_action": PUBLISH_FILE_SET
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)
         return await with_session(request, response)
@@ -292,4 +290,37 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
+
+
+async def get_kge_data_unavailable(request: web.Request) -> web.Response:
+    """Data unavailable notification page
+
+    :param request:
+    :type request: web.Request
+    """
+    session = await get_session(request)
+    if not session.empty:
+
+        submitter = session['name']
+
+        kg_name = request.query.get('kg_name', default='')
+        data_type = request.query.get('data_type', default='')
+        kg_version = request.query.get('kg_version', default='')
+
+        missing: List[str] = []
+        if not kg_name:
+            missing.append("kg_name")
+        if not kg_version:
+            missing.append("kg_version")
+        if missing:
+            await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
+            
+        context = {
+            "kg_name": kg_name,
+            "kg_version": kg_version,
+            "data_type": data_type,
+            "submitter": submitter
+        }
+        response = aiohttp_jinja2.render_template('data_unavailable.html', request=request, context=context)
+        return await with_session(request, response)

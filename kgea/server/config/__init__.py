@@ -171,3 +171,54 @@ def _load_app_config() -> dict:
     
     except Exception as exc:
         raise RuntimeError('KGE Archive resource configuration file failed to load? :' + str(exc))
+
+
+#############################################################
+# Here, we centralize the various application web endpoints #
+#############################################################
+
+
+BACKEND_PATH = 'archive/'
+if DEV_MODE:
+    # Development Mode for local testing
+    
+    # Point to http://localhost:8090 for frontend UI web application endpoints
+    FRONTEND = "http://localhost:8090/"
+    
+    # Point to http://localhost:8080 for backend archive web service endpoints
+    BACKEND = "http://localhost:8080/" + BACKEND_PATH
+else:
+    # Production NGINX resolves relative paths otherwise?
+    FRONTEND = "/"
+    BACKEND = FRONTEND + BACKEND_PATH
+
+##################################################
+# Frontend Web Service Endpoints - all GET calls #
+##################################################
+
+LANDING_PAGE = FRONTEND
+HOME_PAGE = FRONTEND + "home"
+GRAPH_REGISTRATION_FORM = FRONTEND + "register/graph"
+FILESET_REGISTRATION_FORM = FRONTEND + "register/fileset"
+UPLOAD_FORM = FRONTEND + "upload"
+DATA_UNAVAILABLE = FRONTEND + "unavailable"
+
+#################################
+# Backend Web Service Endpoints #
+#################################
+
+# catalog controller
+GET_KNOWLEDGE_GRAPH_CATALOG = BACKEND + "catalog"      # GET
+REGISTER_KNOWLEDGE_GRAPH = BACKEND + "register/graph"  # POST
+REGISTER_FILESET = BACKEND + "register/fileset"        # POST
+PUBLISH_FILE_SET = BACKEND + "publish"                 # GET
+
+# upload controller
+SETUP_UPLOAD_CONTEXT = BACKEND + "upload"           # GET
+UPLOAD_FILE = BACKEND + "upload"                    # POST
+GET_UPLOAD_STATUS = BACKEND + "upload/progress"     # GET
+
+# content controller
+GET_FILESET_CONTENTS = BACKEND + "{kg_id}/{kg_version}/contents"                   # GET
+DOWNLOAD_CONTENT_METADATA = BACKEND + "{kg_id}/{kg_version}/meta_knowledge_graph"  # GET
+DOWNLOAD_FILESET = BACKEND + "{kg_id}/{kg_version}/download"                       # GET

@@ -25,7 +25,18 @@ import threading
 # Application Configuration
 #############################################################
 
-from kgea.server.config import get_app_config, CONTENT_METADATA_FILE
+from kgea.server.config import (
+    get_app_config,
+    CONTENT_METADATA_FILE,
+
+    LANDING_PAGE,
+    HOME_PAGE,
+
+    FILESET_REGISTRATION_FORM,
+    DATA_UNAVAILABLE,
+
+    UPLOAD_FORM
+)
 
 from .kgea_session import (
     redirect,
@@ -64,21 +75,10 @@ logger.setLevel(logging.DEBUG)
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
+
 # This is likely invariant almost forever unless new types of
 # KGX data files will eventually be added, i.e. 'attributes'(?)
 KGX_FILE_CONTENT_TYPES = ['metadata', 'nodes', 'edges', 'archive']
-
-if DEV_MODE:
-    # Point to http://localhost:8090 for development UI
-    LANDING = "http://localhost:8090/"
-else:
-    # Production NGINX resolves the relative path otherwise?
-    LANDING = '/'
-
-FILESET_REGISTRATION_FORM_PATH = LANDING + "register/fileset"
-UPLOAD_FORM_PATH = LANDING + "upload"
-HOME = LANDING + "home"
-
 
 #############################################################
 # Catalog Metadata Controller Handler
@@ -222,7 +222,7 @@ async def register_kge_knowledge_graph(request: web.Request):
                 await redirect(
                     request,
                     Template(
-                        FILESET_REGISTRATION_FORM_PATH +
+                        FILESET_REGISTRATION_FORM +
                         '?kg_id=$kg_id&kg_name=$kg_name'
                     ).substitute(
                         kg_id=kg_id,
@@ -233,7 +233,7 @@ async def register_kge_knowledge_graph(request: web.Request):
 
         #     else:
         #         # TODO: more graceful front end failure signal
-        #         await redirect(request, HOME)
+        #         await redirect(request, HOME_PAGE)
         # else:
         #     # TODO: more graceful front end failure signal
         #     await report_error(request, "Unknown failure")
@@ -241,7 +241,7 @@ async def register_kge_knowledge_graph(request: web.Request):
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def register_kge_file_set(request: web.Request):
@@ -358,7 +358,7 @@ async def register_kge_file_set(request: web.Request):
                 await redirect(
                         request,
                         Template(
-                           UPLOAD_FORM_PATH +
+                           UPLOAD_FORM +
                            '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter=$submitter'
                         ).substitute(
                            kg_id=kg_id,
@@ -370,7 +370,7 @@ async def register_kge_file_set(request: web.Request):
                     )
         #     else:
         #         # TODO: more graceful front end failure signal
-        #         await redirect(request, HOME)
+        #         await redirect(request, HOME_PAGE)
         # else:
         #     # TODO: more graceful front end failure signal
         #     await report_error(request, "Unknown failure")
@@ -378,7 +378,7 @@ async def register_kge_file_set(request: web.Request):
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str):
@@ -414,7 +414,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
                 "could not be published?"
             )
 
-    await redirect(request, HOME)
+    await redirect(request, HOME_PAGE)
 
 
 #############################################################
@@ -617,7 +617,7 @@ async def setup_kge_upload_context(
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.Response:
@@ -655,7 +655,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def upload_kge_file(
@@ -772,7 +772,7 @@ async def upload_kge_file(
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 #############################################################
@@ -831,7 +831,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
     else:
         # If session is not active, then just
         # redirect back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str):
@@ -857,19 +857,28 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
 
     session = await get_session(request)
     if not session.empty:
+        
+        knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
         file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
-
+        
         if not object_key_exists(
                 bucket_name=_KGEA_APP_CONFIG['bucket'],
                 object_key=content_metadata_file_key
         ):
-            await report_not_found(
+            await redirect(
                 request,
-                "kge_meta_knowledge_graph(): KGX content metadata unavailable for " +
-                "KGE File Set version '" + kg_id + "' for graph '" + kg_id + "'?"
+                Template(
+                    DATA_UNAVAILABLE +
+                    '?kg_version=$kg_version&kg_name=$kg_name&data_type=$data_type'
+                ).substitute(
+                    kg_version=kg_version,
+                    kg_name=knowledge_graph.get_name(),
+                    data_type='meta knowledge graph'
+                ),
+                active_session=True
             )
 
         # Current implementation of this handler triggers a
@@ -892,7 +901,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
 
 
 async def download_kge_file_set(request: web.Request, kg_id, kg_version):
@@ -946,4 +955,4 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
-        await redirect(request, LANDING)
+        await redirect(request, LANDING_PAGE)
