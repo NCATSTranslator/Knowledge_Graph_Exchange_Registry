@@ -93,7 +93,7 @@ KGX_FILE_CONTENT_TYPES = ['metadata', 'nodes', 'edges', 'archive']
 # )
 #############################################################
 
-upload_tracker = {}
+_upload_tracker = {}
 
 
 async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
@@ -520,14 +520,16 @@ async def setup_kge_upload_context(
 
         with threading.Lock():
             token = str(uuid.uuid4())
-            if 'upload' not in upload_tracker:
+            if 'upload' not in _upload_tracker:
                 # TODO: not quite sure why we wouldn't
                 #       rather store this in the 'session' context?
                 #       i.e. session[token] = dict() ?
-                upload_tracker['upload'] = {}
+                _upload_tracker['upload'] = {}
                 
-            if token not in upload_tracker['upload']:
-                upload_tracker['upload'][token] = {
+            if token not in _upload_tracker['upload']:
+                _upload_tracker['upload'][token] = {
+                    "kg_id": kg_id,
+                    "kg_version": kg_version,
                     "file_set_location": file_set_location,
                     "object_key": object_key,
                     "kgx_file_content": kgx_file_content,
@@ -536,7 +538,7 @@ async def setup_kge_upload_context(
                     "content_name": content_name,
                 }
  
-            print('session upload token', token, upload_tracker['upload'])
+            print('session upload token', token, _upload_tracker['upload'])
             
             upload_token = UploadTokenObject(token).to_dict()
 
@@ -574,8 +576,8 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 
         progress_token = UploadProgressToken(
             upload_token=upload_token,
-            current_position=upload_tracker['upload'][upload_token]['current_position'] if 'current_position' in upload_tracker['upload'][upload_token] else 0,
-            end_position=upload_tracker['upload'][upload_token]['end_position'] if 'end_position' in upload_tracker['upload'][upload_token] else None,
+            current_position=_upload_tracker['upload'][upload_token]['current_position'] if 'current_position' in _upload_tracker['upload'][upload_token] else 0,
+            end_position=_upload_tracker['upload'][upload_token]['end_position'] if 'end_position' in _upload_tracker['upload'][upload_token] else None,
         ).to_dict()
         response = web.json_response(progress_token)
         return await with_session(request, response)
@@ -584,6 +586,48 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
         await redirect(request, LANDING_PAGE)
+
+#########################################################################
+# NOTE: Keeping this commented legacy code around a bit longer pending
+#       a full resolution of the 'content_from_url' transfers which will
+#       now not likely run through the upload_kge_file() handler as
+#       previously, but perhaps, in a dedicated endpoint/handler, if
+#       attempted at all within the web application.
+#########################################################################
+#
+# if upload_mode == 'content_from_url':
+#
+#     logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
+#
+#     uploaded_file_object_key = transfer_file_from_url(
+#         url=content_url,
+#         file_name=content_name,
+#         bucket=_KGEA_APP_CONFIG['bucket'],
+#         object_location=file_set_location
+#     )
+#
+# elif upload_mode == 'content_from_local_file':
+#
+#     """
+#     Although earlier on I experimented with approaches that streamed directly into an archive,
+#     it failed for what should have been obvious reasons: gzip is non-commutative, so without unpacking
+#     then zipping up consecutively uploaded files I can't add new gzip files to the package after compression.
+#
+#     So for now we're just streaming into the bucket, only archiving when required - on download.
+#     """
+#
+#     uploaded_file_object_key = upload_file(
+#         data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
+#         file_name=content_name,  # The new name for the file
+#         bucket=_KGEA_APP_CONFIG['bucket'],
+#         object_location=file_set_location
+#     )
+#
+# else:
+#     await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+#
+# """END File Upload Protocol"""
+#
 
 
 async def upload_kge_file(
@@ -605,27 +649,35 @@ async def upload_kge_file(
 
     session = await get_session(request)
     if not session.empty:
-        global upload_tracker
+        
+        global _upload_tracker
 
         # get details of file upload from token
-        details = upload_tracker['upload'][upload_token]
+        details = _upload_tracker['upload'][upload_token]
 
         # TODO: turn into withable
         async def pathless_file_size(data_file):
             """
             pathless_file_size
 
-            Takes an open file-like object, gets its end location (in bytes), and returns it as a measure of the file size.
+            Takes an open file-like object, gets its end location (in bytes),
+            and returns it as a measure of the file size.
 
-            Traditionally, one would use a systems-call to get the size of a file (using the `os` module).
-            But `TemporaryFileWrapper`s do not feature a location in the filesystem, and so cannot be tested with `os` methods,
-            as they require access to a filepath, or a file-like object that supports a path, in order to work.
+            Traditionally, one would use a systems-call to get the size
+            of a file (using the `os` module). But `TemporaryFileWrapper`s
+            do not feature a location in the filesystem, and so cannot be
+            tested with `os` methods, as they require access to a filepath,
+            or a file-like object that supports a path, in order to work.
 
-            This function seeks the end of a file-like object, records the location, and then seeks back to the beginning so that
-            the file behaves as if it was opened for the first time. This way you can get a file's size before reading it.
+            This function seeks the end of a file-like object, records
+            the location, and then seeks back to the beginning so that
+            the file behaves as if it was opened for the first time.
+            This way you can get a file's size before reading it.
 
-            (Note how we aren't using a `with` block, which would close the file after use. So this function leaves the file
-            open, as an implicit non-effect. Closing is problematic for TemporaryFileWrappers which wouldn't be operable again.)
+            (Note how we aren't using a `with` block, which would close
+            the file after use. So this function leaves the file open,
+            as an implicit non-effect. Closing is problematic for
+             TemporaryFileWrappers which wouldn't be operable again)
 
             :param data_file:
             :return size:
@@ -640,7 +692,7 @@ async def upload_kge_file(
                 return 0
 
         def update_session(current_bytes):
-            upload_tracker['upload'][upload_token]['current_position'] = current_bytes
+            _upload_tracker['upload'][upload_token]['current_position'] = current_bytes
 
         class ProgressPercentage(object):
 
@@ -656,73 +708,8 @@ async def upload_kge_file(
                 # with self._lock:
                 self._seen_so_far += bytes_amount
                 update_session(self._seen_so_far)
-                print('progress_raw', upload_tracker['upload'][upload_token]['current_position'] / upload_tracker['upload'][upload_token]['end_position'] * 100)
+                print('progress_raw', _upload_tracker['upload'][upload_token]['current_position'] / _upload_tracker['upload'][upload_token]['end_position'] * 100)
                 # print('progress', upload_token, session['upload'][upload_token]['current_position'] / session['upload'][upload_token]['end_position'], percentage)
-
-        # if upload_mode == 'content_from_url':
-        #
-        #     logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
-        #
-        #     uploaded_file_object_key = transfer_file_from_url(
-        #         url=content_url,
-        #         file_name=content_name,
-        #         bucket=_KGEA_APP_CONFIG['bucket'],
-        #         object_location=file_set_location
-        #     )
-        #
-        # elif upload_mode == 'content_from_local_file':
-        #
-        #     """
-        #     Although earlier on I experimented with approaches that streamed directly into an archive,
-        #     it failed for what should have been obvious reasons: gzip is non-commutative, so without unpacking
-        #     then zipping up consecutively uploaded files I can't add new gzip files to the package after compression.
-        #
-        #     So for now we're just streaming into the bucket, only archiving when required - on download.
-        #     """
-        #
-        #     uploaded_file_object_key = upload_file(
-        #         data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
-        #         file_name=content_name,  # The new name for the file
-        #         bucket=_KGEA_APP_CONFIG['bucket'],
-        #         object_location=file_set_location
-        #     )
-        #
-        # else:
-        #     await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
-        #
-        # """END File Upload Protocol"""
-        #
-        # if uploaded_file_object_key:
-        #
-        #     try:
-        #         s3_file_url = create_presigned_url(
-        #             bucket=_KGEA_APP_CONFIG['bucket'],
-        #             object_key=uploaded_file_object_key
-        #         )
-        #
-        #         # This action adds a file to the given knowledge graph, identified by the 'kg_id',
-        #         # initiating or continuing a versioned KGE file set assembly process.
-        #         # May raise an Exception if something goes wrong.
-        #         KgeArchiveCatalog.catalog().add_to_kge_file_set(
-        #             kg_id=kg_id,
-        #             kg_version=kg_version,
-        #             file_type=file_type,
-        #             file_name=content_name,
-        #             object_key=uploaded_file_object_key,
-        #             s3_file_url=s3_file_url
-        #         )
-        #
-        #         response = web.Response(text=str(kg_id), status=200)
-        #
-        #         return await with_session(request, response)
-        #
-        #     except Exception as exc:
-        #         error_msg: str = "upload_kge_file(object_key: " + \
-        #                          str(uploaded_file_object_key) + ") - " + str(exc)
-        #         logger.error(error_msg)
-        #         await report_error(request, error_msg)
-        # else:
-        #     await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
         
         # new boto client instance for thread safety
         import boto3
@@ -734,32 +721,66 @@ async def upload_kge_file(
         cfg = Config(signature_version='s3v4', max_pool_connections=num_threads)
 
         filesize = await pathless_file_size(uploaded_file.file)
-        upload_tracker['upload'][upload_token]['end_position'] = filesize
+        _upload_tracker['upload'][upload_token]['end_position'] = filesize
 
-        if 'content_name' in upload_tracker['upload'][upload_token]:
-            content_name = upload_tracker['upload'][upload_token]['content_name']
+        if 'content_name' in _upload_tracker['upload'][upload_token]:
+            content_name = _upload_tracker['upload'][upload_token]['content_name']
         else:
             content_name = uploaded_file.filename
         
         def threaded_upload():
             session_ = boto3.Session()
             client = session_.client("s3", config=cfg)
-            upload_file(
+            uploaded_file_object_key = upload_file(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
                 file_name=content_name,        # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],
                 object_location=details['file_set_location'],
                 callback=ProgressPercentage(
                     uploaded_file.filename,
-                    upload_tracker['upload'][upload_token]['end_position']
+                    _upload_tracker['upload'][upload_token]['end_position']
                 ),
                 client=client
             )
+            # Assuming success, the new file should be
+            # added to into the file set in the Catalog.
+            if uploaded_file_object_key:
+                try:
+                    s3_file_url = create_presigned_url(
+                        bucket=_KGEA_APP_CONFIG['bucket'],
+                        object_key=uploaded_file_object_key
+                    )
+            
+                    # This action adds a file to the given knowledge graph,
+                    # identified by the 'kg_id', initiating or continuing a
+                    # the assembly process for the 'kg_version' KGE file set.
+                    #
+                    # May raise an Exception if something goes wrong.
+                    KgeArchiveCatalog.catalog().add_to_kge_file_set(
+                        kg_id=details["kg_id"],
+                        kg_version=details["kg_version"],
+                        file_type=details["file_type"],
+                        file_name=content_name,
+                        object_key=uploaded_file_object_key,
+                        s3_file_url=s3_file_url
+                    )
+
+                except Exception as exc:
+                    error_msg: str = "upload_kge_file(" + \
+                        "kg_id: "+details["kg_id"] + ", " \
+                        "kg_version: "+details["kg_version"] + ", " \
+                        "file_type: "+details["file_type"] + ", " \
+                        "object_key: " + str(uploaded_file_object_key) + \
+                        ") threw exception: " + str(exc)
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
+            else:
+                raise RuntimeError("upload_kge_file(): " + str(details["file_type"]) + "file upload failed?")
 
         loop = asyncio.get_event_loop()
         loop.run_in_executor(None, threaded_upload)
 
-        response = web.Response(text=str(upload_tracker['upload'][upload_token]['end_position']), status=200)
+        response = web.Response(text=str(_upload_tracker['upload'][upload_token]['end_position']), status=200)
         await with_session(request, response)
 
     else:
