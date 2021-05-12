@@ -7,6 +7,7 @@ from typing import List, Optional
 from sys import stderr
 from os.path import dirname, abspath
 import time
+import asyncio
 
 import logging
 
@@ -18,9 +19,16 @@ from jsonschema import (
 from kgx.transformer import Transformer
 from kgx.validator import Validator
 
+from kgea.server.config import get_app_config
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+# Opaquely access the configuration dictionary
+_KGEA_APP_CONFIG = get_app_config()
+
+# one could perhaps parameterize this in the _KGEA_APP_CONFIG
+_NUMBER_OF_KGX_VALIDATION_WORKER_TASKS = _KGEA_APP_CONFIG.setdefault("Number_of_KGX_Validation_Worker_Tasks", 3)
 # KGX Content Metadata Validator is a simply JSON Schema validation operation
 CONTENT_METADATA_SCHEMA_FILE = abspath(dirname(__file__) + '/content_metadata.schema.json')
 with open(CONTENT_METADATA_SCHEMA_FILE, mode='r', encoding='utf-8') as cms:
@@ -48,9 +56,116 @@ def validate_content_metadata(content_metadata_file) -> List:
 
 class KgxValidator:
     
-    def __init__(self):
+    def __init__(self, tag: str):
+        self.tag = tag
         self.kgx_data_validator = Validator()
+
+    # KGX Validation process management
+    _validation_queue: asyncio.Queue = asyncio.Queue()
+    _validation_tasks: List = list()
+
+    @classmethod
+    def init_validation_tasks(cls):
+        # Create _NO_KGX_VALIDATION_WORKER_TASKS worker
+        # tasks to concurrently process the validation_queue.
+        for i in range(_NUMBER_OF_KGX_VALIDATION_WORKER_TASKS):
+            task = asyncio.create_task(KgxValidator(f"KGX Validation Worker-{i}")())
+            cls._validation_tasks.append(task)
+
+    # Set up internal validation Queue when class set up
+    init_validation_tasks()
+
+    @classmethod
+    def validate(cls, files: List):
+        # Post list of file details to the KGX validation task Queue
+        cls._validation_queue.put_nowait(files)
+
+    # TODO: not sure when and how to call this clean-up code
+    @classmethod
+    async def release_workers(cls):
+        await cls._validation_queue.join()
+        try:
+            # Cancel the KGX validation worker tasks.
+            for task in cls._validation_tasks:
+                task.cancel()
+            # Wait until all worker tasks are cancelled.
+            await asyncio.gather(*cls._validation_tasks, return_exceptions=True)
+        except Exception as exc:
+            msg = "KgeaFileSet() KGX worker task exception: " + str(exc)
+            logger.error(msg)
+            
+    async def __call__(self):
+        while True:
+            data_files: List = await self._validation_queue.get()
+            #
+            # data_files: List[Dict[str, Union[str, bool, List[str]]]]
+            #
+            # where each entry is a dictionary contains the following keys:
+            #
+            # "file_name": str
+            # "file_type": KgeFileType (from Catalog)
+            # "input_format": str
+            # "input_compression": str
+            # "object_key": str
+            # "s3_file_url": str
+            # "kgx_compliant": bool
+            # "errors": List
     
+            for entry in data_files:
+                # object_key = entry["object_key"]
+                file_name = entry["file_name"]
+        
+                print("Validating KGX compliance of data file '" + file_name + "'", file=stderr)
+        
+                # KGX Compliance is faked for the moment
+                entry["kgx_compliant"] = True
+        
+                # file_type = kge_file_spec['file_type']
+                # object_key = kge_file_spec['object_key']
+                # s3_file_url = kge_file_spec['s3_file_url']
+                # input_format = kge_file_spec['input_format']
+                # input_compression = kge_file_spec['input_compression']
+                #
+                # print(
+                #     f"{name} working on file '{object_key}' of " +
+                #     f"type '{file_type}', input format '{input_format}' " +
+                #     f"and with compression '{input_compression}', ",
+                #     file=stderr
+                # )
+                #
+                # errors: List = list()
+                #
+                # if file_type == KgeFileType.KGX_DATA_FILE:
+                #
+                #     # Run validation of KGX knowledge graph data files here
+                #     # errors: List[str] = \
+                #     #     await self.validator.validate_data_file(
+                #     #         file_path=s3_file_url,
+                #     #         input_format=input_format,
+                #     #         input_compression=input_compression
+                #     #     )
+                #
+                #     if not errors:
+                #         self.data_files[object_key]["kgx_compliant"] = True
+                #     else:
+                #         self.data_files[object_key]["errors"] = errors
+                #
+                # elif file_type == KgeFileType.KGE_ARCHIVE:
+                #     # TODO: not sure how we should properly validate a KGX Data archive?
+                #     self.data_files[object_key]["errors"] = ['KGE Archive validation is not yet implemented?']
+                #
+                # else:
+                #     print(f'{name} WARNING: Unknown KgeFileType{file_type} ... ignoring', file=stderr)
+                #
+                # compliance: str = ' not ' if errors else ' '
+                #
+                # print(
+                #     f"{name} has finished processing file {object_key} ... is" +
+                #     compliance + "KGX compliant", file=stderr
+                # )
+    
+            self._validation_queue.task_done()
+
     async def validate_data_file(
             self,
             file_path: str,
@@ -81,12 +196,12 @@ class KgxValidator:
 
             logger.debug("...initializing Validator...")
 
+            # Have to figure out a suitable progress metric here?
             class ProgressMonitor:
                 def __call__(self):
                     pass
 
-
-            validator = Validator(progress_monitor=ProgressMonitor)
+            validator = Validator(progress_monitor=ProgressMonitor())
 
             logger.debug("...initializing Transformer...")
 
