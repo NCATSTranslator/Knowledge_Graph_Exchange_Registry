@@ -54,13 +54,13 @@ from .kgea_file_ops import (
     get_object_location,
     with_version,
     object_key_exists,
-    get_default_date_stamp
+    get_default_date_stamp, with_subfolder, infix_string
 )
 
 from kgea.server.web_services.catalog.Catalog import (
     KgeArchiveCatalog,
     KgeKnowledgeGraph,
-    KgeFileSet
+    KgeFileSet, KgeFileType
 )
 
 import logging
@@ -444,9 +444,10 @@ async def setup_kge_upload_context(
     session = await get_session(request)
     if not session.empty:
 
-        """
-        BEGIN Error Handling: checking if parameters passed are sufficient for a well-formed request
-        """
+        # """
+        # BEGIN Error Handling: checking if parameters
+        # passed are sufficient for a well-formed request
+        # """
         if not kg_id:
             # must not be empty string
             await report_error(request, "setup_kge_upload_context(): empty Knowledge Graph Identifier?")
@@ -469,117 +470,44 @@ async def setup_kge_upload_context(
             # must not be empty string
             await report_error(request, "upload_kge_file(): empty Content Name?")
 
-        """
-        END Error Handling
-        """
-
-        """BEGIN Register upload-specific metadata"""
+        # """
+        # END Error Handling
+        # """
 
         # The final key for the object is dependent on its type
+        # content metadata -> <file_set_location>
         # edges -> <file_set_location>/edges/
         # nodes -> <file_set_location>/nodes/
         # archive -> <file_set_location>/archive/
 
         file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
 
-        #
-        # file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
-        #
-        # if kgx_file_content in ['nodes', 'edges']:
-        #     file_set_location = with_subfolder(location=file_set_location, subfolder=kgx_file_content)
-        #     file_type = KgeFileType.KGX_DATA_FILE
-        #
-        # elif kgx_file_content == "metadata":
-        #     # metadata stays in the kg_id 'root' version folder
-        #     file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
-        #
-        #     # We coerce the content metadata file name
-        #     # into a standard name, during transfer to S3
-        #     content_name = CONTENT_METADATA_FILE
-        #
-        # elif kgx_file_content == "archive":
-        #     # TODO this is tricky.. not yet sure how to handle an archive with
-        #     #      respect to properly persisting it in the S3 bucket...
-        #     #      Leave it in the kg_id 'root' version folder for now?
-        #     #      The archive may has metadata too, but the data's the main thing.
-        #     file_type = KgeFileType.KGE_ARCHIVE
-        #
-        # """END Register upload-specific metadata"""
-        #
-        # """BEGIN File Upload Protocol"""
-        #
-        # # keep track of the final key for testing purposes?
-        # uploaded_file_object_key = None
-        #
-        # # we modify the filename so that they can be validated by KGX natively by tar.gz
-        # content_name = infix_string(
-        #     content_name, f"_{kgx_file_content}"
-        # ) if kgx_file_content in ['nodes', 'edges'] else content_name
-        #
-        # if upload_mode == 'content_from_url':
-        #
-        #     logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
-        #
-        #     uploaded_file_object_key = transfer_file_from_url(
-        #         url=content_url,
-        #         file_name=content_name,
-        #         bucket=_KGEA_APP_CONFIG['bucket'],
-        #         object_location=file_set_location
-        #     )
-        #
-        # elif upload_mode == 'content_from_local_file':
-        #
-        #     """
-        #     Although earlier on I experimented with approaches that streamed directly into an archive,
-        #     it failed for what should have been obvious reasons: gzip is non-commutative, so without unpacking
-        #     then zipping up consecutively uploaded files I can't add new gzip files to the package after compression.
-        #
-        #     So for now we're just streaming into the bucket, only archiving when required - on download.
-        #     """
-        #
-        #     uploaded_file_object_key = upload_file(
-        #         data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
-        #         file_name=content_name,  # The new name for the file
-        #         bucket=_KGEA_APP_CONFIG['bucket'],
-        #         object_location=file_set_location
-        #     )
-        #
-        # else:
-        #     await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
-        #
-        # """END File Upload Protocol"""
-        #
-        # if uploaded_file_object_key:
-        #
-        #     try:
-        #         s3_file_url = create_presigned_url(
-        #             bucket=_KGEA_APP_CONFIG['bucket'],
-        #             object_key=uploaded_file_object_key
-        #         )
-        #
-        #         # This action adds a file to the given knowledge graph, identified by the 'kg_id',
-        #         # initiating or continuing a versioned KGE file set assembly process.
-        #         # May raise an Exception if something goes wrong.
-        #         KgeArchiveCatalog.catalog().add_to_kge_file_set(
-        #             kg_id=kg_id,
-        #             kg_version=kg_version,
-        #             file_type=file_type,
-        #             file_name=content_name,
-        #             object_key=uploaded_file_object_key,
-        #             s3_file_url=s3_file_url
-        #         )
-        #
-        #         response = web.Response(text=str(kg_id), status=200)
-        #
-        #         return await with_session(request, response)
-        #
-        #     except Exception as exc:
-        #         error_msg: str = "upload_kge_file(object_key: " + \
-        #                          str(uploaded_file_object_key) + ") - " + str(exc)
-        #         logger.error(error_msg)
-        #         await report_error(request, error_msg)
-        # else:
-        #     await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
+        file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
+
+        if kgx_file_content in ['nodes', 'edges']:
+            file_set_location = with_subfolder(location=file_set_location, subfolder=kgx_file_content)
+            file_type = KgeFileType.KGX_DATA_FILE
+
+        elif kgx_file_content == "metadata":
+            # metadata stays in the kg_id 'root' version folder
+            file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
+
+            # We coerce the content metadata file name
+            # into a standard name, during transfer to S3
+            content_name = CONTENT_METADATA_FILE
+
+        elif kgx_file_content == "archive":
+            # TODO this is tricky.. not yet sure how to handle an archive
+            #      with respect to properly persisting it in the S3 bucket...
+            #      Leave it in the kg_id 'root' version folder for now?
+            #
+            # The archive may has metadata too, but the data's the main thing.
+            file_type = KgeFileType.KGE_ARCHIVE
+
+        # we modify the filename so that they can be validated by KGX natively by tar.gz
+        content_name = infix_string(
+            content_name, f"_{kgx_file_content}"
+        ) if kgx_file_content in ['nodes', 'edges'] else content_name
 
         import uuid
         import os
@@ -603,6 +531,7 @@ async def setup_kge_upload_context(
                     "file_set_location": file_set_location,
                     "object_key": object_key,
                     "kgx_file_content": kgx_file_content,
+                    "file_type": file_type,
                     "upload_mode": upload_mode,
                     "content_name": content_name,
                 }
@@ -613,7 +542,6 @@ async def setup_kge_upload_context(
 
             response = web.json_response(upload_token)
             return await with_session(request, response)
-
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
@@ -731,6 +659,71 @@ async def upload_kge_file(
                 print('progress_raw', upload_tracker['upload'][upload_token]['current_position'] / upload_tracker['upload'][upload_token]['end_position'] * 100)
                 # print('progress', upload_token, session['upload'][upload_token]['current_position'] / session['upload'][upload_token]['end_position'], percentage)
 
+        # if upload_mode == 'content_from_url':
+        #
+        #     logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
+        #
+        #     uploaded_file_object_key = transfer_file_from_url(
+        #         url=content_url,
+        #         file_name=content_name,
+        #         bucket=_KGEA_APP_CONFIG['bucket'],
+        #         object_location=file_set_location
+        #     )
+        #
+        # elif upload_mode == 'content_from_local_file':
+        #
+        #     """
+        #     Although earlier on I experimented with approaches that streamed directly into an archive,
+        #     it failed for what should have been obvious reasons: gzip is non-commutative, so without unpacking
+        #     then zipping up consecutively uploaded files I can't add new gzip files to the package after compression.
+        #
+        #     So for now we're just streaming into the bucket, only archiving when required - on download.
+        #     """
+        #
+        #     uploaded_file_object_key = upload_file(
+        #         data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
+        #         file_name=content_name,  # The new name for the file
+        #         bucket=_KGEA_APP_CONFIG['bucket'],
+        #         object_location=file_set_location
+        #     )
+        #
+        # else:
+        #     await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+        #
+        # """END File Upload Protocol"""
+        #
+        # if uploaded_file_object_key:
+        #
+        #     try:
+        #         s3_file_url = create_presigned_url(
+        #             bucket=_KGEA_APP_CONFIG['bucket'],
+        #             object_key=uploaded_file_object_key
+        #         )
+        #
+        #         # This action adds a file to the given knowledge graph, identified by the 'kg_id',
+        #         # initiating or continuing a versioned KGE file set assembly process.
+        #         # May raise an Exception if something goes wrong.
+        #         KgeArchiveCatalog.catalog().add_to_kge_file_set(
+        #             kg_id=kg_id,
+        #             kg_version=kg_version,
+        #             file_type=file_type,
+        #             file_name=content_name,
+        #             object_key=uploaded_file_object_key,
+        #             s3_file_url=s3_file_url
+        #         )
+        #
+        #         response = web.Response(text=str(kg_id), status=200)
+        #
+        #         return await with_session(request, response)
+        #
+        #     except Exception as exc:
+        #         error_msg: str = "upload_kge_file(object_key: " + \
+        #                          str(uploaded_file_object_key) + ") - " + str(exc)
+        #         logger.error(error_msg)
+        #         await report_error(request, error_msg)
+        # else:
+        #     await report_error(request, "upload_kge_file(): " + str(file_type) + "file upload failed?")
+        
         # new boto client instance for thread safety
         import boto3
         from botocore.client import Config

@@ -141,6 +141,7 @@ def format_and_compression(file_name):
 
     return input_format, compression
 
+
 class KgeFileType(Enum):
     KGX_UNKNOWN = "unknown file type"
     KGX_CONTENT_METADATA_FILE = "KGX metadata file"
