@@ -768,7 +768,7 @@ async def upload_kge_file(
                     error_msg: str = "upload_kge_file(" + \
                         "kg_id: "+details["kg_id"] + ", " \
                         "kg_version: "+details["kg_version"] + ", " \
-                        "file_type: "+details["file_type"] + ", " \
+                        "file_type: "+str(details["file_type"]) + ", " \
                         "object_key: " + str(uploaded_file_object_key) + \
                         ") threw exception: " + str(exc)
                     logger.error(error_msg)
@@ -777,7 +777,7 @@ async def upload_kge_file(
                 error_msg: str = "upload_kge_file(" + \
                                  "kg_id: " + details["kg_id"] + ", " \
                                  "kg_version: " + details["kg_version"] + ", " \
-                                 "file_type: " + details["file_type"] + " " \
+                                 "file_type: " + str(details["file_type"]) + " " \
                                  ") - null S3 object key... file upload failed?"
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
