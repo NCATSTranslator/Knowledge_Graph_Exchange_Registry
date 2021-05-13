@@ -96,7 +96,7 @@ _KGEA_APP_CONFIG = get_app_config()
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_provider_metadata.yaml')
 FILE_SET_METADATA_TEMPLATE_FILE_PATH = \
-    abspath(dirname(__file__) + '/../../../api/kge_file_set_metadata.yaml')
+    abspath(dirname(__file__) + '/../../../api/kge_fileset_metadata.yaml')
 TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
 
@@ -458,7 +458,11 @@ class KgeFileSet:
     def generate_fileset_metadata_file(self) -> str:
         self.size = 'unknown'
         self.revisions = 'Creation'
-        return _populate_template(
+        # TODO: Maybe also add in the inventory of files here?
+        files = ""
+        for entry in self.data_files.values():
+            files += "- " + entry["file_name"]+"\n"
+        fileset_metadata_yaml = _populate_template(
             host=_KGEA_APP_CONFIG['site_hostname'],
             filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
             kg_id=self.kg_id,
@@ -466,8 +470,11 @@ class KgeFileSet:
             submitter=self.submitter,
             submitter_email=self.submitter_email,
             size=self.size,
-            revisions=self.revisions
+            revisions=self.revisions,
+            files=files
         )
+
+        return fileset_metadata_yaml
 
     def get_status(self) -> Optional[KgeFileSetStatus]:
         # # TODO: need to retrieve metadata by kg_version
@@ -1058,6 +1065,7 @@ _TEST_TSE_PARAMETERS = dict(
     terms_of_service="https://disneyland.disney.go.com/en-ca/terms-conditions/"
 )
 _TEST_TPMF = 'empty'
+_TEST_TFMF = 'empty'
 _TEST_TRE = 'empty'
 
 
@@ -1069,6 +1077,43 @@ def test_create_provider_metadata_file():
         filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
         **_TEST_TSE_PARAMETERS
     )
+    print(str(_TEST_TPMF), file=stderr)
+    return True
+
+
+@prepare_test
+def test_create_fileset_metadata_file():
+    global _TEST_TFMF
+    print("\ntest_create_fileset_metadata_entry() test output:\n", file=stderr)
+
+    kg_id = "disney_small_world_graph"
+    kg_version = "1964-04-22"
+
+    fs = KgeFileSet(
+        kg_id=kg_id,
+        kg_version=kg_version,
+        submitter="Mickey Mouse",
+        submitter_email="mickey.mouse@disneyland.disney.go.com"
+    )
+    file_set_location, _ = with_version(func=get_object_location, version=kg_version)(kg_id)
+
+    file_name = 'MickeyMouseFanClub_nodes.tsv'
+    fs.add_data_file(
+        file_name='MickeyMouseFanClub_nodes.tsv',
+        file_type=KgeFileType.KGX_DATA_FILE,
+        object_key=file_set_location+"/"+file_name,
+        s3_file_url=''
+    )
+
+    file_name = 'MinnieMouseFanClub_edges.tsv'
+    fs.add_data_file(
+        file_name=file_name,
+        file_type=KgeFileType.KGX_DATA_FILE,
+        object_key=file_set_location+"/"+file_name,
+        s3_file_url=''
+    )
+    _TEST_TFMF = fs.generate_fileset_metadata_file()
+
     print(str(_TEST_TPMF), file=stderr)
     return True
 
@@ -1194,7 +1239,9 @@ _TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 def test_add_to_archive() -> bool:
     outcome: str = add_to_s3_archive(
         "kge_test_provider_metadata_file",
-        _TEST_TPMF
+        _TEST_TPMF,
+        file_name="test_provider_metadata_file",
+        kg_version="100.0"
     )
 
     return not outcome == ''
@@ -1268,7 +1315,8 @@ if __name__ == '__main__':
         # is thus not currently needed either, since it simply removes the github artifacts from add_to_github().
         # This code can be uncommented if these features need to be tested again in the future
         assert (test_create_provider_metadata_file())
-        assert (test_add_to_archive())
+        assert (test_create_fileset_metadata_file())
+        # assert (test_add_to_archive())
         assert (test_create_translator_registry_entry())
         # assert (test_add_to_github())
 

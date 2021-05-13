@@ -127,6 +127,7 @@ async function UploadFile(source) {
                 " file being uploaded: '" +
                 uploaded_file.name + "'"
             );
+
             formData.append("uploaded_file", uploaded_file);
             formData.append("content_name", uploaded_file.name);
 
@@ -134,7 +135,13 @@ async function UploadFile(source) {
             // document.getElementById('spinner').style.display = "inline-block";
             document.getElementById('percentage').style.display = "inline-block";
             document.getElementById('spinner-text').style.display = "inline-block";
+
             $("#ldBar").css('display', 'block')
+
+            // We need to give the user some kind of
+            // alternate progress monitor while waiting
+            // for the 'real' value from S3
+            let fake_progress = 0;
 
             const url = new URL(window.location.href);
             await fetch(`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
@@ -163,15 +170,22 @@ async function UploadFile(source) {
                         return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
                             .then(r => r.json())
                             .then(j => {
+                                let progress_ratio = 0;
                                 if (!!j.end_position) {
-                                    let percentage = Number((j.current_position / j.end_position) * 100).toFixed(1);
-                                    document.getElementById('percentage').textContent = `(${percentage}%)`;
-                                    let progressbar = $("#ldBar");
-                                    progressbar.progressbar({
-                                        // ceil to err on the side of displaying progress
-                                        value: Math.ceil((j.current_position / j.end_position) * 100)
-                                    })
+                                    progress_ratio = j.current_position / j.end_position;
+                                } else {
+                                    if(fake_progress < 300) {
+                                        fake_progress++;
+                                    }
+                                    progress_ratio = fake_progress / 500
                                 }
+                                let percentage = Number(progress_ratio * 100).toFixed(1);
+                                document.getElementById('percentage').textContent = `(${percentage}%)`;
+                                let progressbar = $("#ldBar");
+                                progressbar.progressbar({
+                                    // ceil to err on the side of displaying progress
+                                    value: Math.ceil(progress_ratio * 100)
+                                });
                                 return j;
                             })
                     }

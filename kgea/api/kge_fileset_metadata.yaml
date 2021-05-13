@@ -10,3 +10,5 @@ submitter:
 # point for data (with KGE Archive Web Service)
 size: "${size}"
 access: "${host}/${kg_id}/${kg_version}"
+files:
+${files}
