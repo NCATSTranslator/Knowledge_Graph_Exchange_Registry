@@ -165,6 +165,8 @@ async function UploadFile(source) {
                     // use mutual recursion to create a progress element that always updates the exact amount required
                     document.getElementById('percentage').textContent = `(0.0%)`;
 
+                    let delay = 1000;
+
                     // callback for mutual recursion
                     async function askForProgress() {
                         return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
@@ -172,12 +174,14 @@ async function UploadFile(source) {
                             .then(j => {
                                 let progress_ratio = 0;
                                 if (!!j.end_position) {
+                                    delay = 1000;
                                     progress_ratio = j.current_position / j.end_position;
                                 } else {
-                                    if(fake_progress < 300) {
+                                    delay = 5000;
+                                    if(fake_progress < 900) {
                                         fake_progress++;
                                     }
-                                    progress_ratio = fake_progress / 500
+                                    progress_ratio = fake_progress / 1000
                                 }
                                 let percentage = Number(progress_ratio * 100).toFixed(1);
                                 document.getElementById('percentage').textContent = `(${percentage}%)`;
@@ -209,14 +213,14 @@ async function UploadFile(source) {
                             // is equal to j.end_position (because the file has
                             // been completely read and uploaded).
                             if (!(received.current_position === received.end_position)) {
-                                return await later(1000, askForProgress).then(execute)
+                                return await later(delay, askForProgress).then(execute)
                             }
                         })
                     }
 
                     // put the pieces together
                     try {
-                        return await later(1000, askForProgress).then(execute);
+                        return await later(delay, askForProgress).then(execute);
                     } catch (e) {
                         console.error(e);
                     }

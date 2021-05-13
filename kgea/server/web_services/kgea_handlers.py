@@ -489,6 +489,13 @@ async def setup_kge_upload_context(
             file_type = KgeFileType.KGX_DATA_FILE
 
         elif kgx_file_content == "metadata":
+
+            # TODO: this file is expected to be JSON; how do we protect here against users
+            #       inadvertently or deliberately (maliciously?) uploading a large, non-JSON
+            #       file, like a gzip archive of node or edge data? Can we perhaps quietly
+            #       intercept it within the upload.html form, by checking the declared
+            #       MIME type of the File object? See https://developer.mozilla.org/en-US/docs/Web/API/File
+
             # metadata stays in the kg_id 'root' version folder
             file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
 
