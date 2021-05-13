@@ -119,9 +119,33 @@ async function UploadFile(source) {
 
         let uploaded_file =
             document.getElementById("content_file").files[0];
+
+        // For some reason, the "tsv" MIME type is
+        // not directly detected, so we indirectly do so...
+        let mime_type = uploaded_file.type;
+        const filename = uploaded_file.name;
+        const ext = filename.split('.').pop();
+        if(ext === "tsv") {
+            mime_type = "text/tab-separated-values";
+        }
+        // window.alert("File MIME type is: '"+mime_type+"'");
+
         // content_name = uploaded_file.name;
 
         if (uploaded_file) {
+
+            // here, we protect against inadvertent the uploading
+            // of a file for content metadata which is not json,
+            // hence, is probably not the metadata?
+            if(
+                kgx_file_content === "metadata" &&
+                mime_type !== "application/json"
+            ) {
+                window.alert("Content metadata files should be content type 'application/json'." +
+                             " This file appears to be '"+ mime_type +"'");
+                return;
+            }
+
             console.log(
                 "KGX " + kgx_file_content +
                 " file being uploaded: '" +
@@ -129,7 +153,7 @@ async function UploadFile(source) {
             );
 
             formData.append("uploaded_file", uploaded_file);
-            formData.append("content_name", uploaded_file.name);
+            formData.append("content_name", file_name);
 
             document.getElementById("content_from_local_file").disabled = true;
             // document.getElementById('spinner').style.display = "inline-block";
