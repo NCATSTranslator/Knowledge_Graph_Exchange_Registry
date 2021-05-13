@@ -190,15 +190,15 @@ class KgxValidator:
 
     async def validate_data_file(
             self,
-            file_path: str,
+            input_files: List[str],
             input_format: str = 'tsv',
             input_compression: Optional[str] = None,
             output: Optional[str] = None
     ) -> List:
         """
         Validates KGX compliance of a specified data file.
-        
-        :param file_path: string specification of a single file path (may be a resolvable URL?)
+
+        :param input_files: list of file path strings pointing to files to be validated (may be a resolvable URL?)
         :param input_format: currently restricted to 'tsv' (its default?)
         :param input_compression: currently expected to be 'tar.gz' or 'gz'
         :param output: default None
@@ -206,19 +206,18 @@ class KgxValidator:
         """
         logger.debug(
             "Entering KgxValidator.validate_data_file() with arguments:" +
-            "\n\tfile_path:"+str(file_path) +
+            "\n\tfile_path:" + str(input_files) +
             "\n\tinput_format:" + str(input_format) +
             "\n\tinput_compression:" + str(input_compression) +
             "\n\toutput:" + str(output)
         )
 
-        if file_path:
+        if input_files:
             # The putative KGX file 'source' is currently sitting at the end
             # of an S3 signed URL(!?) for streaming into the validation.
 
             logger.debug("...initializing Validator...")
 
-            # Have to figure out a suitable progress metric here?
             class ProgressMonitor:
                 def __call__(self):
                     pass
@@ -232,7 +231,7 @@ class KgxValidator:
             logger.debug("...initiating transform data flow...")
 
             transformer.transform(
-                input_args={'filename': [file_path], 'format': input_format, 'compression': input_compression},
+                input_args={'filename': input_files, 'format': input_format, 'compression': input_compression},
                 output_args={'format': 'null'},
                 inspector=validator
             )
@@ -250,9 +249,9 @@ class KgxValidator:
             # as a sanity check, force error data
             # returned into a list of string error messages
             return [str(error) for error in errors]
-        
+
         else:
-            return ["Empty file source"]
+            return ["Missing file name inputs for validation?"]
 
 
 """
