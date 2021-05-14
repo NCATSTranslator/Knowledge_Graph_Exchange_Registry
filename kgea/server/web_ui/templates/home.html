@@ -195,34 +195,21 @@
 {% endblock %}
 {% block title %}Welcome '{{submitter}}' to the<br>Knowledge Graph Exchange (KGE) Archive{% endblock %}
 {% block content %}
-    <p></p>
-    <table>
+    <table class="center_align proportioned">
         <tr>
             <td>
-                <div class="header" style="text-align: center;style="text-align: center;">
-                    Upload a Knowledge Graph
-                </div>
-            </td>
-            <td>
-                <div class="header">
-                    Access a Knowledge Graph
-                </div>
+                <p class="center_align"><a href="/register/graph"><button>Register a new Knowledge Graph</button></a></p>
+                <!-- Don't need a form here - don't have the session_id anymore.
+                     Simple clickable button is better, and is CSS formatted the same.
+                     Use it now to avoid the trailing query parameter '?'-->
+                <!-- form action="/register/graph" method="get">
+                    <! -- https://stackoverflow.com/a/9882750/1991892 -- >
+                    <input type="submit" value="Register KGE File Set" /><br>
+                    <small>This is the first step required for uploading.</small>
+                </form -->
             </td>
         </tr>
         <tr>
-            <td>
-                <div style="text-align: center;">
-                    <a href="/register/graph"><button>Register a Knowledge Graph</button></a>
-                    <!-- Don't need a form here - don't have the session_id anymore.
-                         Simple clickable button is better, and is CSS formatted the same.
-                         Use it now to avoid the trailing query parameter '?'-->
-                    <!-- form action="/register/graph" method="get">
-                        <! -- https://stackoverflow.com/a/9882750/1991892 -- >
-                        <input type="submit" value="Register KGE File Set" /><br>
-                        <small>This is the first step required for uploading.</small>
-                    </form -->
-                </div>
-            </td>
             <td>
                 <!-- p><label for="kg_name"><b>Graph Name</b></label>
                 <input id="kg_name" type="text"/ -->
@@ -233,21 +220,22 @@
                      their associated versions (dynamically presented)-->
                 <!-- TODO: When the catalog gets large, this could
                            also include a kind of type head search? -->
-                <p><label class="label" for="select_kg_id">Choose a Knowledge Graph:</label>
-                <select id="select_kg_id" onchange="showVersions(this)">
-                </select>
-                <br>
-                <!-- Once the given kg_name is selected, then the set of
-                     associated versions need to be dynamically listed here? -->
-                <label class="label" for="select_kg_version">File Set Version:</label>
-                <select id="select_kg_version">
-                </select>
-                <br>
-                <p>
+                <p class="center_align">
+                    <label class="label" for="select_kg_id">Choose a Knowledge Graph:</label>
+                    <select id="select_kg_id" onchange="showVersions(this)">
+                    </select>
 
-                <button id="meta_knowledge_graph">Download Metadata</button>
-                <button id="download">Download Data Archive</button>
-                <p><button id="add_new_file_set">Add New File Set</button></p>
+                    <!-- Once the given kg_name is selected, then the set of
+                         associated versions need to be dynamically listed here? -->
+                    <label class="label" for="select_kg_version">File Set Version:</label>
+                    <select id="select_kg_version">
+                    </select>
+                </p>
+                <p>
+                    <button id="meta_knowledge_graph">Download Metadata</button>
+                    <button id="download">Download Data Archive</button>
+                    <button id="add_new_file_set">Add New File Set</button>
+                </p>
             </td>
         </tr>
     </table>
