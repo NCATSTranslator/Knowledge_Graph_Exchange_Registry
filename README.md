@@ -6,7 +6,7 @@ A key component of this goal is projected to be an implementation of a [Translat
 
 This Github project coordinates and documents the efforts of a Knowledge Graph Exchange (KGE) Working Group - supporting the Translator Architecture committee - which is to specify the standards and protocols for KGX formatted knowledge graph data files and infrastructure required to meet this goal. 
 
-For further information about the terms of reference and activities of the KGE Working Group, see the [KGE Working Group Charter](https://docs.google.com/document/d/1UAo11n3PXvKAX8UxpR06I-TMlRGSJzcX0bVtpJPAfAA) and [KGE Working Group running agenda & minutes](https://docs.google.com/document/d/1eXB7bsT6-vnwyfsJjKF1Zlj1XqfOwYlmOwRV5AyRYpg).
+For further information about the terms of reference and activities of the KGE Working Group, see the [KGE Working Group Charter](https://docs.google.com/document/d/1UAo11n3PXvKAX8UxpR06I-TMlRGSJzcX0bVtpJPAfAA) and [KGE Working Group running agenda & minutes](https://docs.google.com/document/d/1eXB7bsT6-vnwyfsJjKF1Zlj1XqfOwYlmOwRV5AyRYpg). See also the [NCATS Translator May 2021 Relay KGE WG Session meeting minutes](https://docs.google.com/document/d/1CISj0lflcnQAoy5lhJwcfEpSENKCEGUARDMl1rPme04/edit#).
 
 ### Design Requirements & Implementation
 
