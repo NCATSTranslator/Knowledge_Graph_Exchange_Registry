@@ -16,6 +16,7 @@ from .kgea_ui_handlers import (
     get_kge_home,
     kge_logout,
     get_kge_graph_registration_form,
+    view_kge_metadata,
     get_kge_fileset_registration_form,
     get_kge_file_upload_form,
     get_kge_data_unavailable
@@ -36,6 +37,7 @@ async def make_app():
     app.router.add_get('/home', get_kge_home)
     app.router.add_get('/logout', kge_logout)
     app.router.add_get('/register/graph', get_kge_graph_registration_form)
+    app.router.add_get('/metadata', view_kge_metadata)
     app.router.add_get('/register/fileset', get_kge_fileset_registration_form)
     app.router.add_get('/upload', get_kge_file_upload_form)
     app.router.add_get('/unavailable', get_kge_data_unavailable)

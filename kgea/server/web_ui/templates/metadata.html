@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"
+            integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
+            crossorigin="anonymous"></script>
+    <script>
+        function LoadMetadata(source)  {
+            if(source) {
+                window.alert(source.id);
+            }
+        }
+        $(document).ready(function () {
+            // $('#metadata').on('click', LoadMetadata);
+        })
+    </script>
+{% endblock %}
+{% block menu %}
+{% include "logout.button" %}
+{% include "home.button" %}
+{% endblock %}
+{% block title %}Metadata for<br>Knowledge Graph '{{kg_name}} {{kg_version}}' {% endblock %}
+{% block content %}
+
+{% endblock %}

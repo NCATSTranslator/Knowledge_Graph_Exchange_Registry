@@ -19,6 +19,7 @@ from kgea.server.config import (
     GET_KNOWLEDGE_GRAPH_CATALOG,
     REGISTER_KNOWLEDGE_GRAPH,
     REGISTER_FILESET,
+    METADATA_PAGE,
     FILESET_REGISTRATION_FORM,
     PUBLISH_FILE_SET,
     # SETUP_UPLOAD_CONTEXT,
@@ -106,7 +107,8 @@ async def get_kge_home(request: web.Request) -> web.Response:
             "submitter": session['name'],
             "get_catalog": GET_KNOWLEDGE_GRAPH_CATALOG,
             "backend": BACKEND,
-            "fileset_registration_form": FILESET_REGISTRATION_FORM
+            "metadata_page": METADATA_PAGE,
+            "fileset_registration_form": FILESET_REGISTRATION_FORM,
         }
         response = aiohttp_jinja2.render_template('home.html', request=request, context=context)
         return await with_session(request, response)
@@ -213,6 +215,34 @@ async def get_kge_graph_registration_form(request: web.Request) -> web.Response:
         await redirect(request, LANDING_PAGE)
 
 
+async def view_kge_metadata(request: web.Request) -> web.Response:
+    """View Metadata for Versioned KGE File Set Metadata
+
+    :param request:
+    :type request: web.Request
+
+    :rtype: web.Response
+    """
+    session = await get_session(request)
+    if not session.empty:
+        
+        kg_id = request.query.get('kg_id', default='')
+        if not kg_id:
+            await redirect(request, HOME_PAGE, active_session=True)
+
+        kg_version = request.query.get('kg_version', default='')
+        kg_name = request.query.get('kg_name', default='')
+
+        context = {
+            "kg_id": kg_id,
+            "kg_name": kg_name,
+            "kg_version": kg_version,
+            # "submitter": session['name'],
+        }
+        response = aiohttp_jinja2.render_template('metadata.html', request=request, context=context)
+        return await with_session(request, response)
+
+
 async def get_kge_fileset_registration_form(request: web.Request) -> web.Response:
     """Get web form for specifying Versioned KGE File Set Metadata
 
@@ -227,6 +257,9 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
 
+        if not kg_id:
+            await redirect(request, HOME_PAGE, active_session=True)
+            
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,

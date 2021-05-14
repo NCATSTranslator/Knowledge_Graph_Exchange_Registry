@@ -59,6 +59,44 @@
             }
         }
 
+        async function ViewMetadata(source) {
+
+            let kg_id = document.getElementById('select_kg_id').value;
+            if(!kg_id) {
+                window.alert("To add a new KGE file set, first register or choose a knowledge graph.");
+                return
+            }
+
+            let kg_version = document.getElementById('select_kg_version').value;
+
+            console.log("Entering ViewMetadata(kg_id: '" + kg_id + "', kg_version: '"+kg_version+"')");
+
+            let metadata_url = `{{metadata_page}}?kg_id=${kg_id}&kg_version=${kg_version}&kg_name=${GetGraphName(kg_id)}`;
+
+            // console.log("ViewMetadata() URL: '" + metadata_url + "'");
+            window.alert("ViewMetadata() URL: '" + metadata_url + "'");
+
+            try {
+                let a = document.createElement('a');
+                a.href = metadata_url;
+
+                // we need to append the element to the DOM,
+                // otherwise it will not work in Firefox
+                document.body.appendChild(a);
+
+                a.click();
+
+                // afterwards we remove the element again
+                a.remove();
+
+            } catch(e) {
+               console.log('ViewMetadata error:', e);
+            }
+
+            // block further propagation of the event here?
+            return false;
+        }
+
         async function AddNewFileSet(source) {
 
             let kg_id = document.getElementById('select_kg_id').value;
@@ -88,8 +126,6 @@
 
                 // afterwards we remove the element again
                 a.remove();
-
-                // console.log('HTTP response code:', r.status);
 
             } catch(e) {
                console.log('AddNewFileSet error:', e);
@@ -180,10 +216,10 @@
                 }
             });
 
-            $('#add_new_file_set').on('click', AddNewFileSet);
-
+            $('#view_metadata').on('click', ViewMetadata);
             $('#meta_knowledge_graph').on('click', DownloadFile);
             $('#download').on('click', DownloadFile);
+            $('#add_new_file_set').on('click', AddNewFileSet);
 
         })
 
@@ -232,6 +268,7 @@
                     </select>
                 </p>
                 <p>
+                    <button id="view_metadata">View Metadata</button>
                     <button id="meta_knowledge_graph">Download Metadata</button>
                     <button id="download">Download Data Archive</button>
                     <button id="add_new_file_set">Add New File Set</button>
