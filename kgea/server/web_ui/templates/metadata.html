@@ -61,26 +61,6 @@
                                     document.getElementById('content_metadata').innerHTML = "unavailable?";
                                 } else {
                                     // window.alert("MKG URL: " + mkg_url);
-                                    /*let table = "";
-                                    Object.entries(metadata).forEach(([tag,value]) => {
-                                        table += '<tr><th>' +  tag + '</th>';
-                                        if(tag === 'files')  {
-                                            table += '<td><table>';
-                                            table += '<tr><th>Original<br>Name</th><th>Assigned<br>Name</th>' +
-                                                     '<th>File<br>Type</th><th>Size<br>(MB)</th><th>Status</th></tr>';
-                                            value.forEach(file_entry => {
-                                                table += '<tr>';
-                                                Object.entries(file_entry).forEach(([tag,value]) => {
-                                                    table += '<td>' + value  + '</td>';
-                                                });
-                                                table += '</tr>';
-                                            });
-                                            table += '</table></td>';
-                                        } else {
-                                            table += '<td>' + value  + '</td>';
-                                        }
-                                        table += '</tr>';
-                                        */
                                     let a = document.createElement('a');
                                     a.href = mkg_url;
                                     a.text = "available here";
