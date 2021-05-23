@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from .models import (
-    KgeFileSetStatus,
+    KgeMetadata,
     UploadTokenObject,
     UploadProgressToken
 )
@@ -816,15 +816,6 @@ async def upload_kge_file(
 # )
 #############################################################
 
-def _dumps_file_set_contents(o) -> str:
-    """
-    JSON Serialization function for KgeFileSetStatus and related components
-    """
-    if isinstance(o, KgeFileSetStatus):
-        return "\"KgeFileSetStatus() JSON serialization triggered but not yet implemented?\""
-    else:
-        return json.dumps(o)
-
 
 async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
     """Get KGE File Set provider metadata.
@@ -836,7 +827,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version
     :param kg_version: Specific version of KGE File Set for the knowledge graph for which metadata are being accessed
     :type kg_version: str
 
-    :return:  KgeFileSetStatus including an annotated list of KgeFile entries
+    :return:  KgeMetadata including provider and content metadata with an annotated list of KgeFile entries
     """
     logger.debug("Entering get_kge_file_set_metadata()...")
 
@@ -856,8 +847,8 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version
         file_set: KgeFileSet = knowledge_graph.get_file_set(kg_version)
 
         if file_set:
-            file_set_status: Optional[KgeFileSetStatus] = file_set.get_status()
-            file_set_status_as_dict = file_set_status.to_dict()
+            file_set_metadata: Optional[KgeMetadata] = file_set.get_metadata()
+            file_set_status_as_dict = file_set_metadata.to_dict()
             response = web.json_response(file_set_status_as_dict, status=200)
             return await with_session(request, response)
         else:

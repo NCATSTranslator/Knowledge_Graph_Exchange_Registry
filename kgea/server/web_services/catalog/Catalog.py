@@ -33,7 +33,7 @@ from json import dumps
 import yaml
 
 from kgea.server.web_services.models import (
-    KgeFileSetStatus,
+    KgeMetadata,
     KgeFileSetStatusCode,
     KgeFile
 )
@@ -165,7 +165,7 @@ class KgeFileSet:
     ):
         """
         KgeFileSet constructor
-        
+
         :param kg_id:
         :param kg_version:
         :param submitter:
@@ -194,9 +194,9 @@ class KgeFileSet:
 
         # no errors to start
         self.errors: List[str] = list()
-        
+
         self.status: KgeFileSetStatusCode
-        
+
         if archive_record:
             # File Set read in from the Archive
             # TODO: do we need to verify that the file set is indeed KGX compliant?
@@ -246,7 +246,7 @@ class KgeFileSet:
         )
         # Must load the JSON into a Python dictionary for validation
         metadata_json = json.loads(content_metadata_file_text)
-        
+
         # OK to do the KGX content metadata JSON validation right away here,
         # since it is much simpler and quicker than general KGX data validation
         errors = validate_content_metadata(metadata_json)
@@ -287,7 +287,7 @@ class KgeFileSet:
             "kgx_compliant": False,  # until proven True...
             "errors": []
         }
-        
+
         # We now defer general node/edge graph data validation
         # to the file set self.post_process_file_set() stage
 
@@ -368,17 +368,17 @@ class KgeFileSet:
     # TODO: need here to more fully implement required post-processing of
     #       the assembled file set (after files are uploaded by the client)
     def post_process_file_set(self) -> bool:
-    
+
         # KGX validation of KGX-formatted nodes and edges data files
         # managed here instead of just after the upload of each file.
         # In this way, the graph node and edge data can be analysed all together?
-        
+
         # Delegate file details to the KGX validation (async) task queue
         KgxValidator.validate(list(self.data_files.values()))
-        
+
         # Can't go wrong here (yet...)
         return True
-            
+
     # async def publish_file_set(self, kg_id: str, kg_version: str):
     #
     #     logger.debug(
@@ -445,15 +445,15 @@ class KgeFileSet:
             with lock:
                 if not data_file["kgx_compliant"]:
                     errors.append(data_file["errors"])
-        
+
         if not self.content_metadata["kgx_compliant"]:
             errors.append(self.content_metadata["errors"])
-            
+
         if not errors:
             self.status = KgeFileSetStatusCode.VALIDATED
         else:
             self.status = KgeFileSetStatusCode.ERROR
-            
+
         return errors
 
     def generate_fileset_metadata_file(self) -> str:
@@ -477,8 +477,9 @@ class KgeFileSet:
 
         return fileset_metadata_yaml
 
-    def get_status(self) -> Optional[KgeFileSetStatus]:
-        file_set_status = KgeFileSetStatus(self.kg_id, self.kg_version, self.status)
+    def get_metadata(self) -> Optional[KgeMetadata]:
+
+        file_set_metadata = KgeMetadata(self.kg_id, self.kg_version, self.status)
 
         # # Listings Approach  - DEPRECATED FROM THE GENERAL CATALOG?
         # # - Introspect on Bucket
@@ -511,9 +512,9 @@ class KgeFileSet:
             for name in self.get_data_file_names()
         ]
 
-        file_set_status.files = file_set
+        file_set_metadata.files = file_set
 
-        return file_set_status
+        return file_set_metadata
 
 
 class KgeKnowledgeGraph:
