@@ -25,7 +25,7 @@ from kgea.server.config import (
     # SETUP_UPLOAD_CONTEXT,
     UPLOAD_FILE,
     # GET_UPLOAD_STATUS,
-    # GET_FILESET_CONTENTS,
+    get_fileset_contents_url,
     BACKEND,
 ) 
 
@@ -237,7 +237,7 @@ async def view_kge_metadata(request: web.Request) -> web.Response:
             "kg_id": kg_id,
             "kg_name": kg_name,
             "kg_version": kg_version,
-            # "submitter": session['name'],
+            "get_file_set_contents": get_fileset_contents_url(kg_id, kg_version),
         }
         response = aiohttp_jinja2.render_template('metadata.html', request=request, context=context)
         return await with_session(request, response)

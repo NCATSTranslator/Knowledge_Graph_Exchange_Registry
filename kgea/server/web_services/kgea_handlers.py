@@ -1,4 +1,5 @@
 import sys
+import json
 from os import getenv
 from pathlib import Path
 from typing import Dict, Optional
@@ -813,6 +814,15 @@ async def upload_kge_file(
 # )
 #############################################################
 
+def _dumps_file_set_contents(o) -> str:
+    """
+    JSON Serialization function for KgeFileSetStatus and related components
+    """
+    if isinstance(o, KgeFileSetStatus):
+        return "\"KgeFileSetStatus() JSON serialization triggered but not yet implemented?\""
+    else:
+        return json.dumps(o)
+
 
 async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
     """Get KGE File Set provider metadata.
@@ -845,7 +855,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
 
         if file_set:
             file_set_status: Optional[KgeFileSetStatus] = file_set.get_status()
-            response = web.json_response(file_set_status, status=200)
+            response = web.json_response(file_set_status.to_dict(), status=200)
             return await with_session(request, response)
         else:
             await report_error(

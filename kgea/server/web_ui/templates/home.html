@@ -31,9 +31,6 @@
                                 kgea_catalog = catalog;
                                 // console.log("Catalog: " + JSON.stringify(kgea_catalog));
                                 // window.alert("Catalog: " + JSON.stringify(kgea_catalog));
-                                /* TODO: time here to inject the catalog into
-                                         the kg_id/kg_version section of the UI.
-                                 */
                                 let fs_options = '<option value="">Select...</option>';
                                 Object.entries(kgea_catalog).forEach(([k,v]) => {
                                     fs_options += '<option value="' + k + '">' + v.name + '</option>';
@@ -69,12 +66,12 @@
 
             let kg_version = document.getElementById('select_kg_version').value;
 
-            console.log("Entering ViewMetadata(kg_id: '" + kg_id + "', kg_version: '"+kg_version+"')");
+            // console.log("Entering ViewMetadata(kg_id: '" + kg_id + "', kg_version: '"+kg_version+"')");
 
             let metadata_url = `{{metadata_page}}?kg_id=${kg_id}&kg_version=${kg_version}&kg_name=${GetGraphName(kg_id)}`;
 
             // console.log("ViewMetadata() URL: '" + metadata_url + "'");
-            window.alert("ViewMetadata() URL: '" + metadata_url + "'");
+            // window.alert("ViewMetadata() URL: '" + metadata_url + "'");
 
             try {
                 let a = document.createElement('a');

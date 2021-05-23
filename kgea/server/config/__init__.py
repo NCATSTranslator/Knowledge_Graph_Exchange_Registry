@@ -14,7 +14,6 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-
 # Master flag for local development runs bypassing
 # authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -35,20 +34,20 @@ def validate_session_configuration():
     try:
         with open(AWS_CONFIG_ROOT + 'credentials', 'r') as credentials_file:
             client_credentials = boto3.Session().get_credentials().get_frozen_credentials()
-            
+
             credentials_config = configparser.ConfigParser()
             credentials_config.read_file(credentials_file)
-            
+
             try:
                 assert (client_credentials.access_key == credentials_config['default']['aws_access_key_id'])
             except AssertionError:
                 raise AssertionError("the boto3 client does not have correct aws_access_key_id")
-            
+
             try:
                 assert (client_credentials.secret_key == credentials_config['default']['aws_secret_access_key'])
             except AssertionError:
                 raise AssertionError("the boto3 client does not have correct aws_secret_access_key")
-    
+
     except FileNotFoundError as e:
         print("ERROR: ~/.aws/credentials isn't found! try running `aws configure` after installing `aws-cli`")
         print(e)
@@ -61,7 +60,7 @@ def validate_session_configuration():
         print("ERROR: ~/.aws/credentials does not have all the necessary keys")
         print(e)
         return False
-    
+
     return True
 
 
@@ -71,17 +70,17 @@ def validate_client_configuration():
             client_credentials = boto3.client("s3")._client_config
             config = configparser.ConfigParser()
             config.read_file(config_file)
-            
+
             # if config['default']['region'] != 'us-east-1':
             #     print("NOTE: we recommend using us-east-1 as your region",
             #           "(currently %s)" % config['default']['region'])
             #     # this is a warning, no need to return false
-            
+
             try:
                 assert (client_credentials.region_name == config['default']['region'])
             except AssertionError:
                 raise AssertionError("the boto3 client does not have the same region as `~/.aws/config")
-    
+
     except FileNotFoundError as e:
         print("ERROR: ~/.aws/config isn't found! try running `aws configure` after installing `aws-cli`")
         print(e)
@@ -119,12 +118,11 @@ def get_app_config() -> dict:
 
 
 def _load_app_config() -> dict:
-    
     global _app_config
-    
+
     try:
         with open(CONFIG_FILE_PATH, mode='r', encoding='utf-8') as app_config_file:
-            
+
             app_config_raw = yaml.load(app_config_file, Loader=Loader)
 
             if 'bucket' not in app_config_raw:
@@ -146,29 +144,29 @@ def _load_app_config() -> dict:
                 # TODO: detect the bucket here
                 # if not detected, raise an error
                 pass
-            
+
             _app_config = dict(app_config_raw)
 
             # TODO: Review this: we second guess a sensible Translator site name here
             _app_config.setdefault("site_hostname", "https://kge.translator.ncats.io")
-        
+
         if DEV_MODE:
             # For the EncryptedCookieStorage() managed
             # Session management during development
             if 'secret_key' not in _app_config:
                 import base64
                 from cryptography import fernet
-                
+
                 fernet_key = fernet.Fernet.generate_key()
                 secret_key = base64.urlsafe_b64decode(fernet_key)
                 _app_config['secret_key'] = secret_key
-                
+
                 # persist updated updated _app_config back to config.yaml?
                 with open(CONFIG_FILE_PATH, mode='w', encoding='utf-8') as app_config_file:
                     yaml.dump(_app_config, app_config_file, Dumper=Dumper)
-        
+
         return _app_config
-    
+
     except Exception as exc:
         raise RuntimeError('KGE Archive resource configuration file failed to load? :' + str(exc))
 
@@ -181,10 +179,10 @@ def _load_app_config() -> dict:
 BACKEND_PATH = 'archive/'
 if DEV_MODE:
     # Development Mode for local testing
-    
+
     # Point to http://localhost:8090 for frontend UI web application endpoints
     FRONTEND = "http://localhost:8090/"
-    
+
     # Point to http://localhost:8080 for backend archive web service endpoints
     BACKEND = "http://localhost:8080/" + BACKEND_PATH
 else:
@@ -209,17 +207,21 @@ DATA_UNAVAILABLE = FRONTEND + "unavailable"
 #################################
 
 # catalog controller
-GET_KNOWLEDGE_GRAPH_CATALOG = BACKEND + "catalog"      # GET
+GET_KNOWLEDGE_GRAPH_CATALOG = BACKEND + "catalog"  # GET
 REGISTER_KNOWLEDGE_GRAPH = BACKEND + "register/graph"  # POST
-REGISTER_FILESET = BACKEND + "register/fileset"        # POST
-PUBLISH_FILE_SET = BACKEND + "publish"                 # GET
+REGISTER_FILESET = BACKEND + "register/fileset"  # POST
+PUBLISH_FILE_SET = BACKEND + "publish"  # GET
 
 # upload controller
-SETUP_UPLOAD_CONTEXT = BACKEND + "upload"           # GET
-UPLOAD_FILE = BACKEND + "upload"                    # POST
-GET_UPLOAD_STATUS = BACKEND + "upload/progress"     # GET
+SETUP_UPLOAD_CONTEXT = BACKEND + "upload"  # GET
+UPLOAD_FILE = BACKEND + "upload"  # POST
+GET_UPLOAD_STATUS = BACKEND + "upload/progress"  # GET
+
 
 # content controller
-GET_FILESET_CONTENTS = BACKEND + "{kg_id}/{kg_version}/contents"                   # GET
+def get_fileset_contents_url(kg_id: str, kg_version: str):
+    return BACKEND + kg_id + "/" + kg_version + "/contents"  # GET
+
+
 DOWNLOAD_CONTENT_METADATA = BACKEND + "{kg_id}/{kg_version}/meta_knowledge_graph"  # GET
-DOWNLOAD_FILESET = BACKEND + "{kg_id}/{kg_version}/download"                       # GET
+DOWNLOAD_FILESET = BACKEND + "{kg_id}/{kg_version}/download"  # GET

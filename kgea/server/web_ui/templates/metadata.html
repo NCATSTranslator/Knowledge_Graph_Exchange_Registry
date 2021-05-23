@@ -5,16 +5,33 @@
             integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
             crossorigin="anonymous"></script>
     <script>
-        function LoadMetadata(source)  {
-            if(source) {
-                window.alert(source.id);
-            }
+        async function loadMetadata() {
+            // window.alert("Loading metadata for FileSet version '{{kg_version}}' of graph '{{kg_name}}'");
+            // window.alert("Fetching URL: {{get_file_set_contents}}");
+            fetch("{{get_file_set_contents}}", {method: "GET", credentials: "include"})
+                .then(
+                    response => {
+                        console.log('loadMetadata() HTTP response code:', response.status);
+                        response.json()
+                            .then(metadata => {
+                                window.alert("JSON metadata returned: " + JSON.stringify(metadata));
+                            })
+                            .catch(error => {
+                                let err_msg = "loadMetadata() response.text promise access ERROR: " + error;
+                                console.log(err_msg);
+                                window.alert(err_msg);
+                            })
+                    })
+                .catch(error => {
+                    let err_msg = "Top level loadMetadata() fetch call ERROR: " + error;
+                    console.log(err_msg);
+                    window.alert(err_msg);
+                });
         }
-        $(document).ready(function () {
-            // $('#metadata').on('click', LoadMetadata);
-        })
+
     </script>
 {% endblock %}
+{% block body %}<body onload="loadMetadata()">{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
