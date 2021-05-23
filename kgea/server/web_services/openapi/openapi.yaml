@@ -432,6 +432,16 @@ paths:
         schema:
           type: string
         style: simple
+      - description: 'Boolean flag indicating whether data is to be downloaded as
+          an attachment or rather if a signed URL (string) is to be returned to the
+          caller, for direct access to the data file (default: true).'
+        explode: true
+        in: query
+        name: download
+        required: false
+        schema:
+          type: boolean
+        style: form
       responses:
         "200":
           content:
@@ -625,8 +635,8 @@ components:
       description: Token tracking the upload progress of a file into a KGE File Set.
       example:
         upload_token: upload_token
-        current_position: ""
-        end_position: ""
+        current_position: 0
+        end_position: 6
       properties:
         upload_token:
           description: Upload token associated with a given uploading file.
@@ -889,15 +899,25 @@ components:
         or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
         button.
       properties:
-        upload_token:
-          description: Upload token associated with a given file for Archive uploading
-            as specified by a preceding /upload GET call.
+        kg_id:
+          type: string
+        kg_version:
+          type: string
+        kgx_file_content:
+          type: string
+        upload_mode:
+          type: string
+        content_name:
+          type: string
+        content_url:
           type: string
         uploaded_file:
-          description: File (blob) object to be uploaded.
           format: binary
           type: string
       required:
-      - upload_token
-      - uploaded_file
+      - content_name
+      - kg_id
+      - kg_version
+      - kgx_file_content
+      - upload_mode
       type: object

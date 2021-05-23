@@ -379,6 +379,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: download
+          in: query
+          description: >-
+            Boolean flag indicating whether data is to be downloaded as an
+            attachment or rather if a signed URL (string) is to be returned
+            to the caller, for direct access to the data file (default: true).
+          required: false
+          schema:
+            type: boolean
       tags:
         - content
       summary: Meta knowledge graph representation of this KGX knowledge graph.
