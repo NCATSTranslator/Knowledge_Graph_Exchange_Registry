@@ -189,8 +189,7 @@ async def redirect(request, location: str, active_session: bool = False):
 
 
 async def download(request, location: str, active_session: bool = False):
-    # TODO: might need to urlencode query parameter values in the location?
-    logger.debug('redirect() to location: ' + str(location))
+    logger.debug('download() file from location: ' + str(location))
     await _process_redirection(
         request,
         web.HTTPFound(location, headers=MultiDict({

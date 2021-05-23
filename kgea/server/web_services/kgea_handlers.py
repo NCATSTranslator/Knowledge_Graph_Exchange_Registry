@@ -855,7 +855,8 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
 
         if file_set:
             file_set_status: Optional[KgeFileSetStatus] = file_set.get_status()
-            response = web.json_response(file_set_status.to_dict(), status=200)
+            file_set_status_as_dict = file_set_status.to_dict()
+            response = web.json_response(file_set_status_as_dict, status=200)
             return await with_session(request, response)
         else:
             await report_error(

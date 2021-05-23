@@ -15,6 +15,27 @@
                         response.json()
                             .then(metadata => {
                                 window.alert("JSON metadata returned: " + JSON.stringify(metadata));
+                                let table = "";
+                                Object.entries(metadata).forEach(([tag,value]) => {
+                                    table += '<tr><th>' +  tag + '</th>';
+                                    if(tag === 'files')  {
+                                        table += '<td><table>';
+                                        table += '<tr><th>Original<br>Name</th><th>Assigned<br>Name</th>' +
+                                                 '<th>File<br>Type</th><th>Size<br>(MB)</th><th>Status</th></tr>';
+                                        value.forEach(file_entry => {
+                                            table += '<tr>';
+                                            Object.entries(file_entry).forEach(([tag,value]) => {
+                                                table += '<td>' + value  + '</td>';
+                                            });
+                                            table += '</tr>';
+                                        });
+                                        table += '</table></td>';
+                                    } else {
+                                        table += '<td>' + value  + '</td>';
+                                    }
+                                    table += '</tr>';
+                                });
+                                document.getElementById('metadata').innerHTML = table;
                             })
                             .catch(error => {
                                 let err_msg = "loadMetadata() response.text promise access ERROR: " + error;
@@ -38,5 +59,5 @@
 {% endblock %}
 {% block title %}Metadata for<br>Knowledge Graph '{{kg_name}} {{kg_version}}' {% endblock %}
 {% block content %}
-
+<table id="metadata"></table>
 {% endblock %}

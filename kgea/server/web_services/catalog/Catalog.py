@@ -499,7 +499,25 @@ class KgeFileSet:
         
         file_set_status = KgeFileSetStatus(self.kg_id, self.kg_version, self.status)
         file_set: List[KgeFile] = list()
-        # TODO: populate the file_set information here
+        # TODO: populate the file_set information here: Mock Values used for now
+        mock_file = KgeFile(
+            original_name="my_nodes.tsv",
+            assigned_name="nodes.tsv",
+            file_type="Nodes",
+            file_size=100,  # megabytes
+            kgx_compliance_status="Validated",
+            errors=list()
+        )
+        file_set.append(mock_file)
+        mock_file = KgeFile(
+            original_name="my_edges.tsv",
+            assigned_name="edges.tsv",
+            file_type="Edges",
+            file_size=10000, # megabytes
+            kgx_compliance_status="Validated",
+            errors=list()
+        )
+        file_set.append(mock_file)
         file_set_status.files = file_set
 
         return file_set_status
