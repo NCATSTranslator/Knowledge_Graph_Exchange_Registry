@@ -59,7 +59,8 @@ from kgea.server.web_services.kgea_file_ops import (
     get_object_location,
     get_archive_contents,
     with_version,
-    load_s3_text_file
+    load_s3_text_file,
+    kg_files_in_location
 )
 from .kgea_kgx import KgxValidator, validate_content_metadata
 from kgea.server.web_services.kgea_file_ops import upload_file
@@ -477,15 +478,15 @@ class KgeFileSet:
         return fileset_metadata_yaml
 
     def get_status(self) -> Optional[KgeFileSetStatus]:
-        # # TODO: need to retrieve metadata by kg_version
-        # file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
-        #
-        # # Listings Approach
+        file_set_status = KgeFileSetStatus(self.kg_id, self.kg_version, self.status)
+
+        # # Listings Approach  - DEPRECATED FROM THE GENERAL CATALOG?
         # # - Introspect on Bucket
         # # - Create URL per Item Listing
         # # - Send Back URL with Dictionary
         # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
         # # TODO: convert into redirect approach with cross-origin scripting?
+        # file_set_location, _ = with_version(func=get_object_location, version=self.kg_version)(self.kg_id)
         # kg_files = kg_files_in_location(
         #     bucket_name=_KGEA_APP_CONFIG['bucket'],
         #     object_location=file_set_location
@@ -496,28 +497,20 @@ class KgeFileSet:
         #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
         #         kg_listing))
         # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
-        
-        file_set_status = KgeFileSetStatus(self.kg_id, self.kg_version, self.status)
-        file_set: List[KgeFile] = list()
-        # TODO: populate the file_set information here: Mock Values used for now
-        mock_file = KgeFile(
-            original_name="my_nodes.tsv",
-            assigned_name="nodes.tsv",
-            file_type="Nodes",
-            file_size=100,  # megabytes
-            kgx_compliance_status="Validated",
-            errors=list()
-        )
-        file_set.append(mock_file)
-        mock_file = KgeFile(
-            original_name="my_edges.tsv",
-            assigned_name="edges.tsv",
-            file_type="Edges",
-            file_size=10000, # megabytes
-            kgx_compliance_status="Validated",
-            errors=list()
-        )
-        file_set.append(mock_file)
+
+        # TODO: populate with more complete file_set information here
+        file_set: List[KgeFile] = [
+            KgeFile(
+                original_name=name,
+                # assigned_name="nodes.tsv",
+                # file_type="Nodes",
+                # file_size=100,  # megabytes
+                # kgx_compliance_status="Validated",
+                # errors=list()
+            )
+            for name in self.get_data_file_names()
+        ]
+
         file_set_status.files = file_set
 
         return file_set_status

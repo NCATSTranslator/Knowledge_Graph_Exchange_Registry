@@ -20,8 +20,10 @@
                                     table += '<tr><th>' +  tag + '</th>';
                                     if(tag === 'files')  {
                                         table += '<td><table>';
+                                        /*
                                         table += '<tr><th>Original<br>Name</th><th>Assigned<br>Name</th>' +
                                                  '<th>File<br>Type</th><th>Size<br>(MB)</th><th>Status</th></tr>';
+                                         */
                                         value.forEach(file_entry => {
                                             table += '<tr>';
                                             Object.entries(file_entry).forEach(([tag,value]) => {
