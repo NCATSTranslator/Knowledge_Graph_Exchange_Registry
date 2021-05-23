@@ -437,7 +437,7 @@ paths:
           caller, for direct access to the data file (default: true).'
         explode: true
         in: query
-        name: download
+        name: downloading
         required: false
         schema:
           type: boolean

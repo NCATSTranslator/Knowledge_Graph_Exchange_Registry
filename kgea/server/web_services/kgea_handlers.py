@@ -871,7 +871,12 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
         await redirect(request, LANDING_PAGE)
 
 
-async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version: str):
+async def kge_meta_knowledge_graph(
+        request: web.Request,
+        kg_id: str,
+        kg_version: str,
+        downloading: bool = True
+):
     """Get supported relationships by source and target
 
     :param request:
@@ -905,18 +910,22 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
                 bucket_name=_KGEA_APP_CONFIG['bucket'],
                 object_key=content_metadata_file_key
         ):
-            await redirect(
-                request,
-                Template(
-                    DATA_UNAVAILABLE +
-                    '?kg_version=$kg_version&kg_name=$kg_name&data_type=$data_type'
-                ).substitute(
-                    kg_version=kg_version,
-                    kg_name=knowledge_graph.get_name(),
-                    data_type='meta knowledge graph'
-                ),
-                active_session=True
-            )
+            if downloading:
+                await redirect(
+                    request,
+                    Template(
+                        DATA_UNAVAILABLE +
+                        '?kg_version=$kg_version&kg_name=$kg_name&data_type=$data_type'
+                    ).substitute(
+                        kg_version=kg_version,
+                        kg_name=knowledge_graph.get_name(),
+                        data_type='meta knowledge graph'
+                    ),
+                    active_session=True
+                )
+            else:
+                response = web.Response(text="unavailable")
+                return await with_session(request, response)
 
         # Current implementation of this handler triggers a
         # download of the KGX content metadata file, if available
@@ -924,10 +933,12 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, kg_version:
             bucket=_KGEA_APP_CONFIG['bucket'],
             object_key=content_metadata_file_key
         )
-
-        print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
-
-        await download(request, download_url)
+        print("kge_meta_knowledge_graph() download_url: '" + download_url + "'", file=sys.stderr)
+        if downloading:
+            await download(request, download_url)
+        else:
+            response = web.Response(text=download_url)
+            return await with_session(request, response)
 
         # Alternate version could directly return the JSON
         # of the Content Metadata as a direct response?

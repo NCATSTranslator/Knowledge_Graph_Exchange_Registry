@@ -25,7 +25,7 @@ async def meta_knowledge_graph(
         request: web.Request,
         kg_id: str,
         kg_version: str,
-        download: bool = True
+        downloading: bool = True
 ) -> web.Response:
     """Meta knowledge graph representation of this KGX knowledge graph.
 
@@ -35,11 +35,11 @@ async def meta_knowledge_graph(
     :type kg_id: str
     :param kg_version: Version of KGE File Set for a given knowledge graph.
     :type kg_version: str
-    :param download: Boolean flag indicating whether data is to be downloaded as an attachment or rather if a signed URL (string) is to be returned to the caller, for direct access to the data file (default: true).
-    :type download: bool
+    :param downloading: Boolean flag indicating whether data is to be downloaded as an attachment or rather if a signed URL (string) is to be returned to the caller, for direct access to the data file (default: true).
+    :type downloading: bool
 
     """
-    return await kge_meta_knowledge_graph(request, kg_id, kg_version, download)
+    return await kge_meta_knowledge_graph(request, kg_id, kg_version, downloading)
 
 
 async def download_file_set(request: web.Request, kg_id: str, kg_version: str):

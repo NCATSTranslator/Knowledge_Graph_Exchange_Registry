@@ -7,14 +7,14 @@
     <script>
         async function loadMetadata() {
             // window.alert("Loading metadata for FileSet version '{{kg_version}}' of graph '{{kg_name}}'");
-            // window.alert("Fetching URL: {{get_file_set_contents}}");
+            // Retrieve fileset metadata for display
             fetch("{{get_file_set_contents}}", {method: "GET", credentials: "include"})
                 .then(
                     response => {
-                        console.log('loadMetadata() HTTP response code:', response.status);
+                        console.log('loadMetadata() FSM HTTP response code:', response.status);
                         response.json()
                             .then(metadata => {
-                                window.alert("JSON metadata returned: " + JSON.stringify(metadata));
+                                // window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
                                 let table = "";
                                 Object.entries(metadata).forEach(([tag,value]) => {
                                     table += '<tr><th>' +  tag + '</th>';
@@ -35,21 +35,70 @@
                                     }
                                     table += '</tr>';
                                 });
-                                document.getElementById('metadata').innerHTML = table;
+                                table += '<tr><th>Content Metadata</th><td><div id="content_metadata"></div></td></tr>';
+                                document.getElementById('fileset_metadata').innerHTML = table;
                             })
                             .catch(error => {
-                                let err_msg = "loadMetadata() response.text promise access ERROR: " + error;
+                                let err_msg = "loadMetadata() FSM response.text promise access ERROR: " + error;
                                 console.log(err_msg);
                                 window.alert(err_msg);
                             })
                     })
                 .catch(error => {
-                    let err_msg = "Top level loadMetadata() fetch call ERROR: " + error;
+                    let err_msg = "Top level loadMetadata() FSM fetch call ERROR: " + error;
+                    console.log(err_msg);
+                    window.alert(err_msg);
+                });
+
+            // Retrieve the meta knowledge graph for display
+            fetch("{{meta_knowledge_graph}}?downloading=false", {method: "GET", credentials: "include"})
+                .then(
+                    response => {
+                        console.log('loadMetadata() MKG HTTP response code:', response.status);
+                        response.text()
+                            .then(mkg_url => {
+                                if (mkg_url === "unavailable") {
+                                    document.getElementById('content_metadata').innerHTML = "unavailable?";
+                                } else {
+                                    // window.alert("MKG URL: " + mkg_url);
+                                    /*let table = "";
+                                    Object.entries(metadata).forEach(([tag,value]) => {
+                                        table += '<tr><th>' +  tag + '</th>';
+                                        if(tag === 'files')  {
+                                            table += '<td><table>';
+                                            table += '<tr><th>Original<br>Name</th><th>Assigned<br>Name</th>' +
+                                                     '<th>File<br>Type</th><th>Size<br>(MB)</th><th>Status</th></tr>';
+                                            value.forEach(file_entry => {
+                                                table += '<tr>';
+                                                Object.entries(file_entry).forEach(([tag,value]) => {
+                                                    table += '<td>' + value  + '</td>';
+                                                });
+                                                table += '</tr>';
+                                            });
+                                            table += '</table></td>';
+                                        } else {
+                                            table += '<td>' + value  + '</td>';
+                                        }
+                                        table += '</tr>';
+                                        */
+                                    let a = document.createElement('a');
+                                    a.href = mkg_url;
+                                    a.text = "available here";
+                                    document.getElementById('content_metadata').appendChild(a);
+                                }
+                            })
+                            .catch(error => {
+                                let err_msg = "loadMetadata() MKG response.text promise access ERROR: " + error;
+                                console.log(err_msg);
+                                window.alert(err_msg);
+                            });
+                    })
+                .catch(error => {
+                    let err_msg = "Top level loadMetadata() MKG fetch call ERROR: " + error;
                     console.log(err_msg);
                     window.alert(err_msg);
                 });
         }
-
     </script>
 {% endblock %}
 {% block body %}<body onload="loadMetadata()">{% endblock %}
@@ -59,5 +108,5 @@
 {% endblock %}
 {% block title %}Metadata for<br>Knowledge Graph '{{kg_name}} {{kg_version}}' {% endblock %}
 {% block content %}
-<table id="metadata"></table>
+<table id="fileset_metadata"></table>
 {% endblock %}

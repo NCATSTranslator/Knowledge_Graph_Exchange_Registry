@@ -218,10 +218,18 @@ UPLOAD_FILE = BACKEND + "upload"  # POST
 GET_UPLOAD_STATUS = BACKEND + "upload/progress"  # GET
 
 
-# content controller
+# content controllers
+def _versioned_target_url(kg_id: str, kg_version: str, target: str):
+    return BACKEND + kg_id + "/" + kg_version + "/" + target  # GET
+
+
 def get_fileset_contents_url(kg_id: str, kg_version: str):
-    return BACKEND + kg_id + "/" + kg_version + "/contents"  # GET
+    return _versioned_target_url(kg_id, kg_version, target="contents")
 
 
-DOWNLOAD_CONTENT_METADATA = BACKEND + "{kg_id}/{kg_version}/meta_knowledge_graph"  # GET
-DOWNLOAD_FILESET = BACKEND + "{kg_id}/{kg_version}/download"  # GET
+def get_meta_knowledge_graph_url(kg_id: str, kg_version: str):
+    return _versioned_target_url(kg_id, kg_version, target="meta_knowledge_graph")
+
+
+def get_fileset_download_url(kg_id: str, kg_version: str):
+    return _versioned_target_url(kg_id, kg_version, target="download")
