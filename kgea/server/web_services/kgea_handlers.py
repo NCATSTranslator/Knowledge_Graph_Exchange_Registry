@@ -55,7 +55,9 @@ from .kgea_file_ops import (
     get_object_location,
     with_version,
     object_key_exists,
-    get_default_date_stamp, with_subfolder, infix_string
+    get_default_date_stamp,
+    with_subfolder,
+    infix_string
 )
 
 from kgea.server.web_services.catalog.Catalog import (

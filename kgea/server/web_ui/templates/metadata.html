@@ -8,7 +8,7 @@
         async function loadMetadata() {
             // window.alert("Loading metadata for FileSet version '{{kg_version}}' of graph '{{kg_name}}'");
             // Retrieve fileset metadata for display
-            fetch("{{get_file_set_contents}}", {method: "GET", credentials: "include"})
+            fetch("{{get_fileset_metadata}}", {method: "GET", credentials: "include"})
                 .then(
                     response => {
                         console.log('loadMetadata() FSM HTTP response code:', response.status);

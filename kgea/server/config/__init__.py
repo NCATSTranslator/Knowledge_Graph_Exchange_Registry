@@ -219,17 +219,17 @@ GET_UPLOAD_STATUS = BACKEND + "upload/progress"  # GET
 
 
 # content controllers
-def _versioned_target_url(kg_id: str, kg_version: str, target: str):
+def _versioned_backend_target_url(kg_id: str, kg_version: str, target: str):
     return BACKEND + kg_id + "/" + kg_version + "/" + target  # GET
 
 
 def get_fileset_metadata_url(kg_id: str, kg_version: str):
-    return _versioned_target_url(kg_id, kg_version, target="metadata")
+    return _versioned_backend_target_url(kg_id, kg_version, target="metadata")
 
 
 def get_meta_knowledge_graph_url(kg_id: str, kg_version: str):
-    return _versioned_target_url(kg_id, kg_version, target="meta_knowledge_graph")
+    return _versioned_backend_target_url(kg_id, kg_version, target="meta_knowledge_graph")
 
 
 def get_fileset_download_url(kg_id: str, kg_version: str):
-    return _versioned_target_url(kg_id, kg_version, target="download")
+    return _versioned_backend_target_url(kg_id, kg_version, target="download")
