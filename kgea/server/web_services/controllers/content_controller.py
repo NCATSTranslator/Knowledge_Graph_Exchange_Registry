@@ -1,13 +1,13 @@
 from aiohttp import web
 
 from ..kgea_handlers import (
-    get_kge_file_set_contents,
+    get_kge_file_set_metadata,
     kge_meta_knowledge_graph,
     download_kge_file_set
 )
 
 
-async def get_file_set_contents(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
+async def get_file_set_metadata(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
     """Get file list and details for a given KGE File Set version.
 
     :param request:
@@ -18,7 +18,7 @@ async def get_file_set_contents(request: web.Request, kg_id: str, kg_version: st
     :type kg_version: str
 
     """
-    return await get_kge_file_set_contents(request, kg_id, kg_version)
+    return await get_kge_file_set_metadata(request, kg_id, kg_version)
 
 
 async def meta_knowledge_graph(

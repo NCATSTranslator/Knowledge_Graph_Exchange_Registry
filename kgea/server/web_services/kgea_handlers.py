@@ -808,7 +808,7 @@ async def upload_kge_file(
 # Insert import and return call into content_controller.py:
 #
 # from ..kgea_handlers import (
-#     get_kge_file_set_contents,
+#     get_kge_file_set_metadata,
 #     kge_meta_knowledge_graph,
 #     download_kge_file_set
 # )
@@ -824,7 +824,7 @@ def _dumps_file_set_contents(o) -> str:
         return json.dumps(o)
 
 
-async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
+async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
     """Get KGE File Set provider metadata.
 
     :param request:
@@ -836,7 +836,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
 
     :return:  KgeFileSetStatus including an annotated list of KgeFile entries
     """
-    logger.debug("Entering get_kge_file_set_contents()...")
+    logger.debug("Entering get_kge_file_set_metadata()...")
 
     session = await get_session(request)
     if not session.empty:
@@ -844,7 +844,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
         if not (kg_id and kg_version):
             await report_not_found(
                 request,
-                "get_kge_file_set_contents(): Knowledge Graph identifier and File Set version is not specified?"
+                "get_kge_file_set_metadata(): Knowledge Graph identifier and File Set version is not specified?"
             )
 
         logger.debug("...of file set version '" + kg_version + "' for knowledge graph '" + kg_id + "'")
@@ -861,7 +861,7 @@ async def get_kge_file_set_contents(request: web.Request, kg_id: str, kg_version
         else:
             await report_error(
                 request,
-                "get_kge_file_set_contents() errors: file set version '" +
+                "get_kge_file_set_metadata() errors: file set version '" +
                 kg_version + "' for knowledge graph '" + kg_id + "'" +
                 "could not be accessed?"
             )

@@ -314,7 +314,7 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kg_id}/{kg_version}/contents:
+  /{kg_id}/{kg_version}/metadata:
     get:
       parameters:
       - name: kg_id
@@ -336,7 +336,7 @@ paths:
       tags:
         - content
       summary: Get file list and details for a specified KGE File Set version.
-      operationId: get_file_set_contents
+      operationId: get_file_set_metadata
       responses:
         '200':
           description: >-

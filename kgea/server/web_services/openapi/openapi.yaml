@@ -316,54 +316,6 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
-  /{kg_id}/{kg_version}/contents:
-    get:
-      operationId: get_file_set_contents
-      parameters:
-      - description: KGE File Set identifier for the knowledge graph for which data
-          file metadata are being accessed
-        explode: false
-        in: path
-        name: kg_id
-        required: true
-        schema:
-          type: string
-        style: simple
-      - description: Specific version of KGE File Set for the knowledge graph for
-          which data file metadata are being accessed
-        explode: false
-        in: path
-        name: kg_version
-        required: true
-        schema:
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/KgeFileSetStatus'
-          description: Annotated list of files of for a given version of a specified
-            KGE File Set.
-        "404":
-          content:
-            application/json:
-              schema:
-                type: string
-          description: Knowledge graph or requested KGE File Set version is unknown.
-        "400":
-          content:
-            application/json:
-              schema:
-                type: string
-          description: Bad request. Request is invalid according to this OpenAPI schema
-            OR a specific parameter is believed to be invalid somehow (or just not
-            recognized).
-      summary: Get file list and details for a specified KGE File Set version.
-      tags:
-      - content
-      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
   /{kg_id}/{kg_version}/download:
     get:
       operationId: download_file_set
@@ -465,6 +417,54 @@ paths:
             OR a specific parameter is believed to be invalid somehow (or just not
             recognized).
       summary: Meta knowledge graph representation of this KGX knowledge graph.
+      tags:
+      - content
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
+  /{kg_id}/{kg_version}/metadata:
+    get:
+      operationId: get_file_set_metadata
+      parameters:
+      - description: KGE File Set identifier for the knowledge graph for which data
+          file metadata are being accessed
+        explode: false
+        in: path
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Specific version of KGE File Set for the knowledge graph for
+          which data file metadata are being accessed
+        explode: false
+        in: path
+        name: kg_version
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KgeFileSetStatus'
+          description: Annotated list of files of for a given version of a specified
+            KGE File Set.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or requested KGE File Set version is unknown.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Get file list and details for a specified KGE File Set version.
       tags:
       - content
       x-openapi-router-controller: kgea.server.web_services.controllers.content_controller

@@ -223,8 +223,8 @@ def _versioned_target_url(kg_id: str, kg_version: str, target: str):
     return BACKEND + kg_id + "/" + kg_version + "/" + target  # GET
 
 
-def get_fileset_contents_url(kg_id: str, kg_version: str):
-    return _versioned_target_url(kg_id, kg_version, target="contents")
+def get_fileset_metadata_url(kg_id: str, kg_version: str):
+    return _versioned_target_url(kg_id, kg_version, target="metadata")
 
 
 def get_meta_knowledge_graph_url(kg_id: str, kg_version: str):

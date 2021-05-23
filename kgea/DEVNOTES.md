@@ -110,7 +110,7 @@ async def access(request: web.Request, kg_name, session) -> web.Response:
 becomes something like:
 
 ```python
-from ..kge_handlers import get_kge_file_set_contents
+from ..kge_handlers import get_kge_file_set_metadata
 
 async def access(request: web.Request, kg_name: str, session: str) -> web.Response:
     """Get KGE File Sets
@@ -123,10 +123,10 @@ async def access(request: web.Request, kg_name: str, session: str) -> web.Respon
     :type session: str
 
     """
-    return await get_kge_file_set_contents(request, kg_name, session)
+    return await get_kge_file_set_metadata(request, kg_name, session)
 ```
 
-where `get_kge_file_set_contents` is a handler method defined in the project developer defined Python module `kge_handlers`, assumed to be sitting alongside the generated api code in `provider_controller.py` (under the `web_services/controllers` package in the code generated `server` subdirectory of the KGE Archive project).
+where `get_kge_file_set_metadata` is a handler method defined in the project developer defined Python module `kge_handlers`, assumed to be sitting alongside the generated api code in `provider_controller.py` (under the `web_services/controllers` package in the code generated `server` subdirectory of the KGE Archive project).
 
 This code delegation needs to be repaired every time the code generator is run on the `kgea_api.yaml` specification.
 
