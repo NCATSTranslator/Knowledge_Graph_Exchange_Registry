@@ -447,9 +447,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KgeFileSetStatus'
-          description: Annotated list of files of for a given version of a specified
-            KGE File Set.
+                $ref: '#/components/schemas/KgeMetadata'
+          description: Provider and content metadata relating to the given version
+            of a specified KGE File Set.
         "404":
           content:
             application/json:
@@ -464,7 +464,7 @@ paths:
           description: Bad request. Request is invalid according to this OpenAPI schema
             OR a specific parameter is believed to be invalid somehow (or just not
             recognized).
-      summary: Get file list and details for a specified KGE File Set version.
+      summary: Get provider and content metadata for a specified KGE File Set version.
       tags:
       - content
       x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
@@ -511,34 +511,195 @@ components:
           type: array
       title: KgeFileSetEntry
       type: object
-    KgeFileSetStatus:
-      description: KGE File Set Status including inventory of associated files.
+    KgeMetadata:
+      description: KGE File Set provider and content metadata, including the inventory
+        of associated files.
       example:
-        files:
-        - kgx_compliance_status: kgx_compliance_status
-          file_type: file_type
-          original_name: original_name
-          assigned_name: assigned_name
-          file_size: 0.8008282
-          errors:
-          - errors
-          - errors
-        - kgx_compliance_status: kgx_compliance_status
-          file_type: file_type
-          original_name: original_name
-          assigned_name: assigned_name
-          file_size: 0.8008282
-          errors:
-          - errors
-          - errors
-        kg_id: semmeddb
-        kg_version: "1.0"
+        provider:
+          kg_name: Semantic Medline Database
+          license_name: Creative-Commons-4.0
+          translator_team: RENCI
+          kg_description: Curated Biolink Model-compliant knowledge graph subset of
+            the Semantic Medline Database
+          terms_of_service: https://ncats.nih.gov/translator
+          kg_id: semantic_medline_database
+          submitter_name: John Smith
+          submitter_email: jsmith@knowledge.org
+          translator_component: KP
+          license_url: https://creativecommons.org/licenses/by/4.0/legalcode
+        fileset:
+          contents:
+            nodes:
+              key:
+                id_prefixes:
+                - CHEMBL.COMPOUND
+                - INCHIKEY
+                count: 0
+                count_by_source:
+                  ChEMBL: 1234
+            edges:
+            - predicate: biolink:interacts_with
+              subject: biolink:PhenotypicFeature
+              count: 6
+              relations:
+              - inhibits
+              - activates
+              count_by_source:
+                ChEMBL: 1234
+              object: biolink:PhenotypicFeature
+            - predicate: biolink:interacts_with
+              subject: biolink:PhenotypicFeature
+              count: 6
+              relations:
+              - inhibits
+              - activates
+              count_by_source:
+                ChEMBL: 1234
+              object: biolink:PhenotypicFeature
+          files:
+          - file_type: file_type
+            original_name: original_name
+            assigned_name: assigned_name
+            file_size: 0.8008282
+            errors:
+            - errors
+            - errors
+          - file_type: file_type
+            original_name: original_name
+            assigned_name: assigned_name
+            file_size: 0.8008282
+            errors:
+            - errors
+            - errors
+          kg_version: "1.0"
+      properties:
+        provider:
+          $ref: '#/components/schemas/KgeProviderMetadata'
+        fileset:
+          $ref: '#/components/schemas/KgeFileSetMetadata'
+      title: KgeMetadata
+      type: object
+    KgeProviderMetadata:
+      description: KGE File Set provider and content metadata, including the inventory
+        of associated files.
+      example:
+        kg_name: Semantic Medline Database
+        license_name: Creative-Commons-4.0
+        translator_team: RENCI
+        kg_description: Curated Biolink Model-compliant knowledge graph subset of
+          the Semantic Medline Database
+        terms_of_service: https://ncats.nih.gov/translator
+        kg_id: semantic_medline_database
+        submitter_name: John Smith
+        submitter_email: jsmith@knowledge.org
+        translator_component: KP
+        license_url: https://creativecommons.org/licenses/by/4.0/legalcode
       properties:
         kg_id:
-          description: Identifier of the knowledge graph that owns the file set.
-          example: semmeddb
+          description: Identifier of the knowledge graph that the metadata describes.
+          example: semantic_medline_database
           title: kg_id
           type: string
+        kg_name:
+          description: Semantic Medline Database.
+          example: Semantic Medline Database
+          title: kg_name
+          type: string
+        kg_description:
+          description: Identifier of the knowledge graph that the metadata describes.
+          example: Curated Biolink Model-compliant knowledge graph subset of the Semantic
+            Medline Database
+          title: kg_description
+          type: string
+        translator_component:
+          description: Type of Translator component generating the knowledge graph
+            (i.e. KP, ARA, SRI).
+          example: KP
+          title: translator_component
+          type: string
+        translator_team:
+          description: Translator team providing the knowledge graph data.
+          example: RENCI
+          title: translator_team
+          type: string
+        submitter_name:
+          description: Name of the submitter/owner of the knowledge graph dataset
+            provider
+          example: John Smith
+          title: submitter_name
+          type: string
+        submitter_email:
+          description: Email address for the submitter/owner of the knowledge graph
+            dataset provider.
+          example: jsmith@knowledge.org
+          title: submitter_email
+          type: string
+        license_name:
+          description: Name of Knowledge Graph data use license.
+          example: Creative-Commons-4.0
+          title: license_name
+          type: string
+        license_url:
+          description: URL to Knowledge Graph license data use description.
+          example: https://creativecommons.org/licenses/by/4.0/legalcode
+          title: license_url
+          type: string
+        terms_of_service:
+          description: URL to Knowledge Graph data use "terms of service".
+          example: https://ncats.nih.gov/translator
+          title: terms_of_service
+          type: string
+      title: KgeProviderMetadata
+      type: object
+    KgeFileSetMetadata:
+      description: Metadata including content metadata and the inventory of associated
+        files, for a specific version of KGE File Set.
+      example:
+        contents:
+          nodes:
+            key:
+              id_prefixes:
+              - CHEMBL.COMPOUND
+              - INCHIKEY
+              count: 0
+              count_by_source:
+                ChEMBL: 1234
+          edges:
+          - predicate: biolink:interacts_with
+            subject: biolink:PhenotypicFeature
+            count: 6
+            relations:
+            - inhibits
+            - activates
+            count_by_source:
+              ChEMBL: 1234
+            object: biolink:PhenotypicFeature
+          - predicate: biolink:interacts_with
+            subject: biolink:PhenotypicFeature
+            count: 6
+            relations:
+            - inhibits
+            - activates
+            count_by_source:
+              ChEMBL: 1234
+            object: biolink:PhenotypicFeature
+        files:
+        - file_type: file_type
+          original_name: original_name
+          assigned_name: assigned_name
+          file_size: 0.8008282
+          errors:
+          - errors
+          - errors
+        - file_type: file_type
+          original_name: original_name
+          assigned_name: assigned_name
+          file_size: 0.8008282
+          errors:
+          - errors
+          - errors
+        kg_version: "1.0"
+      properties:
         kg_version:
           description: Version identifier of the file set.
           example: "1.0"
@@ -552,10 +713,12 @@ components:
             $ref: '#/components/schemas/KgeFile'
           title: files
           type: array
-      title: KgeFileSetStatus
+        contents:
+          $ref: '#/components/schemas/MetaKnowledgeGraph'
+      title: KgeFileSetMetadata
       type: object
     KgeFileSetStatusCode:
-      description: Version identifier of the file set.
+      description: Code for status of processing for a KGE File Set.
       enum:
       - Created
       - Loaded
@@ -568,7 +731,6 @@ components:
       additionalProperties: false
       description: Annotated file in a KGE File Set.
       example:
-        kgx_compliance_status: kgx_compliance_status
         file_type: file_type
         original_name: original_name
         assigned_name: assigned_name
@@ -596,9 +758,7 @@ components:
           title: file_size
           type: number
         kgx_compliance_status:
-          description: one of 'assessing', 'compliant' or 'non-compliant'
-          title: kgx_compliance_status
-          type: string
+          $ref: '#/components/schemas/KgxCompliance'
         errors:
           description: if 'non-compliant' file, list of error messags
           items:
@@ -613,6 +773,14 @@ components:
       - original_name
       title: KgeFile
       type: object
+    KgxCompliance:
+      description: KGX compliance status of a specific KGE File.
+      enum:
+      - Assessing
+      - Compliant
+      - Non-Compliant
+      title: KgxCompliance
+      type: string
     UploadTokenObject:
       additionalProperties: false
       description: Upload token associated with a file for uploading into a KGE File

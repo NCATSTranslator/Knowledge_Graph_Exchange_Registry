@@ -335,16 +335,16 @@ paths:
           type: string
       tags:
         - content
-      summary: Get file list and details for a specified KGE File Set version.
+      summary: Get provider and content metadata for a specified KGE File Set version.
       operationId: get_file_set_metadata
       responses:
         '200':
           description: >-
-            Annotated list of files of for a given version of a specified KGE File Set.
+            Provider and content metadata relating to the given version of a specified KGE File Set.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KgeFileSetStatus'
+                $ref: '#/components/schemas/KgeMetadata'
         '404':
           description: >-
             Knowledge graph or requested KGE File Set version is unknown.
@@ -502,16 +502,78 @@ components:
             type: string
           minItems: 1
           example: ["4.1", "4.2", "4.3"]
-    KgeFileSetStatus:
+    KgeMetadata:
       description: >-
-        KGE File Set Status including inventory of associated files.
+        KGE File Set provider and content metadata,
+        including the inventory of associated files.
+      type: object
+      properties:
+        provider:
+          $ref: '#/components/schemas/KgeProviderMetadata'
+        fileset:
+          $ref: '#/components/schemas/KgeFileSetMetadata'
+    KgeProviderMetadata:
+      description: >-
+        KGE File Set provider and content metadata,
+        including the inventory of associated files.
       type: object
       properties:
         kg_id:
           description: >-
-            Identifier of the knowledge graph that owns the file set.
+            Identifier of the knowledge graph that the metadata describes.
           type: string
-          example: "semmeddb"
+          example: "semantic_medline_database"
+        kg_name:
+          description: >-
+            Semantic Medline Database.
+          type: string
+          example: "Semantic Medline Database"
+        kg_description:
+          description: >-
+            Identifier of the knowledge graph that the metadata describes.
+          type: string
+          example: "Curated Biolink Model-compliant knowledge graph subset of the Semantic Medline Database"
+        translator_component:
+          description: >-
+            Type of Translator component generating the knowledge graph (i.e. KP, ARA, SRI).
+          type: string
+          example: "KP"
+        translator_team:
+          description: >-
+            Translator team providing the knowledge graph data.
+          type: string
+          example: "RENCI"
+        submitter_name:
+          description: >-
+            Name of the submitter/owner of the knowledge graph dataset provider
+          type: string
+          example: "John Smith"
+        submitter_email:
+          description: >-
+            Email address for the submitter/owner of the knowledge graph dataset provider.
+          type: string
+          example: "jsmith@knowledge.org"
+        license_name:
+          description: >-
+            Name of Knowledge Graph data use license.
+          type: string
+          example: "Creative-Commons-4.0"
+        license_url:
+          description: >-
+            URL to Knowledge Graph license data use description.
+          type: string
+          example: "https://creativecommons.org/licenses/by/4.0/legalcode"
+        terms_of_service:
+          description: >-
+            URL to Knowledge Graph data use "terms of service".
+          type: string
+          example: "https://ncats.nih.gov/translator"
+    KgeFileSetMetadata:
+      description: >-
+        Metadata including content metadata and the inventory of
+        associated files, for a specific version of KGE File Set.
+      type: object
+      properties:
         kg_version:
           description: >-
             Version identifier of the file set.
@@ -525,9 +587,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/KgeFile'
+        contents:
+          $ref: '#/components/schemas/MetaKnowledgeGraph'
     KgeFileSetStatusCode:
       description: >-
-        Version identifier of the file set.
+        Code for status of processing for a KGE File Set.
       type: string
       enum:
         - Created
@@ -555,8 +619,7 @@ components:
           type: number
           format: float
         kgx_compliance_status:
-          description: one of 'assessing', 'compliant' or 'non-compliant'
-          type: string
+          $ref: '#/components/schemas/KgxCompliance'
         errors:
           description: if 'non-compliant' file, list of error messags
           type: array
@@ -569,6 +632,14 @@ components:
         - file_size
         - kgx_compliance_status
       additionalProperties: false
+    KgxCompliance:
+      description: >-
+        KGX compliance status of a specific KGE File.
+      type: string
+      enum:
+        - Assessing
+        - Compliant
+        - Non-Compliant
     UploadTokenObject:
       description: >-
         Upload token associated with a file for uploading into a KGE File Set.

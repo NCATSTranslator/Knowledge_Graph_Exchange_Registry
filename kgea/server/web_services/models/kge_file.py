@@ -1,7 +1,9 @@
 # coding: utf-8
 
 from typing import List
+
 from kgea.server.web_services.models.base_model_ import Model
+from kgea.server.web_services.models.kgx_compliance import KgxCompliance
 from kgea.server.web_services import util
 
 
@@ -11,7 +13,7 @@ class KgeFile(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, original_name: str=None, assigned_name: str=None, file_type: str=None, file_size: float=None, kgx_compliance_status: str=None, errors: List[str]=None):
+    def __init__(self, original_name: str=None, assigned_name: str=None, file_type: str=None, file_size: float=None, kgx_compliance_status: KgxCompliance=None, errors: List[str]=None):
         """KgeFile - a model defined in OpenAPI
 
         :param original_name: The original_name of this KgeFile.
@@ -26,7 +28,7 @@ class KgeFile(Model):
             'assigned_name': str,
             'file_type': str,
             'file_size': float,
-            'kgx_compliance_status': str,
+            'kgx_compliance_status': KgxCompliance,
             'errors': List[str]
         }
 
@@ -159,10 +161,9 @@ class KgeFile(Model):
     def kgx_compliance_status(self):
         """Gets the kgx_compliance_status of this KgeFile.
 
-        one of 'assessing', 'compliant' or 'non-compliant'
 
         :return: The kgx_compliance_status of this KgeFile.
-        :rtype: str
+        :rtype: KgxCompliance
         """
         return self._kgx_compliance_status
 
@@ -170,10 +171,9 @@ class KgeFile(Model):
     def kgx_compliance_status(self, kgx_compliance_status):
         """Sets the kgx_compliance_status of this KgeFile.
 
-        one of 'assessing', 'compliant' or 'non-compliant'
 
         :param kgx_compliance_status: The kgx_compliance_status of this KgeFile.
-        :type kgx_compliance_status: str
+        :type kgx_compliance_status: KgxCompliance
         """
         if kgx_compliance_status is None:
             raise ValueError("Invalid value for `kgx_compliance_status`, must not be `None`")
