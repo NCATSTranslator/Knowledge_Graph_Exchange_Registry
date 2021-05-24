@@ -482,6 +482,8 @@ class KgeFileSet:
         fileset_metadata: KgeFileSetMetadata = \
             KgeFileSetMetadata(
                 kg_version=self.kg_version,
+                submitter=self.submitter,
+                submitter_email=self.submitter_email,
                 status=self.status
             )
 
