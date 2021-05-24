@@ -844,19 +844,21 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
-        file_set: KgeFileSet = knowledge_graph.get_file_set(kg_version)
+        try:
+            file_set_metadata: KgeMetadata = knowledge_graph.get_metadata(kg_version)
 
-        if file_set:
-            file_set_metadata: Optional[KgeMetadata] = file_set.get_metadata()
             file_set_status_as_dict = file_set_metadata.to_dict()
+
             response = web.json_response(file_set_status_as_dict, status=200)
+
             return await with_session(request, response)
-        else:
+
+        except RuntimeError as rte:
             await report_error(
                 request,
                 "get_kge_file_set_metadata() errors: file set version '" +
                 kg_version + "' for knowledge graph '" + kg_id + "'" +
-                "could not be accessed?"
+                "could not be accessed. Error: "+str(rte)
             )
     else:
         # If session is not active, then just

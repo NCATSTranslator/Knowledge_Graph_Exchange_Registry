@@ -11,19 +11,43 @@
             fetch("{{get_fileset_metadata}}", {method: "GET", credentials: "include"})
                 .then(
                     response => {
-                        console.log('loadMetadata() FSM HTTP response code:', response.status);
+                        console.log("loadMetadata() FSM HTTP response code:", response.status);
                         response.json()
                             .then(metadata => {
                                 // window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
                                 let table = "";
-                                Object.entries(metadata).forEach(([tag,value]) => {
-                                    table += '<tr><th>' +  tag + '</th>';
-                                    if(tag === 'files')  {
+                                Object.entries(metadata).forEach(([tag1,value1]) => {
+                                    table += "<tr><th>" +  tag1[0].toUpperCase() + tag1.substring(1) + "</th>";
+                                    // Each of the values of the metadata tags are objects
+                                    table += "<td><table>";
+                                    Object.entries(value1).forEach(([tag2,value2]) => {
+                                        let tag_words = tag2.split("_");
+                                        let tag_label = "";
+                                        tag_words.forEach(
+                                            word => {
+                                                if(word === "kg") {
+                                                    word = "graph";
+                                                }
+                                                tag_label += word[0].toUpperCase() + word.substring(1) + " ";
+                                            }
+                                        )
+                                        table += "<tr><th>" + tag_label + "</th>";
+                                        if(tag2  === "files") {
+                                            table += "<td>";
+                                            value2.forEach(file_entry => {
+                                                Object.entries(file_entry).forEach(([tag3, value3]) => {
+                                                    table += value3 + "<br>";
+                                                });
+                                            });
+                                            table += "</td>";
+                                        } else {
+                                            table += "<td>" + value2  + "</td>";
+                                        }
+                                        table += "</tr>";
+                                    });
+                                    table += "</table></td>";
+                                    /* if(tag === 'files')  {
                                         table += '<td><table>';
-                                        /*
-                                        table += '<tr><th>Original<br>Name</th><th>Assigned<br>Name</th>' +
-                                                 '<th>File<br>Type</th><th>Size<br>(MB)</th><th>Status</th></tr>';
-                                         */
                                         value.forEach(file_entry => {
                                             table += '<tr>';
                                             Object.entries(file_entry).forEach(([tag,value]) => {
@@ -34,7 +58,8 @@
                                         table += '</table></td>';
                                     } else {
                                         table += '<td>' + value  + '</td>';
-                                    }
+                                    }*/
+
                                     table += '</tr>';
                                 });
                                 table += '<tr><th>Content Metadata</th><td><div id="content_metadata"></div></td></tr>';

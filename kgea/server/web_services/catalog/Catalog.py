@@ -35,7 +35,7 @@ import yaml
 from kgea.server.web_services.models import (
     KgeMetadata,
     KgeFileSetStatusCode,
-    KgeFile
+    KgeFile, KgeProviderMetadata, KgeFileSetMetadata
 )
 
 try:
@@ -477,32 +477,18 @@ class KgeFileSet:
 
         return fileset_metadata_yaml
 
-    def get_metadata(self) -> Optional[KgeMetadata]:
+    def get_metadata(self) -> KgeFileSetMetadata:
 
-        file_set_metadata = KgeMetadata(self.kg_id, self.kg_version, self.status)
+        fileset_metadata: KgeFileSetMetadata = \
+            KgeFileSetMetadata(
+                kg_version=self.kg_version,
+                status=self.status
+            )
 
-        # # Listings Approach  - DEPRECATED FROM THE GENERAL CATALOG?
-        # # - Introspect on Bucket
-        # # - Create URL per Item Listing
-        # # - Send Back URL with Dictionary
-        # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
-        # # TODO: convert into redirect approach with cross-origin scripting?
-        # file_set_location, _ = with_version(func=get_object_location, version=self.kg_version)(self.kg_id)
-        # kg_files = kg_files_in_location(
-        #     bucket_name=_KGEA_APP_CONFIG['bucket'],
-        #     object_location=file_set_location
-        # )
-        # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
-        # kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
-        # kg_urls = dict(
-        #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
-        #         kg_listing))
-        # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
-
-        # TODO: populate with more complete file_set information here
         file_set: List[KgeFile] = [
             KgeFile(
                 original_name=name,
+                # TODO: populate with more complete file_set information here
                 # assigned_name="nodes.tsv",
                 # file_type="Nodes",
                 # file_size=100,  # megabytes
@@ -511,10 +497,12 @@ class KgeFileSet:
             )
             for name in self.get_data_file_names()
         ]
+        fileset_metadata.files = file_set
 
-        file_set_metadata.files = file_set
+        # load the content_metadata JSON file contents here
+        fileset_metadata.content = None
 
-        return file_set_metadata
+        return fileset_metadata
 
 
 class KgeKnowledgeGraph:
@@ -757,6 +745,52 @@ class KgeKnowledgeGraph:
 
         # then return it for further processing
         return file_set
+
+    # # Listings Approach for getting KGE File Metadata  - DEPRECATED FROM THE GENERAL CATALOG?
+    # # - Introspect on Bucket
+    # # - Create URL per Item Listing
+    # # - Send Back URL with Dictionary
+    # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
+    # # TODO: convert into redirect approach with cross-origin scripting?
+    # file_set_location, _ = with_version(func=get_object_location, version=self.kg_version)(self.kg_id)
+    # kg_files = kg_files_in_location(
+    #     bucket_name=_KGEA_APP_CONFIG['bucket'],
+    #     object_location=file_set_location
+    # )
+    # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
+    # kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
+    # kg_urls = dict(
+    #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
+    #         kg_listing))
+    # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
+
+    def get_metadata(self, kg_version: str) -> KgeMetadata:
+
+        provider_metadata: KgeProviderMetadata = \
+            KgeProviderMetadata(
+                kg_id=self.kg_id,
+                kg_name=self.get_name(),
+                kg_description=self.parameter["kg_description"],
+                translator_component=self.parameter["translator_component"],
+                translator_team=self.parameter["translator_team"],
+                submitter_name=self.parameter["submitter"],
+                submitter_email=self.parameter["submitter_email"],
+                license_name=self.parameter["license_name"],
+                license_url=self.parameter["license_url"],
+                terms_of_service=self.parameter["terms_of_service"]
+            )
+
+        fileset_metadata: Optional[KgeFileSetMetadata] = None
+
+        fileset: KgeFileSet = self.get_file_set(kg_version)
+        if fileset:
+            fileset_metadata: KgeFileSetMetadata = fileset.get_metadata()
+        else:
+            logger.warning("KGE File Set version '"+kg_version+"' does not exist for graph '"+self.kg_id+"'")
+
+        metadata = KgeMetadata(provider=provider_metadata, fileset=fileset_metadata)
+
+        return metadata
 
 
 class KgeArchiveCatalog:
