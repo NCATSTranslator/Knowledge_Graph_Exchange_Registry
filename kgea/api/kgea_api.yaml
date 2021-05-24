@@ -545,12 +545,12 @@ components:
           example: "RENCI"
         submitter_name:
           description: >-
-            Name of the submitter/owner of the knowledge graph dataset provider
+            Name of the submitter/owner of the knowledge graph provider
           type: string
           example: "John Smith"
         submitter_email:
           description: >-
-            Email address for the submitter/owner of the knowledge graph dataset provider.
+            Email address for the submitter/owner of the knowledge graph provider.
           type: string
           example: "jsmith@knowledge.org"
         license_name:
@@ -579,6 +579,16 @@ components:
             Version identifier of the file set.
           type: string
           example: "1.0"
+        submitter_name:
+          description: >-
+            Name of the submitter of the KGE FileSet
+          type: string
+          example: "John Smith"
+        submitter_email:
+          description: >-
+            Email address for the submitter.
+          type: string
+          example: "jsmith@knowledge.org"
         status:
           $ref: '#/components/schemas/KgeFileSetStatusCode'
         files:

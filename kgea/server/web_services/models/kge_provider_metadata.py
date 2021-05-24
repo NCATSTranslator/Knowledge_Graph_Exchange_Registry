@@ -189,7 +189,7 @@ class KgeProviderMetadata(Model):
     def submitter_name(self):
         """Gets the submitter_name of this KgeProviderMetadata.
 
-        Name of the submitter/owner of the knowledge graph dataset provider
+        Name of the submitter/owner of the knowledge graph provider
 
         :return: The submitter_name of this KgeProviderMetadata.
         :rtype: str
@@ -200,7 +200,7 @@ class KgeProviderMetadata(Model):
     def submitter_name(self, submitter_name):
         """Sets the submitter_name of this KgeProviderMetadata.
 
-        Name of the submitter/owner of the knowledge graph dataset provider
+        Name of the submitter/owner of the knowledge graph provider
 
         :param submitter_name: The submitter_name of this KgeProviderMetadata.
         :type submitter_name: str
@@ -212,7 +212,7 @@ class KgeProviderMetadata(Model):
     def submitter_email(self):
         """Gets the submitter_email of this KgeProviderMetadata.
 
-        Email address for the submitter/owner of the knowledge graph dataset provider.
+        Email address for the submitter/owner of the knowledge graph provider.
 
         :return: The submitter_email of this KgeProviderMetadata.
         :rtype: str
@@ -223,7 +223,7 @@ class KgeProviderMetadata(Model):
     def submitter_email(self, submitter_email):
         """Sets the submitter_email of this KgeProviderMetadata.
 
-        Email address for the submitter/owner of the knowledge graph dataset provider.
+        Email address for the submitter/owner of the knowledge graph provider.
 
         :param submitter_email: The submitter_email of this KgeProviderMetadata.
         :type submitter_email: str

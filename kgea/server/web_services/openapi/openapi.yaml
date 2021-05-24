@@ -572,6 +572,8 @@ components:
             - errors
             - errors
           kg_version: "1.0"
+          submitter_name: John Smith
+          submitter_email: jsmith@knowledge.org
       properties:
         provider:
           $ref: '#/components/schemas/KgeProviderMetadata'
@@ -623,14 +625,13 @@ components:
           title: translator_team
           type: string
         submitter_name:
-          description: Name of the submitter/owner of the knowledge graph dataset
-            provider
+          description: Name of the submitter/owner of the knowledge graph provider
           example: John Smith
           title: submitter_name
           type: string
         submitter_email:
           description: Email address for the submitter/owner of the knowledge graph
-            dataset provider.
+            provider.
           example: jsmith@knowledge.org
           title: submitter_email
           type: string
@@ -699,11 +700,23 @@ components:
           - errors
           - errors
         kg_version: "1.0"
+        submitter_name: John Smith
+        submitter_email: jsmith@knowledge.org
       properties:
         kg_version:
           description: Version identifier of the file set.
           example: "1.0"
           title: kg_version
+          type: string
+        submitter_name:
+          description: Name of the submitter of the KGE FileSet
+          example: John Smith
+          title: submitter_name
+          type: string
+        submitter_email:
+          description: Email address for the submitter.
+          example: jsmith@knowledge.org
+          title: submitter_email
           type: string
         status:
           $ref: '#/components/schemas/KgeFileSetStatusCode'

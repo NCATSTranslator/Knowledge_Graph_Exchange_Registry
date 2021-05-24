@@ -15,16 +15,20 @@ class KgeFileSetMetadata(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, kg_version: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, contents: MetaKnowledgeGraph=None):
+    def __init__(self, kg_version: str=None, submitter_name: str=None, submitter_email: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, contents: MetaKnowledgeGraph=None):
         """KgeFileSetMetadata - a model defined in OpenAPI
 
         :param kg_version: The kg_version of this KgeFileSetMetadata.
+        :param submitter_name: The submitter_name of this KgeFileSetMetadata.
+        :param submitter_email: The submitter_email of this KgeFileSetMetadata.
         :param status: The status of this KgeFileSetMetadata.
         :param files: The files of this KgeFileSetMetadata.
         :param contents: The contents of this KgeFileSetMetadata.
         """
         self.openapi_types = {
             'kg_version': str,
+            'submitter_name': str,
+            'submitter_email': str,
             'status': KgeFileSetStatusCode,
             'files': List[KgeFile],
             'contents': MetaKnowledgeGraph
@@ -32,12 +36,16 @@ class KgeFileSetMetadata(Model):
 
         self.attribute_map = {
             'kg_version': 'kg_version',
+            'submitter_name': 'submitter_name',
+            'submitter_email': 'submitter_email',
             'status': 'status',
             'files': 'files',
             'contents': 'contents'
         }
 
         self._kg_version = kg_version
+        self._submitter_name = submitter_name
+        self._submitter_email = submitter_email
         self._status = status
         self._files = files
         self._contents = contents
@@ -73,6 +81,52 @@ class KgeFileSetMetadata(Model):
         """
 
         self._kg_version = kg_version
+
+    @property
+    def submitter_name(self):
+        """Gets the submitter_name of this KgeFileSetMetadata.
+
+        Name of the submitter of the KGE FileSet
+
+        :return: The submitter_name of this KgeFileSetMetadata.
+        :rtype: str
+        """
+        return self._submitter_name
+
+    @submitter_name.setter
+    def submitter_name(self, submitter_name):
+        """Sets the submitter_name of this KgeFileSetMetadata.
+
+        Name of the submitter of the KGE FileSet
+
+        :param submitter_name: The submitter_name of this KgeFileSetMetadata.
+        :type submitter_name: str
+        """
+
+        self._submitter_name = submitter_name
+
+    @property
+    def submitter_email(self):
+        """Gets the submitter_email of this KgeFileSetMetadata.
+
+        Email address for the submitter.
+
+        :return: The submitter_email of this KgeFileSetMetadata.
+        :rtype: str
+        """
+        return self._submitter_email
+
+    @submitter_email.setter
+    def submitter_email(self, submitter_email):
+        """Sets the submitter_email of this KgeFileSetMetadata.
+
+        Email address for the submitter.
+
+        :param submitter_email: The submitter_email of this KgeFileSetMetadata.
+        :type submitter_email: str
+        """
+
+        self._submitter_email = submitter_email
 
     @property
     def status(self):
