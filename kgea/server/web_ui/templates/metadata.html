@@ -1,12 +1,22 @@
 {% extends "layout.html" %}
 {% block scripts %}
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"
             integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
             crossorigin="anonymous"></script>
+    <style>
+        .metadata_header {
+            font-weight: bold;
+            /* background-color: #5e2ca5; */
+            color: #5e2ca5;
+        }
+    </style>
     <script>
         async function loadMetadata() {
+
             // window.alert("Loading metadata for FileSet version '{{kg_version}}' of graph '{{kg_name}}'");
+
             // Retrieve fileset metadata for display
             fetch("{{get_fileset_metadata}}", {method: "GET", credentials: "include"})
                 .then(
@@ -15,11 +25,10 @@
                         response.json()
                             .then(metadata => {
                                 // window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
-                                let table = "";
                                 Object.entries(metadata).forEach(([tag1,value1]) => {
-                                    table += "<tr><th>" +  tag1[0].toUpperCase() + tag1.substring(1) + "</th>";
+                                    //provider_metadata_table += "<tr><th>" +  tag1[0].toUpperCase() + tag1.substring(1) + "</th>";
                                     // Each of the values of the metadata tags are objects
-                                    table += "<td><table>";
+                                    let metadata_table = "<table class=\"metadata\">";
                                     Object.entries(value1).forEach(([tag2,value2]) => {
                                         let tag_words = tag2.split("_");
                                         let tag_label = "";
@@ -31,39 +40,29 @@
                                                 tag_label += word[0].toUpperCase() + word.substring(1) + " ";
                                             }
                                         )
-                                        table += "<tr><th>" + tag_label + "</th>";
                                         if(tag2  === "files") {
-                                            table += "<td>";
+                                            let file_list = "<ul class=\"metadata\">";
                                             value2.forEach(file_entry => {
                                                 Object.entries(file_entry).forEach(([tag3, value3]) => {
-                                                    table += value3 + "<br>";
+                                                    file_list += "<ul><b>" + value3 + "</b></ul>";
                                                 });
                                             });
-                                            table += "</td>";
+                                            file_list += "</ul>";
+                                            document.getElementById('file_details').innerHTML = file_list;
                                         } else {
-                                            table += "<td>" + value2  + "</td>";
+                                            metadata_table += "<tr><th>" + tag_label + "</th><td>" + value2  + "</td>";
                                         }
-                                        table += "</tr>";
+                                        metadata_table += "</tr>";
                                     });
-                                    table += "</table></td>";
-                                    /* if(tag === 'files')  {
-                                        table += '<td><table>';
-                                        value.forEach(file_entry => {
-                                            table += '<tr>';
-                                            Object.entries(file_entry).forEach(([tag,value]) => {
-                                                table += '<td>' + value  + '</td>';
-                                            });
-                                            table += '</tr>';
-                                        });
-                                        table += '</table></td>';
+                                    metadata_table += "</table>";
+                                    if(tag1  ===  'provider') {
+                                        document.getElementById('provider_metadata').innerHTML = metadata_table;
+                                    } else if(tag1  ===  'fileset') {
+                                        document.getElementById('fileset_metadata').innerHTML = metadata_table;
                                     } else {
-                                        table += '<td>' + value  + '</td>';
-                                    }*/
-
-                                    table += '</tr>';
+                                        window.alert("Unknown top level metadata tag: "+ String(tag1) + "?...ignored!" );
+                                    }
                                 });
-                                table += '<tr><th>Content Metadata</th><td><div id="content_metadata"></div></td></tr>';
-                                document.getElementById('fileset_metadata').innerHTML = table;
                             })
                             .catch(error => {
                                 let err_msg = "loadMetadata() FSM response.text promise access ERROR: " + error;
@@ -85,12 +84,12 @@
                         response.text()
                             .then(mkg_url => {
                                 if (mkg_url === "unavailable") {
-                                    document.getElementById('content_metadata').innerHTML = "unavailable?";
+                                    document.getElementById('content_metadata').innerHTML = "Unavailable?";
                                 } else {
                                     // window.alert("MKG URL: " + mkg_url);
                                     let a = document.createElement('a');
                                     a.href = mkg_url;
-                                    a.text = "available here";
+                                    a.text = "Available Here";
                                     document.getElementById('content_metadata').appendChild(a);
                                 }
                             })
@@ -106,6 +105,28 @@
                     window.alert(err_msg);
                 });
         }
+
+        $(document).ready(function () {
+
+            $( "#accordion" ).accordion({
+                active: 0,
+                header: "h2",
+                heightStyle: "content",
+                animate: false,
+                collapsible: true,
+                classes: {
+                    "ui-accordion-header": "ui-corner-top  metadata_header",
+                }
+            });
+
+            // After initialization...
+
+            // Getter
+            //  let active = $( "#accordion" ).accordion( "option", "active" );
+
+            // Setter
+            //  $( "#accordion" ).accordion( "option", "active", 2 );
+        });
     </script>
 {% endblock %}
 {% block body %}<body onload="loadMetadata()">{% endblock %}
@@ -115,5 +136,16 @@
 {% endblock %}
 {% block title %}Knowledge Graph Metadata{% endblock %}
 {% block content %}
-<table id="fileset_metadata"></table>
+
+<div id="accordion">
+  <h2>Provider Metadata</h2>
+  <div id="provider_metadata">Provider Metadata</div>
+  <h2>File Set Metadata</h2>
+  <div id="fileset_metadata">File Set Metadata</div>
+  <h2>Files</h2>
+  <div id="file_details">File Details</div>
+  <h2>Content Metadata</h2>
+    <div id="content_metadata"><span  class="metadata"><b>Content Metadata:</b></span> </div>
+</div>
+
 {% endblock %}
