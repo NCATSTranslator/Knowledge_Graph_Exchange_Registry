@@ -156,7 +156,7 @@ class KgeFileSet:
             self,
             kg_id: str,
             kg_version: str,
-            submitter: str,
+            submitter_name: str,
             submitter_email: str,
             size: str = 'unknown',
             revisions: str = 'creation',
@@ -168,7 +168,7 @@ class KgeFileSet:
 
         :param kg_id:
         :param kg_version:
-        :param submitter:
+        :param submitter_name:
         :param submitter_email:
         :param size:
         :param revisions:
@@ -178,7 +178,7 @@ class KgeFileSet:
 
         self.kg_id = kg_id
         self.kg_version = kg_version
-        self.submitter = submitter
+        self.submitter_name = submitter_name
         self.submitter_email = submitter_email
 
         # KGE File Set archive size, may initially be unknown
@@ -204,8 +204,8 @@ class KgeFileSet:
         else:
             self.status = KgeFileSetStatusCode.CREATED
 
-    def get_submitter(self):
-        return self.submitter
+    def get_submitter_name(self):
+        return self.submitter_name
 
     def get_submitter_email(self):
         return self.submitter_email
@@ -468,7 +468,7 @@ class KgeFileSet:
             filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
             kg_id=self.kg_id,
             kg_version=self.kg_version,
-            submitter=self.submitter,
+            submitter_name=self.submitter_name,
             submitter_email=self.submitter_email,
             size=self.size,
             revisions=self.revisions,
@@ -482,7 +482,7 @@ class KgeFileSet:
         fileset_metadata: KgeFileSetMetadata = \
             KgeFileSetMetadata(
                 kg_version=self.kg_version,
-                submitter=self.submitter,
+                submitter_name=self.submitter_name,
                 submitter_email=self.submitter_email,
                 status=self.status
             )
@@ -526,9 +526,9 @@ class KgeKnowledgeGraph:
         "translator_component",
         "translator_team",
 
-        # 'submitter'  and 'submitter_email' here refers to the individual
+        # 'submitter_name'  and 'submitter_email' here refers to the individual
         # who originally registers the KGE Knowledge Graph and associated metadata
-        "submitter",
+        "submitter_name",
         "submitter_email",
 
         "license_name",
@@ -584,7 +584,7 @@ class KgeKnowledgeGraph:
         #     self._file_set_versions[kg_version] = KgeFileSet(
         #         kg_id=self.kg_id,
         #         kg_version=kg_version,
-        #         submitter=kwargs['submitter'],
+        #         submitter_name=kwargs['submitter_name'],
         #         submitter_email=kwargs['submitter_email']
         #     )
         
@@ -632,7 +632,7 @@ class KgeKnowledgeGraph:
     # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
     # - translator_component - Translator component associated with the knowledge graph (e.g. KP, ARA or SRI)
     # - translator_team - specific Translator team (affiliation) contributing the file set, e.g. Clinical Data Provider
-    # - submitter - name of submitter of the KGE file set
+    # - submitter_name - name of submitter of the KGE file set
     # - submitter_email - contact email of the submitter
     # - kg_name: human readable name of the knowledge graph
     # - kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
@@ -675,7 +675,7 @@ class KgeKnowledgeGraph:
                 file_set = KgeFileSet(
                                 self.kg_id,
                                 kg_version=kg_version,
-                                submitter=self.parameter.setdefault('submitter', ''),
+                                submitter_name=self.parameter.setdefault('submitter_name', ''),
                                 submitter_email=self.parameter.setdefault('submitter_email', ''),
                                 archive_record=True
                             )
@@ -716,9 +716,9 @@ class KgeKnowledgeGraph:
         #   ${revisions}
         revisions = md.setdefault('revisions', '')
 
-        # submitter:
-        #   name: "${submitter}"
-        submitter = md.setdefault('submitter', '')
+        # submitter_name:
+        #   name: "${submitter_name}"
+        submitter_name = md.setdefault('submitter_name', '')
 
         #   email: "${submitter_email}"
         submitter_email = md.setdefault('submitter_email', '')
@@ -735,7 +735,7 @@ class KgeKnowledgeGraph:
         file_set = KgeFileSet(
             self.kg_id,
             kg_version=kg_version,
-            submitter=submitter,
+            submitter_name=submitter_name,
             submitter_email=submitter_email,
             size=size,
             revisions=revisions,
@@ -775,7 +775,7 @@ class KgeKnowledgeGraph:
                 kg_description=self.parameter["kg_description"],
                 translator_component=self.parameter["translator_component"],
                 translator_team=self.parameter["translator_team"],
-                submitter_name=self.parameter["submitter"],
+                submitter_name=self.parameter["submitter_name"],
                 submitter_email=self.parameter["submitter_email"],
                 license_name=self.parameter["license_name"],
                 license_url=self.parameter["license_url"],
@@ -925,10 +925,10 @@ class KgeArchiveCatalog:
         #   email: "mickey.mouse@disneyland.disney.go.com"
         if 'submitter' in md:
             smd = md['submitter']
-            submitter = smd.setdefault('name', 'unknown')
+            submitter_name = smd.setdefault('name', 'unknown')
             submitter_email = smd.setdefault('email', 'unknown')
         else:
-            submitter = submitter_email = 'unknown'
+            submitter_name = submitter_email = 'unknown'
 
         # license:
         #   name: "Artistic 2.0"
@@ -950,7 +950,7 @@ class KgeArchiveCatalog:
             kg_size=kg_size,
             translator_component=translator_component,
             translator_team=translator_team,
-            submitter=submitter,
+            submitter_name=submitter_name,
             submitter_email=submitter_email,
             license_name=license_name,
             license_url=license_url,
@@ -1074,7 +1074,7 @@ class KgeArchiveCatalog:
             self,
             kg_id: str,
             kg_version: str,
-            submitter: str,
+            submitter_name: str,
             submitter_email: str
     ):
         pass
@@ -1106,7 +1106,7 @@ _TEST_TSE_PARAMETERS = dict(
     kg_version="1964-04-22",
     translator_component="KP",
     translator_team="Disney Knowledge Provider",
-    submitter="Mickey Mouse",
+    submitter_name="Mickey Mouse",
     submitter_email="mickey.mouse@disneyland.disney.go.com",
     license_name="Artistic 2.0",
     license_url="https://opensource.org/licenses/Artistic-2.0",
@@ -1140,7 +1140,7 @@ def test_create_fileset_metadata_file():
     fs = KgeFileSet(
         kg_id=kg_id,
         kg_version=kg_version,
-        submitter="Mickey Mouse",
+        submitter_name="Mickey Mouse",
         submitter_email="mickey.mouse@disneyland.disney.go.com"
     )
     file_set_location, _ = with_version(func=get_object_location, version=kg_version)(kg_id)

@@ -10,7 +10,7 @@ info:
     url:  "${license_url}"
   termsOfService: "${terms_of_service}"
   contact:
-    name: "${submitter}"
+    name: "${submitter_name}"
     x-role: "Submitter"
     email: "${submitter_email}"
   x-translator:

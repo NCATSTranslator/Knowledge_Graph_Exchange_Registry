@@ -141,7 +141,7 @@ async def register_kge_knowledge_graph(request: web.Request):
 
         # submitter: name & email of submitter of the KGE file set,
         # cached in session from user authentication
-        submitter = session['name']
+        submitter_name = session['name']
         submitter_email = session['email']
 
         data = await request.post()
@@ -187,7 +187,7 @@ async def register_kge_knowledge_graph(request: web.Request):
             "\n\tkg_description: " + kg_description +
             "\n\ttranslator_component: " + translator_component +
             "\n\ttranslator_team: " + translator_team +
-            "\n\tsubmitter: " + submitter +
+            "\n\tsubmitter_name: " + submitter_name +
             "\n\tsubmitter_email: " + submitter_email +
             "\n\tlicense_name: " + license_name +
             "\n\tlicense_url: " + license_url +
@@ -212,7 +212,7 @@ async def register_kge_knowledge_graph(request: web.Request):
                     kg_description=kg_description,
                     translator_component=translator_component,
                     translator_team=translator_team,
-                    submitter=submitter,
+                    submitter_name=submitter_name,
                     submitter_email=submitter_email,
                     license_name=license_name,
                     license_url=license_url,
@@ -265,7 +265,7 @@ async def register_kge_file_set(request: web.Request):
 
         # submitter: name & email of submitter of the KGE file set,
         # cached in session from user authentication
-        submitter = session['name']
+        submitter_name = session['name']
         submitter_email = session['email']
 
         data = await request.post()
@@ -310,7 +310,7 @@ async def register_kge_file_set(request: web.Request):
 
         logger.debug(
             "register_kge_file_set() form parameters:\n\t" +
-            "\n\tsubmitter: " + submitter +
+            "\n\tsubmitter_name: " + submitter_name +
             "\n\tsubmitter_email: " + submitter_email +
             "\n\tkg_id: " + kg_id +
             "\n\tversion: " + kg_version +
@@ -350,7 +350,7 @@ async def register_kge_file_set(request: web.Request):
                     file_set = KgeFileSet(
                         kg_id=kg_id,
                         kg_version=kg_version,
-                        submitter=submitter,
+                        submitter_name=submitter_name,
                         submitter_email=submitter_email,
                         date_stamp=date_stamp
                     )
@@ -362,12 +362,12 @@ async def register_kge_file_set(request: web.Request):
                         request,
                         Template(
                            UPLOAD_FORM +
-                           '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter=$submitter'
+                           '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter_name=$submitter_name'
                         ).substitute(
                            kg_id=kg_id,
                            kg_name=knowledge_graph.get_name(),
                            kg_version=kg_version,
-                           submitter=submitter
+                           submitter_name=submitter_name
                         ),
                         active_session=True
                     )

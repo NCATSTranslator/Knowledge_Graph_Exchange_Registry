@@ -4,7 +4,7 @@ version:  "${kg_version}"
 revisions: >-
   ${revisions}
 submitter:
-  name: "${submitter}"
+  name: "${submitter_name}"
   email: "${submitter_email}"
 # SmartAPI Registered Server access
 # point for data (with KGE Archive Web Service)

@@ -105,7 +105,7 @@ async def get_kge_home(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
         context = {
-            "submitter": session['name'],
+            "submitter_name": session['name'],
             "get_catalog": GET_KNOWLEDGE_GRAPH_CATALOG,
             "backend": BACKEND,
             "metadata_page": METADATA_PAGE,
@@ -204,7 +204,7 @@ async def get_kge_graph_registration_form(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
         context = {
-            "submitter": session['name'],
+            "submitter_name": session['name'],
             "submitter_email": session['email'],
             "registration_action": REGISTER_KNOWLEDGE_GRAPH
         }
@@ -266,7 +266,7 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
             "kg_id": kg_id,
             "kg_name": kg_name,
 
-            "submitter": session['name'],
+            "submitter_name": session['name'],
             "submitter_email": session['email'],
     
             # TODO: might be best to look up "latest" KGE file set version,
@@ -294,7 +294,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
 
-        submitter = session['name']
+        submitter_name = session['name']
 
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
@@ -315,7 +315,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             "kg_id": kg_id,
             "kg_name": kg_name,
             "kg_version": kg_version,
-            "submitter": submitter,
+            "submitter_name": submitter_name,
             "upload_action": UPLOAD_FILE,
             "publish_file_set_action": PUBLISH_FILE_SET
         }
@@ -337,7 +337,7 @@ async def get_kge_data_unavailable(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
 
-        submitter = session['name']
+        submitter_name = session['name']
 
         kg_name = request.query.get('kg_name', default='')
         data_type = request.query.get('data_type', default='')
@@ -355,7 +355,7 @@ async def get_kge_data_unavailable(request: web.Request) -> web.Response:
             "kg_name": kg_name,
             "kg_version": kg_version,
             "data_type": data_type,
-            "submitter": submitter
+            "submitter_name": submitter_name
         }
         response = aiohttp_jinja2.render_template('data_unavailable.html', request=request, context=context)
         return await with_session(request, response)

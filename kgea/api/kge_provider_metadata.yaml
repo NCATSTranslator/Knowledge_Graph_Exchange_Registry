@@ -6,7 +6,7 @@ translator:
   component: "${translator_component}"
   team: "${translator_team}"
 submitter:
-  name: "${submitter}"
+  name: "${submitter_name}"
   email: "${submitter_email}"
 license:
   name: "${license_name}"
