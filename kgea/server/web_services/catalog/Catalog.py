@@ -59,8 +59,7 @@ from kgea.server.web_services.kgea_file_ops import (
     get_object_location,
     get_archive_contents,
     with_version,
-    load_s3_text_file,
-    kg_files_in_location
+    load_s3_text_file
 )
 from .kgea_kgx import KgxValidator, validate_content_metadata
 from kgea.server.web_services.kgea_file_ops import upload_file
@@ -1047,7 +1046,7 @@ class KgeArchiveCatalog:
 
     def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
 
-        # TODO: see KgeFileSetEntry schema in the kgea_archive.yaml
+        # TODO: see KgeFileSetEntry schema in the ~/kgea/api/kgea_api.yaml
         if not OVERRIDE and DEV_MODE:
             # mock catalog
             catalog = {
