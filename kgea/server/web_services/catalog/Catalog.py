@@ -715,12 +715,16 @@ class KgeKnowledgeGraph:
         #   ${revisions}
         revisions = md.setdefault('revisions', '')
 
-        # submitter_name:
-        #   name: "${submitter_name}"
-        submitter_name = md.setdefault('submitter_name', '')
+        submitter: Dict = md.setdefault('submitter', {})
+        if submitter:
+            # submitter_name:
+            #   name: "${submitter_name}"
+            submitter_name = submitter.setdefault('name', '')
 
-        #   email: "${submitter_email}"
-        submitter_email = md.setdefault('submitter_email', '')
+            #   email: "${submitter_email}"
+            submitter_email = submitter.setdefault('email', '')
+        else:
+            submitter_name = submitter_email = ""
 
         # size: "10000" # megabytes
         size = md.setdefault('size', '')
