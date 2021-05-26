@@ -85,7 +85,7 @@ class KgxValidator:
             # Wait until all worker tasks are cancelled.
             await asyncio.gather(*cls._validation_tasks, return_exceptions=True)
         except Exception as exc:
-            msg = "KgeaFileSet() KGX worker task exception: " + str(exc)
+            msg = "KgxValidator() KGX worker task exception: " + str(exc)
             logger.error(msg)
 
     @classmethod
