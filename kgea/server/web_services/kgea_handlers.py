@@ -515,9 +515,12 @@ async def setup_kge_upload_context(
             file_type = KgeFileType.KGE_ARCHIVE
 
         # we modify the filename so that they can be validated by KGX natively by tar.gz
-        content_name = infix_string(
-            content_name, f"_{kgx_file_content}"
-        ) if kgx_file_content in ['nodes', 'edges'] else content_name
+        if kgx_file_content in ['nodes', 'edges']:
+            part = content_name.split(".")
+            if not(len(part) > 1 and part[-2].find(kgx_file_content) >= 0):
+                content_name = infix_string(
+                    content_name, f"_{kgx_file_content}"
+                )
 
         import uuid
         import os
