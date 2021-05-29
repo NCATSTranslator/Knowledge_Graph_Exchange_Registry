@@ -23,7 +23,7 @@ from kgx.validator import Validator
 from kgea.server.config import get_app_config
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
@@ -44,6 +44,7 @@ def validate_content_metadata(content_metadata_file) -> List:
         # see https://python-jsonschema.readthedocs.io/en/stable/validate/
         try:
             json_validator(content_metadata_file, CONTENT_METADATA_SCHEMA)
+            logger.error("validate_content_metadata() - content metadata JSON validation was successful!")
         except ValidationError as ve:
             logger.error("validate_content_metadata() - ValidationError: " + str(ve))
             errors.append(str(ve))

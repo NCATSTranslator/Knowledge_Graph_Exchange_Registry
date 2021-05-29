@@ -43,9 +43,9 @@
         },
         "count_by_source": {
           "type": "object",
-          "description": "Number of node instances by their CURIE ID prefix source",
+          "description": "Number of node instances by knowledge source URI or CURIE or plain namespace identifier",
           "patternProperties": {
-           "^[a-zA-Z_.]+$": {
+           "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|([A-Z]+:)?[a-zA-Z_.]+)$": {
                 "type": "integer"
             }
           },
@@ -84,9 +84,9 @@
         },
         "count_by_source": {
           "type": "object",
-          "description": "Number of edge instances by their source.",
+          "description": "Number of edge instances by knowledge source URI or CURIE or plain namespace identifier",
           "patternProperties": {
-           "^[a-zA-Z_.]+$": {
+           "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|([A-Z]+:)?[a-zA-Z_.]+)$": {
                 "type": "integer"
             }
           },
