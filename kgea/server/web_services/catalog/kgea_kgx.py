@@ -115,46 +115,37 @@ class KgxValidator:
         :return:
         """
         while True:
+            # We get a list of data files details: List[Dict[str, Union[str, bool, List[str]]]] ...
             data_files: List = await self._validation_queue.get()
-            #
-            # data_files: List[Dict[str, Union[str, bool, List[str]]]]
-            #
-            # where each entry is a dictionary contains the following keys:
-            #
-            # "file_name": str
-            # "file_type": KgeFileType (from Catalog)
-            # "input_format": str
-            # "input_compression": str
-            # "object_key": str
-            # "s3_file_url": str
-            # "kgx_compliant": bool
-            # "errors": List
-    
+
             for entry in data_files:
-                # object_key = entry["object_key"]
+                #
+                # ... where each entry is a dictionary contains the following keys:
+                #
+                # "file_name": str
+                # "file_type": KgeFileType (from Catalog)
+                # "input_format": str
+                # "input_compression": str
+                # "object_key": str
+                # "s3_file_url": str
+                # "kgx_compliant": bool
+                #
                 file_name = entry["file_name"]
-        
-                print("Validating KGX compliance of data file '" + file_name + "'", file=stderr)
-        
+                file_type = entry['file_type']
+                object_key = entry['object_key']
+                s3_file_url = entry['s3_file_url']
+                input_format = entry['input_format']
+                input_compression = entry['input_compression']
+
+                print(
+                    f"KgxValidator() is working on file '{file_name}' '{object_key}' of " +
+                    f"type '{file_type}', input format '{input_format}' " +
+                    f"and with compression '{input_compression}', ",
+                    file=stderr
+                )
+
                 # KGX Compliance is faked for the moment
 
-                # Not sure if this has too much of a performance hit?
-                lock = threading.Lock()
-                with lock:
-                    entry["kgx_compliant"] = True
-        
-                # file_type = kge_file_spec['file_type']
-                # object_key = kge_file_spec['object_key']
-                # s3_file_url = kge_file_spec['s3_file_url']
-                # input_format = kge_file_spec['input_format']
-                # input_compression = kge_file_spec['input_compression']
-                #
-                # print(
-                #     f"{name} working on file '{object_key}' of " +
-                #     f"type '{file_type}', input format '{input_format}' " +
-                #     f"and with compression '{input_compression}', ",
-                #     file=stderr
-                # )
                 #
                 # errors: List = list()
                 #
@@ -170,6 +161,12 @@ class KgxValidator:
                 #
                 #     if not errors:
                 #         self.data_files[object_key]["kgx_compliant"] = True
+
+                # Not sure if this can have a performance hit...
+                lock = threading.Lock()
+                with lock:
+                    entry["kgx_compliant"] = True
+
                 #     else:
                 #         self.data_files[object_key]["errors"] = errors
                 #
@@ -186,7 +183,7 @@ class KgxValidator:
                 #     f"{name} has finished processing file {object_key} ... is" +
                 #     compliance + "KGX compliant", file=stderr
                 # )
-    
+
             self._validation_queue.task_done()
 
     async def validate_data_file(

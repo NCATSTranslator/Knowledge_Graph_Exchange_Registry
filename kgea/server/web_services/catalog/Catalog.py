@@ -157,7 +157,7 @@ class KgeFileSet:
             kg_version: str,
             submitter_name: str,
             submitter_email: str,
-            size: str = 'unknown',
+            size: int = -1,
             revisions: str = 'creation',
             date_stamp: str = get_default_date_stamp(),
             archive_record: bool = False
@@ -222,22 +222,26 @@ class KgeFileSet:
         return set([x["file_name"] for x in self.data_files.values()])
 
     # Note: content metadata file name is already normalized on S3 to 'content_metadata.yaml'
-    def set_content_metadata_file(self, file_name: str, object_key: str, s3_file_url: str):
+    def set_content_metadata_file(self, file_name: str, file_size: int, object_key: str, s3_file_url: str):
         """
         Sets the metadata file identification for a KGE File Set
         :param file_name: original name of metadata file.
-
+        :param file_size: size of metadata file (as number of bytes).
         :param object_key:
         :param s3_file_url:
         :return: None
         """
         self.content_metadata = {
             "file_name": file_name,
+            "file_size": file_size,
             "object_key": object_key,
             "s3_file_url": s3_file_url,
             "kgx_compliant": False,  # until proven True...
             "errors": []
         }
+
+        # Add size of the metadata file to file set aggregate size
+        self.add_file_size(file_size)
 
         content_metadata_file_text = load_s3_text_file(
             bucket_name=_KGEA_APP_CONFIG['bucket'],
@@ -257,16 +261,18 @@ class KgeFileSet:
 
     def add_data_file(
             self,
-            file_name: str,
             file_type: KgeFileType,
+            file_name: str,
+            file_size: int,
             object_key: str,
             s3_file_url: str
     ):
         """
         Adds a (meta-)data file to this current of KGE File Set.
 
-        :param file_name: to add to the KGE File Set
         :param file_type: KgeFileType of file being added to the KGE File Set
+        :param file_name: to add to the KGE File Set
+        :param file_size: number of bytes in the file
         :param object_key: of the file in AWS S3
         :param s3_file_url: current S3 pre-signed data access url
 
@@ -276,16 +282,24 @@ class KgeFileSet:
         # Attempt to infer the format and compression of the data file from its filename
         input_format, input_compression = format_and_compression(file_name)
 
+        # TODO: the originally generated data_file record details here,
+        #       from initial file registration are more extensive than
+        #       a file record later loaded from the Archive. We may need
+        #       to review this and somehow record more details in the archive?
         self.data_files[object_key] = {
-            "file_name": file_name,
+            "object_key": object_key,
             "file_type": file_type,
+            "file_name": file_name,
+            "file_size": file_size,
             "input_format": input_format,
             "input_compression": input_compression,
-            "object_key": object_key,
             "s3_file_url": s3_file_url,
             "kgx_compliant": False,  # until proven True...
             "errors": []
         }
+
+        # Add size of this file to file set aggregate size
+        self.add_file_size(file_size)
 
         # We now defer general node/edge graph data validation
         # to the file set self.post_process_file_set() stage
@@ -298,15 +312,15 @@ class KgeFileSet:
         """
         self.data_files.update(data_files)
 
-    def remove_data_file(self, data_file: str) -> Optional[Dict[str, Any]]:
+    def remove_data_file(self, object_key: str) -> Optional[Dict[str, Any]]:
         details: Optional[Dict[str, Any]] = None
         try:
             # TODO: need to be careful here with data file removal in case
             #       the file in question is still being actively validated?
-            details = self.data_files.pop(data_file)
+            details = self.data_files.pop(object_key)
         except KeyError:
             logger.warning(
-                "File '"+data_file+"' was  not found in " +
+                "File with object key '"+object_key+"' was not found in " +
                 "KGE File Set version '"+self.kg_version+"'"
             )
         return details
@@ -319,7 +333,17 @@ class KgeFileSet:
             file_name = part[-1]
             self.data_files[object_key] = {
                 "file_name": file_name,
-                "object_key": object_key
+                "object_key": object_key,
+                # "file_type": file_type,
+                # "input_format": input_format,
+                # "input_compression": input_compression,
+                # "size": -1,  # how can I measure this here?
+                # "s3_file_url": s3_file_url,
+                # TODO: this could be hazardous to assume True here?
+                #       It would be better to track KGX compliance
+                #       status somewhere in persisted Archive metadata.
+                "kgx_compliant": True,
+                # "errors": []
             }
 
     ############################################################################
@@ -347,9 +371,9 @@ class KgeFileSet:
         fileset_metadata_file = self.generate_fileset_metadata_file()
         fileset_metadata_object_key = add_to_s3_archive(
             kg_id=self.kg_id,
-            kg_version=self.kg_version,
             text=fileset_metadata_file,
-            file_name=FILE_SET_METADATA_FILE
+            file_name=FILE_SET_METADATA_FILE,
+            kg_version=self.kg_version
         )
 
         if fileset_metadata_object_key:
@@ -456,7 +480,6 @@ class KgeFileSet:
         return errors
 
     def generate_fileset_metadata_file(self) -> str:
-        self.size = 'unknown'
         self.revisions = 'Creation'
         # TODO: Maybe also add in the inventory of files here?
         files = ""
@@ -504,6 +527,9 @@ class KgeFileSet:
         fileset_metadata.content = None
 
         return fileset_metadata
+
+    def add_file_size(self, file_size: int):
+        self.size += file_size
 
 
 class KgeKnowledgeGraph:
@@ -727,7 +753,7 @@ class KgeKnowledgeGraph:
             submitter_name = submitter_email = ""
 
         # size: "10000" # megabytes
-        size = md.setdefault('size', '')
+        size = md.setdefault('size', -1)
         # TODO: should the file set size value be validated here?
 
         # Probably don't need this field value
@@ -1004,6 +1030,7 @@ class KgeArchiveCatalog:
             kg_version: str,
             file_type: KgeFileType,
             file_name: str,
+            file_size: int,
             object_key: str,
             s3_file_url: str
     ):
@@ -1017,6 +1044,7 @@ class KgeArchiveCatalog:
         :param kg_version: version of interest of the KGE File Set associated with the Knowledge Graph
         :param file_type: KgeFileType of the file being added
         :param file_name: name of the file
+        :param file_size: size of the file (number of bytes)
         :param object_key: AWS S3 object key of the file
         :param s3_file_url: currently active pre-signed url to access the file
         :return: None
@@ -1033,15 +1061,17 @@ class KgeArchiveCatalog:
             # associated with this kg_version of the graph.
             if file_type in [KgeFileType.KGX_DATA_FILE, KgeFileType.KGE_ARCHIVE]:
                 file_set.add_data_file(
-                    file_name=file_name,
-                    file_type=file_type,
                     object_key=object_key,
+                    file_type=file_type,
+                    file_name=file_name,
+                    file_size=file_size,
                     s3_file_url=s3_file_url
                 )
             
             elif file_type == KgeFileType.KGX_CONTENT_METADATA_FILE:
                 file_set.set_content_metadata_file(
                     file_name=file_name,
+                    file_size=file_size,
                     object_key=object_key,
                     s3_file_url=s3_file_url
                 )
@@ -1150,17 +1180,19 @@ def test_create_fileset_metadata_file():
 
     file_name = 'MickeyMouseFanClub_nodes.tsv'
     fs.add_data_file(
-        file_name='MickeyMouseFanClub_nodes.tsv',
-        file_type=KgeFileType.KGX_DATA_FILE,
         object_key=file_set_location+"/"+file_name,
+        file_type=KgeFileType.KGX_DATA_FILE,
+        file_name='MickeyMouseFanClub_nodes.tsv',
+        file_size=666,
         s3_file_url=''
     )
 
     file_name = 'MinnieMouseFanClub_edges.tsv'
     fs.add_data_file(
-        file_name=file_name,
-        file_type=KgeFileType.KGX_DATA_FILE,
         object_key=file_set_location+"/"+file_name,
+        file_type=KgeFileType.KGX_DATA_FILE,
+        file_name=file_name,
+        file_size=999,
         s3_file_url=''
     )
     _TEST_TFMF = fs.generate_fileset_metadata_file()
@@ -1289,8 +1321,8 @@ _TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 @prepare_test
 def test_add_to_archive() -> bool:
     outcome: str = add_to_s3_archive(
-        "kge_test_provider_metadata_file",
-        _TEST_TPMF,
+        kg_id="kge_test_provider_metadata_file",
+        text=_TEST_TPMF,
         file_name="test_provider_metadata_file",
         kg_version="100.0"
     )

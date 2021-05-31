@@ -480,7 +480,7 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     return True
 
 
-def upload_file(data_file, file_name, bucket, object_location, config=None, callback=None, client=s3_client):
+def upload_file(data_file, file_name, bucket, object_location, client=s3_client, config=None, callback=None):
     """Upload a file to an S3 bucket
 
     :param client:
@@ -491,7 +491,11 @@ def upload_file(data_file, file_name, bucket, object_location, config=None, call
     :param config: a means of configuring the network call
     :param client: The s3 client to use. Useful if needing to make a new client for the sake of thread safety.
     :param callback: an object that implements __call__, that runs on each file block uploaded (receiving byte data.)
-    :return: True if file was uploaded, else False
+
+    :return: object_key
+    :rtype: str
+
+    :raises RuntimeError if the S3 file object upload call fails
     """
     object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
         ROOT=object_location,
@@ -500,26 +504,37 @@ def upload_file(data_file, file_name, bucket, object_location, config=None, call
     )
     # Upload the file
     try:
+        # TODO: can these S3 calls measure the size of the file which was uploaded?
         if config is None:
             client.upload_fileobj(data_file, bucket, object_key, Callback=callback)
         else:
             client.upload_fileobj(data_file, bucket, object_key, Config=config, Callback=callback)
     except Exception as exc:
         logger.error("kgea file ops: upload_file() exception: " + str(exc))
-        raise exc
+        raise RuntimeError("kgea file ops: upload_file() exception: " + str(exc))
 
     return object_key
 
 
-def upload_file_multipart(data_file, file_name, bucket, object_location, metadata=None, callback=None, client=s3_client):
+def upload_file_multipart(
+        data_file,
+        file_name,
+        bucket,
+        object_location,
+        metadata=None,
+        callback=None,
+        client=s3_client
+):
     """Upload a file to an S3 bucket. Use multipart protocols.
     Multipart transfers occur when the file size exceeds the value of the multipart_threshold attribute
-    :param client: The s3 client to use. Useful if needing to make a new client for the sake of thread safety.
-    :param callback:
+
     :param data_file: File to upload
     :param file_name: Name of file to upload
     :param bucket: Bucket to upload to
     :param object_location: S3 object name
+    :param metadata: metadata associated with the file
+    :param callback: Callable to track number of bytes being uploaded
+    :param client: The s3 client to use. Useful if needing to make a new client for the sake of thread safety.
     """
 
     """
@@ -548,7 +563,15 @@ def upload_file_multipart(data_file, file_name, bucket, object_location, metadat
         max_concurrency=concurrency
     )
     print('upload says hello')
-    return upload_file(data_file, file_name, bucket, object_location, config=transfer_config, callback=callback, client=client)
+    return upload_file(
+        data_file,
+        file_name,
+        bucket,
+        object_location,
+        client=client,
+        config=transfer_config,
+        callback=callback
+    )
 
 
 def package_file(name: str, target_file):
@@ -607,6 +630,8 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     return True
 
 
+# TODO: need to clarify exactly what 'metadata' is in this context,
+#       then remove or propagate it downatream (not currently done, we suspect)
 def upload_file_as_archive(data_file, file_name, bucket, object_location, metadata=None):
     """
     Upload function into archive
@@ -625,18 +650,18 @@ def upload_file_as_archive(data_file, file_name, bucket, object_location, metada
     archive_name = "{}.tar.gz".format(Path(file_name).stem)
     with compress_file_to_archive(data_file.name, archive_name) as archive:
         return upload_file_multipart(
-            archive,
-            archive_name,
-            bucket,
-            object_location,
-            metadata
+            data_file=archive,
+            file_name=archive_name,
+            bucket=bucket,
+            object_location=object_location,
+            metadata=metadata,
+            callback=None  # TODO: do I need a proper progress monitor callback function here?
         )
 
 
 @prepare_test
 def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
-
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
@@ -660,7 +685,13 @@ def test_upload_file_as_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
 
 def upload_file_to_archive(archive_name, data_file, file_name, bucket, object_location):
     # upload the file
-    object_key = upload_file_multipart(data_file, file_name, bucket, object_location)
+    object_key = upload_file_multipart(
+        data_file=data_file,
+        file_name=file_name,
+        bucket=bucket,
+        object_location=object_location,
+        callback=None  # TODO: do I need a progress monitor callback function here?
+    )
 
     archive_path = "{}/{}.tar.gz".format(
         Path(object_key).parent,

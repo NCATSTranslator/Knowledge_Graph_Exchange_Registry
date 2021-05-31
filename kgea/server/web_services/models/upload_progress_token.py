@@ -10,7 +10,7 @@ class UploadProgressToken(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, upload_token: str=None, current_position: int=0, end_position: int=0):
+    def __init__(self, upload_token: str = None, current_position: int = 0, end_position: int = 0):
         """UploadProgressToken - a model defined in OpenAPI
 
         :param upload_token: The upload_token of this UploadProgressToken.

@@ -551,7 +551,7 @@ async def setup_kge_upload_context(
                     "content_name": content_name,
                 }
  
-            print('session upload token', token, _upload_tracker['upload'])
+            print('session upload token', token, _upload_tracker['upload'][token])
             
             upload_token = UploadTokenObject(token).to_dict()
 
@@ -586,11 +586,11 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         In that case, we leave end_position is going to be undefined. The consumer of this endpoint must be willing
         to consistently poll until end_position is given a value.
         """
-
+        tracker = _upload_tracker['upload'][upload_token]
         progress_token = UploadProgressToken(
             upload_token=upload_token,
-            current_position=_upload_tracker['upload'][upload_token]['current_position'] if 'current_position' in _upload_tracker['upload'][upload_token] else 0,
-            end_position=_upload_tracker['upload'][upload_token]['end_position'] if 'end_position' in _upload_tracker['upload'][upload_token] else None,
+            current_position=tracker['current_position'] if 'current_position' in tracker else 0,
+            end_position=tracker['end_position'] if 'end_position' in tracker else None,
         ).to_dict()
         response = web.json_response(progress_token)
         return await with_session(request, response)
@@ -715,6 +715,9 @@ async def upload_kge_file(
                 self._seen_so_far = 0
                 self._lock = threading.Lock()
 
+            def get_file_size(self):
+                return self.size
+
             def __call__(self, bytes_amount):
                 # To simplify we'll assume this is hooked up
                 # to a single filename.
@@ -734,26 +737,32 @@ async def upload_kge_file(
         cfg = Config(signature_version='s3v4', max_pool_connections=num_threads)
 
         filesize = await pathless_file_size(uploaded_file.file)
+
+        # TODO: how do I capture this file size in the
+        #       KgeFile entry in the current KgeFileSet?
         _upload_tracker['upload'][upload_token]['end_position'] = filesize
 
         if 'content_name' in _upload_tracker['upload'][upload_token]:
             content_name = _upload_tracker['upload'][upload_token]['content_name']
         else:
             content_name = uploaded_file.filename
-        
+
         def threaded_upload():
             session_ = boto3.Session()
             client = session_.client("s3", config=cfg)
+
+            progress_monitor = ProgressPercentage(
+                uploaded_file.filename,
+                _upload_tracker['upload'][upload_token]['end_position']
+            )
+
             uploaded_file_object_key = upload_file(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
                 file_name=content_name,        # The new name for the file
                 bucket=_KGEA_APP_CONFIG['bucket'],
                 object_location=details['file_set_location'],
-                callback=ProgressPercentage(
-                    uploaded_file.filename,
-                    _upload_tracker['upload'][upload_token]['end_position']
-                ),
-                client=client
+                client=client,
+                callback=progress_monitor
             )
             # Assuming success, the new file should be
             # added to into the file set in the Catalog.
@@ -773,6 +782,7 @@ async def upload_kge_file(
                         kg_version=details["kg_version"],
                         file_type=details["file_type"],
                         file_name=content_name,
+                        file_size=progress_monitor.get_file_size(),
                         object_key=uploaded_file_object_key,
                         s3_file_url=s3_file_url
                     )
