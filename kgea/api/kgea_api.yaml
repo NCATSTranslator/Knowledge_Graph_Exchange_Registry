@@ -597,6 +597,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/KgeFile'
+        size:
+          description: approximate aggregate size of data files in the file set (megabytes)
+          type: number
+          format: float
         contents:
           $ref: '#/components/schemas/MetaKnowledgeGraph'
     KgeFileSetStatusCode:

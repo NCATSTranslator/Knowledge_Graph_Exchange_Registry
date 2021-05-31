@@ -15,7 +15,7 @@ class KgeFileSetMetadata(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, kg_version: str=None, submitter_name: str=None, submitter_email: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, contents: MetaKnowledgeGraph=None):
+    def __init__(self, kg_version: str=None, submitter_name: str=None, submitter_email: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, size: float=None, contents: MetaKnowledgeGraph=None):
         """KgeFileSetMetadata - a model defined in OpenAPI
 
         :param kg_version: The kg_version of this KgeFileSetMetadata.
@@ -23,6 +23,7 @@ class KgeFileSetMetadata(Model):
         :param submitter_email: The submitter_email of this KgeFileSetMetadata.
         :param status: The status of this KgeFileSetMetadata.
         :param files: The files of this KgeFileSetMetadata.
+        :param size: The size of this KgeFileSetMetadata.
         :param contents: The contents of this KgeFileSetMetadata.
         """
         self.openapi_types = {
@@ -31,6 +32,7 @@ class KgeFileSetMetadata(Model):
             'submitter_email': str,
             'status': KgeFileSetStatusCode,
             'files': List[KgeFile],
+            'size': float,
             'contents': MetaKnowledgeGraph
         }
 
@@ -40,6 +42,7 @@ class KgeFileSetMetadata(Model):
             'submitter_email': 'submitter_email',
             'status': 'status',
             'files': 'files',
+            'size': 'size',
             'contents': 'contents'
         }
 
@@ -48,6 +51,7 @@ class KgeFileSetMetadata(Model):
         self._submitter_email = submitter_email
         self._status = status
         self._files = files
+        self._size = size
         self._contents = contents
 
     @classmethod
@@ -171,6 +175,29 @@ class KgeFileSetMetadata(Model):
         """
 
         self._files = files
+
+    @property
+    def size(self):
+        """Gets the size of this KgeFileSetMetadata.
+
+        approximate aggregate size of data files in the file set (megabytes)
+
+        :return: The size of this KgeFileSetMetadata.
+        :rtype: float
+        """
+        return self._size
+
+    @size.setter
+    def size(self, size):
+        """Sets the size of this KgeFileSetMetadata.
+
+        approximate aggregate size of data files in the file set (megabytes)
+
+        :param size: The size of this KgeFileSetMetadata.
+        :type size: float
+        """
+
+        self._size = size
 
     @property
     def contents(self):

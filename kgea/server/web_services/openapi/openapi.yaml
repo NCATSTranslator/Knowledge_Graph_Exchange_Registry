@@ -528,6 +528,7 @@ components:
           translator_component: KP
           license_url: https://creativecommons.org/licenses/by/4.0/legalcode
         fileset:
+          size: 6.0274563
           contents:
             nodes:
               key:
@@ -656,6 +657,7 @@ components:
       description: Metadata including content metadata and the inventory of associated
         files, for a specific version of KGE File Set.
       example:
+        size: 6.0274563
         contents:
           nodes:
             key:
@@ -726,6 +728,11 @@ components:
             $ref: '#/components/schemas/KgeFile'
           title: files
           type: array
+        size:
+          description: approximate aggregate size of data files in the file set (megabytes)
+          format: float
+          title: size
+          type: number
         contents:
           $ref: '#/components/schemas/MetaKnowledgeGraph'
       title: KgeFileSetMetadata
