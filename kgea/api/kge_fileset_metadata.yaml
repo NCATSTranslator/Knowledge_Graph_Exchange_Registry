@@ -8,7 +8,7 @@ submitter:
   email: "${submitter_email}"
 # SmartAPI Registered Server access
 # point for data (with KGE Archive Web Service)
-size: "${size}"
+size: ${size}
 access: "${host}/${kg_id}/${kg_version}"
 files:
 ${files}

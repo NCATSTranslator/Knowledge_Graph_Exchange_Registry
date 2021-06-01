@@ -35,7 +35,9 @@ import yaml
 from kgea.server.web_services.models import (
     KgeMetadata,
     KgeFileSetStatusCode,
-    KgeFile, KgeProviderMetadata, KgeFileSetMetadata
+    KgeFile,
+    KgeProviderMetadata,
+    KgeFileSetMetadata
 )
 
 try:
@@ -506,7 +508,8 @@ class KgeFileSet:
                 kg_version=self.kg_version,
                 submitter_name=self.submitter_name,
                 submitter_email=self.submitter_email,
-                status=self.status
+                status=self.status,
+                size=self.size/1024**2  # aggregate file size in megabytes
             )
 
         file_set: List[KgeFile] = [
@@ -754,7 +757,6 @@ class KgeKnowledgeGraph:
 
         # size: "10000" # megabytes
         size = md.setdefault('size', -1)
-        # TODO: should the file set size value be validated here?
 
         # Probably don't need this field value
         # access: "https://kge.starinformatics.ca/disney_small_world_graph/1964-04-22"
@@ -813,9 +815,9 @@ class KgeKnowledgeGraph:
 
         fileset_metadata: Optional[KgeFileSetMetadata] = None
 
-        fileset: KgeFileSet = self.get_file_set(kg_version)
+        fileset: Optional[KgeFileSet] = self.get_file_set(kg_version)
         if fileset:
-            fileset_metadata: KgeFileSetMetadata = fileset.get_metadata()
+            fileset_metadata = fileset.get_metadata()
         else:
             logger.warning("KGE File Set version '"+kg_version+"' does not exist for graph '"+self.kg_id+"'")
 

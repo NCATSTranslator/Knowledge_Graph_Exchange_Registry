@@ -40,6 +40,7 @@
                                                 tag_label += word[0].toUpperCase() + word.substring(1) + " ";
                                             }
                                         )
+                                        tag_label = tag_label.trim();
                                         if(tag2  === "files") {
                                             let file_list = "<ul class=\"metadata\">";
                                             value2.forEach(file_entry => {
@@ -50,7 +51,12 @@
                                             file_list += "</ul>";
                                             document.getElementById('file_details').innerHTML = file_list;
                                         } else {
-                                            metadata_table += "<tr><th>" + tag_label + "</th><td>" + value2  + "</td>";
+                                            if(tag_label === "Size")  {
+                                                tag_label += " (megabytes)";
+                                                value2 = Math.round(value2*100)/100;
+                                                value2 = value2.toLocaleString();
+                                            }
+                                            metadata_table += "<tr><th>" + tag_label + "</th><td>" + value2 + "</td>";
                                         }
                                         metadata_table += "</tr>";
                                     });
