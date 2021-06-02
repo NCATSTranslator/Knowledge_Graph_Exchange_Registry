@@ -4,7 +4,7 @@ Knowledge Graph Exchange (KGE) File Sets located on AWS S3
 """
 import threading
 import json
-from typing import List, Optional
+from typing import List, Optional, Dict
 from sys import stderr
 from os.path import dirname, abspath
 import time
@@ -21,6 +21,8 @@ from kgx.transformer import Transformer
 from kgx.validator import Validator
 
 from kgea.server.config import get_app_config
+from kgea.server.web_services.catalog.Catalog import KgeFileType, KgeFileSet
+from kgea.server.web_services.models import KgeFileSetStatusCode
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -37,7 +39,9 @@ with open(CONTENT_METADATA_SCHEMA_FILE, mode='r', encoding='utf-8') as cms:
 
 
 # This first iteration only validates the JSON structure and property tags against the JSON schema
-# TODO: perhaps also semantically validate Biolink node categories and predicates (using the Biolink Model Toolkit)?
+# TODO: perhaps should also check the existence of
+#       Biolink node categories and predicates
+#       (using the Biolink Model Toolkit)?
 def validate_content_metadata(content_metadata_file) -> List:
     errors: List[str] = list()
     if content_metadata_file:
@@ -90,12 +94,10 @@ class KgxValidator:
             logger.error(msg)
 
     @classmethod
-    def validate(cls, files: List):
-        """
-        This method posts a list of files
-         to the KgxValidator for for validation.
+    def validate(cls, file_set: KgeFileSet):
+        """This method posts a KgeFileSet to the KgxValidator for validation.
          
-        :param files: is a list of Python dictionaries with file details, one entry per file.
+        :param file_set: KgeFileSet.
         
         :return: None
         """
@@ -103,8 +105,8 @@ class KgxValidator:
         if not cls._validation_tasks:
             cls.init_validation_tasks()
         
-        # ...then, post the list of file details to the KGX validation task Queue
-        cls._validation_queue.put_nowait(files)
+        # ...then, post the file set to the KGX validation task Queue
+        cls._validation_queue.put_nowait(file_set)
 
     #
     async def __call__(self):
@@ -115,104 +117,128 @@ class KgxValidator:
         :return:
         """
         while True:
-            # We get a list of data files details: List[Dict[str, Union[str, bool, List[str]]]] ...
-            data_files: List = await self._validation_queue.get()
+            file_set: KgeFileSet = await self._validation_queue.get()
 
-            for entry in data_files:
+            ###############################################
+            # Collect the KGX data files names and metadata
+            ###############################################
+            input_files: List[str] = list()
+            file_type: Optional[KgeFileType] = None
+            input_format: Optional[str] = None
+            input_compression: Optional[str] = None
+            
+            for entry in file_set.data_files.values():
                 #
                 # ... where each entry is a dictionary contains the following keys:
                 #
                 # "file_name": str
+                
                 # "file_type": KgeFileType (from Catalog)
                 # "input_format": str
                 # "input_compression": str
-                # "object_key": str
-                # "s3_file_url": str
                 # "kgx_compliant": bool
                 #
+                # "object_key": str
+                # "s3_file_url": str
+                #
+                # TODO: we just take the first values encountered, but
+                #       we should probably guard against inconsistent
+                #       input format and compression somewhere upstream
+                if not file_type:
+                    file_type = entry["file_type"]
+                if not input_format:
+                    input_format = entry["input_format"]
+                if not input_compression:
+                    input_compression = entry["input_compression"]
+                    
                 file_name = entry["file_name"]
-                file_type = entry['file_type']
-                object_key = entry['object_key']
-                s3_file_url = entry['s3_file_url']
-                input_format = entry['input_format']
-                input_compression = entry['input_compression']
-
+                object_key = entry["object_key"]
+                s3_file_url = entry["s3_file_url"]
+                
                 print(
-                    f"KgxValidator() is working on file '{file_name}' '{object_key}' of " +
-                    f"type '{file_type}', input format '{input_format}' " +
+                    f"KgxValidator() is found file '{file_name}' '{object_key}' " +
+                    f"of type '{file_type}', input format '{input_format}' " +
                     f"and with compression '{input_compression}', ",
                     file=stderr
                 )
+                
+                # The file to be processed should currently be
+                # a resource accessible from this S3 authenticated URL?
+                input_files.append(s3_file_url)
 
-                # KGX Compliance is faked for the moment
-
+            ###################################
+            # ...then, process them together...
+            ###################################
+            if file_type == KgeFileType.KGX_DATA_FILE:
+                validation_errors: List[str] = list()
                 #
-                # errors: List = list()
+                # Run validation of KGX knowledge graph data files here
                 #
-                # if file_type == KgeFileType.KGX_DATA_FILE:
+                # --- Uncomment completely activate the validation?
                 #
-                #     # Run validation of KGX knowledge graph data files here
-                #     # errors: List[str] = \
-                #     #     await self.validator.validate_data_file(
-                #     #         file_path=s3_file_url,
-                #     #         input_format=input_format,
-                #     #         input_compression=input_compression
-                #     #     )
-                #
-                #     if not errors:
-                #         self.data_files[object_key]["kgx_compliant"] = True
-
-                # Not sure if this can have a performance hit...
+                # file_set.errors.extend(
+                #     await self.validate_file_set(
+                #         input_files=input_files,
+                #         input_format=input_format,
+                #         input_compression=input_compression
+                #     )
+                # )
                 lock = threading.Lock()
                 with lock:
-                    entry["kgx_compliant"] = True
+                    if not validation_errors:
+                        file_set.errors.extend(validation_errors)
+                        file_set.status = KgeFileSetStatusCode.VALIDATED
+                    else:
+                        file_set.status = KgeFileSetStatusCode.ERROR
 
-                #     else:
-                #         self.data_files[object_key]["errors"] = errors
-                #
-                # elif file_type == KgeFileType.KGE_ARCHIVE:
-                #     # TODO: not sure how we should properly validate a KGX Data archive?
-                #     self.data_files[object_key]["errors"] = ['KGE Archive validation is not yet implemented?']
-                #
-                # else:
-                #     print(f'{name} WARNING: Unknown KgeFileType{file_type} ... ignoring', file=stderr)
-                #
-                # compliance: str = ' not ' if errors else ' '
-                #
-                # print(
-                #     f"{name} has finished processing file {object_key} ... is" +
-                #     compliance + "KGX compliant", file=stderr
-                # )
+            elif file_type == KgeFileType.KGE_ARCHIVE:
+                # TODO: perhaps need more work to properly dissect and
+                #       validate a KGX Data archive? Maybe need to extract it
+                #       then get the distinct files for processing? Or perhaps,
+                lock = threading.Lock()
+                with lock:
+                    file_set.errors.append("KGE Archive validation is not yet implemented?")
+                    file_set.status = KgeFileSetStatusCode.ERROR
+            else:
+                err_msg = f"WARNING: Unknown KgeFileType{file_type} ... Ignoring?"
+                print(err_msg, file=stderr)
+                lock = threading.Lock()
+                with lock:
+                    file_set.errors.append(err_msg)
+                    file_set.status = KgeFileSetStatusCode.ERROR
+    
+            compliance: str = ' not ' if file_set.errors else ' '
+            print(
+                f"has finished processing. File set '{str(file_set)}' is" +
+                compliance + "KGX compliant", file=stderr
+            )
 
             self._validation_queue.task_done()
 
-    async def validate_data_file(
-            self,
+    @staticmethod
+    async def validate_file_set(
             input_files: List[str],
             input_format: str = 'tsv',
-            input_compression: Optional[str] = None,
-            output: Optional[str] = None
+            input_compression: Optional[str] = None
     ) -> List:
         """
         Validates KGX compliance of a specified data file.
 
-        :param input_files: list of file path strings pointing to files to be validated (may be a resolvable URL?)
-        :param input_format: currently restricted to 'tsv' (its default?)
-        :param input_compression: currently expected to be 'tar.gz' or 'gz'
-        :param output: default None
+        :param input_files: list of file path strings pointing to files to be validated (could be a resolvable URL?)
+        :param input_format: currently restricted to 'tsv' (its default?) - should be consistent for all input_files
+        :param input_compression: currently expected to be 'tar.gz' or 'gz' - should be consistent for all input_files
         :return: (possibly empty) List of errors returned
         """
         logger.debug(
             "Entering KgxValidator.validate_data_file() with arguments:" +
             "\n\tfile_path:" + str(input_files) +
             "\n\tinput_format:" + str(input_format) +
-            "\n\tinput_compression:" + str(input_compression) +
-            "\n\toutput:" + str(output)
+            "\n\tinput_compression:" + str(input_compression)
         )
 
         if input_files:
-            # The putative KGX file 'source' is currently sitting at the end
-            # of an S3 signed URL(!?) for streaming into the validation.
+            # The putative KGX 'source' input files are currently sitting
+            # at the end of S3 signed URLs for streaming into the validation.
 
             logger.debug("...initializing Validator...")
 
@@ -229,24 +255,23 @@ class KgxValidator:
             logger.debug("...initiating transform data flow...")
 
             transformer.transform(
-                input_args={'filename': input_files, 'format': input_format, 'compression': input_compression},
-                output_args={'format': 'null'},
+                input_args={
+                    'filename': input_files,
+                    'format': input_format,
+                    'compression': input_compression
+                },
+                output_args={
+                    # we don't keep the graph in memory...
+                    # too RAM costly and not needed later
+                    'format': 'null'
+                },
                 inspector=validator
             )
 
             logger.debug("...retrieving errors (if any):")
 
-            errors = validator.get_errors()
-            if errors:
-                logger.debug(str(errors))
-                if output:
-                    self.kgx_data_validator.write_report(open(output, 'w'))
-                else:
-                    self.kgx_data_validator.write_report(stderr)
-
-            # as a sanity check, force error data
-            # returned into a list of string error messages
-            return [str(error) for error in errors]
+            errors = validator.get_error_messages()
+            return errors
 
         else:
             return ["Missing file name inputs for validation?"]
@@ -266,11 +291,27 @@ SAMPLE_META_KNOWLEDGE_GRAPH_FILE = abspath(dirname(__file__) + '/sample_meta_kno
 
 def test_contents_metadata_validator():
     print("\ntest_contents_metadata_validator() test output:\n", file=stderr)
+    
     with open(SAMPLE_META_KNOWLEDGE_GRAPH_FILE, mode='r', encoding='utf-8') as smkg:
         mkg_json = json.load(smkg)
+        
     errors: List[str] = validate_content_metadata(mkg_json)
+    
     if errors:
         logger.error("test_contents_metadata_validator() errors: " + str(errors))
+    return not errors
+
+
+def test_contents_data_validator():
+    print("\ntest_contents_data_validator() test output:\n", file=stderr)
+    
+    with open(SAMPLE_META_KNOWLEDGE_GRAPH_FILE, mode='r', encoding='utf-8') as smkg:
+        mkg_json = json.load(smkg)
+        
+    errors: List[str] = validate_content_metadata(mkg_json)
+    
+    if errors:
+        logger.error("test_contents_data_validator() errors: " + str(errors))
     return not errors
 
 
@@ -289,5 +330,6 @@ def run_test(test_func):
 if __name__ == '__main__':
     
     run_test(test_contents_metadata_validator)
-    
+    run_test(test_contents_data_validator)
+
     print("tests complete")
