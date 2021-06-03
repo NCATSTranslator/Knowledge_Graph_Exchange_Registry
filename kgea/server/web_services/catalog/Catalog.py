@@ -21,6 +21,7 @@ from sys import stderr
 from os import getenv
 from os.path import dirname, abspath
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
+from string import punctuation
 from io import BytesIO, StringIO
 
 # TODO: maybe convert Catalog components to Python Dataclasses?
@@ -38,6 +39,8 @@ from jsonschema import (
 )
 
 import yaml
+from kgx import GraphEntityType
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -215,17 +218,26 @@ class KgeFileSet:
     def __str__(self):
         return "File set version "+self.kg_version+" of graph "+self.kg_id
     
-    def get_submitter_name(self):
-        return self.submitter_name
-
-    def get_submitter_email(self):
-        return self.submitter_email
-
+    def get_kg_id(self):
+        return self.kg_id
+    
     def get_version(self):
         return self.kg_version
 
     def get_date_stamp(self):
         return self.date_stamp
+    
+    def id(self):
+        """
+        :return: Versioned file set identifier.
+        """
+        return self.kg_id + "." + self.kg_version
+    
+    def get_submitter_name(self):
+        return self.submitter_name
+
+    def get_submitter_email(self):
+        return self.submitter_email
 
     def get_data_file_object_keys(self) -> Set[str]:
         return set(self.data_files.keys())
@@ -628,6 +640,34 @@ class KgeKnowledgeGraph:
         
         self._provider_metadata_object_key: Optional[str] = None
 
+    _name_filter_table = None
+    
+    @classmethod
+    def _name_filter(cls):
+        if not cls._name_filter_table:
+            delete_dict = {sp_character: '' for sp_character in punctuation}
+            delete_dict[' '] = '-'
+            cls._name_filter_table = str.maketrans(delete_dict)
+        return cls._name_filter_table
+    
+    @classmethod
+    def normalize_name(cls, kg_name: str) -> str:
+        # TODO: need to review graph name normalization and indexing
+        #       against various internal graph use cases, e.g. lookup
+        #       and need to be robust to user typos (e.g. extra blank spaces?
+        #       invalid characters?). Maybe convert to regex cleanup?
+        # all lower case
+        kg_id = kg_name.lower()
+        
+        # filter out all punctuation characters
+        kg_id = kg_id.translate(cls._name_filter())
+        
+        # just clean up the occasional double space typo
+        # (won't fully clean up a series of spaces)
+        kg_id = kg_id.replace("--", "-")
+        
+        return kg_id
+    
     def set_provider_metadata_object_key(self, object_key: str):
         self._provider_metadata_object_key = object_key
 
@@ -997,16 +1037,6 @@ class KgeArchiveCatalog:
             license_url=license_url,
             terms_of_service=terms_of_service
         )
-
-    @staticmethod
-    def normalize_name(kg_name: str) -> str:
-        # TODO: need to review graph name normalization and indexing
-        #       against various internal graph use cases, e.g. lookup
-        #       and need to be robust to user typos (e.g. extra blank spaces?
-        #       invalid characters?). Maybe convert to regex cleanup?
-        kg_id = kg_name.lower()          # all lower case
-        kg_id = kg_id.replace(' ', '_')  # spaces with underscores
-        return kg_id
     
     # TODO: what is the required idempotency of this KG addition
     #       relative to submitters (can submitters change?)
@@ -1531,7 +1561,7 @@ class KgxValidator:
                 s3_file_url = entry["s3_file_url"]
                 
                 print(
-                    f"KgxValidator() is found file '{file_name}' '{object_key}' " +
+                    f"KgxValidator() processing file '{file_name}' '{object_key}' " +
                     f"of type '{file_type}', input format '{input_format}' " +
                     f"and with compression '{input_compression}', ",
                     file=stderr
@@ -1548,16 +1578,14 @@ class KgxValidator:
                 validation_errors: List[str] = list()
                 #
                 # Run validation of KGX knowledge graph data files here
-                #
-                # --- Uncomment completely activate the validation?
-                #
-                # file_set.errors.extend(
-                #     await self.validate_file_set(
-                #         input_files=input_files,
-                #         input_format=input_format,
-                #         input_compression=input_compression
-                #     )
-                # )
+                file_set.errors.extend(
+                    await self.validate_file_set(
+                        file_set_id=file_set.kg_id,
+                        input_files=input_files,
+                        input_format=input_format,
+                        input_compression=input_compression
+                    )
+                )
                 lock = threading.Lock()
                 with lock:
                     if not validation_errors:
@@ -1593,6 +1621,7 @@ class KgxValidator:
     
     @staticmethod
     async def validate_file_set(
+            file_set_id: str,
             input_files: List[str],
             input_format: str = 'tsv',
             input_compression: Optional[str] = None
@@ -1600,11 +1629,13 @@ class KgxValidator:
         """
         Validates KGX compliance of a specified data file.
 
+        :param file_set_id: name of the file set, generally a composite identifier of the kg_id plus kg_version?
         :param input_files: list of file path strings pointing to files to be validated (could be a resolvable URL?)
         :param input_format: currently restricted to 'tsv' (its default?) - should be consistent for all input_files
         :param input_compression: currently expected to be 'tar.gz' or 'gz' - should be consistent for all input_files
         :return: (possibly empty) List of errors returned
         """
+        logger.setLevel(logging.DEBUG)
         logger.debug(
             "Entering KgxValidator.validate_data_file() with arguments:" +
             "\n\tfile_path:" + str(input_files) +
@@ -1619,8 +1650,25 @@ class KgxValidator:
             logger.debug("...initializing Validator...")
             
             class ProgressMonitor:
-                def __call__(self):
-                    pass
+                # TODO: how do we best track the validation here?
+                #       We start by simply counting the nodes and edges
+                #       and periodically reporting to stderr?
+                def __init__(self):
+                    self._node_count = 0
+                    self._edge_count = 0
+
+                def __call__(self, entity_type: GraphEntityType, rec: List):
+                    logger.setLevel(logging.DEBUG)
+                    if entity_type == GraphEntityType.EDGE:
+                        self._edge_count += 1
+                    elif entity_type == GraphEntityType.NODE:
+                        self._node_count += 1
+                    else:
+                        logger.warning("Unexpected GraphEntityType: " + str(entity_type))
+                    if self._node_count % 10000 == 0:
+                        logger.debug(str(self._node_count)+" nodes read in so far...")
+                    if self._edge_count % 100000 == 0:
+                        logger.debug(str(self._edge_count) + " nodes read in so far...")
             
             validator = Validator(progress_monitor=ProgressMonitor())
             
@@ -1632,6 +1680,7 @@ class KgxValidator:
             
             transformer.transform(
                 input_args={
+                    'name': file_set_id,
                     'filename': input_files,
                     'format': input_format,
                     'compression': input_compression

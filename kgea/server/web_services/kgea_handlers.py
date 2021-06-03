@@ -1,8 +1,8 @@
 import sys
-import json
+
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 
 from .models import (
     KgeMetadata,
@@ -196,7 +196,7 @@ async def register_kge_knowledge_graph(request: web.Request):
 
         # Use a normalized version of the knowledge
         # graph name as the KGE File Set identifier.
-        kg_id = KgeArchiveCatalog.normalize_name(kg_name)
+        kg_id = KgeKnowledgeGraph.normalize_name(kg_name)
 
         if True:  # location_available(bucket_name, object_key):
             if True:  # api_specification and url:
