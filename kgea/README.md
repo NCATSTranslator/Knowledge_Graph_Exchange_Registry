@@ -447,7 +447,7 @@ kge_1  |  * Debug mode: off
 kge_1  |  * Running on http://0.0.0.0:8080/ (Press CTRL+C to quit)
 ```
 
-While lightweight and easy to use, Flask’s built-in server is not suitable for production as it doesn’t scale well.  For this reason, one needs to consider WSGI servers. The [deployment options for WSGI](https://flask.palletsprojects.com/en/1.1.x/deploying/), accordingly, suggest suitable adjustments to the production NGINX and KGE Archive Python application installation and configuration.
+While lightweight and easy to use, Flask’s built-in server is not suitable for production as it doesn’t scale well.  For this reason, one needs to consider WSGI servers. The [deployment options for WSGI](https://flask.palletsprojects.com/en/1.1.x/deploying/), accordingly, suggest suitable adjustments to the production NGINX and KGE Archive Python application installation and configuration.  See also [documentation for AIOHTTP hosted WSGI here](https://aiohttp-wsgi.readthedocs.io/en/stable/wsgi.html) and [general WSGI information here](https://www.fullstackpython.com/wsgi-servers.html) for possible helpful guidance.
 
 ## Client User Authentication
 
