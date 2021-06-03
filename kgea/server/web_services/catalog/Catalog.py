@@ -213,7 +213,7 @@ class KgeFileSet:
             self.status = KgeFileSetStatusCode.CREATED
 
     def __str__(self):
-        return "File set version '"+self.kg_version+"' of graph "+self.kg_id+"'"
+        return "File set version "+self.kg_version+" of graph "+self.kg_id
     
     def get_submitter_name(self):
         return self.submitter_name
@@ -1585,7 +1585,7 @@ class KgxValidator:
             
             compliance: str = ' not ' if file_set.errors else ' '
             print(
-                f"has finished processing. File set '{str(file_set)}' is" +
+                f"has finished processing. {str(file_set)} is" +
                 compliance + "KGX compliant", file=stderr
             )
             
