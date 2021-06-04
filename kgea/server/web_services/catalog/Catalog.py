@@ -1575,23 +1575,21 @@ class KgxValidator:
             # ...then, process them together...
             ###################################
             if file_type == KgeFileType.KGX_DATA_FILE:
-                validation_errors: List[str] = list()
                 #
                 # Run validation of KGX knowledge graph data files here
-                file_set.errors.extend(
+                validation_errors: List[str] = \
                     await self.validate_file_set(
                         file_set_id=file_set.id(),
                         input_files=input_files,
                         input_format=input_format,
                         input_compression=input_compression
                     )
-                )
                 lock = threading.Lock()
                 with lock:
                     if not validation_errors:
-                        file_set.errors.extend(validation_errors)
                         file_set.status = KgeFileSetStatusCode.VALIDATED
                     else:
+                        file_set.errors.extend(validation_errors)
                         file_set.status = KgeFileSetStatusCode.ERROR
             
             elif file_type == KgeFileType.KGE_ARCHIVE:
@@ -1648,12 +1646,10 @@ class KgxValidator:
             # The putative KGX 'source' input files are currently sitting
             # at the end of S3 signed URLs for streaming into the validation.
             
-            logger.debug("...initializing Validator...")
-            
             class ProgressMonitor:
                 # TODO: how do we best track the validation here?
                 #       We start by simply counting the nodes and edges
-                #       and periodically reporting to stderr?
+                #       and periodically reporting to debug logger.
                 def __init__(self):
                     self._node_count = 0
                     self._edge_count = 0
@@ -1663,7 +1659,7 @@ class KgxValidator:
                     if entity_type == GraphEntityType.EDGE:
                         self._edge_count += 1
                         if self._edge_count % 100000 == 0:
-                            logger.debug(str(self._edge_count) + " nodes read in so far...")
+                            logger.debug(str(self._edge_count) + " edges read in so far...")
                     elif entity_type == GraphEntityType.NODE:
                         self._node_count += 1
                         if self._node_count % 10000 == 0:
@@ -1671,15 +1667,9 @@ class KgxValidator:
                     else:
                         logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
-
-            
             validator = Validator(progress_monitor=ProgressMonitor())
             
-            logger.debug("...initializing Transformer...")
-            
             transformer = Transformer(stream=True)
-            
-            logger.debug("...initiating transform data flow...")
             
             transformer.transform(
                 input_args={
@@ -1696,9 +1686,15 @@ class KgxValidator:
                 inspector=validator
             )
             
-            logger.debug("...retrieving errors (if any):")
+            errors: List[str] = validator.get_error_messages()
+
+            logger.debug("Existing validate_file_set()")
             
-            errors = validator.get_error_messages()
+            if errors:
+                n = len(errors)
+                n = 9 if n >= 10 else n
+                logger.debug("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
+            
             return errors
         
         else:
