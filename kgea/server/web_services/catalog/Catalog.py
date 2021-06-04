@@ -1580,7 +1580,7 @@ class KgxValidator:
                 # Run validation of KGX knowledge graph data files here
                 file_set.errors.extend(
                     await self.validate_file_set(
-                        file_set_id=file_set.kg_id,
+                        file_set_id=file_set.id(),
                         input_files=input_files,
                         input_format=input_format,
                         input_compression=input_compression
@@ -1638,9 +1638,10 @@ class KgxValidator:
         logger.setLevel(logging.DEBUG)
         logger.debug(
             "Entering KgxValidator.validate_data_file() with arguments:" +
-            "\n\tfile_path:" + str(input_files) +
-            "\n\tinput_format:" + str(input_format) +
-            "\n\tinput_compression:" + str(input_compression)
+            "\n\tfile set ID:" + str(file_set_id) +
+            "\n\tinput files:" + str(input_files) +
+            "\n\tinput format:" + str(input_format) +
+            "\n\tinput compression:" + str(input_compression)
         )
         
         if input_files:
@@ -1658,17 +1659,19 @@ class KgxValidator:
                     self._edge_count = 0
 
                 def __call__(self, entity_type: GraphEntityType, rec: List):
-                    logger.setLevel(logging.DEBUG)
+                    # logger.setLevel(logging.DEBUG)
                     if entity_type == GraphEntityType.EDGE:
                         self._edge_count += 1
+                        if self._edge_count % 100000 == 0:
+                            logger.debug(str(self._edge_count) + " nodes read in so far...")
                     elif entity_type == GraphEntityType.NODE:
                         self._node_count += 1
+                        if self._node_count % 10000 == 0:
+                            logger.debug(str(self._node_count) + " nodes read in so far...")
                     else:
                         logger.warning("Unexpected GraphEntityType: " + str(entity_type))
-                    if self._node_count % 10000 == 0:
-                        logger.debug(str(self._node_count)+" nodes read in so far...")
-                    if self._edge_count % 100000 == 0:
-                        logger.debug(str(self._edge_count) + " nodes read in so far...")
+
+
             
             validator = Validator(progress_monitor=ProgressMonitor())
             
