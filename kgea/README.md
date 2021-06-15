@@ -401,7 +401,7 @@ sudo apt install nginx
 installs the software.
 
 Next, a copy of the `kge_nginx.conf-template` file (located under the `config` subdirectory) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
-Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modified this proxy insofar necessary).  
+Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modified this proxy insofar necessary).
 
 The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. Templated static files in the subdirectories of the project `config/static` subdirectory (like `css/styles.css-template`, `images`, etc.) should be copied into the designated location and may also be customized as desired.
 
@@ -434,29 +434,20 @@ Afterwards, **https** SSL certification can be applied to the specified KGE serv
 sudo certbot --nginx
 ```
 
-### WSGI Deployment
+## Further Information
 
-Looking at the Flask server log (using `docker-compose log`), the following start-up message will be noted:
-
-```
-kge_1  |  * Serving Flask app "__main__" (lazy loading)
-kge_1  |  * Environment: production
-kge_1  |    WARNING: This is a development server. Do not use it in a production deployment.
-kge_1  |    Use a production WSGI server instead.
-kge_1  |  * Debug mode: off
-kge_1  |  * Running on http://0.0.0.0:8080/ (Press CTRL+C to quit)
-```
-
-While lightweight and easy to use, Flask’s built-in server is not suitable for production as it doesn’t scale well.  For this reason, one needs to consider WSGI servers. The [deployment options for WSGI](https://flask.palletsprojects.com/en/1.1.x/deploying/), accordingly, suggest suitable adjustments to the production NGINX and KGE Archive Python application installation and configuration.  See also [documentation for AIOHTTP hosted WSGI here](https://aiohttp-wsgi.readthedocs.io/en/stable/wsgi.html) and [general WSGI information here](https://www.fullstackpython.com/wsgi-servers.html) for possible helpful guidance.
+Although the details of the KGE Archive deployment may diverge from what is described on the AIOHTTP website, see this further information about [production AIOHTTP deployments](https://docs.aiohttp.org/en/stable/deployment.html#aiohttp-deployment).
 
 ## Client User Authentication
 
-The [Archive system leverages AWS Cognito for its client user authentication](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). The  HHTPS schema-prefixed hostname needs to be specified as the login URL's callback endpoint, through the Archive software site configuration.
+The [Archive system leverages AWS Cognito for its client user authentication](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). The  HTTPS schema-prefixed hostname needs to be specified as the login URL's callback endpoint, through the Archive software site configuration.
 
 ### Configure AWS
 
 Refer to [Amazon Web Services Configuration](#amazon-web-services-configuration).
 
 ## Running the Production System
+
+After configuring Nginx we need to start the aiohttp web-service and web-ui backends using a tool for starting them automatically after system reboot or backend crash. There are very many ways to do it: Supervisord, Upstart, Systemd, etc.
 
 T.B.A.
