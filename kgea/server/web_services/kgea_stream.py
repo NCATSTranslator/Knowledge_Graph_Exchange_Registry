@@ -4,12 +4,10 @@ from typing import List, Dict
 
 from aiohttp import web
 import smart_open
-import requests
 
 from asyncio import (
     ensure_future,
-    wait,
-    wait_for
+    wait
 )
 from collections.abc import AsyncIterable
 
@@ -22,11 +20,8 @@ from .kgea_file_ops import (
     with_version
 )
 
-from kgea.server.config import (
-    s3_client,
-    get_app_config,
-    PROVIDER_METADATA_FILE,
-    FILE_SET_METADATA_FILE
+from kgea.config import (
+    s3_client
 )
 
 

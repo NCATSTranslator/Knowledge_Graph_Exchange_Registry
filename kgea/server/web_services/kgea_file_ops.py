@@ -33,7 +33,7 @@ except ImportError:
 import boto3
 from botocore.exceptions import ClientError
 
-from kgea.server.config import (
+from kgea.config import (
     s3_client,
     get_app_config,
     PROVIDER_METADATA_FILE,

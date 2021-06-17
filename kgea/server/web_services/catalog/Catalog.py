@@ -52,7 +52,7 @@ from github.GithubException import UnknownObjectException
 from kgx.transformer import Transformer
 from kgx.validator import Validator
 
-from kgea.server.config import (
+from kgea.config import (
     get_app_config,
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE

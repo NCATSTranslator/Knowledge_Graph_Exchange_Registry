@@ -17,7 +17,7 @@ from aiohttp import web, ClientSession
 from aiohttp_session import AbstractStorage, setup, new_session, get_session
 from multidict import MultiDict
 
-from kgea.server.config import get_app_config
+from kgea.config import get_app_config
 
 import logging
 

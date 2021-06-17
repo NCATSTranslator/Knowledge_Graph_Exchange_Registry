@@ -26,7 +26,7 @@ import threading
 # Application Configuration
 #############################################################
 
-from kgea.server.config import (
+from kgea.config import (
     get_app_config,
     CONTENT_METADATA_FILE,
 

@@ -11,7 +11,7 @@ import aiohttp_jinja2
 
 from aiohttp_session import get_session
 
-from kgea.server.config import (
+from kgea.config import (
     get_app_config,
 
     LANDING_PAGE,

@@ -6,12 +6,12 @@ from os import getenv
 from typing import Dict
 import json
 
-from base64  import b64encode, b64decode
+from base64  import b64encode
 from uuid import uuid4
 
 import logging
 
-from kgea.server.config import get_app_config
+from kgea.config import get_app_config
 from kgea.server.web_services.kgea_session import KgeaSession
 
 logger = logging.getLogger(__name__)
