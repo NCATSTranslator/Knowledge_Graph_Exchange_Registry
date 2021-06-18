@@ -6,6 +6,7 @@
 # to a Simple Storage Service (S3) bucket given as an argument.
 #
 import sys
+from os.path import abspath, dirname
 from pathlib import Path
 
 from json import dumps
@@ -67,7 +68,24 @@ aws_session = boto3.Session(
 
 s3_client = aws_session.client('s3')  # , region_name=region)
 
-# response expected:
+TEST_FILE_PATH = abspath(dirname(__file__) + '/README.md')
+TEST_FILE_OBJECT_KEY = 'test_file.txt'
+# Upload a test file
+print(
+    "\n###Creating a test object '"+TEST_FILE_OBJECT_KEY +
+    "' in the S3 bucket '" + s3_bucket_name + "'\n"
+)
+
+try:
+    s3_client.upload_file(TEST_FILE_PATH, s3_bucket_name, TEST_FILE_OBJECT_KEY)
+except Exception as exc:
+    raise RuntimeError("upload_file() exception: " + str(exc))
+
+# Check for the new file in the bucket listing
+response = s3_client.list_objects_v2(Bucket=s3_bucket_name)
+
+#
+# s3_client.list_objects_v2() response expected:
 # {
 #     'IsTruncated': True|False,
 #     'Contents': [
@@ -98,15 +116,19 @@ s3_client = aws_session.client('s3')  # , region_name=region)
 #     'NextContinuationToken': 'string',
 #     'StartAfter': 'string'
 # }
-
-response = s3_client.list_objects_v2(Bucket=s3_bucket_name)
-
 # print(dumps(response))
 
-if 'KeyCount' in response and response['KeyCount']:
-    print("Listing of contents of the S3 bucket '" + s3_bucket_name + "':")
+if 'Contents' in response:
+    print("### Listing of test object in the S3 bucket '" + s3_bucket_name + "':")
     for entry in response['Contents']:
         print(entry['Key'], ':', entry['Size'])
 else:
     print("S3 bucket '" + s3_bucket_name + "' is empty?")
 
+# delete the test file
+print(
+    "\n### Deleting the test object '"+TEST_FILE_OBJECT_KEY +
+    "' in the S3 bucket '" + s3_bucket_name + "'"
+)
+response = s3_client.delete_object(Bucket=s3_bucket_name, Key=TEST_FILE_OBJECT_KEY)
+print(dumps(response))
