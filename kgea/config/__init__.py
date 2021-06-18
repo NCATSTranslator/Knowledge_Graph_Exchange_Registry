@@ -13,7 +13,7 @@ except ImportError:
 
 import logging
 
-from .aws import (
+from kgea.aws.aws import (
     CONFIG_FILE_PATH,
     validate_session_configuration,
     validate_client_configuration

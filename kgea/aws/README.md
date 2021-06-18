@@ -71,12 +71,12 @@ Note that, as necessary for due diligence, one can also set trust policies for o
 
 ### Task 3: Run the script to allow the user to sign into the Host account console
 
-A [basic STS-enabled Python script (aws-dashboard.py.py)](./aws-dashboard.py) here is adapted and updated from a [sample script in AWS documents](https://aws.amazon.com/blogs/security/how-to-enable-cross-account-access-to-the-aws-management-console/). This script provides a working STS **Assume Role** service transaction, based on user-provided "Host" AWS account id, a configured external id and target role parameters:
+A [basic STS-enabled Python script (console.py)](./console.py) here is adapted and updated from a [sample script in AWS documents](https://aws.amazon.com/blogs/security/how-to-enable-cross-account-access-to-the-aws-management-console/). This script provides a working STS **Assume Role** service transaction, based on user-provided "Host" AWS account id, a configured external id and target role parameters:
 
 ```shell
-$ ./aws-deployment-script-1.py
+$ aws/console.py
 Usage:
-aws-deployment-script-1.py
+console.py
  <host_account_id> <external_id> <iam_role_name>
 ```
 
@@ -90,7 +90,7 @@ At this point, since the newly defined (_KGEArchiveDeployment_) role has no secu
 
 ### EC2 Configuration
 
-The KGE Archive is essentially a Dockerized Python language based web user interface and web service application stack. Although the application can be substantially tested under Microsoft Windows and Mac OSX, this recipe for production deployment will target an Ubuntu Linux EC2 server environment. We outline the specific details for Docker and web server deployment in the [KGE Archive project README](../../README.md). Here, we focus on configuration, launching and accessing the host AWS EC2 server, using suitably constrained IAM securities policies to be associated with the new _KGEArchiveDeployment_ IAM Role defined above.
+The KGE Archive is essentially a Dockerized Python language based web user interface and web service application stack. Although the application can be substantially tested under Microsoft Windows and Mac OSX, this recipe for production deployment will target an Ubuntu Linux EC2 server environment. We outline the specific details for Docker and web server deployment in the [KGE Archive project README](../../README.md). Here, we focus on configuration, launching and accessing the host AWS EC2 server, using suitably constrained IAM securities policies to be associated with the new _translator-sri-access_ IAM Role defined above.
 
 ### Cognito Configuration
 

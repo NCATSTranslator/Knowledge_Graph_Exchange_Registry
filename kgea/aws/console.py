@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from .assume_role import AssumeRole
+from kgea.aws.assume_role import AssumeRole
 
 import requests
 import sys
@@ -25,31 +25,32 @@ else:
     exit(0)
 
 
-assumed_role = AssumeRole(
+_assumed_role = AssumeRole(
                     host_aws_account_id=account_id_from_user,
                     guest_external_id=external_id,
                     target_role_name=role_name_from_user
                 )
         
-# Step 4. Make a request to the AWS federation endpoint to get a sign-in
+# Make a request to the AWS federation endpoint to get a sign-in.
+#
 # token, passing parameters in the query string. The call requires an
 # Action parameter ('getSigninToken') and a Session parameter (the
 # JSON string that contains the temporary credentials that have
 # been URL-encoded).
 request_parameters = "?Action=getSigninToken"
 request_parameters += "&Session="
-request_parameters += quote_plus(assumed_role.get_credentials_jsons())
+request_parameters += quote_plus(_assumed_role.get_credentials_jsons())
 request_url = "https://signin.aws.amazon.com/federation"
 request_url += request_parameters
 r = requests.get(request_url)
 
-# Step 5. Get the return value from the federation endpoint--a
-# JSON document that has a single element named 'SigninToken'.
+# Get the return value from the federation endpoint.
+#
+# a JSON document that has a single element named 'SigninToken'.
 sign_in_token = json.loads(r.text)["SigninToken"]
 
-# Step 6: Create the URL that will let users sign in to the console using
-# the sign-in token. This URL must be used within 15 minutes of when the
-# sign-in token was issued.
+# Create the URL that will let users sign in to the console using the sign-in token.
+# This URL must be used within 15 minutes of when the sign-in token was issued.
 request_parameters = "?Action=login"
 request_parameters += "&Issuer="
 request_parameters += "&Destination="
@@ -58,6 +59,5 @@ request_parameters += "&SigninToken=" + sign_in_token
 request_url = "https://signin.aws.amazon.com/federation"
 request_url += request_parameters
 
-# Step 7: Use the default browser to sign in to the console using the
-# generated URL.
+# Use the default browser to sign in to the AWS Dashboard using the generated URL.
 webbrowser.open(request_url)

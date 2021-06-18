@@ -4,14 +4,10 @@ from typing import Dict
 from json import dumps
 import boto3
 
-from kgea.config import get_app_config
-from kgea.config.aws import (
+from kgea.aws.configuration import (
     validate_session_configuration,
     validate_client_configuration
 )
-
-# Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
 
 
 class AssumeRole:
@@ -34,10 +30,10 @@ class AssumeRole:
         try:
             assert (validate_session_configuration())
             assert (validate_client_configuration("sts"))
-            self.sts_client = boto3.client('sts')
-        except Exception as e:
-            print('ERROR: sts configuration failed to load')
-            print(e)
+            self.sts_client = boto3.client("sts")
+        except Exception as ex:
+            print('ERROR: AWS STS configuration failed to load')
+            print(ex)
     
     def get_credentials_dict(self) -> Dict:
         """
