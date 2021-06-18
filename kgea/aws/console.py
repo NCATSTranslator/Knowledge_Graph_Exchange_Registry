@@ -4,7 +4,7 @@ from kgea.aws.assume_role import AssumeRole
 
 import requests
 import sys
-import os
+from pathlib import Path
 from urllib.parse import quote, quote_plus
 import json
 import webbrowser
@@ -20,8 +20,10 @@ if len(sys.argv) == 4:
     role_name_from_user = sys.argv[3]
 else:
     print("Usage: ")
-    print(os.path.basename(sys.argv[0])) # script name
-    print(" <account_id> <external_id> <iam_role_name>")
+    print(
+        "python -m kgea.aws."+Path(sys.argv[0]).stem +
+        " <host_account_id> <guest_external_id> <target_iam_role_name>"
+    )
     exit(0)
 
 
