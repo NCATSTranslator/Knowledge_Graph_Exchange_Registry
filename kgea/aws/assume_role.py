@@ -2,6 +2,7 @@
 from typing import Dict
 
 from json import dumps
+
 import boto3
 
 from kgea.aws.configuration import (
@@ -110,8 +111,8 @@ class AssumeRole:
         """
         :return: JSON formatted string of temporary AWS credentials of form
                  {
-                    "sessionId": "temp-access_key",
-                    "sessionKey": "temp-session-key",
+                    "sessionId": "temp-access_key-id",
+                    "sessionKey": "temp-secret-access-key",
                     "sessionToken": "temp-session-token"
                  }
         """

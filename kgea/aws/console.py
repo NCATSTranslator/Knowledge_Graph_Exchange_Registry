@@ -1,13 +1,21 @@
 #!/usr/bin/env python
-
-from kgea.aws.assume_role import AssumeRole
-
-import requests
+#
+# This CLI script will take  host AWS account id, guest external id and
+# the name of a host account IAM role, to obtain temporary AWS service
+# credentials to execute an AWS Secure Token Service-mediated access
+# to the AWS Console web user interface.
+#
 import sys
 from pathlib import Path
 from urllib.parse import quote, quote_plus
-import json
+import requests
+
+from json import loads
+
 import webbrowser
+
+from kgea.aws.assume_role import AssumeRole
+
 
 account_id_from_user: str = ""
 external_id: str = ""
@@ -49,7 +57,7 @@ r = requests.get(request_url)
 # Get the return value from the federation endpoint.
 #
 # a JSON document that has a single element named 'SigninToken'.
-sign_in_token = json.loads(r.text)["SigninToken"]
+sign_in_token = loads(r.text)["SigninToken"]
 
 # Create the URL that will let users sign in to the console using the sign-in token.
 # This URL must be used within 15 minutes of when the sign-in token was issued.
