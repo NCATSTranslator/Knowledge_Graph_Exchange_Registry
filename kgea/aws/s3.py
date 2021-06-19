@@ -16,7 +16,6 @@ import boto3
 from kgea.aws.assume_role import AssumeRole
 
 
-
 account_id_from_user: str = ""
 external_id: str = ""
 role_name_from_user: str = ""
@@ -25,7 +24,7 @@ s3_operation: str = "list"
 
 # Prompt user for target account ID, ExternalID and name of IAM Role
 # to assume, in order to access an S3 bucket, whose name is given
-if len(sys.argv) == 5: # 6:
+if len(sys.argv) == 5:  # 6:
     account_id_from_user = sys.argv[1]
     external_id = sys.argv[2]
     role_name_from_user = sys.argv[3]
@@ -36,7 +35,7 @@ else:
     print("Usage: ")
     print(
         "python -m kgea.aws."+Path(sys.argv[0]).stem +
-        " <host_account_id> <guest_external_id> <target_iam_role_name>"
+        " <host_account_id> <guest_external_id> <target_iam_role_name>" +
         " <S3 bucket name>"  # <operation>"
     )
     print("At this moment,  'list bucket contents' is the " +
@@ -68,67 +67,68 @@ aws_session = boto3.Session(
 
 s3_client = aws_session.client('s3')  # , region_name=region)
 
-TEST_FILE_PATH = abspath(dirname(__file__) + '/README.md')
-TEST_FILE_OBJECT_KEY = 'test_file.txt'
-# Upload a test file
-print(
-    "\n###Creating a test object '"+TEST_FILE_OBJECT_KEY +
-    "' in the S3 bucket '" + s3_bucket_name + "'\n"
-)
-
-try:
-    s3_client.upload_file(TEST_FILE_PATH, s3_bucket_name, TEST_FILE_OBJECT_KEY)
-except Exception as exc:
-    raise RuntimeError("upload_file() exception: " + str(exc))
-
-# Check for the new file in the bucket listing
-response = s3_client.list_objects_v2(Bucket=s3_bucket_name)
-
+# TEST_FILE_PATH = abspath(dirname(__file__) + '/README.md')
+# TEST_FILE_OBJECT_KEY = 'test_file.txt'
+# # Upload a test file
+# print(
+#     "\n###Creating a test object '"+TEST_FILE_OBJECT_KEY +
+#     "' in the S3 bucket '" + s3_bucket_name + "'\n"
+# )
 #
-# s3_client.list_objects_v2() response expected:
-# {
-#     'IsTruncated': True|False,
-#     'Contents': [
-#         {
-#             'Key': 'string',
-#             'LastModified': datetime(2015, 1, 1),
-#             'ETag': 'string',
-#             'Size': 123,
-#             'StorageClass': 'STANDARD'|'REDUCED_REDUNDANCY'|'GLACIER'|'STANDARD_IA'|'ONEZONE_IA'|'INTELLIGENT_TIERING'|'DEEP_ARCHIVE'|'OUTPOSTS',
-#             'Owner': {
-#                 'DisplayName': 'string',
-#                 'ID': 'string'
-#             }
-#         },
-#     ],
-#     'Name': 'string',
-#     'Prefix': 'string',
-#     'Delimiter': 'string',
-#     'MaxKeys': 123,
-#     'CommonPrefixes': [
-#         {
-#             'Prefix': 'string'
-#         },
-#     ],
-#     'EncodingType': 'url',
-#     'KeyCount': 123,
-#     'ContinuationToken': 'string',
-#     'NextContinuationToken': 'string',
-#     'StartAfter': 'string'
-# }
+# try:
+#     s3_client.upload_file(TEST_FILE_PATH, s3_bucket_name, TEST_FILE_OBJECT_KEY)
+# except Exception as exc:
+#     raise RuntimeError("upload_file() exception: " + str(exc))
+#
+# # Check for the new file in the bucket listing
+# response = s3_client.list_objects_v2(Bucket=s3_bucket_name)
+#
+# #
+# # s3_client.list_objects_v2() response expected:
+# # {
+# #     'IsTruncated': True|False,
+# #     'Contents': [
+# #         {
+# #             'Key': 'string',
+# #             'LastModified': datetime(2015, 1, 1),
+# #             'ETag': 'string',
+# #             'Size': 123,
+# #             'StorageClass': 'STANDARD'|'REDUCED_REDUNDANCY'|'GLACIER'|'STANDARD_IA'|'ONEZONE_IA'|'INTELLIGENT_TIERING'|'DEEP_ARCHIVE'|'OUTPOSTS',
+# #             'Owner': {
+# #                 'DisplayName': 'string',
+# #                 'ID': 'string'
+# #             }
+# #         },
+# #     ],
+# #     'Name': 'string',
+# #     'Prefix': 'string',
+# #     'Delimiter': 'string',
+# #     'MaxKeys': 123,
+# #     'CommonPrefixes': [
+# #         {
+# #             'Prefix': 'string'
+# #         },
+# #     ],
+# #     'EncodingType': 'url',
+# #     'KeyCount': 123,
+# #     'ContinuationToken': 'string',
+# #     'NextContinuationToken': 'string',
+# #     'StartAfter': 'string'
+# # }
+# # print(dumps(response))
+#
+# if 'Contents' in response:
+#     print("### Listing of test object in the S3 bucket '" + s3_bucket_name + "':")
+#     for entry in response['Contents']:
+#         print(entry['Key'], ':', entry['Size'])
+# else:
+#     print("S3 bucket '" + s3_bucket_name + "' is empty?")
+#
+# # delete the test file
+# print(
+#     "\n### Deleting the test object '"+TEST_FILE_OBJECT_KEY +
+#     "' in the S3 bucket '" + s3_bucket_name + "'"
+# )
+# response = s3_client.delete_object(Bucket=s3_bucket_name, Key=TEST_FILE_OBJECT_KEY)
 # print(dumps(response))
-
-if 'Contents' in response:
-    print("### Listing of test object in the S3 bucket '" + s3_bucket_name + "':")
-    for entry in response['Contents']:
-        print(entry['Key'], ':', entry['Size'])
-else:
-    print("S3 bucket '" + s3_bucket_name + "' is empty?")
-
-# delete the test file
-print(
-    "\n### Deleting the test object '"+TEST_FILE_OBJECT_KEY +
-    "' in the S3 bucket '" + s3_bucket_name + "'"
-)
-response = s3_client.delete_object(Bucket=s3_bucket_name, Key=TEST_FILE_OBJECT_KEY)
-print(dumps(response))
+#
