@@ -10,6 +10,9 @@ We provide a [sample template for NGINX configuration](./kge_nginx.conf-template
 
 ROUGHED IN ONLY, BUT AS YET UNTESTED!
 
+NOTE: SUPERVISORD AND DOCKER MAY NOT PLAY WELL TOGETHER... SEE:
+- https://stackoverflow.com/questions/30034813/best-way-to-manage-docker-containers-with-supervisord
+
 See [AIOHTTP notes on supervisor use](https://docs.aiohttp.org/en/stable/deployment.html#supervisord) plus [supervisor docs](http://supervisord.org/) for further details. Once again, we provide a template [supervisord-template](./supervisord-template) which may (eventually) be useful.
 
 ## KGE Archive Server Applications
@@ -40,4 +43,8 @@ if __name__ == '__main__':
 
 ## Docker Compose Running of the System
 
-T.B.A.
+WORK-IN-PROGRESS
+
+Some possible information resources to consult:
+- https://help.cmd.com/en/articles/3616684-supervisord-deployment-guide
+- https://www.cilans.net/skill-development/running-multiple-services-in-a-docker-container-via-supervisord-at-runtime/
