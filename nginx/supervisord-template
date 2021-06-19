@@ -1,0 +1,18 @@
+[program:kgea]
+numprocs = 4
+numprocs_start = 1
+process_name = kgea_%(process_num)s
+
+; ########## Don't take this script verbatim yet...
+; We rather need to rather figure out how to configure
+; the KGE Archive for Docker Compose execution
+
+; KGE front end user interface
+command=/path/to/web_ui.py --port=808%(process_num)s
+
+; KGE Archive back end
+command=/path/to/web_service.py --port=808%(process_num)s
+
+user=nobody
+autostart=true
+autorestart=true

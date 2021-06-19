@@ -1,32 +1,78 @@
-server {
-    listen 80;
-    listen [::]:80;
+http {
+    # fail_timeout=0 means we always retry an upstream
+    # even if it failed to return a good HTTP response
 
-    server_name localhost;
-    access_log  /var/log/nginx/kge.access.log;
+    upstream kge_ui {
+        # This is the docker-compose.yaml service name of the KGE Archive
+        # web-based human interface, hosted in a dockerized container.
+        server http://localhost:8090 fail_timeout=0;
 
-    root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates;
+        # Load balancing?
 
-    client_max_body_size 256G;
+        # I don't know whether additional backend processes are
+        # needed and could be run for the KGE Archive front end?
 
-    location / {
-        # 'kge' is the docker-compose.yaml service name of
-        # the KGE Archive dockerized web service container
-        proxy_pass http://localhost:8090;
+        # server http://localhost:8091 fail_timeout=0;
+        # server http://localhost:8092 fail_timeout=0;
+        # server http://localhost:8093 fail_timeout=0;
+        # server http://localhost:8094 fail_timeout=0;
     }
 
-    location /archive {
-        # 'kge' is the docker-compose.yaml service name of
-        # the KGE Archive dockerized web service container
-        proxy_pass http://localhost:8080/archive;
+    upstream kge_archive {
+        # This is the docker-compose.yaml service name of the KGE Archive
+        # backend web services, hosted in a dockerized container.
+
+        server http://localhost:8080/archive fail_timeout=0;
+
+        # Load balancing?
+
+        # I don't know whether additional backend processes are
+        # needed and could be run for the KGE Archive back end?
+
+        # server http://localhost:8081/archive fail_timeout=0;
+        # server http://localhost:8082/archive fail_timeout=0;
+        # server http://localhost:8083/archive fail_timeout=0;
+        # server http://localhost:8084/archive fail_timeout=0;
     }
 
-    location /favicon.ico {
-    }
+    server {
+        listen 80;
+        listen [::]:80;
 
-    location /css/ {
-    }
+        server_name localhost;
 
-    location /images/ {
+        access_log  /var/log/nginx/kge.access.log;
+
+        root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates;
+
+        client_max_body_size 256G;
+
+        location / {
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_redirect off;
+            proxy_buffering off;
+            proxy_pass http://kge_ui;
+        }
+
+        location /archive {
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_redirect off;
+            proxy_buffering off;
+            proxy_pass http://kge_archive;
+        }
+
+        location /favicon.ico {
+            root /path/to/favicon.ico;
+        }
+
+        location /css/ {
+            root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/css/;
+        }
+
+        location /images/ {
+            root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/images/;
+        }
     }
 }
