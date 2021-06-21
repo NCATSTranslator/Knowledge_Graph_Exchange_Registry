@@ -124,11 +124,24 @@ def _load_app_config() -> dict:
         with open(CONFIG_FILE_PATH, mode='r', encoding='utf-8') as app_config_file:
 
             app_config_raw = yaml.load(app_config_file, Loader=Loader)
-
-            if 'bucket' not in app_config_raw:
-                raise RuntimeError(
-                    "Missing 'bucket' attribute in '~/kgea/server/config/config.yaml' configuration file."
-                )
+            
+            if 'aws' not in app_config_raw:
+                pass
+            else:
+                if 'account' not in app_config_raw['aws'] or \
+                   'external_id' not in app_config_raw['aws'] or \
+                   'iam_role_name'not in app_config_raw['aws']:
+                    raise RuntimeError(
+                        "Missing mandatory aws 'account', 'external_id' and/or 'iam_role_name' attributes" +
+                        " in the '~/kgea/server/config/config.yaml' configuration file."
+                    )
+                elif 's3' not in app_config_raw['aws'] or \
+                     'bucket' not in app_config_raw['aws']['s3'] or \
+                     'archive-directory' not in app_config_raw['aws']['s3']:
+                    raise RuntimeError(
+                        "Missing mandatory aws.s3 'bucket' and/or 'archive-directory' attribute" +
+                        " in the '~/kgea/server/config/config.yaml' configuration file."
+                    )
             if 'github' not in app_config_raw:
                 if DEV_MODE:
                     logging.warning(

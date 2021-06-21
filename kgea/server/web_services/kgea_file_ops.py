@@ -114,7 +114,7 @@ def get_object_location(kg_id):
     randomness in this method; they may be appended afterwards.
     """
     location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
-        DIRECTORY_NAME=_KGEA_APP_CONFIG['archive-directory'],
+        DIRECTORY_NAME=_KGEA_APP_CONFIG['aws']['s3']['archive-directory'],
         KG_NAME=kg_id
     )
     return location
@@ -971,7 +971,7 @@ def get_archive_contents(bucket_name: str) -> \
 
         file_part = file_path.split('/')
 
-        if file_part[0] != _KGEA_APP_CONFIG['archive-directory']:
+        if file_part[0] != _KGEA_APP_CONFIG['aws']['s3']['archive-directory']:
             # ignore things that don't look like the KGE File Set archive folder
             continue
 

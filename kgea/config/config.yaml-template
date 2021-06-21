@@ -1,35 +1,33 @@
 # the actual base URL of a deployed KGE Archive site
 # should also be set as the base URI in the configuration
 # of the 'redirect_uri' of the AWS Cognito User Pool app
-site_hostname: 'https://kge.translator.ncats.io'
+site_hostname: 'https://kgea.translator.ncats.io'
 
-# Amazon S3 storage structure
-bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
-archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
-
-# AWS Cognito OAuth2 transaction parameters
-# These parameters should match those set as 'app client' parameters in Cognito
-# i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
-oauth2:
-  host:      '<AWS Cognito URL>' # AWS Cognito host for the user authorization code flow
-  client_id: '<myClientid>'      # get from AWS Cognito User Pool app
-  client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
-  login_callback:  '/oauth2callback'
-
-# Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
-credentials_file: ''                # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
-credentials_mode: 'default'         # the part of the credentials to use. Allows for multiple setups, e.g. [dev], [production], [default]
-# these local keys are used to specify access key and secret key for the project
-# otherwise, the credentials file can be overridden using these local keys
-credentials:
-  aws_access_key_id: '...'         # the 20 character AWS access key id
-  aws_secret_access_key: '...'     # the 40 character AWS secret key
+aws:
+  account: '<Host AWS Account Number>'
+  external_id: '<Guest-specified external identifier'
+  iam_role_name: '<Host-specified IAM Role name>'
+  s3:
+    # Amazon S3 storage structure
+    bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+    archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+  cognito:
+    # AWS Cognito OAuth2 transaction parameters
+    # These parameters should match those set as 'app client' parameters in Cognito
+    # i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
+    host:      '<AWS Cognito URL>'
+    client_id: '<myClientid>'     # get from AWS Cognito User Pool app
+    client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
+    site_uri:  '<myArchiveSiteURL>' # get from AWS Cognito User Pool app
+    login_callback:  '/oauth2callback'
 
 github:
     token: ''
 
-# Uncomment and set this configuration tag value to override the
-# KGE Archive Catalog hardcoded to a default of 3 KGX validation worker tasks
-# Number_of_KGX_Validation_Worker_Tasks: 3
+# Uncomment and set this configuration tag value to override
+# hardcoded default of 3 KGX validation worker tasks
+# No_KGX_Validation_Worker_Tasks: 3
 
-# secret_key:
+# This parameter is automatically set by the system when
+# EncryptedCookieStorage serves for user session management
+# secret_key: ''

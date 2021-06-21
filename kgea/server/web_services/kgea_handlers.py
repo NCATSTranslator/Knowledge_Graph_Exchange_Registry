@@ -615,7 +615,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 #     uploaded_file_object_key = transfer_file_from_url(
 #         url=content_url,
 #         file_name=content_name,
-#         bucket=_KGEA_APP_CONFIG['bucket'],
+#         bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
 #         object_location=file_set_location
 #     )
 #
@@ -632,7 +632,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 #     uploaded_file_object_key = upload_file(
 #         data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
 #         file_name=content_name,  # The new name for the file
-#         bucket=_KGEA_APP_CONFIG['bucket'],
+#         bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
 #         object_location=file_set_location
 #     )
 #
@@ -759,7 +759,7 @@ async def upload_kge_file(
             uploaded_file_object_key = upload_file(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
                 file_name=content_name,        # The new name for the file
-                bucket=_KGEA_APP_CONFIG['bucket'],
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 object_location=details['file_set_location'],
                 client=client,
                 callback=progress_monitor
@@ -769,7 +769,7 @@ async def upload_kge_file(
             if uploaded_file_object_key:
                 try:
                     s3_file_url = create_presigned_url(
-                        bucket=_KGEA_APP_CONFIG['bucket'],
+                        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                         object_key=uploaded_file_object_key
                     )
             
@@ -915,7 +915,7 @@ async def kge_meta_knowledge_graph(
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
         
         if not object_key_exists(
-                bucket_name=_KGEA_APP_CONFIG['bucket'],
+                bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 object_key=content_metadata_file_key
         ):
             if downloading:
@@ -938,7 +938,7 @@ async def kge_meta_knowledge_graph(
         # Current implementation of this handler triggers a
         # download of the KGX content metadata file, if available
         download_url = create_presigned_url(
-            bucket=_KGEA_APP_CONFIG['bucket'],
+            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
             object_key=content_metadata_file_key
         )
         print("kge_meta_knowledge_graph() download_url: '" + download_url + "'", file=sys.stderr)
@@ -988,7 +988,7 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
         file_set_object_key, _ = with_version(get_object_location, kg_version)(kg_id)
 
         kg_files_for_version = kg_files_in_location(
-            _KGEA_APP_CONFIG['bucket'],
+            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
             file_set_object_key,
         )
 
@@ -1000,10 +1000,10 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
         if len(maybe_archive) == 1:
             archive_key = maybe_archive[0]
         else:
-            # download_url = download_file(_KGEA_APP_CONFIG['bucket'], archive_key, open_file=True)
-            archive_key = await compress_download(_KGEA_APP_CONFIG['bucket'], file_set_object_key)
+            # download_url = download_file(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key, open_file=True)
+            archive_key = await compress_download(_KGEA_APP_CONFIG['aws']['s3']['bucket'], file_set_object_key)
 
-        download_url = create_presigned_url(bucket=_KGEA_APP_CONFIG['bucket'], object_key=archive_key)
+        download_url = create_presigned_url(bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'], object_key=archive_key)
         print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
 
         await download(request, download_url)

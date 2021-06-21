@@ -54,7 +54,7 @@ $ git clone git@github.com:NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
 
 ## Configuration
 
-The project is developed in the latest Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage the Python version in its own virtual environment, as follows.
+We developed the project with the recent Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage the Python version in its own virtual environment, as follows.
 
 ### Pipenv
 
@@ -115,72 +115,56 @@ pipenv install -r requirements.txt
 
 ### Amazon Web Services Configuration
 
-The KGE Archive uses AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which can then be used to receive the (meta-)data files from the upload. 
+The KGE Archive uses various Amazon Web Services to perform its work, such as AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which the system uses to receive the (meta-)data files from the upload.  The system also leverages other AWS services like EC2 (the server it runs upon if in AWS), Cognito (for user authentication) and SNS (for user notification of KGE updates).
 
-Access to these resources requires configuration of AWS credentials consisting of an access key id and a secret key. These AWS credentials need to be associated with an IAM user with a suitable S3 access policy in place (see [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
+Access to these resources requires configuration of AWS credentials consisting of an access key id and a secret key. 
 
-There are three options to configure AWS credentials for the KGE Archive system: in AWS configuration files, using environment variables, or, using this project's configuration template.
+The latest iteration of the Archive controls system access to AWS using a host AWS account IAM Role, to obtain temporary versions of the required AWS credentials. This IAM Role needs to have a suitable AWS service access policies in place (e.g. [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
 
-#### AWS Configuration Files
+The host AWS account number, a guest-specified (and host role recorded) `ExternalId` plus the name of the host role, need to be set in the project configuration file (next section).  The external id is not completely secret but should be a relatively long (uuid4?) identifier kept confidential between the host and guest account administrators.
 
-On Ubuntu Linux, the `awscli` can be installed to facilitate administration (plus _ad hoc_ access to AWS services). Type:
 
-```shell
-sudo apt install awscli
-```
-
-after which time, aws credentials can be specified and stored on the system using the command:
-
-```shell
-aws configure
-```
-
-This command will record the requested parameters inside of `~/.aws/credentials` or `~/.aws/config` which, by default, KGE will take as its AWS credentials. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
-
-Note that the Docker option of launching the application, currently assumes that $HOME/.aws exists, whose contents can be bound into the container as a volume binding, for use by the web application.
-
-#### AWS Environment Variables
-
-If you don't really want to store your keys outside the project root directory, [Boto can use AWS environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
-
-### Project Configuration Files
+### Project Configuration File
 
 To configure the proper running of the Archive, a configuration file must be set up. It must be located in the `kgea/config` subdirectory of the project and be based on the `config.yaml-template` YAML project configuration template located at that location.  To apply a specific site configuration, make a copy of the template, rename it to simply `config.yaml` (without the `-template` suffix) then fill out the required deployment site-specific configuration parameters (comments provided in the template file).
 
 The configuration file sets the target AWS S3 storage bucket name and user AWS Cognito authentication parameters. It also can contain (optional) AWS credential configuration (optional if another mode of [AWS Configuration](#amazon-web-services-configuration) is used):
 
 ```yaml
-# Amazon S3 storage structure
-bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
-archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+# the actual base URL of a deployed KGE Archive site
+# should also be set as the base URI in the configuration
+# of the 'redirect_uri' of the AWS Cognito User Pool app
+site_hostname: 'https://kgea.translator.ncats.io'
 
-# AWS Cognito OAuth2 transaction parameters
-# These parameters should match those set as 'app client' parameters in Cognito
-# i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
-oauth2:
-  host:      '<AWS Cognito URL>'
-  client_id: '<myClientid>'     # get from AWS Cognito User Pool app
-  client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
-  site_uri:  '<myArchiveSiteURL>' # get from AWS Cognito User Pool app
-  login_callback:  '/oauth2callback'
-
-# Either fill out `credentials_file` and `credentials_mode`, OR fill out `credentials:aws_access_key_id` and `credentials:aws_secret_access_key`
-credentials_file: ''                # if not specified, by default it should be in your home folder under `~/.aws/credentials`, formatted like a .ini file
-credentials_mode: 'default'         # the part of the credentials to use. Allows for multiple setups, e.g. [dev], [production], [default]
-# these local keys are used to specify access key and secret key for the project
-# otherwise, the credentials file can be overridden using these local keys
-credentials:
-  aws_access_key_id: '...'         # the 20 character AWS access key id
-  aws_secret_access_key: '...'     # the 40 character AWS secret key
+aws:
+  account: '<Host AWS Account Number>'
+  external_id: '<Guest-specified external identifier'
+  iam_role_name: '<Host-specified IAM Role name>'
+  s3:
+    # Amazon S3 storage structure
+    bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+    archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+    
+    # AWS Cognito OAuth2 transaction parameters
+    # These parameters should match those set as 'app client' parameters in Cognito
+    # i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
+  cognito:
+    host:      '<AWS Cognito URL>'
+    client_id: '<myClientid>'     # get from AWS Cognito User Pool app
+    client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
+    site_uri:  '<myArchiveSiteURL>' # get from AWS Cognito User Pool app
+    login_callback:  '/oauth2callback'
 
 github:
     token: ''
 
 # Uncomment and set this configuration tag value to override
 # hardcoded default of 3 KGX validation worker tasks
-# No_KGX_Validation_Worker_Tasks:
+# No_KGX_Validation_Worker_Tasks: 3
 
-# secret_key:
+# This parameter is automatically set by the system when
+# EncryptedCookieStorage serves for user session management 
+# secret_key: ''
 ```
 
 Now when you run the Archive application, this file will be read in, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
