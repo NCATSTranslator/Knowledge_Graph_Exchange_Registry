@@ -317,21 +317,27 @@ The KGE Archive can be run as a standalone application but for production deploy
 
 ## Operating System
 
-The Archive web application is mainly written in Python, so in principle, can tested and run on various operating systems. Our main focus here will be a Linux production deployment (specifically, Ubuntu/Debian flavor of Linux), so production deployment details will be biased in that direction. We leave it to other members of the interested user community to adapt these deployment details to other operating system environments (e.g. Microsoft Windows 10, Mac OSX, etc.).
+We primarily wrote the Archive web application in Python, so in principle, it can tested and run on various operating systems. Our main focus here will be a Linux production deployment (specifically, Ubuntu/Debian flavor of Linux), so production deployment details will be biased in that direction. We leave it to other members of the interested user community to adapt these deployment details to other operating system environments (e.g. Microsoft Windows 10, Mac OSX, etc.).
+
+## Cloning the code
+
+As above, we [git clone the Code](#cloning-the-code) for production as well, this time, into a newly created `/opt/projects` directory (with user account accessible permissions). Within the NGINX config file, we set the HTML `root` path to point to the `.../kgea/server/web_ui/templates` subdirectory, where we maintain the static css and images (see below).
 
 ## Cloud Deployment
 
-The production deployment of the Archive web application targets the Amazon Web Service (AWS) cloud, specifically, EC2 server instances and S3 network storage. We do not cover the basic details of AWS account, EC2 and S3 setup here, except with respect to details specific to the design and operation of the Archive. For those details, consult [AWS EC2 and related documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). Pay attention to the need to set up a Virtual Private Cloud (VPC) with an Internet Gateway with suitable Routing Tables to enable internet access to the server. 
+The production deployment of the Archive web application targets the Amazon Web Service (AWS) cloud, specifically, EC2 server instances and S3 network storage. We do not cover the basic details of AWS account, EC2 and S3 setup here, except with respect to details specific to the design and operation of the Archive. For those details, consult [AWS EC2 and related documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). 
 
-Here, we assume, as a starting point, a modest sized live instance AWS EC2 instance running Ubuntu 20.04 or better. Basic deployment targets a T3-Medium instance (to be upsized later, as use case performance demands, perhaps to a T3-Large or better) properly secured for SSH and HTTPS internet access. Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
+Pay attention to the need to set up a Virtual Private Cloud (VPC) with an Internet Gateway with suitable Routing Tables to enable internet access to the server. 
 
-Note that AWS has several complementary options for (Flask) web application deployment, such as [Elastic Beanstalk](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create-deploy-python-flask.html). The utility of deploying the KGE Archive within one of these frameworks could be revisited in the future.
+Here, we assume, as a starting point, a modest sized live instance AWS EC2 instance running Ubuntu 20.04 or better. A basic 'configuration' deployment targets a T3-Medium (2 CPU/4GB RAM) instance, which can be upsized later, as use case performance demands, perhaps to a T3-Large (4 CPU/4GB RAM) or better. with a Security Group configured for SSH and HTTPS internet access (see below). Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
 
 ### Docker Storage Considerations on the Cloud
 
-By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker** which will end up being hosted on the root volume of a cloud image, which is generally of relatively modest size. To avoid "out of file storage" messages, which related to limits in inode and actual byte storage, it is advised that you remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
+By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker** which will end up being hosted on the root volume of a cloud image, which is generally relatively modest in size.
 
-In effect, it is generally useful to host the entire portal and its associated docker storage volumes on such an extra mounted volume. We generally use the **/opt** subdirectory as the target of the mount, then directly install various code and related subdirectories there, including the physical target of a symbolic link to the **/var/lib/docker** subdirectory. You will generally wish to set this latter symbolic link first before installing Docker itself (here we assume that docker has _not_ yet been installed (let alone running). Assuming that a suitable (AWS EBS)  volume is attached to the server instance, then:
+To avoid "out of file storage" messages, which relates to limits in inode and actual byte storage, we advise that you remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
+
+In effect, it is generally useful to host the entire portal and its associated docker storage volumes on such an extra mounted volume. We generally use the **/opt** subdirectory as the target of the mount, then directly install various code and related subdirectories there, including the physical target of a symbolic link to the **/var/lib/docker** subdirectory. You will generally wish to set this latter symbolic link first before installing Docker itself.  Here, we assume that docker has _not_ yet been installed (let alone running). Attaching a suitably sized AWS EBS  volume (we used 50GB) to the server instance, then run the following CLI commands:
 
     # Verify the existence of the volume, in this case, xvdb
     $ lsblk
@@ -362,7 +368,7 @@ Now, you can proceed to install Docker and Docker Compose.
 
 ### Configuration for Amazon Web Services
 
-Refer to [Amazon Web Services Configuration](#amazon-web-services-configuration).
+Refer to [Amazon Web Services Configuration](#amazon-web-services-configuration) above.
 
 ## Installing Docker Compose
 
@@ -382,13 +388,11 @@ Note that your particular version and build number may be different than what is
 
 ### Domain and Hostname
 
-The set an 'A' DNS record to resolve to a suitable hostname prefix on an available domain to the (AWS EC2) web server's real public or have Translator proxy a hostname to the (private?) hostname or IP of the machine running on the private subnet.
+Set an 'A' DNS record to resolve to a suitable hostname prefix with your DNS pointing to the IP of the NGINX server.
 
 ### Securing the Site
 
-The KGE Archive has client user authentication (using AWS Cognito). For this to properly work, the Archive needs to be hosted behind HTTPS / SSL.
-
-If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by the NGINX instance running on the core Translator server. If an independent Archive deployment is being implemented, then the Archive web application access will generally need to proxied through a locally installed copy of NGINX (next section).
+The KGE Archive enforces user authentication (using AWS Cognito). For this to properly work, the Archive needs to be hosted behind HTTPS / SSL.  If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by the NGINX instance running on the core Translator server. If you deployan independent Archive deployment, then the Archive web application access will generally need to be proxied through a locally installed copy of NGINX (next section).
 
 #### NGINX Installation and Configuration
 
@@ -401,9 +405,9 @@ sudo apt install nginx
 installs the software.
 
 Next, a copy of the `kge_nginx.conf-template` file (located under the `config` subdirectory) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
-Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modified this proxy insofar necessary).
+Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modify this proxy insofar necessary).
 
-The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. Templated static files in the subdirectories of the project `config/static` subdirectory (like `css/styles.css-template`, `images`, etc.) should be copied into the designated location and may also be customized as desired.
+The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. Templated static files in the subdirectories of the project `.../kgea/server/web_ui/templates` subdirectory (like `css/styles.css-template`, `images`, etc.) should be copied into the designated location and customized as desired.
 
 Finally, a symlink is made to this 'sites-enabled' file into the `/etc/nginx/sites-enabled` subdirectory:
 
@@ -418,7 +422,7 @@ It is a good idea to validate the `nginx.conf` configurations first by running t
 nginx -t
 ```
 
-The NGINX server needs to be (re-)started for the changes to be applied. The NGINX server daemon is generally controlled by the following:
+The NGINX server needs to be (re-)started for the changes to be applied. The administrative control of the NGINX server daemon is as follows:
 
 ```shell
 sudo systemctl <cmd> nginx
