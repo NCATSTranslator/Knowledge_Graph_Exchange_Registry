@@ -11,40 +11,9 @@ from pathlib import Path
 
 from json import dumps
 
-import boto3
+from botocore.config import Config
 
 from kgea.aws.assume_role import AssumeRole
-
-
-def get_client(
-        host_account_id: str,
-        guest_external_id: str,
-        iam_role_name: str
-):
-    
-    _assumed_role = AssumeRole(
-                        host_aws_account_id=host_account_id,
-                        guest_external_id=guest_external_id,
-                        target_role_name=iam_role_name
-                    )
-    #
-    # Get the temporary credentials, in a Python dictionary
-    # with temporary AWS credentials of the form:
-    #
-    # {
-    #     "sessionId": "temp-access_key-id",
-    #     "sessionKey": "temp-secret-access-key",
-    #     "sessionToken": "temp-session-token"
-    # }#
-    credentials = _assumed_role.get_credentials_dict()
-    
-    aws_session = boto3.Session(
-        aws_access_key_id=credentials["sessionId"],
-        aws_secret_access_key=credentials["sessionKey"],
-        aws_session_token=credentials["sessionToken"]
-    )
-  
-    return aws_session.client('s3')
 
 
 def test_assumed_role_s3_access(client, bucket_name: str):
@@ -130,6 +99,7 @@ if __name__ == '__main__':
     # Prompt user for target account ID, ExternalID and name of IAM Role
     # to assume, in order to access an S3 bucket, whose name is given
     if len(sys.argv) == 6:
+        
         account_id_from_user = sys.argv[1]
         external_id = sys.argv[2]
         role_name_from_user = sys.argv[3]
@@ -137,11 +107,13 @@ if __name__ == '__main__':
         # default, for now, is to simply list the bucket contents
         s3_operation = sys.argv[5]
 
-        s3_client = get_client(
+        assumed_role = AssumeRole(
             account_id_from_user,
             external_id,
             role_name_from_user
         )
+        
+        s3_client = assumed_role.get_client('s3', config=Config(signature_version='s3v4'))
         
         if s3_operation.upper() == 'TEST':
             test_assumed_role_s3_access(s3_client, s3_bucket_name)

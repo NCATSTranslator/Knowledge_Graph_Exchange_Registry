@@ -4,8 +4,8 @@
 site_hostname: 'https://kgea.translator.ncats.io'
 
 aws:
-  account: '<Host AWS Account Number>'
-  external_id: '<Guest-specified external identifier'
+  host_account: '<Host AWS Account Number>'
+  guest_external_id: '<Guest-specified external identifier'
   iam_role_name: '<Host-specified IAM Role name>'
   s3:
     # Amazon S3 storage structure

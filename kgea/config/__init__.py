@@ -2,11 +2,7 @@ from typing import Dict
 from os import getenv
 from os.path import dirname, abspath
 
-import boto3
-from botocore.client import Config
-
 import yaml
-
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -14,32 +10,18 @@ except ImportError:
 
 import logging
 
-from kgea.aws.configuration import (
-    validate_session_configuration,
-    validate_client_configuration
-)
 
 # Master flag for local development runs bypassing
 # authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
 
-# the following config file should be visible in the 'kgea/server/config' subdirectory, as
+# the following config file should be visible in the 'kgea/config' subdirectory, as
 # copied from the available template and populated with site-specific configuration values
 CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
 
 PROVIDER_METADATA_FILE = 'provider.yaml'
 FILE_SET_METADATA_FILE = 'file_set.yaml'
 CONTENT_METADATA_FILE = 'content_metadata.json'  # this particular file is expected to be JSON and explicitly named
-
-s3_client = None
-
-try:
-    assert (validate_session_configuration())
-    assert (validate_client_configuration("s3"))
-    s3_client = boto3.client("s3", config=Config(signature_version='s3v4'))
-except Exception as e:
-    print('ERROR: s3 configuration failed to load, KGE Archive may not work properly')
-    print(e)
 
 # Exported  'application configuration' dictionary
 _app_config: Dict = dict()
@@ -59,10 +41,26 @@ def _load_app_config() -> dict:
 
             app_config_raw = yaml.load(app_config_file, Loader=Loader)
 
-            if 'bucket' not in app_config_raw:
+            if 'aws' not in app_config_raw:
                 raise RuntimeError(
-                    "Missing 'bucket' attribute in '~/kgea/server/config/config.yaml' configuration file."
+                    "Missing mandatory 'aws' configuration section in the "
+                    "'~/kgea/config/config.yaml' configuration file."
                 )
+            else:
+                if 'host_account' not in app_config_raw['aws'] or \
+                   'guest_external_id' not in app_config_raw['aws'] or \
+                   'iam_role_name'not in app_config_raw['aws']:
+                    raise RuntimeError(
+                        "Missing mandatory aws 'account', 'external_id' and/or 'iam_role_name' attributes" +
+                        " in the '~/kgea/config/config.yaml' configuration file."
+                    )
+                elif 's3' not in app_config_raw['aws'] or \
+                     'bucket' not in app_config_raw['aws']['s3'] or \
+                     'archive-directory' not in app_config_raw['aws']['s3']:
+                    raise RuntimeError(
+                        "Missing mandatory aws.s3 'bucket' and/or 'archive-directory' attribute" +
+                        " in the '~/kgea/config/config.yaml' configuration file."
+                    )
             if 'github' not in app_config_raw:
                 if DEV_MODE:
                     logging.warning(
@@ -72,12 +70,8 @@ def _load_app_config() -> dict:
                     )
                 else:
                     raise RuntimeError(
-                        "Missing 'github.token' attribute in '~/kgea/server/config/config.yaml' configuration file!"
+                        "Missing 'github.token' attribute in '~/kgea/config/config.yaml' configuration file!"
                     )
-            if s3_client is not None:
-                # TODO: detect the bucket here
-                # if not detected, raise an error
-                pass
 
             _app_config = dict(app_config_raw)
 

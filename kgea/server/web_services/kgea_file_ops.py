@@ -21,6 +21,8 @@ from io import BytesIO
 import tempfile
 from pathlib import Path
 import tarfile
+
+from botocore.config import Config
 from s3_tar import S3Tar
 
 try:
@@ -33,12 +35,14 @@ except ImportError:
 import boto3
 from botocore.exceptions import ClientError
 
+from kgea.aws.assume_role import AssumeRole
+
 from kgea.config import (
-    s3_client,
     get_app_config,
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE
 )
+
 
 import logging
 
@@ -47,6 +51,18 @@ logger.setLevel(logging.INFO)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
+
+
+#
+# Obtain an AWS S3 Client using an Assumed IAM Role
+#
+aws_config = _KGEA_APP_CONFIG['aws']
+assumed_role = AssumeRole(
+    aws_config['host_account'],
+    aws_config['guest_external_id'],
+    aws_config['iam_role_name']
+)
+s3_client = assumed_role.get_client('s3', config=Config(signature_version='s3v4'))
 
 
 def create_location(bucket, kg_id):

@@ -20,9 +20,7 @@ from .kgea_file_ops import (
     with_version
 )
 
-from kgea.config import (
-    s3_client
-)
+from kgea.server.web_services.kgea_file_ops import s3_client
 
 
 from .kgea_session import KgeaSession
@@ -48,7 +46,7 @@ URL_TRANSFER_TIMEOUT = 300   # default timeout, in seconds
 
 # TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
 #                 "Knowledge_Graph_Exchange_Registry/master/LICENSE"
-TEST_FILE_URL='https://archive.monarchinitiative.org/202012/kgx/sri-reference-kg_edges.tsv.gz'
+TEST_FILE_URL = 'https://archive.monarchinitiative.org/202012/kgx/sri-reference-kg_edges.tsv.gz'
 TEST_FILE_NAME = "MIT_LICENSE"
 # TEST_FILE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
 #                 "Knowledge_Graph_Exchange_Registry/blob/consolidate_web_apps/kgea/server/test/data/" + \
@@ -56,7 +54,6 @@ TEST_FILE_NAME = "MIT_LICENSE"
 # TEST_FILE_NAME = "somedata.csv"
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
-
 
 
 # TODO: Perhaps need to manage the aiohttp sessions globally in the application?
@@ -83,10 +80,13 @@ async def stream_from_url(url) -> AsyncIterable:
 
 
 S3_CHUNK_SIZE = 7 * 1024 ** 2
+
+
 async def stream_from_url2(url):
     with smart_open.open(url, 'rb') as file:
         for line in file:
             yield line
+
 
 async def merge_file_from_url2(test_url):
     # stream content *into* S3 (write mode) using a custom session
@@ -96,7 +96,7 @@ async def merge_file_from_url2(test_url):
         FILENAME='LICENSE',
         EXTENSION=''
     )
-    transport_params = { 'client': s3_client }
+    transport_params = {'client': s3_client}
     i = 0
     # https://github.com/RaRe-Technologies/smart_open/blob/a9b127de79063f6df6f20272076fb304db2904ad/smart_open/s3.py#L227
     with smart_open.s3.open(
@@ -110,9 +110,9 @@ async def merge_file_from_url2(test_url):
             min_part_size=S3_CHUNK_SIZE
     ) as fout:
         async for data in stream_from_url2(test_url):
-           i += 1
-           print(i, data)
-           fout.write(data)
+            i += 1
+            print(i, data)
+            fout.write(data)
 
     # with smart_open.open(target_url, 'wb', transport_params) as fout:
     #     i = 0
