@@ -1,5 +1,6 @@
 from typing import Dict
 from os import getenv
+from os.path import dirname, abspath
 
 import boto3
 from botocore.client import Config
@@ -14,7 +15,6 @@ except ImportError:
 import logging
 
 from kgea.aws.configuration import (
-    CONFIG_FILE_PATH,
     validate_session_configuration,
     validate_client_configuration
 )
@@ -22,6 +22,10 @@ from kgea.aws.configuration import (
 # Master flag for local development runs bypassing
 # authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
+
+# the following config file should be visible in the 'kgea/server/config' subdirectory, as
+# copied from the available template and populated with site-specific configuration values
+CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
 
 PROVIDER_METADATA_FILE = 'provider.yaml'
 FILE_SET_METADATA_FILE = 'file_set.yaml'

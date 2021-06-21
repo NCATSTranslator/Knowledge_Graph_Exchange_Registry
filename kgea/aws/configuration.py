@@ -1,14 +1,10 @@
-from os.path import expanduser, dirname, abspath
+from os.path import expanduser
 
 import configparser
 import boto3
 
 home = expanduser("~")
 AWS_CONFIG_ROOT = home + "/.aws/"
-
-# the following config file should be visible in the 'kgea/server/config' subdirectory, as
-# copied from the available template and populated with site-specific configuration values
-CONFIG_FILE_PATH = abspath(dirname(__file__) + '/config.yaml')
 
 
 def validate_session_configuration():
