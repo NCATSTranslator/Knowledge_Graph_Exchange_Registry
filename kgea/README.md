@@ -121,7 +121,7 @@ Access to these resources requires configuration of AWS credentials consisting o
 
 The latest iteration of the Archive controls system access to AWS using a host AWS account IAM Role, to obtain temporary versions of the required AWS credentials. This IAM Role needs to have a suitable AWS service access policies in place (e.g. [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
 
-The host AWS account number, a guest-specified (and host role recorded) `ExternalId` plus the name of the host role, need to be set in the project configuration file (next section).  The external id is not completely secret but should be a relatively long (uuid4?) identifier kept confidential between the host and guest account administrators.
+The host AWS account number (`host_account`) , a guest-specified (and host-managed IAM role recorded) `ExternalId` plus the name of the host role (`iam_role_name`), need to be set in the project configuration file (next section).  The external id is not completely secret within the system, but should be a relatively long (uuid4?) identifier kept relatively confidential between the host and guest account administrators.
 
 
 ### Project Configuration File
@@ -137,8 +137,8 @@ The configuration file sets the target AWS S3 storage bucket name and user AWS C
 site_hostname: 'https://kgea.translator.ncats.io'
 
 aws:
-  account: '<Host AWS Account Number>'
-  external_id: '<Guest-specified external identifier'
+  host_account: '<Host AWS Account Number>'
+  guest_external_id: '<Guest-specified external identifier'
   iam_role_name: '<Host-specified IAM Role name>'
   s3:
     # Amazon S3 storage structure

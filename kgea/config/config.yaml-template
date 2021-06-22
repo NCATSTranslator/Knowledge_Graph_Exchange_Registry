@@ -1,7 +1,7 @@
 # the actual base URL of a deployed KGE Archive site
 # should also be set as the base URI in the configuration
 # of the 'redirect_uri' of the AWS Cognito User Pool app
-site_hostname: 'https://kgea.translator.ncats.io'
+site_hostname: 'https://archive.translator.ncats.io'
 
 aws:
   host_account: '<Host AWS Account Number>'
