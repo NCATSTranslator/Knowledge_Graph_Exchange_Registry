@@ -36,9 +36,9 @@ else:
 
 
 _assumed_role = AssumeRole(
-                    host_aws_account_id=account_id_from_user,
+                    host_account=account_id_from_user,
                     guest_external_id=external_id,
-                    target_role_name=role_name_from_user
+                    iam_role_name=role_name_from_user
                 )
         
 # Make a request to the AWS federation endpoint to get a sign-in.

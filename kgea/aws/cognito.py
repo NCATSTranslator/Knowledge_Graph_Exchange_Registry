@@ -16,49 +16,36 @@ import boto3
 from kgea.aws.assume_role import AssumeRole
 
 
-account_id_from_user: str = ""
-external_id: str = ""
-role_name_from_user: str = ""
-s3_bucket_name: str = ""
-s3_operation: str = "list"
-
-# Prompt user for target account ID, ExternalID and name of IAM Role
-# to assume, in order to configure and access a Cognito service
-if len(sys.argv) == 4:
-    account_id_from_user = sys.argv[1]
-    external_id = sys.argv[2]
-    role_name_from_user = sys.argv[3]
-else:
+def usage(err_msg: str = ''):
+    if err_msg:
+        print(err_msg)
     print("Usage: ")
     print(
-        "python -m kgea.aws."+Path(sys.argv[0]).stem +
+        "python -m kgea.aws." + Path(sys.argv[0]).stem +
         " <host_account_id> <guest_external_id> <target_iam_role_name>"
     )
     exit(0)
 
 
-_assumed_role = AssumeRole(
-                    host_aws_account_id=account_id_from_user,
-                    guest_external_id=external_id,
-                    target_role_name=role_name_from_user
-                )
-#
-# Get the temporary credentials, in a Python dictionary
-# with temporary AWS credentials of the form:
-#
-# {
-#     "sessionId": "temp-access_key-id",
-#     "sessionKey": "temp-secret-access-key",
-#     "sessionToken": "temp-session-token"
-# }#
-credentials = _assumed_role.get_credentials_dict()
-
-aws_session = boto3.Session(
-    aws_access_key_id=credentials["sessionId"],
-    aws_secret_access_key=credentials["sessionKey"],
-    aws_session_token=credentials["sessionToken"]
-)
-
-s3_client = aws_session.client('cognito')  # , region_name=region)
-
-# TODO: need to define AWS Cognito actions here
+# Run the module as a CLI
+if __name__ == '__main__':
+    
+    account_id_from_user: str = ""
+    external_id: str = ""
+    role_name_from_user: str = ""
+    
+    # Prompt user for parameters of the Cognito service
+    if len(sys.argv) >= 4:
+        account_id_from_user = sys.argv[1]
+        external_id = sys.argv[2]
+        role_name_from_user = sys.argv[3]
+        
+        assumed_role = AssumeRole(
+            account_id_from_user,
+            external_id,
+            role_name_from_user
+        )
+        
+        sns_client = assumed_role.get_client('cognito')
+        
+        # TODO: Cognito specific actions here

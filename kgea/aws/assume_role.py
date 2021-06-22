@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-from typing import Dict
+from typing import Dict, Tuple, Optional
 from os.path import expanduser
+
+from datetime import datetime
 
 from json import dumps
 import configparser
@@ -97,6 +99,11 @@ class AssumeRole:
 
         # Connect to AWS STS ... using local guest credentials
         self.sts_client = None
+        self.assumed_role_object = None
+        self.credentials_dict: Dict = dict()
+        self.expiration = datetime.now()
+        self.aws_session: Optional[boto3.Session] = None
+        
         try:
             assert (validate_session_configuration())
             assert (validate_client_configuration("sts"))
@@ -105,76 +112,87 @@ class AssumeRole:
             print('ERROR: AWS STS configuration failed to load')
             print(ex)
     
-    def get_credentials_dict(self) -> Dict:
+    def get_credentials_dict(self) -> Tuple[Dict, bool]:
         """
-        :return: Python dictionary with temporary AWS credentials of the form
+        :return: 2-Tuple consisting first, of a  Python dictionary,
+                 with temporary AWS credentials, of the form
                  {
                     "sessionId": "temp-access_key",
                     "sessionKey": "temp-session-key",
                     "sessionToken": "temp-session-token"
                  }
+                 and second, a boolean flag which is True
+                 if the session credentials were renewed.
         """
-        # Full STS "Assume Role" method signature, returns temporary security credentials.
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sts.html#STS.Client.assume_role
-        #
-        # response = client.assume_role(
-        #     RoleArn='string',
-        #     RoleSessionName='string',
-        #     PolicyArns=[
-        #         {
-        #             'arn': 'string'
-        #         },
-        #     ],
-        #     Policy='string',
-        #     DurationSeconds=123,
-        #     Tags=[
-        #         {
-        #             'Key': 'string',
-        #             'Value': 'string'
-        #         },
-        #     ],
-        #     TransitiveTagKeys=[
-        #         'string',
-        #     ],
-        #     ExternalId='string',
-        #     SerialNumber='string',
-        #     TokenCode='string',
-        #     SourceIdentity='string'
-        # )
-        #
-        # Response Syntax
-        #
-        # {
-        #     'Credentials': {
-        #         'AccessKeyId': 'string',
-        #         'SecretAccessKey': 'string',
-        #         'SessionToken': 'string',
-        #         'Expiration': datetime(2015, 1, 1)
-        #     },
-        #     'AssumedRoleUser': {
-        #         'AssumedRoleId': 'string',
-        #         'Arn': 'string'
-        #     },
-        #     'PackedPolicySize': 123,
-        #     'SourceIdentity': 'string'
-        # }
-        assumed_role_object = \
-            self.sts_client.assume_role(
-                RoleArn=self.role_arn,
-                RoleSessionName="AssumeRoleSession",
-                ExternalId=self.guest_external_id
-            )
-
-        # Format resulting temporary credentials into
-        # a Python dictionary using known field names
-        credentials = assumed_role_object["Credentials"]
-        credentials_dict: Dict = {
-            "sessionId": credentials["AccessKeyId"],
-            "sessionKey": credentials["SecretAccessKey"],
-            "sessionToken": credentials["SessionToken"]
-        }
+        session_renewed: bool = False
         
-        return credentials_dict
+        if not self.assumed_role_object or \
+                self.expiration <= datetime.now():
+            
+            session_renewed = True
+
+            # Full STS "Assume Role" method signature, returns temporary security credentials.
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sts.html#STS.Client.assume_role
+            #
+            # response = client.assume_role(
+            #     RoleArn='string',
+            #     RoleSessionName='string',
+            #     PolicyArns=[
+            #         {
+            #             'arn': 'string'
+            #         },
+            #     ],
+            #     Policy='string',
+            #     DurationSeconds=123,
+            #     Tags=[
+            #         {
+            #             'Key': 'string',
+            #             'Value': 'string'
+            #         },
+            #     ],
+            #     TransitiveTagKeys=[
+            #         'string',
+            #     ],
+            #     ExternalId='string',
+            #     SerialNumber='string',
+            #     TokenCode='string',
+            #     SourceIdentity='string'
+            # )
+            #
+            # Response Syntax
+            #
+            # {
+            #     'Credentials': {
+            #         'AccessKeyId': 'string',
+            #         'SecretAccessKey': 'string',
+            #         'SessionToken': 'string',
+            #         'Expiration': datetime(2015, 1, 1)
+            #     },
+            #     'AssumedRoleUser': {
+            #         'AssumedRoleId': 'string',
+            #         'Arn': 'string'
+            #     },
+            #     'PackedPolicySize': 123,
+            #     'SourceIdentity': 'string'
+            # }
+            self.assumed_role_object = \
+                self.sts_client.assume_role(
+                    RoleArn=self.role_arn,
+                    RoleSessionName="AssumeRoleSession",
+                    ExternalId=self.guest_external_id
+                )
+
+            # Format resulting temporary credentials into
+            # a Python dictionary using known field names
+            credentials = self.assumed_role_object["Credentials"]
+            self.credentials_dict = {
+                "sessionId": credentials["AccessKeyId"],
+                "sessionKey": credentials["SecretAccessKey"],
+                "sessionToken": credentials["SessionToken"],
+            }
+            self.expiration = credentials["Expiration"]
+        
+        return self.credentials_dict, session_renewed
     
     def get_credentials_jsons(self) -> str:
         """
@@ -185,9 +203,12 @@ class AssumeRole:
                     "sessionToken": "temp-session-token"
                  }
         """
-        return dumps(self.get_credentials_dict())
+        # We don't care here if the Credentials
+        # were renewed... we just pass 'em along
+        credentials, _ = self.get_credentials_dict()
+        return dumps(credentials)
 
-    def get_client(self, service: str, config: Config):
+    def get_client(self, service: str, config: Optional[Config] = None):
         #
         # Get the temporary credentials, in a Python dictionary
         # with temporary AWS credentials of the form:
@@ -198,12 +219,14 @@ class AssumeRole:
         #     "sessionToken": "temp-session-token"
         # }
         #
-        credentials = self.get_credentials_dict()
+        credentials, session_renewed = self.get_credentials_dict()
         
-        aws_session = boto3.Session(
-            aws_access_key_id=credentials["sessionId"],
-            aws_secret_access_key=credentials["sessionKey"],
-            aws_session_token=credentials["sessionToken"]
-        )
+        if not self.aws_session or session_renewed:
+            
+            self.aws_session = boto3.Session(
+                aws_access_key_id=credentials["sessionId"],
+                aws_secret_access_key=credentials["sessionKey"],
+                aws_session_token=credentials["sessionToken"]
+            )
         
-        return aws_session.client(service, config=config)
+        return self.aws_session.client(service, config=config)
