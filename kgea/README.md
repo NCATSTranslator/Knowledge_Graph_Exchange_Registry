@@ -189,9 +189,8 @@ During development, it may be convenient to simply run the application from the 
 
 - A web user interface (kgea/server/web_ui)
 - A back end web services API (kgea/server/web_services)
-- A KGX validation tool (T.B.A.)
 
-With respect to command line execution, each component may be started from within the root KGEA Archive project directory as independent Python module processes (e.g. as separate run configurations in your IDE, or in separate terminal shells).
+With respect to command line execution, we start each component from within the root KGEA Archive project directory as independent Python module processes (e.g. as separate run configurations in your IDE, or in separate terminal shells).
 
 Run with the DEV_MODE flag set, the application does not attempt to authenticate externally using AWS Cognito, see below. Note that before running with the DEV_MODE flag, you must also install the pip development package dependencies, namely
 
@@ -317,9 +316,15 @@ Here, we assume, as a starting point, a modest sized live instance AWS EC2 insta
 
 ### Docker Storage Considerations on the Cloud
 
-By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker** which will end up being hosted on the root volume of a cloud image, which is generally relatively modest in size.
+By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker**. By default, this directory will end up being hosted on the root volume of a cloud image, which can sometimes be relatively small. To avoid "out of file storage" messages, which relate to limits in inode and actual byte storage, Ttere are two basic options:
 
-To avoid "out of file storage" messages, which relates to limits in inode and actual byte storage, we advise that you remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
+#### Option 1
+
+When creating the server (e.g. EC2 instance), ensure that the root volume is "_large enough_" (we don't have a hard number, but we generally aim for 50 gigabytes in size).
+
+#### Option 2
+
+You can remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
 
 In effect, it is generally useful to host the entire portal and its associated docker storage volumes on such an extra mounted volume. We generally use the **/opt** subdirectory as the target of the mount, then directly install various code and related subdirectories there, including the physical target of a symbolic link to the **/var/lib/docker** subdirectory. You will generally wish to set this latter symbolic link first before installing Docker itself.  Here, we assume that docker has _not_ yet been installed (let alone running). Attaching a suitably sized AWS EBS  volume (we used 50GB) to the server instance, then run the following CLI commands:
 
