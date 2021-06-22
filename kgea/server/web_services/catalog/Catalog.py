@@ -268,7 +268,7 @@ class KgeFileSet:
         self.add_file_size(file_size)
 
         content_metadata_file_text = load_s3_text_file(
-            bucket_name=_KGEA_APP_CONFIG['bucket'],
+            bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
             object_name=object_key
         )
         # Must load the JSON into a Python dictionary for validation
@@ -837,13 +837,13 @@ class KgeKnowledgeGraph:
     # # TODO: convert into redirect approach with cross-origin scripting?
     # file_set_location, _ = with_version(func=get_object_location, version=self.kg_version)(self.kg_id)
     # kg_files = kg_files_in_location(
-    #     bucket_name=_KGEA_APP_CONFIG['bucket'],
+    #     bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
     #     object_location=file_set_location
     # )
     # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
     # kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
     # kg_urls = dict(
-    #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['bucket'], kg_file)],
+    #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['aws']['s3']['bucket'], kg_file)],
     #         kg_listing))
     # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
 
@@ -890,7 +890,7 @@ class KgeArchiveCatalog:
 
         # Initialize catalog with the metadata of all the existing KGE Archive (AWS S3 stored) KGE File Sets
         # archive_contents keys are the kg_id's, entries are the rest of the KGE File Set metadata
-        archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['bucket'])
+        archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'])
         for kg_id, entry in archive_contents.items():
             self.load_archive_entry(kg_id=kg_id, entry=entry)
     
@@ -1281,7 +1281,7 @@ def add_to_s3_archive(
         uploaded_file_object_key = upload_file(
             data_file=BytesIO(data_bytes),
             file_name=file_name,
-            bucket=_KGEA_APP_CONFIG['bucket'],
+            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
             object_location=file_set_location
         )
     else:

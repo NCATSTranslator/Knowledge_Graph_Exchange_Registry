@@ -196,7 +196,8 @@ class AssumeRole:
         #     "sessionId": "temp-access_key-id",
         #     "sessionKey": "temp-secret-access-key",
         #     "sessionToken": "temp-session-token"
-        # }#
+        # }
+        #
         credentials = self.get_credentials_dict()
         
         aws_session = boto3.Session(
