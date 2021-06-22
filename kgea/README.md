@@ -185,7 +185,7 @@ NOTE: Dependencies only need to be installed on a local system during developmen
 
 ## Basic Operation of the Server
 
-During development, it may be convenient to simply run the application from the command line. The application is currently split into multiple components running in parallel (preferrably each within their own Python virtual environment, to be safe):
+During development, it may be convenient to simply run the application from the command line. The application is currently split into multiple components running in parallel (preferably each within their own Python virtual environment, to be safe):
 
 - A web user interface (kgea/server/web_ui)
 - A back end web services API (kgea/server/web_services)
