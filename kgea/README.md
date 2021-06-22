@@ -117,11 +117,11 @@ pipenv install -r requirements.txt
 
 The KGE Archive uses various Amazon Web Services to perform its work, such as AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which the system uses to receive the (meta-)data files from the upload.  The system also leverages other AWS services like EC2 (the server it runs upon if in AWS), Cognito (for user authentication) and SNS (for user notification of KGE updates).
 
-Access to these resources requires configuration of AWS credentials consisting of an access key id and a secret key. 
+Access to these resources requires configuration of AWS credentials, consisting of an access key id and a secret key. However, storing and maintaining such credentials (i.e. cycling them) is a problematic task.
 
-The latest iteration of the Archive controls system access to AWS using a host AWS account IAM Role, to obtain temporary versions of the required AWS credentials. This IAM Role needs to have a suitable AWS service access policies in place (e.g. [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
+Therefore, the latest iteration of the Archive software manages system access to AWS by using a host AWS account IAM Role request temporary AWS credentials. This IAM Role needs to have a suitable AWS service access policies in place (e.g. [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
 
-The host AWS account number (`host_account`), a guest-specified (and host-managed IAM role recorded) `ExternalId` plus the name of the host role (`iam_role_name`), need to be set in the project configuration file (next section).  The external id is not completely secret within the system, but should be a relatively long (uuid4?) identifier kept relatively confidential between the host and guest account administrators.
+To configure this access management, the host AWS account number (`host_account`), a guest-specified (and host-managed IAM role recorded) `external_id` plus the name of the host role (`iam_role_name`), need to be recorded within the project configuration file (next section).  The `external_id` is not completely secret within the system, but it should be a relatively long (uuid4?) identifier kept relatively confidential between the host and guest account administrators.
 
 
 ### Project Configuration File
