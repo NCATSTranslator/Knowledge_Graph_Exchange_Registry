@@ -24,7 +24,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
     - [Cloud Deployment](#cloud-deployment)
         - [Docker Storage Considerations on the Cloud](#docker-storage-considerations-on-the-cloud)
         - [Configuration for Amazon Web Services](#configuration-for-amazon-web-services)
-    - [Installing Docker Compose](#installing-docker-compose)
+    - [Installing Docker and Compose](#installing-docker-and-compose)
         - [Testing Docker Compose](#testing-docker-compose)
     - [Site Configuration](#site-configuration)
         - [Domain and Hostname](#domain-and-hostname)
@@ -359,9 +359,9 @@ Now, you can proceed to install Docker and Docker Compose.
 
 Refer to [Amazon Web Services Configuration](#amazon-web-services-configuration) above.
 
-## Installing Docker Compose
+## Installing Docker and Compose
 
-You will then also need to [install Docker Compose](https://docs.docker.com/compose/install/) alongside Docker in your target Linux operating environment.
+After [Installing Docker](#installation-of-docker), you will then also need to [install Docker Compose](https://docs.docker.com/compose/install/) alongside Docker in your target Linux operating environment.
 
 ### Testing Docker Compose
 
