@@ -121,7 +121,7 @@ Access to these resources requires configuration of AWS credentials consisting o
 
 The latest iteration of the Archive controls system access to AWS using a host AWS account IAM Role, to obtain temporary versions of the required AWS credentials. This IAM Role needs to have a suitable AWS service access policies in place (e.g. [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
 
-The host AWS account number (`host_account`) , a guest-specified (and host-managed IAM role recorded) `ExternalId` plus the name of the host role (`iam_role_name`), need to be set in the project configuration file (next section).  The external id is not completely secret within the system, but should be a relatively long (uuid4?) identifier kept relatively confidential between the host and guest account administrators.
+The host AWS account number (`host_account`), a guest-specified (and host-managed IAM role recorded) `ExternalId` plus the name of the host role (`iam_role_name`), need to be set in the project configuration file (next section).  The external id is not completely secret within the system, but should be a relatively long (uuid4?) identifier kept relatively confidential between the host and guest account administrators.
 
 
 ### Project Configuration File
@@ -167,21 +167,21 @@ github:
 # secret_key: ''
 ```
 
-Now when you run the Archive application, this file will be read in, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
-
-NOTE: `config.yaml` is in `.gitignore`, but its templates not. That said, if you are worried about your AWS keys getting into source control, you may use one of the two other available [AWS Configuration](#amazon-web-services-configuration) approaches.
+Now when you run the Archive application, this file will be read in, and the specified AWS access parameters used to connect to S3 (and other required AWS operations). NOTE: `config.yaml` is in `.gitignore`, but its template is not. 
 
 ## Other Prerequisites
 
-In development, we use a local AIOHTTP Session management, that requires [installation of the `cryptography` Python package](https://cryptography.io/en/latest/installation.html).
+In development (DEVMODE=1), we use a local AIOHTTP Session management, that requires [installation of the `cryptography` Python package](https://cryptography.io/en/latest/installation.html).
 
 ## Project Python Package Dependencies
 
-The project has several Python package dependencies, but these are actually already recorded in the Pipfile which `pipenv` manages. Therefore, installing the required Python dependencies merely requires execution of the following from within the root directory, after the `pipenv` tool itself plus all other non-Python external software (see above) are installed :
+The project has several Python package dependencies.  Installing the required Python dependencies requires execution of the following from within the root directory, after the `pipenv` tool itself plus all other non-Python external software (see above) are installed:
 
 ```shell
 pipenv install
 ```
+
+NOTE: Dependencies only need to be installed on a local system during development. Production deployment of the system uses Docker (see below) which installs the required dependencies inside the container.
 
 ## Basic Operation of the Server
 
