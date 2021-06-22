@@ -244,12 +244,7 @@ $ docker run hello-world
 This should result in something akin to the following output:
 
 ```shell
-$ sudo docker run hello-world
-Unable to find image 'hello-world:latest' locally
-latest: Pulling from library/hello-world
-0e03bdcc26d7: Pull complete
-Digest: sha256:31b9c7d48790f0d8c50ab433d9c3b7e17666d6993084c002c2ff1ca09b96391d
-Status: Downloaded newer image for hello-world:latest
+$ docker run hello-world
 
 Hello from Docker!
 This message shows that your installation appears to be working correctly.
@@ -369,7 +364,7 @@ In order to ensure Docker Compose is working correctly, issue the following comm
 
 ```shell
 $ docker-compose --version
-docker-compose version 1.18.0, build 8dd22a9
+docker-compose version 1.29.2, build 5becea4c
 ```
 Note that your particular version and build number may be different than what is shown here. We don't currently expect that docker-compose version differences should have a significant impact on the build, but if in doubt, refer to the release notes of the docker-compose site for advice.
 
