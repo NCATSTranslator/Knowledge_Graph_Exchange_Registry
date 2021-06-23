@@ -75,14 +75,11 @@ server {
     }
 
     location /favicon.ico {
-        root /opt/projects/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/favicon.ico;
     }
 
     location /css/ {
-        root /opt/projects/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/css/;
     }
 
     location /images/ {
-        root /opt/projects/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/images/;
     }
 }
