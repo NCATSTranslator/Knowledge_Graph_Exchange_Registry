@@ -366,7 +366,9 @@ In order to ensure Docker Compose is working correctly, issue the following comm
 $ docker-compose --version
 docker-compose version 1.29.2, build 5becea4c
 ```
-Note that your particular version and build number may be different than what is shown here. We don't currently expect that docker-compose version differences should have a significant impact on the build, but if in doubt, refer to the release notes of the docker-compose site for advice.
+Note that your particular version and build number may be different than what is shown here.
+We don't currently expect that docker-compose version differences should have a significant
+impact on the build, but if in doubt, refer to the release notes of the docker-compose site for advice.
 
 ## Site Configuration
 
@@ -376,11 +378,17 @@ Set an 'A' DNS record to resolve to a suitable hostname prefix with your DNS poi
 
 ### Securing the Site
 
-The KGE Archive enforces user authentication (using AWS Cognito). For this to properly work, the Archive needs to be hosted behind HTTPS / SSL.  If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by the NGINX instance running on the core Translator server. If you deployan independent Archive deployment, then the Archive web application access will generally need to be proxied through a locally installed copy of NGINX (next section).
+The KGE Archive enforces user authentication (using AWS Cognito). For this to properly work,
+the Archive needs to be hosted behind HTTPS / SSL.  If the server is proxied through
+a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by
+the NGINX instance running on the core Translator server. If you aim for an independent
+Archive deployment, then the Archive web application access will generally need to be
+proxied through a locally installed copy of NGINX (next section).
 
 #### NGINX Installation and Configuration
 
-NGINX can be operated directly as a program in the operating system or in a Docker container. For now, we choose the direct installation option for simplicity of SSL/HTTPS management. On Ubuntu, typing:
+NGINX can be operated directly as a program in the operating system or in a Docker container.
+For now, we choose the direct installation option for simplicity of SSL/HTTPS management. On Ubuntu, typing:
 
 ```shell
 sudo apt install nginx
