@@ -4,22 +4,20 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
 
 ## Table of Contents
 
-- [Development Deployment](#development-deployment)
+- [Deployment for Development](#deployment-for-development)
     - [Cloning the Code](#cloning-the-code)
     - [Configuration](#configuration)
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
         - [Amazon Web Services Configuration](#amazon-web-services-configuration)
-            - [AWS Configuration Files](#aws-configuration-files)
-            - [AWS Environment Variables](#aws-environment-variables)
-        - [Project Configuration File](#project-configuration-file-recommended)
+        - [Project Configuration File](#project-configuration-file)
         - [Other Prerequisites](#other-prerequisites)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
     - [Basic Operation of the Server](#basic-operation-of-the-server)
     - [Running the Application within a Docker Container](#running-the-application-within-a-docker-container)
         - [Installation of Docker](#installation-of-docker)
             - [Testing Docker](#testing-docker)    
-- [Production Deployment](#production-deployment)
+- [Deployment for Production](#deployment-for-production)
     - [Operating System](#operating-system)
     - [Cloud Deployment](#cloud-deployment)
         - [Docker Storage Considerations on the Cloud](#docker-storage-considerations-on-the-cloud)
@@ -27,16 +25,14 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
     - [Installing Docker and Compose](#installing-docker-and-compose)
         - [Testing Docker Compose](#testing-docker-compose)
     - [Site Configuration](#site-configuration)
+        - [Configuring AWS](#configuring-aws)
         - [Domain and Hostname](#domain-and-hostname)
+        - [NGINX Installation and Configuration](#nginx-installation-and-configuration)
         - [Securing the Site](#securing-the-site)
-            - [NGINX Installation and Configuration](#nginx-installation-and-configuration)
-            - [Configuring NGINX for HTTPS](#configuring-nginx-for-https)
-        - [WSGI Deployment](#wsgi-deployment)
-    - [Client User Authentication](#client-user-authentication)
-    - [Configure AWS](#configure-aws)
-    - [Running the Production System](#running-the-production-system)
+        - [User Authentication and Authorization](#user-authentication-and-authorization)
+        - [Running the Production System as a Docker Compose System Daemon](#running-the-production-system-as-a-docker-compose-system-daemon)
 
-# Development Deployment
+# Deployment for Development
 
 ## Cloning the Code
 
@@ -289,9 +285,9 @@ To shut down the server:
 $ docker stop kge-test-run
 ```
 
-# Production Deployment
+# Deployment for Production
 
-The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine (e.g. on an AWS EC2 cloud server instance). Some preparation is required.
+The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine (e.g. on an AWS EC2 cloud server instance).
 
 ## Operating System
 
@@ -372,20 +368,15 @@ impact on the build, but if in doubt, refer to the release notes of the docker-c
 
 ## Site Configuration
 
+### Configuring AWS
+
+Refer to [Amazon Web Services Configuration](#amazon-web-services-configuration).  See also [IAM roles for Amazon EC2 instances](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html).
+
 ### Domain and Hostname
 
-Set an 'A' DNS record to resolve to a suitable hostname prefix with your DNS pointing to the IP of the NGINX server.
+Set an 'A' DNS record to resolve to a suitable hostname prefix with your DNS pointing to the IP of the NGINX server. For performance reasons, a standard web server program (we use NGINX; see the next section) needs to be configured to serve as a proxy to the Archive web application running in the background.
 
-### Securing the Site
-
-The KGE Archive enforces user authentication (using AWS Cognito). For this to properly work,
-the Archive needs to be hosted behind HTTPS / SSL.  If the server is proxied through
-a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by
-the NGINX instance running on the core Translator server. If you aim for an independent
-Archive deployment, then the Archive web application access will generally need to be
-proxied through a locally installed copy of NGINX (next section).
-
-#### NGINX Installation and Configuration
+### NGINX Installation and Configuration
 
 NGINX can be operated directly as a program in the operating system or in a Docker container.
 For now, we choose the direct installation option for simplicity of SSL/HTTPS management. On Ubuntu, typing:
@@ -396,12 +387,13 @@ sudo apt install nginx
 
 installs the software.
 
-Next, a copy of the `kge_nginx.conf-template` file (located under the `config` subdirectory) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
-Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modify this proxy insofar necessary).
+Next, a copy of the `kge_nginx.conf-template` file (located under the `deployment` subdirectory of the project) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
 
-The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. Templated static files in the subdirectories of the project `.../kgea/server/web_ui/templates` subdirectory (like `css/styles.css-template`, `images`, etc.) should be copied into the designated location and customized as desired.
+Note that this virtual host configuration proxies to the KGE Archive web ui and service applications which are running in docker containers locally visible on http://localhost on ports 8090 and 8080, respectively.
 
-Finally, a symlink is made to this 'sites-enabled' file into the `/etc/nginx/sites-enabled` subdirectory:
+The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. Templated static files in the subdirectories of the project `.../kgea/server/web_ui/templates` subdirectory (like `css/styles.css-template`, `images`, etc.) can be copied into the designated location and customized as desired.
+
+Finally, a symlink is made to this `sites-available` file into the `/etc/nginx/sites-enabled` subdirectory:
 
 ```shell
 cd /etc/nginx/sites-enabled
@@ -422,28 +414,41 @@ sudo systemctl <cmd> nginx
 
 where <cmd> can be 'status', 'start', 'stop' and 'restart'.
 
-#### Configuring NGINX for HTTPS
+### Securing the Site
 
-Afterwards, **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/).  After installing the CertBot tool as recommended on their site, following the prompts of the Certbot command will easily configure SSL/HTTPS (your NGINX configured hostname should be visible in the Certbot list (after it was linked into the `/etc/nginx/sites-enabled` subdirectory, see above):
+The KGE Archive enforces user authentication (using AWS Cognito). For this to properly work, the Archive needs to be hosted behind HTTPS / SSL. 
+
+Suitable **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux -  for the [CertBot tool](https://certbot.eff.org/). Certbot is an open SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/).  After installing the CertBot tool as recommended on their site, we run Certbot command as follows:
 
 ```shell
 sudo certbot --nginx
 ```
 
-## Further Information
+Certbot easily sets up SSL/HTTPS for your NGINX configured hostname, that should be visible in the `/etc/nginx/sites-enabled` subdirectory (see above).
 
-Although the details of the KGE Archive deployment may diverge from what is described on the AIOHTTP website, see this further information about [production AIOHTTP deployments](https://docs.aiohttp.org/en/stable/deployment.html#aiohttp-deployment).
+### User Authentication and Authorization
 
-## Client User Authentication
+After we set up the server, the hostname particulars can be used to [configure AWS Cognito for OAuth2-based user authentication and authorization on the system](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). See also the [Project Configuration File](#project-configuration-file) above.
 
-The [Archive system leverages AWS Cognito for its client user authentication](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). The  HTTPS schema-prefixed hostname needs to be specified as the login URL's callback endpoint, through the Archive software site configuration.
+## Running the Production System as a Docker Compose System Daemon
 
-### Configure AWS
+After we build the Archive stack with `docker-compose build`, we deploy it as a service daemon on the system.
+First, we copy the `deployment/kgea.service` template for `systemd` deployment of the Docker Compose managed image into `/etc/systemd/system/kgea.service`. To install the service, we must first reload the list of services:
 
-Refer to [Amazon Web Services Configuration](#amazon-web-services-configuration).
+```
+sudo systemctl daemon reload
+```
 
-## Running the Production System
+Then activate the launch of the service at boot:
 
-After configuring Nginx we need to start the aiohttp web-service and web-ui backends using a tool for starting them automatically after system reboot or backend crash. There are very many ways to do it: Supervisord, Upstart, Systemd, etc.
+```
+sudo systemctl enable kgea  # the root file name of the service
+```
 
-T.B.A.
+We can then use the systemctl command to manage its execution:
+
+``` 
+$ sudo systemctl <command> kgea
+```
+
+where command may be `start`, `restart`, `stop` or `status`.
