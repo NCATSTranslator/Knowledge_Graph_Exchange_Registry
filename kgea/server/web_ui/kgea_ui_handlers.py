@@ -1,5 +1,5 @@
-from os import getenv
 from typing import List, Dict
+from os import getenv
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
