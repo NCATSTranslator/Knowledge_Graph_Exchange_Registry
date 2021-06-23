@@ -6,8 +6,12 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get upgrade -y && apt-get install -y build-essential git python-lxml
 RUN python -m pip install --upgrade pip && pip install wheel
 
-COPY . /usr/src/app
+# Copy over requirements and defined dependencies independent of the rest of the
+# code base, so that they are not repeatedly installed when the code changes
+COPY requirements.txt  /usr/src/app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . /usr/src/app
 
 EXPOSE 8090
 
