@@ -113,12 +113,13 @@ pipenv install -r requirements.txt
 
 The KGE Archive uses various Amazon Web Services to perform its work, such as AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which the system uses to receive the (meta-)data files from the upload.  The system also leverages other AWS services like EC2 (the server it runs upon if in AWS), Cognito (for user authentication) and SNS (for user notification of KGE updates).
 
-Access to these resources requires configuration of AWS credentials, consisting of an access key id and a secret key. However, storing and maintaining such credentials (i.e. cycling them) is a problematic task.
+Access to these resources requires configuration of AWS credentials, consisting of an access key id and a secret key. However, storing and maintaining such credentials (i.e. cycling them, as best secure practice demands) is problematic overhead.
 
-Therefore, the latest iteration of the Archive software manages system access to AWS by using a host AWS account IAM Role request temporary AWS credentials. This IAM Role needs to have a suitable AWS service access policies in place (e.g. [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
+Therefore, the latest iteration of the Archive system manages system access to AWS by using a host AWS account IAM Role request temporary AWS credentials. This IAM Role needs to have a suitable AWS service access policies in place (e.g. [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
 
 To configure this access management, the host AWS account number (`host_account`), a guest-specified (and host-managed IAM role recorded) `external_id` plus the name of the host role (`iam_role_name`), need to be recorded within the project configuration file (next section).  The `external_id` is not completely secret within the system, but it should be a relatively long (uuid4?) identifier kept relatively confidential between the host and guest account administrators.
 
+NOTE: 'Development' deployments may rely on the existence of local .aws credentials of the developer, for the `AssumeRole` operation to work, whereas, production deployment on an EC2 server may be configured as a server-level IAM role.
 
 ### Project Configuration File
 
@@ -433,19 +434,13 @@ After we set up the server, the hostname particulars can be used to [configure A
 ## Running the Production System as a Docker Compose System Daemon
 
 After we build the Archive stack with `docker-compose build`, we deploy it as a service daemon on the system.
-First, we copy the `deployment/kgea.service` template for `systemd` deployment of the Docker Compose managed image into `/etc/systemd/system/kgea.service`. To install the service, we must first reload the list of services:
-
-```
-sudo systemctl daemon reload
-```
-
-Then activate the launch of the service at boot:
+First, we copy the `deployment/kgea.service` template for `systemd` deployment of the Docker Compose managed image into `/etc/systemd/system/kgea.service`. Then, we enable it:
 
 ```
 sudo systemctl enable kgea  # the root file name of the service
 ```
 
-We can then use the systemctl command to manage its execution:
+We can then now use the systemctl command to manage its execution:
 
 ``` 
 $ sudo systemctl <command> kgea
