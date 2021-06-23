@@ -71,7 +71,7 @@ server {
         # Uncomment if and when corresponding 'upstream' block is needed
         # proxy_pass http://kge_archive;
 
-        http://localhost:8080/archive;
+        proxy_pass http://localhost:8080/archive;
     }
 
     location /favicon.ico {
