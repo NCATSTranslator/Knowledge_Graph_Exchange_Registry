@@ -79,10 +79,10 @@ server {
     }
 
     location /css/ {
-        root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/css/;
+        root /opt/projects/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/css/;
     }
 
     location /images/ {
-        root /path/to/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/images/;
+        root /opt/projects/Knowledge_Graph_Exchange_Registry/kgea/server/web_ui/templates/images/;
     }
 }

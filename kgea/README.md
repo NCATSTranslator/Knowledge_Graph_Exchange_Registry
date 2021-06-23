@@ -296,7 +296,7 @@ We primarily wrote the Archive web application in Python, so in principle, it ca
 
 ## Cloning the code
 
-As above, we [git clone the Code](#cloning-the-code) for production as well, this time, into a newly created `/opt/projects` directory (with user account accessible permissions). Within the NGINX config file, we set the HTML `root` path to point to the `.../kgea/server/web_ui/templates` subdirectory, where we maintain the static css and images (see below).
+As above, we [git clone the Code](#cloning-the-code) for production as well, this time, into a newly created `/opt/projects` directory (with user account accessible permissions). Within the NGINX config file, we set the HTML `root` path to point to the path to the `.../kgea/server/web_ui/templates` subdirectory, where we maintain the static css and images (see below).
 
 ## Cloud Deployment
 
@@ -388,11 +388,15 @@ sudo apt install nginx
 
 installs the software.
 
-Next, a copy of the `kge_nginx.conf-template` file (located under the `deployment` subdirectory of the project) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
+Next, a copy of the `kgea_nginx.conf-template` file (located under the `deployment` subdirectory of the project) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
 
 Note that this virtual host configuration proxies to the KGE Archive web ui and service applications which are running in docker containers locally visible on http://localhost on ports 8090 and 8080, respectively.
 
-The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. Templated static files in the subdirectories of the project `.../kgea/server/web_ui/templates` subdirectory (like `css/styles.css-template`, `images`, etc.) can be copied into the designated location and customized as desired.
+The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. We provide some templated static files in the subdirectories of the project `.../kgea/server/web_ui/templates` subdirectory (like `css/styles.css-template`, `images`, etc.) that must be copied into the designated location and customized as desired. In particular, correct appearance of the Archive web pages requires the following:
+
+1. The `.../templates/css/styles.css-template` should be copied into a `styles.css` file the NGINX `kge_nginx.conf` specified path for `/css/`
+1. A suitable `banner.jpg` logo image should be placed, alongside other `.../templates/images` files (i.e. `help-icon.png`) into the NGINX `kge_nginx.conf` specified path for `/images/` 
+
 
 Finally, a symlink is made to this `sites-available` file into the `/etc/nginx/sites-enabled` subdirectory:
 
