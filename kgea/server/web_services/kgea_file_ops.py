@@ -57,20 +57,23 @@ _KGEA_APP_CONFIG = get_app_config()
 # Obtain an AWS S3 Client using an Assumed IAM Role
 #
 aws_config = _KGEA_APP_CONFIG['aws']
-assumed_role = AssumeRole(
+the_role = AssumeRole(
     aws_config['host_account'],
     aws_config['guest_external_id'],
     aws_config['iam_role_name']
 )
-s3_client = assumed_role.get_client('s3', config=Config(signature_version='s3v4'))
+
+
+def s3_client(assumed_role=the_role, config=Config(signature_version='s3v4')):
+    return assumed_role.get_client('s3', config=config)
 
 
 def create_location(bucket, kg_id):
-    return s3_client.put_object(Bucket=bucket, Key=get_object_location(kg_id))
+    return s3_client().put_object(Bucket=bucket, Key=get_object_location(kg_id))
 
 
 def delete_location(bucket, kg_id):
-    return s3_client.delete(Bucket=bucket, Key=get_object_location(kg_id))
+    return s3_client().delete(Bucket=bucket, Key=get_object_location(kg_id))
 
 
 # https://www.askpython.com/python/examples/generate-random-strings-in-python
@@ -109,13 +112,13 @@ def prepare_test(func):
 def prepare_test_random_object_location(func):
     @wraps(func)
     def wrapper(object_key=_random_alpha_string()):
-        s3_client.put_object(
+        s3_client().put_object(
             Bucket='kgea-test-bucket',
             Key=get_object_location(object_key)
         )
         result = func(test_object_location=get_object_location(object_key))
         # TODO: prevent deletion for a certain period of time
-        s3_client.delete_object(
+        s3_client().delete_object(
             Bucket='kgea-test-bucket',
             Key=get_object_location(object_key)
         )
@@ -226,8 +229,8 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
 
 def kg_files_in_location(bucket_name, object_location='') -> List[str]:
     bucket_listings: List = list()
-    print(s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name))
-    for p in s3_client.get_paginator("list_objects_v2").paginate(Bucket=bucket_name):
+    print(s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket_name))
+    for p in s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket_name):
         if 'Contents' in p:
             for e in p['Contents']:
                 bucket_listings.append(e['Key'])
@@ -312,7 +315,7 @@ def create_presigned_url(bucket, object_key, expiration=86400):
     # https://stackoverflow.com/a/52642792
     #
     # This may thrown a Boto related exception - assume that it will be catch by the caller
-    response = s3_client.generate_presigned_url(
+    response = s3_client().generate_presigned_url(
         ClientMethod='get_object',
         Params={
             'Bucket': bucket,
@@ -496,7 +499,7 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     return True
 
 
-def upload_file(data_file, file_name, bucket, object_location, client=s3_client, config=None, callback=None):
+def upload_file(data_file, file_name, bucket, object_location, client=s3_client(), config=None, callback=None):
     """Upload a file to an S3 bucket
 
     :param client:
@@ -539,7 +542,7 @@ def upload_file_multipart(
         object_location,
         metadata=None,
         callback=None,
-        client=s3_client
+        client=s3_client()
 ):
     """Upload a file to an S3 bucket. Use multipart protocols.
     Multipart transfers occur when the file size exceeds the value of the multipart_threshold attribute
@@ -918,8 +921,7 @@ def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') ->
 
     try:
         mf = io.BytesIO()
-        s3 = boto3.client('s3')
-        s3.download_fileobj(
+        s3_client().download_fileobj(
             bucket_name,
             object_name,
             mf

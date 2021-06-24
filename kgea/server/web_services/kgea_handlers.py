@@ -9,6 +9,7 @@ from .models import (
     UploadTokenObject,
     UploadProgressToken
 )
+from ...aws.assume_role import AssumeRole
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -21,6 +22,10 @@ from aiohttp import web
 from aiohttp_session import get_session
 
 import threading
+
+from botocore.client import Config
+
+import asyncio
 
 #############################################################
 # Application Configuration
@@ -57,7 +62,8 @@ from .kgea_file_ops import (
     object_key_exists,
     get_default_date_stamp,
     with_subfolder,
-    infix_string
+    infix_string,
+    s3_client
 )
 
 from kgea.server.web_services.catalog.Catalog import (
@@ -77,7 +83,7 @@ logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
-
+aws_config = _KGEA_APP_CONFIG['aws']
 
 # This is likely invariant almost forever unless new types of
 # KGX data files will eventually be added, i.e. 'attributes'(?)
@@ -727,10 +733,7 @@ async def upload_kge_file(
                 # print('progress_raw', _upload_tracker['upload'][upload_token]['current_position'] / _upload_tracker['upload'][upload_token]['end_position'] * 100)
                 # print('progress', upload_token, session['upload'][upload_token]['current_position'] / session['upload'][upload_token]['end_position'], percentage)
         
-        # new boto client instance for thread safety
-        import boto3
-        from botocore.client import Config
-        import asyncio
+
         # import concurrent.futures
 
         num_threads = 16
@@ -748,8 +751,13 @@ async def upload_kge_file(
             content_name = uploaded_file.filename
 
         def threaded_upload():
-            session_ = boto3.Session()
-            client = session_.client("s3", config=cfg)
+            
+            local_role = AssumeRole(
+                aws_config['host_account'],
+                aws_config['guest_external_id'],
+                aws_config['iam_role_name']
+            )
+            client = s3_client(assumed_role=local_role, config=cfg)
 
             progress_monitor = ProgressPercentage(
                 uploaded_file.filename,

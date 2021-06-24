@@ -96,7 +96,7 @@ async def merge_file_from_url2(test_url):
         FILENAME='LICENSE',
         EXTENSION=''
     )
-    transport_params = {'client': s3_client}
+    transport_params = {'client': s3_client()}
     i = 0
     # https://github.com/RaRe-Technologies/smart_open/blob/a9b127de79063f6df6f20272076fb304db2904ad/smart_open/s3.py#L227
     with smart_open.s3.open(
@@ -106,7 +106,7 @@ async def merge_file_from_url2(test_url):
                 FILENAME='LICENSE'
             ),
             'wb',
-            client=s3_client,
+            client=s3_client(),
             min_part_size=S3_CHUNK_SIZE
     ) as fout:
         async for data in stream_from_url2(test_url):
