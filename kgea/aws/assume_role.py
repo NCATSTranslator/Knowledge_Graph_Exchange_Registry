@@ -142,7 +142,7 @@ class AssumeRole:
         session_renewed: bool = False
         
         if not self.assumed_role_object or \
-                self.expiration <= datetime.now():
+                self.expiration.timestamp() <= datetime.now().timestamp():
             
             session_renewed = True
 
