@@ -245,3 +245,16 @@ class AssumeRole:
             )
         
         return self.aws_session.client(service, config=config)
+
+    def get_resource(self, service):
+        
+        credentials, session_renewed = self.get_credentials_dict()
+    
+        if not self.aws_session or session_renewed:
+            self.aws_session = boto3.Session(
+                aws_access_key_id=credentials["sessionId"],
+                aws_secret_access_key=credentials["sessionKey"],
+                aws_session_token=credentials["sessionToken"]
+            )
+    
+        return self.aws_session.resource(service_name=service)

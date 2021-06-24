@@ -22,9 +22,6 @@ import tempfile
 from pathlib import Path
 import tarfile
 
-from botocore.config import Config
-from s3_tar import S3Tar
-
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -32,7 +29,9 @@ except ImportError:
 
 # import webbrowser
 
-import boto3
+from botocore.config import Config
+from s3_tar import S3Tar
+from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
 
 from kgea.aws.assume_role import AssumeRole
@@ -66,6 +65,10 @@ the_role = AssumeRole(
 
 def s3_client(assumed_role=the_role, config=Config(signature_version='s3v4')):
     return assumed_role.get_client('s3', config=config)
+
+
+def s3_resource(assumed_role=the_role):
+    return assumed_role.get_resource('s3')
 
 
 def create_location(bucket, kg_id):
@@ -168,8 +171,7 @@ def object_key_exists(bucket_name, object_key) -> bool:
     if not object_key:
         return False
     
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket(bucket_name)
+    bucket = s3_resource().Bucket(bucket_name)
     key = object_key
     objs = list(bucket.objects.filter(Prefix=key))
     return any([w.key == key for w in objs])
@@ -575,7 +577,7 @@ def upload_file_multipart(
     mp_chunk = MP_CHUNK * MB
     concurrency = MP_CONCURRENCY
 
-    transfer_config = boto3.s3.transfer.TransferConfig(
+    transfer_config = TransferConfig(
         multipart_threshold=mp_threshold,
         multipart_chunksize=mp_chunk,
         use_threads=True,
