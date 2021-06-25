@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Union, Optional
 from os import getenv
 from os.path import dirname, abspath
 
@@ -24,7 +24,7 @@ FILE_SET_METADATA_FILE = 'file_set.yaml'
 CONTENT_METADATA_FILE = 'content_metadata.json'  # this particular file is expected to be JSON and explicitly named
 
 # Exported  'application configuration' dictionary
-_app_config: Dict = dict()
+_app_config: Dict[str, Union[Dict[str, Optional[str]], Optional[str]]] = dict()
 
 
 def get_app_config() -> dict:
@@ -34,34 +34,41 @@ def get_app_config() -> dict:
 
 
 def _load_app_config() -> dict:
+
     global _app_config
 
     try:
         with open(CONFIG_FILE_PATH, mode='r', encoding='utf-8') as app_config_file:
 
-            app_config_raw = yaml.load(app_config_file, Loader=Loader)
+            config_raw = yaml.load(app_config_file, Loader=Loader)
+            config: Dict[str, Union[Dict[str, Optional[str]], Optional[str]]] = dict(config_raw)
 
-            if 'aws' not in app_config_raw:
+            if 'aws' not in config:
                 raise RuntimeError(
                     "Missing mandatory 'aws' configuration section in the "
                     "'~/kgea/config/config.yaml' configuration file."
                 )
             else:
-                if 'host_account' not in app_config_raw['aws'] or \
-                   'guest_external_id' not in app_config_raw['aws'] or \
-                   'iam_role_name'not in app_config_raw['aws']:
-                    raise RuntimeError(
-                        "Missing mandatory aws 'account', 'external_id' and/or 'iam_role_name' attributes" +
-                        " in the '~/kgea/config/config.yaml' configuration file."
+                if 'host_account' not in config['aws'] or \
+                   'guest_external_id' not in config['aws'] or \
+                   'iam_role_name' not in config['aws']:
+                    logging.warning(
+                        "Missing aws 'host_account', 'guest_external_id' and/or 'iam_role_name' attributes" +
+                        " in the '~/kgea/config/config.yaml' configuration file. Assume that you are running" +
+                        " within an EC2 instance (configured with a suitable instance profile role)."
                     )
-                elif 's3' not in app_config_raw['aws'] or \
-                     'bucket' not in app_config_raw['aws']['s3'] or \
-                     'archive-directory' not in app_config_raw['aws']['s3']:
+                    config['aws']['host_account'] = None
+                    config['aws']['guest_external_id'] = None
+                    config['aws']['iam_role_name'] = None
+
+                elif 's3' not in config['aws'] or \
+                     'bucket' not in config['aws']['s3'] or \
+                     'archive-directory' not in config['aws']['s3']:
                     raise RuntimeError(
                         "Missing mandatory aws.s3 'bucket' and/or 'archive-directory' attribute" +
                         " in the '~/kgea/config/config.yaml' configuration file."
                     )
-            if 'github' not in app_config_raw:
+            if 'github' not in config:
                 if DEV_MODE:
                     logging.warning(
                         "Github credentials are missing inside the application config.yaml file?\n" +
@@ -73,25 +80,25 @@ def _load_app_config() -> dict:
                         "Missing 'github.token' attribute in '~/kgea/config/config.yaml' configuration file!"
                     )
 
-            _app_config = dict(app_config_raw)
-
-            # TODO: Review this: we second guess a sensible Translator site name here
-            _app_config.setdefault("site_hostname", "https://kge.translator.ncats.io")
+            config.setdefault("site_hostname", "https://archive.translator.ncats.io")
 
         if DEV_MODE:
             # For the EncryptedCookieStorage() managed
             # Session management during development
-            if 'secret_key' not in _app_config:
+            if 'secret_key' not in config:
                 import base64
                 from cryptography import fernet
 
                 fernet_key = fernet.Fernet.generate_key()
                 secret_key = base64.urlsafe_b64decode(fernet_key)
-                _app_config['secret_key'] = secret_key
+                config['secret_key'] = str(secret_key)
 
-                # persist updated updated _app_config back to config.yaml?
+                # persist updated updated config back to config.yaml?
                 with open(CONFIG_FILE_PATH, mode='w', encoding='utf-8') as app_config_file:
-                    yaml.dump(_app_config, app_config_file, Dumper=Dumper)
+                    yaml.dump(config, app_config_file, Dumper=Dumper)
+
+        # cache the config globally
+        _app_config = config
 
         return _app_config
 
