@@ -12,6 +12,10 @@ import boto3
 from botocore.config import Config
 
 from kgea.config import get_app_config
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
@@ -30,8 +34,10 @@ class AssumeRole:
             iam_role_name=aws_config['iam_role_name']
     ):
         if not host_account:
+            logger.info("AssumeRole() defaulting to default credentials")
             self._default_credentials = True
         else:
+            logger.info("AssumeRole() using assumed role credentials")
             self._default_credentials = False
             self.host_account = host_account
             self.guest_external_id = guest_external_id
@@ -172,6 +178,7 @@ class AssumeRole:
         # }
         #
         if self._default_credentials:
+            logging.pr
             return boto3.client('s3', config=config)
         else:
             credentials, session_renewed = self.get_credentials_dict()
