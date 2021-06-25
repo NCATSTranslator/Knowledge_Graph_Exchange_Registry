@@ -41,9 +41,9 @@ if __name__ == '__main__':
         role_name_from_user = sys.argv[3]
         
         assumed_role = AssumeRole(
-            account_id_from_user,
-            external_id,
-            role_name_from_user
+            host_account=account_id_from_user,
+            guest_external_id=external_id,
+            iam_role_name=role_name_from_user
         )
         
         sns_client = assumed_role.get_client('cognito')

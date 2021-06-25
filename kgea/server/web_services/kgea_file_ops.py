@@ -54,13 +54,9 @@ _KGEA_APP_CONFIG = get_app_config()
 
 #
 # Obtain an AWS S3 Client using an Assumed IAM Role
+# with default parameters (loaded from config.yaml)
 #
-aws_config = _KGEA_APP_CONFIG['aws']
-the_role = AssumeRole(
-    aws_config['host_account'],
-    aws_config['guest_external_id'],
-    aws_config['iam_role_name']
-)
+the_role = AssumeRole()
 
 
 def s3_client(assumed_role=the_role, config=Config(signature_version='s3v4')):

@@ -69,7 +69,7 @@ def list_files(client, bucket_name: str):
     # print(dumps(response))
     
     if 'Contents' in response:
-        print("### Listing of test object in the S3 bucket '" + bucket_name + "':")
+        print("### Listing contents of the S3 bucket '" + bucket_name + "':")
         for entry in response['Contents']:
             print(entry['Key'], ':', entry['Size'])
     else:
@@ -120,9 +120,9 @@ if __name__ == '__main__':
         s3_operation = sys.argv[5] if len(sys.argv) >= 6 else "test"
 
         assumed_role = AssumeRole(
-            account_id_from_user,
-            external_id,
-            role_name_from_user
+            host_account=account_id_from_user,
+            guest_external_id=external_id,
+            iam_role_name=role_name_from_user
         )
         
         s3_client = assumed_role.get_client('s3', config=Config(signature_version='s3v4'))
@@ -154,6 +154,4 @@ if __name__ == '__main__':
             " <host_account_id> <guest_external_id> <target_iam_role_name>" +
             " <S3 bucket name> <operation>"
         )
-        print("At this moment,  'list bucket contents' is the " +
-              "only currently supported operation for S3 access.")
         exit(0)

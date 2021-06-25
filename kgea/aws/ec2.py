@@ -63,9 +63,9 @@ if __name__ == '__main__':
             usage("Unrecognized context argument: '" + context + "'")
     
         assumed_role = AssumeRole(
-            account_id_from_user,
-            external_id,
-            role_name_from_user
+            host_account=account_id_from_user,
+            guest_external_id=external_id,
+            iam_role_name=role_name_from_user
         )
     
         ec2_client = assumed_role.get_client('ec2')

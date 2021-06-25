@@ -83,7 +83,6 @@ logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
-aws_config = _KGEA_APP_CONFIG['aws']
 
 # This is likely invariant almost forever unless new types of
 # KGX data files will eventually be added, i.e. 'attributes'(?)
@@ -752,11 +751,7 @@ async def upload_kge_file(
 
         def threaded_upload():
             
-            local_role = AssumeRole(
-                aws_config['host_account'],
-                aws_config['guest_external_id'],
-                aws_config['iam_role_name']
-            )
+            local_role = AssumeRole()
             client = s3_client(assumed_role=local_role, config=cfg)
 
             progress_monitor = ProgressPercentage(

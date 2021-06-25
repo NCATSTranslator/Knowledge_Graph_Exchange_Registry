@@ -11,22 +11,14 @@ from json import dumps
 import boto3
 from botocore.config import Config
 
+from kgea.config import get_app_config
+
+# Opaquely access the configuration dictionary
+_KGEA_APP_CONFIG = get_app_config()
+aws_config = _KGEA_APP_CONFIG['aws']
+
 home = expanduser("~")
 AWS_CONFIG_ROOT = home + "/.aws/"
-
-# We fall back here on Environment Variables as the
-# default source of AWS credentials and configuration
-# AWS_ACCESS_KEY_ID = getenv('AWS_ACCESS_KEY_ID')
-# AWS_SECRET_ACCESS_KEY = getenv('AWS_SECRET_ACCESS_KEY')
-# REGION_NAME = getenv('REGION_NAME')
-# boto3.setup_default_session(
-#     aws_access_key_id=AWS_ACCESS_KEY_ID,
-#     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-#     aws_session_token=None,
-#     region_name=REGION_NAME,
-#     botocore_session=None,
-#     profile_name=None
-# )
 
 
 # def validate_session_configuration():
@@ -98,11 +90,12 @@ AWS_CONFIG_ROOT = home + "/.aws/"
 #
 
 class AssumeRole:
+
     def __init__(
             self,
-            host_account,
-            guest_external_id,
-            iam_role_name
+            host_account=aws_config['host_account'],
+            guest_external_id=aws_config['guest_external_id'],
+            iam_role_name=aws_config['iam_role_name']
     ):
         self.host_account = host_account
         self.guest_external_id = guest_external_id
