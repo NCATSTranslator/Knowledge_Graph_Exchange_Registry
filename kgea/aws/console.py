@@ -21,25 +21,8 @@ account_id_from_user: str = ""
 external_id: str = ""
 role_name_from_user: str = ""
 
-# Prompt user for target account ID, ExternalID and name of IAM Role to assume
-if len(sys.argv) == 4:
-    account_id_from_user = sys.argv[1]
-    external_id = sys.argv[2]
-    role_name_from_user = sys.argv[3]
-else:
-    print("Usage: ")
-    print(
-        "python -m kgea.aws."+Path(sys.argv[0]).stem +
-        " <host_account_id> <guest_external_id> <target_iam_role_name>"
-    )
-    exit(0)
 
-
-_assumed_role = AssumeRole(
-                    host_account=account_id_from_user,
-                    guest_external_id=external_id,
-                    iam_role_name=role_name_from_user
-                )
+_assumed_role = AssumeRole()
         
 # Make a request to the AWS federation endpoint to get a sign-in.
 #

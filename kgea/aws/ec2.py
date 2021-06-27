@@ -37,36 +37,26 @@ def usage(err_msg: str = ''):
 
 # Run the module as a CLI
 if __name__ == '__main__':
-    account_id_from_user: str = ""
-    external_id: str = ""
-    role_name_from_user: str = ""
+
     context: str = ""
     action: str = ""
     instance_ids: Optional[List[str]] = None
     keypair_name: str = ''
 
     # Prompt user for target and action for the EC2 service
-    if len(sys.argv) >= 6:
+    if len(sys.argv) >= 3:
         
-        account_id_from_user = sys.argv[1]
-        external_id = sys.argv[2]
-        role_name_from_user = sys.argv[3]
-        
-        context = sys.argv[4].upper()
-        action = sys.argv[5].upper()
+        context = sys.argv[1].upper()
+        action = sys.argv[2].upper()
         
         if context == 'instance':
-            instance_ids = sys.argv[6:] if len(sys.argv) > 6 else None
+            instance_ids = sys.argv[3:] if len(sys.argv) > 3 else None
         elif context == 'keypair':
-            keypair_name = sys.argv[6] if len(sys.argv) > 6 else None
+            keypair_name = sys.argv[3] if len(sys.argv) > 3 else None
         else:
             usage("Unrecognized context argument: '" + context + "'")
     
-        assumed_role = AssumeRole(
-            host_account=account_id_from_user,
-            guest_external_id=external_id,
-            iam_role_name=role_name_from_user
-        )
+        assumed_role = AssumeRole()
     
         ec2_client = assumed_role.get_client('ec2')
     
@@ -197,4 +187,3 @@ if __name__ == '__main__':
                     print("Unrecognized EC2 'Instance' Action: " + action)
     else:
         usage()
-    
