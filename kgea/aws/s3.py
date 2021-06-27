@@ -140,18 +140,20 @@ if __name__ == '__main__':
             list_files(s3_client, s3_bucket_name)
         elif s3_operation.upper() == 'DELETE':
             if len(sys.argv) >= 7:
-                object_key = sys.argv[6]
-                delete_files(s3_client, s3_bucket_name, object_key)
+                object_keys = sys.argv[6:]
+                for key in object_keys:
+                    delete_files(s3_client, s3_bucket_name, key)
             else:
                 print("\nMissing S3 key of object to delete?")
         else:
             print("\nUnknown s3_operation: '" + s3_operation + "'")
             
     else:
-        print("Usage: ")
+        print("Usage:\n")
         print(
             "python -m kgea.aws."+Path(sys.argv[0]).stem +
             " <host_account_id> <guest_external_id> <target_iam_role_name>" +
-            " <S3 bucket name> <operation>"
+            " <S3 bucket name> <operation> [<object_key>]" +
+            "\n\n\tNote: one or more <object_key> are only required for 'delete' operation.\n"
         )
         exit(0)

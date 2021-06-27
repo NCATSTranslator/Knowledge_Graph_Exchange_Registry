@@ -193,9 +193,9 @@ class AssumeRole:
 
             return self.aws_session.client(service, config=config)
 
-    def get_resource(self, service):
+    def get_resource(self, service, **kwargs):
         if self._default_credentials:
-            return boto3.resource('s3')
+            return boto3.resource('s3', **kwargs)
         else:
             credentials, session_renewed = self.get_credentials_dict()
 
@@ -205,4 +205,4 @@ class AssumeRole:
                     aws_secret_access_key=credentials["sessionKey"],
                     aws_session_token=credentials["sessionToken"]
                 )
-            return self.aws_session.resource(service_name=service)
+            return self.aws_session.resource(service_name=service, **kwargs)

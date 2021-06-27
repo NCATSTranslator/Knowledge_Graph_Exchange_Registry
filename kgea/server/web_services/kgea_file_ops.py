@@ -9,7 +9,7 @@ Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biol
 """
 import io
 from sys import stderr
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Optional
 from functools import wraps
 from string import Template
 import random
@@ -42,7 +42,6 @@ from kgea.config import (
     FILE_SET_METADATA_FILE
 )
 
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -51,7 +50,6 @@ logger.setLevel(logging.INFO)
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
-
 #
 # Obtain an AWS S3 Client using an Assumed IAM Role
 # with default parameters (loaded from config.yaml)
@@ -59,12 +57,21 @@ _KGEA_APP_CONFIG = get_app_config()
 the_role = AssumeRole()
 
 
-def s3_client(assumed_role=the_role, config=Config(signature_version='s3v4')):
+def s3_client(
+        assumed_role=the_role,
+        config=Config(
+            signature_version='s3v4',
+            region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
+        )
+):
     return assumed_role.get_client('s3', config=config)
 
 
 def s3_resource(assumed_role=the_role):
-    return assumed_role.get_resource('s3')
+    return assumed_role.get_resource(
+        's3',
+        region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
+    )
 
 
 def create_location(bucket, kg_id):
@@ -166,7 +173,7 @@ def object_key_exists(bucket_name, object_key) -> bool:
     """
     if not object_key:
         return False
-    
+
     bucket = s3_resource().Bucket(bucket_name)
     key = object_key
     objs = list(bucket.objects.filter(Prefix=key))
@@ -300,7 +307,7 @@ def test_get_kg_versions_available(test_object_location, test_bucket=TEST_BUCKET
 
 
 # TODO: clarify expiration time - default to 1 day (in seconds)
-def create_presigned_url(bucket, object_key, expiration=86400):
+def create_presigned_url(bucket, object_key, expiration=86400) -> Optional[str]:
     """Generate a pre-signed URL to share an S3 object
 
     :param bucket: string
@@ -313,18 +320,37 @@ def create_presigned_url(bucket, object_key, expiration=86400):
     # https://stackoverflow.com/a/52642792
     #
     # This may thrown a Boto related exception - assume that it will be catch by the caller
-    response = s3_client().generate_presigned_url(
-        ClientMethod='get_object',
-        Params={
-            'Bucket': bucket,
-            'Key': object_key,
-            'ResponseContentDisposition': 'attachment'
-        },
-        ExpiresIn=expiration
-    )
 
-    # The response contains the pre-signed URL
-    return response
+    # If the S3 resources is an accesspoint resource (i.e. bucket accessed as a subdomain)
+    # Then in lieu of the simple bucket name, a full access point ARN must  be given, i.e.
+    #
+    # arn:aws:s3:<region>:<host_account_id>:accesspoint/<bucket>
+    #
+    if _KGEA_APP_CONFIG['aws']['s3']['is_access_point']:
+        # Just an educated guess: bucket access point ARN's
+        # can't have periods in them?  Convert to hyphens?
+        compliant_bucket_name = bucket.replace(".", "-")
+        access_point = "arn:aws:s3:" + _KGEA_APP_CONFIG['aws']['s3']['region'] + ":" + \
+                       _KGEA_APP_CONFIG['aws']['host_account'] + ":accesspoint/" + compliant_bucket_name
+    else:
+        access_point = bucket
+
+    try:
+        endpoint = s3_client().generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': access_point,
+                'Key': object_key,
+                'ResponseContentDisposition': 'attachment',
+            },
+            ExpiresIn=expiration
+        )
+    except Exception as e:
+        logger.error("create_presigned_url() error: "+str(e))
+        return None
+
+    # The endpoint contains the pre-signed URL
+    return endpoint
 
 
 @prepare_test
@@ -443,7 +469,7 @@ def kg_filepath(kg_id, kg_version, root='', subdir='', attachment=''):
 
 
 def tardir(directory, name) -> str:
-    logger.error("Calling tardir(directory='"+directory+"', name='"+name+"')")
+    logger.error("Calling tardir(directory='" + directory + "', name='" + name + "')")
     raise RuntimeError("Not yet implemented!")
 
 
@@ -592,7 +618,7 @@ def upload_file_multipart(
 
 
 def package_file(name: str, target_file):
-    logger.error("Calling package_file(name='"+name+"', name='"+target_file+"')")
+    logger.error("Calling package_file(name='" + name + "', name='" + target_file + "')")
     raise RuntimeError("Not yet implemented!")
 
 
@@ -854,9 +880,8 @@ async def compress_download(
         file_set_object_key,
         # open_file=False
 ) -> str:
-
     part = file_set_object_key.split('/')
-    archive_file_name = str(part[-3]).strip()+"_"+str(part[-2]).strip()
+    archive_file_name = str(part[-3]).strip() + "_" + str(part[-2]).strip()
     archive_path = "{file_set_object_key}archive/{archive_file_name}.tar.gz".format(
         file_set_object_key=file_set_object_key,
         archive_file_name=archive_file_name,
@@ -873,7 +898,7 @@ async def compress_download(
     job.add_files(file_set_object_key)
 
     # Add the Knowledge Graph provider.yaml file as well
-    provider_metadata_file_object_key = part[0]+"/"+part[1]+"/provider.yaml"
+    provider_metadata_file_object_key = part[0] + "/" + part[1] + "/provider.yaml"
     job.add_file(provider_metadata_file_object_key)
 
     # execute the job
@@ -929,7 +954,7 @@ def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') ->
         if mode == 'text':
             data_string = data_bytes.decode('utf-8')
     except Exception as e:
-        logger.error('ERROR: _load_s3_text_file(): '+str(e))
+        logger.error('ERROR: _load_s3_text_file(): ' + str(e))
 
     return data_string
 
@@ -964,23 +989,23 @@ def get_archive_contents(bucket_name: str) -> \
     all_files = kg_files_in_location(bucket_name=bucket_name)
 
     contents: Dict[
-        str,   # kg_id's of every KGE archived knowledge graph
+        str,  # kg_id's of every KGE archived knowledge graph
         Dict[
             str,  # tags 'metadata' and 'versions'
             Union[
-                str,   # 'metadata' field value: kg specific 'provider' text file blob from S3
+                str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
                 Dict[
                     str,  # kg_version's of versioned KGE File Sets for a kg
                     Dict[
                         str,  # tags 'metadata' and 'file_object_keys'
                         Union[
-                            str,   # 'metadata' field value: 'file set' specific text file blob from S3
+                            str,  # 'metadata' field value: 'file set' specific text file blob from S3
                             List[str]  # list of data file object keys in a given KGE File Set
-                            ]
                         ]
                     ]
                 ]
             ]
+        ]
     ] = dict()
 
     for file_path in all_files:

@@ -10,6 +10,8 @@ aws:
   s3:
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+    is_access_point: False        # set to 'True' if the bucket is configured as an 'access endpoint' URL
+    region: 'us-west-2'           # even though S3 is global  (for access point URLs)
     archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
   cognito:
     # AWS Cognito OAuth2 transaction parameters

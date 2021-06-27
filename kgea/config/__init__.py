@@ -24,7 +24,7 @@ FILE_SET_METADATA_FILE = 'file_set.yaml'
 CONTENT_METADATA_FILE = 'content_metadata.json'  # this particular file is expected to be JSON and explicitly named
 
 # Exported  'application configuration' dictionary
-_app_config: Dict[str, Union[Dict[str, Optional[str]], Optional[str]]] = dict()
+_app_config: Dict[str, Union[Dict[str, Optional[str]], Union[Optional[str], bool]]] = dict()
 
 
 def get_app_config() -> dict:
@@ -41,7 +41,7 @@ def _load_app_config() -> dict:
         with open(CONFIG_FILE_PATH, mode='r', encoding='utf-8') as app_config_file:
 
             config_raw = yaml.load(app_config_file, Loader=Loader)
-            config: Dict[str, Union[Dict[str, Optional[str]], Optional[str]]] = dict(config_raw)
+            config: Dict[str, Union[Dict[str, Optional[str]], Union[Optional[str], bool]]] = dict(config_raw)
 
             if 'aws' not in config:
                 raise RuntimeError(
@@ -49,25 +49,30 @@ def _load_app_config() -> dict:
                     "'~/kgea/config/config.yaml' configuration file."
                 )
             else:
-                if 'host_account' not in config['aws'] or \
-                   'guest_external_id' not in config['aws'] or \
-                   'iam_role_name' not in config['aws']:
-                    logging.warning(
-                        "Missing aws 'host_account', 'guest_external_id' and/or 'iam_role_name' attributes" +
-                        " in the '~/kgea/config/config.yaml' configuration file. Assume that you are running" +
-                        " within an EC2 instance (configured with a suitable instance profile role)."
-                    )
-                    config['aws']['host_account'] = None
-                    config['aws']['guest_external_id'] = None
-                    config['aws']['iam_role_name'] = None
-
-                elif 's3' not in config['aws'] or \
-                     'bucket' not in config['aws']['s3'] or \
-                     'archive-directory' not in config['aws']['s3']:
+                if 'host_account' not in config['aws']:
                     raise RuntimeError(
-                        "Missing mandatory aws.s3 'bucket' and/or 'archive-directory' attribute" +
-                        " in the '~/kgea/config/config.yaml' configuration file."
+                        "Missing mandatory 'host_account' configuration section in the"
+                        " 'aws' section of the '~/kgea/config/config.yaml' configuration file."
                     )
+                else:
+                    if 's3' not in config['aws'] or \
+                       'bucket' not in config['aws']['s3'] or \
+                       'is_access_point' not in config['aws']['s3'] or \
+                       'region' not in config['aws']['s3'] or \
+                       'archive-directory' not in config['aws']['s3']:
+                        raise RuntimeError(
+                            "Missing mandatory aws.s3 'bucket', 'is_access_point', 'region' and/or 'archive-directory' "
+                            " attribute in the 'aws.s3' section of the '~/kgea/config/config.yaml' configuration file."
+                        )
+                    if 'guest_external_id' not in config['aws'] or \
+                       'iam_role_name' not in config['aws']:
+                        logging.warning(
+                            "Missing aws 'guest_external_id' and/or 'iam_role_name' attributes" +
+                            " in the '~/kgea/config/config.yaml' configuration file. Assume that you are running" +
+                            " within an EC2 instance (configured with a suitable instance profile role)."
+                        )
+                        config['aws']['guest_external_id'] = None
+                        config['aws']['iam_role_name'] = None
             if 'github' not in config:
                 if DEV_MODE:
                     logging.warning(
