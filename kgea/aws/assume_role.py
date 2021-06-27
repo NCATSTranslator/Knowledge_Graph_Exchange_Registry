@@ -178,8 +178,8 @@ class AssumeRole:
         # }
         #
         if self._default_credentials:
-            logging.pr
-            return boto3.client('s3', config=config)
+            logging.debug("AssumeRole.get_client(): using default credentials")
+            return boto3.client(service, config=config)
         else:
             credentials, session_renewed = self.get_credentials_dict()
 
