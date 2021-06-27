@@ -49,30 +49,25 @@ def _load_app_config() -> dict:
                     "'~/kgea/config/config.yaml' configuration file."
                 )
             else:
-                if 'host_account' not in config['aws']:
+                if 's3' not in config['aws'] or \
+                   'bucket' not in config['aws']['s3'] or \
+                   'region' not in config['aws']['s3'] or \
+                   'archive-directory' not in config['aws']['s3']:
                     raise RuntimeError(
-                        "Missing mandatory 'host_account' configuration section in the"
-                        " 'aws' section of the '~/kgea/config/config.yaml' configuration file."
+                        "Missing mandatory aws.s3 'bucket', 'region' and/or 'archive-directory' "
+                        " attribute in the 'aws.s3' section of the '~/kgea/config/config.yaml' configuration file."
                     )
-                else:
-                    if 's3' not in config['aws'] or \
-                       'bucket' not in config['aws']['s3'] or \
-                       'is_access_point' not in config['aws']['s3'] or \
-                       'region' not in config['aws']['s3'] or \
-                       'archive-directory' not in config['aws']['s3']:
-                        raise RuntimeError(
-                            "Missing mandatory aws.s3 'bucket', 'is_access_point', 'region' and/or 'archive-directory' "
-                            " attribute in the 'aws.s3' section of the '~/kgea/config/config.yaml' configuration file."
-                        )
-                    if 'guest_external_id' not in config['aws'] or \
-                       'iam_role_name' not in config['aws']:
-                        logging.warning(
-                            "Missing aws 'guest_external_id' and/or 'iam_role_name' attributes" +
-                            " in the '~/kgea/config/config.yaml' configuration file. Assume that you are running" +
-                            " within an EC2 instance (configured with a suitable instance profile role)."
-                        )
-                        config['aws']['guest_external_id'] = None
-                        config['aws']['iam_role_name'] = None
+                if 'host_account' not in config['aws'] or \
+                   'guest_external_id' not in config['aws'] or \
+                   'iam_role_name' not in config['aws']:
+                    logging.warning(
+                        "Missing aws 'host_account', 'guest_external_id' and/or 'iam_role_name' attributes" +
+                        " in the '~/kgea/config/config.yaml' configuration file. Assume that you are running" +
+                        " within an EC2 instance (configured with a suitable instance profile role)."
+                    )
+                    config['aws']['host_account'] = None
+                    config['aws']['guest_external_id'] = None
+                    config['aws']['iam_role_name'] = None
             if 'github' not in config:
                 if DEV_MODE:
                     logging.warning(

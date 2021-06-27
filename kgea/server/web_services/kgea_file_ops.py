@@ -319,27 +319,13 @@ def create_presigned_url(bucket, object_key, expiration=86400) -> Optional[str]:
     # Generate a pre-signed URL for the S3 object
     # https://stackoverflow.com/a/52642792
     #
-    # This may thrown a Boto related exception - assume that it will be catch by the caller
-
-    # If the S3 resources is an accesspoint resource (i.e. bucket accessed as a subdomain)
-    # Then in lieu of the simple bucket name, a full access point ARN must  be given, i.e.
+    # This may thrown a Boto related exception - assume that it will be caught by the caller
     #
-    # arn:aws:s3:<region>:<host_account_id>:accesspoint/<bucket>
-    #
-    if _KGEA_APP_CONFIG['aws']['s3']['is_access_point']:
-        # Just an educated guess: bucket access point ARN's
-        # can't have periods in them?  Convert to hyphens?
-        compliant_bucket_name = bucket.replace(".", "-")
-        access_point = "arn:aws:s3:" + _KGEA_APP_CONFIG['aws']['s3']['region'] + ":" + \
-                       _KGEA_APP_CONFIG['aws']['host_account'] + ":accesspoint/" + compliant_bucket_name
-    else:
-        access_point = bucket
-
     try:
         endpoint = s3_client().generate_presigned_url(
             ClientMethod='get_object',
             Params={
-                'Bucket': access_point,
+                'Bucket': bucket,
                 'Key': object_key,
                 'ResponseContentDisposition': 'attachment',
             },
