@@ -33,8 +33,8 @@ class AssumeRole:
             guest_external_id=aws_config['guest_external_id'],
             iam_role_name=aws_config['iam_role_name']
     ):
-        if not host_account:
-            logger.info("AssumeRole() defaulting to default credentials")
+        if not iam_role_name:
+            logger.info("AssumeRole(): assume default credentials")
             self._default_credentials = True
         else:
             logger.info("AssumeRole() using assumed role credentials")
