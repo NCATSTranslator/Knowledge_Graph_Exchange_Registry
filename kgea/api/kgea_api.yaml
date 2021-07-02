@@ -120,7 +120,7 @@ paths:
             application/json:
               schema:
                 type: string
-  /publish/{kg_id}/{kg_version}:
+  /publish/{kg_id}/{fileset_version}:
     get:
       parameters:
       - name: kg_id
@@ -314,7 +314,7 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kg_id}/{kg_version}/metadata:
+  /{kg_id}/{fileset_version}/metadata:
     get:
       parameters:
       - name: kg_id
@@ -361,7 +361,7 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kg_id}/{kg_version}/meta_knowledge_graph:
+  /{kg_id}/{fileset_version}/meta_knowledge_graph:
     get:
       parameters:
         - name: kg_id
@@ -417,7 +417,7 @@ paths:
             application/json:
               schema:
                 type: string
-  /{kg_id}/{kg_version}/download:
+  /{kg_id}/{fileset_version}/download:
     get:
       parameters:
         - name: kg_id
@@ -574,7 +574,12 @@ components:
         associated files, for a specific version of KGE File Set.
       type: object
       properties:
-        kg_version:
+        biolink_model_release:
+          description: >-
+            Biolink Model released associated with the file set.
+          type: string
+          example: "2.0.2"
+        fileset_version:
           description: >-
             Version identifier of the file set.
           type: string
@@ -839,17 +844,26 @@ components:
       properties:
         kg_id:
           type: string
-        major_version:
+        biolink_major_version:
           type: integer
-        minor_version:
+        biolink_minor_version:
+          type: integer
+        biolink_patch_version:
+          type: integer
+        fileset_major_version:
+          type: integer
+        fileset_minor_version:
           type: integer
         date_stamp:
           type: string
           format: date
       required:
       - kg_id
-      - major_version
-      - minor_version
+      - biolink_major_version
+      - biolink_minor_version
+      - biolink_patch_version
+      - fileset_major_version
+      - fileset_minor_version
     UploadRequestBody:
       description: Uploading form posting of (meta-)data files to a specific KGE File
         Set version, belonging to a specific Knowledge Graph. The 'upload_mode' argument
@@ -870,7 +884,7 @@ components:
       properties:
         kg_id:
           type: string
-        kg_version:
+        fileset_version:
           type: string
         kgx_file_content:
           type: string
