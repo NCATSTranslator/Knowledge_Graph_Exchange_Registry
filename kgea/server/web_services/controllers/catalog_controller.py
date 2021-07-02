@@ -50,18 +50,18 @@ async def register_file_set(request: web.Request):
     await register_kge_file_set(request)
 
 
-async def publish_file_set(request: web.Request, kg_id: str, kg_version: str):
+async def publish_file_set(request: web.Request, kg_id: str, fileset_version: str):
     """Publish a registered File Set
 
     :param request:
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed.
     :type kg_id: str
-    :param kg_version: KGE File Set identifier for the knowledge graph for which data files are being accessed.
-    :type kg_version: str
+    :param fileset_version: KGE File Set identifier for the knowledge graph for which data files are being accessed.
+    :type fileset_version: str
 
     """
     # This method raises an obligatory web.HTTPFound
     # redirection exception back to /home page
-    await publish_kge_file_set(request, kg_id, kg_version)
+    await publish_kge_file_set(request, kg_id, fileset_version)
 

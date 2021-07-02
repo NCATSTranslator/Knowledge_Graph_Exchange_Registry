@@ -1,5 +1,6 @@
 id: "${kg_id}"
-version:  "${kg_version}"
+biolink_model_release:  "${biolink_model_release}"
+fileset_version:  "${fileset_version}"
 # TODO: we can perhaps user comments about File Set revisions here
 revisions: >-
   ${revisions}
@@ -9,6 +10,6 @@ submitter:
 # SmartAPI Registered Server access
 # point for data (with KGE Archive Web Service)
 size: ${size}
-access: "${host}/${kg_id}/${kg_version}"
+access: "${host}/${kg_id}/${fileset_version}"
 files:
 ${files}

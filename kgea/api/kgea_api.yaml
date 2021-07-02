@@ -131,7 +131,7 @@ paths:
         required: true
         schema:
           type: string
-      - name: kg_version
+      - name: fileset_version
         in: path
         description: >-
           KGE File Set version identifier for the knowledge graph
@@ -179,7 +179,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: kg_version
+        - name: fileset_version
           in: query
           description: >-
             Specific version of KGE File Set for the knowledge graph
@@ -325,7 +325,7 @@ paths:
         required: true
         schema:
           type: string
-      - name: kg_version
+      - name: fileset_version
         in: path
         description: >-
           Specific version of KGE File Set for the knowledge graph
@@ -372,7 +372,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: kg_version
+        - name: fileset_version
           in: path
           description: >-
             Version of KGE File Set for a given knowledge graph.
@@ -427,7 +427,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: kg_version
+        - name: fileset_version
           in: path
           description: >-
             Version of KGE File Set of the knowledge graph being accessed.
@@ -496,7 +496,7 @@ components:
           type: string
           example: "Semantic Medline Database"
         versions:
-          description: List of versions ('kg_version') of a KGE File Set
+          description: List of versions ('fileset_version') of a KGE File Set
           type: array
           items:
             type: string
@@ -886,6 +886,6 @@ components:
       required:
       - content_name
       - kg_id
-      - kg_version
+      - fileset_version
       - kgx_file_content
       - upload_mode

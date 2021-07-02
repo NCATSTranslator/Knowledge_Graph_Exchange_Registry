@@ -166,7 +166,8 @@ class KgeFileSet:
     def __init__(
             self,
             kg_id: str,
-            kg_version: str,
+            biolink_model_release: str,
+            fileset_version: str,
             submitter_name: str,
             submitter_email: str,
             size: int = -1,
@@ -178,7 +179,8 @@ class KgeFileSet:
         KgeFileSet constructor
 
         :param kg_id:
-        :param kg_version:
+        :param biolink_model_release:
+        :param fileset_version:
         :param submitter_name:
         :param submitter_email:
         :param size:
@@ -188,7 +190,8 @@ class KgeFileSet:
         """
 
         self.kg_id = kg_id
-        self.kg_version = kg_version
+        self.biolink_model_release = biolink_model_release
+        self.fileset_version = fileset_version
         self.submitter_name = submitter_name
         self.submitter_email = submitter_email
 
@@ -216,13 +219,16 @@ class KgeFileSet:
             self.status = KgeFileSetStatusCode.CREATED
 
     def __str__(self):
-        return "File set version "+self.kg_version+" of graph "+self.kg_id
+        return "File set version " + self.fileset_version + " of graph " + self.kg_id
     
     def get_kg_id(self):
         return self.kg_id
     
-    def get_version(self):
-        return self.kg_version
+    def get_biolink_model_release(self):
+        return self.biolink_model_release
+
+    def get_fileset_version(self):
+        return self.fileset_version
 
     def get_date_stamp(self):
         return self.date_stamp
@@ -231,7 +237,7 @@ class KgeFileSet:
         """
         :return: Versioned file set identifier.
         """
-        return self.kg_id + "." + self.kg_version
+        return self.kg_id + "." + self.fileset_version
     
     def get_submitter_name(self):
         return self.submitter_name
@@ -344,8 +350,8 @@ class KgeFileSet:
             details = self.data_files.pop(object_key)
         except KeyError:
             logger.warning(
-                "File with object key '"+object_key+"' was not found in " +
-                "KGE File Set version '"+self.kg_version+"'"
+                "File with object key '" + object_key +"' was not found in " +
+                "KGE File Set version '" + self.fileset_version + "'"
             )
         return details
 
@@ -384,7 +390,7 @@ class KgeFileSet:
         if not self.post_process_file_set():
             self.status = KgeFileSetStatusCode.ERROR
             msg = "post_process_file_set(): failed for" + \
-                  "' for KGE File Set version '" + self.kg_version + \
+                  "' for KGE File Set version '" + self.fileset_version + \
                   "' of knowledge graph '" + self.kg_id + "'"
             logger.warning(msg)
             self.errors.append(msg)
@@ -397,7 +403,7 @@ class KgeFileSet:
             kg_id=self.kg_id,
             text=fileset_metadata_file,
             file_name=FILE_SET_METADATA_FILE,
-            kg_version=self.kg_version
+            fileset_version=self.fileset_version
         )
 
         if fileset_metadata_object_key:
@@ -405,7 +411,7 @@ class KgeFileSet:
         else:
             self.status = KgeFileSetStatusCode.ERROR
             msg = "publish_file_set(): metadata '" + FILE_SET_METADATA_FILE + \
-                  "' file for KGE File Set version '" + self.kg_version + \
+                  "' file for KGE File Set version '" + self.fileset_version + \
                   "' of knowledge graph '" + self.kg_id + \
                   "' not successfully posted to the Archive?"
             logger.warning(msg)
@@ -426,11 +432,11 @@ class KgeFileSet:
         # Can't go wrong here (yet...)
         return True
 
-    # async def publish_file_set(self, kg_id: str, kg_version: str):
+    # async def publish_file_set(self, kg_id: str, fileset_version: str):
     #
     #     logger.debug(
     #         "Calling Registry.publish_file_set(" +
-    #         "kg_version: '"+kg_version+"' of graph kg_id: '"+kg_id+"')"
+    #         "fileset_version: '"+fileset_version+"' of graph kg_id: '"+kg_id+"')"
     #     )
     #
     #     errors: List[str] = list()
@@ -439,13 +445,13 @@ class KgeFileSet:
     #
     #         knowledge_graph = self._kge_knowledge_graph_catalog[kg_id]
     #
-    #         file_set = knowledge_graph.get_file_set(kg_version)
+    #         file_set = knowledge_graph.get_file_set(fileset_version)
     #
     #         if file_set:
     #             errors = await file_set.publish_file_set()
     #         else:
     #             logger.warning(
-    #                 "publish_file_set(): KGE File Set version '" + str(kg_version) +
+    #                 "publish_file_set(): KGE File Set version '" + str(fileset_version) +
     #                 "' of knowledge graph '" + kg_id + "' is unrecognized?"
     #             )
     #
@@ -479,7 +485,7 @@ class KgeFileSet:
     # .. from the KGX graph (nodes and edges) data files, asynchronously checked here.
     # errors.extend(await self.confirm_kgx_data_file_set_validation())
     #
-    # logger.debug("KGX format validation() completed for KGE File Set version '" + self.kg_version +
+    # logger.debug("KGX format validation() completed for KGE File Set version '" + self.fileset_version +
     #              "' of KGE Knowledge Graph '" + self.kg_id + "'")
     #
     # return errors
@@ -513,7 +519,8 @@ class KgeFileSet:
             host=_KGEA_APP_CONFIG['site_hostname'],
             filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
             kg_id=self.kg_id,
-            kg_version=self.kg_version,
+            biolink_model_release=self.biolink_model_release,
+            fileset_version=self.fileset_version,
             submitter_name=self.submitter_name,
             submitter_email=self.submitter_email,
             size=self.size,
@@ -527,7 +534,7 @@ class KgeFileSet:
 
         fileset_metadata: KgeFileSetMetadata = \
             KgeFileSetMetadata(
-                kg_version=self.kg_version,
+                fileset_version=self.fileset_version,
                 submitter_name=self.submitter_name,
                 submitter_email=self.submitter_email,
                 status=self.status,
@@ -570,7 +577,7 @@ class KgeKnowledgeGraph:
         "kg_name",
         "kg_description",
 
-        # "kg_version",  # don't store versions here anymore (rather, in the KGEFileSet)
+        # "fileset_version",  # don't store versions here anymore (rather, in the KGEFileSet)
 
         "kg_size",
         "translator_component",
@@ -595,7 +602,7 @@ class KgeKnowledgeGraph:
         #         Union[
         #             KgeKnowledgeGraph,  # global 'metadata'  including KG name, owners, licensing, etc.
         #             Dict[  # global 'versions'
-        #                 str,       # kg_version's are the keys
+        #                 str,       # fileset_version's are the keys
         #                 List[str]  # List of S3 object_name paths for files associated with a given version
         #             ]
         #         ]
@@ -605,13 +612,13 @@ class KgeKnowledgeGraph:
         if not self.kg_id:
             raise RuntimeError("KgeKnowledgeGraph() needs a non-null 'kg_id'!")
 
-        # if provided, the kg_version is simply designates
+        # if provided, the fileset_version is simply designates
         # the 'latest' file set of the given Knowledge Graph
-        kg_version = kwargs.pop("kg_version", None)
-        if kg_version:
+        fileset_version = kwargs.pop("fileset_version", None)
+        if fileset_version:
             file_set_location = kwargs.pop("file_set_location", None)
             if not file_set_location:
-                raise RuntimeError("KgeKnowledgeGraph() explicit 'kg_version' needs a 'file_set_location'?!")
+                raise RuntimeError("KgeKnowledgeGraph() explicit 'fileset_version' needs a 'file_set_location'?!")
 
         # load other parameters other than kg_id  and version-specific metadata
         self.parameter: Dict = dict()
@@ -630,10 +637,10 @@ class KgeKnowledgeGraph:
         #
         # Register an explicitly specified submitter-specified KGE File Set version
         # Sanity check: we should probably not overwrite a KgeFileSet version if it already exists?
-        # if kg_version and kg_version not in self._file_set_versions:
-        #     self._file_set_versions[kg_version] = KgeFileSet(
+        # if fileset_version and fileset_version not in self._file_set_versions:
+        #     self._file_set_versions[fileset_version] = KgeFileSet(
         #         kg_id=self.kg_id,
-        #         kg_version=kg_version,
+        #         fileset_version=fileset_version,
         #         submitter_name=kwargs['submitter_name'],
         #         submitter_email=kwargs['submitter_email']
         #     )
@@ -677,7 +684,7 @@ class KgeKnowledgeGraph:
     def publish_provider_metadata(self):
         logger.debug("Publishing knowledge graph '" + self.kg_id + "' to the Archive")
         provider_metadata_file = self.generate_provider_metadata_file()
-        # no kg_version given since the provider metadata is global to Knowledge Graph
+        # no fileset_version given since the provider metadata is global to Knowledge Graph
         object_key = add_to_s3_archive(
             kg_id=self.kg_id,
             text=provider_metadata_file,
@@ -695,16 +702,16 @@ class KgeKnowledgeGraph:
     def get_name(self) -> str:
         return self.parameter.setdefault("kg_name", self.kg_id)
 
-    def get_file_set(self, kg_version: str) -> Optional[KgeFileSet]:
+    def get_file_set(self, fileset_version: str) -> Optional[KgeFileSet]:
         """
         :return: KgeFileSet entry tracking for data files in the KGE File Set
         """
-        if kg_version not in self._file_set_versions:
+        if fileset_version not in self._file_set_versions:
             logger.warning("KgeKnowledgeGraph.get_file_set(): KGE File Set version '"
-                           + kg_version + "' unknown for Knowledge Graph '" + self.kg_id + "'?")
+                           + fileset_version + "' unknown for Knowledge Graph '" + self.kg_id + "'?")
             return None
         
-        return self._file_set_versions[kg_version]
+        return self._file_set_versions[fileset_version]
 
     # KGE File Set Translator SmartAPI parameters (March 2021 release):
     # - kg_id: KGE Archive generated identifier assigned to a given knowledge graph submission (and used as S3 folder)
@@ -735,7 +742,7 @@ class KgeKnowledgeGraph:
     def load_file_set_versions(
             self,
             versions: Dict[
-                str,  # kg_version's of versioned KGE File Sets for a kg
+                str,  # fileset_version's of versioned KGE File Sets for a kg
                 Dict[
                     str,  # tags 'metadata' and 'file_object_keys'
                     Union[
@@ -745,28 +752,29 @@ class KgeKnowledgeGraph:
                 ]
             ]
     ):
-        for kg_version, entry in versions.items():
+        for fileset_version, entry in versions.items():
             file_set: KgeFileSet
             if 'metadata' in entry:
                 file_set = self.load_fileset_metadata(entry['metadata'])
             else:
                 file_set = KgeFileSet(
                                 self.kg_id,
-                                kg_version=kg_version,
+                                biolink_model_release='',
+                                fileset_version=fileset_version,
                                 submitter_name=self.parameter.setdefault('submitter_name', ''),
                                 submitter_email=self.parameter.setdefault('submitter_email', ''),
                                 archive_record=True
                             )
             file_set.load_data_files(entry['file_object_keys'])
 
-    def add_file_set(self, kg_version: str, file_set: KgeFileSet):
+    def add_file_set(self, fileset_version: str, file_set: KgeFileSet):
         """
         
-        :param kg_version:
+        :param fileset_version:
         :param file_set:
         :return:
         """
-        self._file_set_versions[kg_version] = file_set
+        self._file_set_versions[fileset_version] = file_set
     
     def load_fileset_metadata(self, metadata_text: str) -> KgeFileSet:
         """
@@ -787,8 +795,11 @@ class KgeKnowledgeGraph:
                 " != id in " + FILE_SET_METADATA_FILE + "?"
             )
 
-        # version: "1964-04-22"
-        kg_version = md.setdefault('version', 'latest')
+        # biolink_model_release: "2.0.2"
+        biolink_model_release = md.setdefault('biolink_model_release', 'latest')
+
+        # fileset_version: "1.0"
+        fileset_version = md.setdefault('fileset_version', 'latest')
 
         # revisions: >-
         #   ${revisions}
@@ -815,7 +826,8 @@ class KgeKnowledgeGraph:
         # Capture the file set metadata...
         file_set = KgeFileSet(
             self.kg_id,
-            kg_version=kg_version,
+            biolink_model_release=biolink_model_release,
+            fileset_version=fileset_version,
             submitter_name=submitter_name,
             submitter_email=submitter_email,
             size=size,
@@ -824,7 +836,7 @@ class KgeKnowledgeGraph:
         )
 
         # ...add it to the knowledge graph...
-        self.add_file_set(kg_version, file_set)
+        self.add_file_set(fileset_version, file_set)
 
         # then return it for further processing
         return file_set
@@ -835,7 +847,7 @@ class KgeKnowledgeGraph:
     # # - Send Back URL with Dictionary
     # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # # TODO: convert into redirect approach with cross-origin scripting?
-    # file_set_location, _ = with_version(func=get_object_location, version=self.kg_version)(self.kg_id)
+    # file_set_location, _ = with_version(func=get_object_location, version=self.fileset_version)(self.kg_id)
     # kg_files = kg_files_in_location(
     #     bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
     #     object_location=file_set_location
@@ -847,7 +859,7 @@ class KgeKnowledgeGraph:
     #         kg_listing))
     # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
 
-    def get_metadata(self, kg_version: str) -> KgeMetadata:
+    def get_metadata(self, fileset_version: str) -> KgeMetadata:
 
         provider_metadata: KgeProviderMetadata = \
             KgeProviderMetadata(
@@ -865,11 +877,11 @@ class KgeKnowledgeGraph:
 
         fileset_metadata: Optional[KgeFileSetMetadata] = None
 
-        fileset: Optional[KgeFileSet] = self.get_file_set(kg_version)
+        fileset: Optional[KgeFileSet] = self.get_file_set(fileset_version)
         if fileset:
             fileset_metadata = fileset.get_metadata()
         else:
-            logger.warning("KGE File Set version '"+kg_version+"' does not exist for graph '"+self.kg_id+"'")
+            logger.warning("KGE File Set version '"+fileset_version+"' does not exist for graph '"+self.kg_id+"'")
 
         metadata = KgeMetadata(provider=provider_metadata, fileset=fileset_metadata)
 
@@ -934,7 +946,7 @@ class KgeArchiveCatalog:
                 Union[
                     str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
                     Dict[  # 'versions' field value
-                        str,  # kg_version's of versioned KGE File Sets for a kg
+                        str,  # fileset_version's of versioned KGE File Sets for a kg
                         Dict[
                             str,  # tags 'metadata' and 'files'
                             Union[
@@ -1069,7 +1081,7 @@ class KgeArchiveCatalog:
     def add_to_kge_file_set(
             self,
             kg_id: str,
-            kg_version: str,
+            fileset_version: str,
             file_type: KgeFileType,
             file_name: str,
             file_size: int,
@@ -1083,7 +1095,7 @@ class KgeArchiveCatalog:
         An exception is raise if there is an error.
     
         :param kg_id: identifier of the KGE Archive managed Knowledge Graph of interest
-        :param kg_version: version of interest of the KGE File Set associated with the Knowledge Graph
+        :param fileset_version: version of interest of the KGE File Set associated with the Knowledge Graph
         :param file_type: KgeFileType of the file being added
         :param file_name: name of the file
         :param file_size: size of the file (number of bytes)
@@ -1097,10 +1109,10 @@ class KgeArchiveCatalog:
             raise RuntimeError("KGE File Set '" + kg_id + "' is unknown?")
         else:
             # Found a matching KGE Knowledge Graph?
-            file_set = knowledge_graph.get_file_set(kg_version=kg_version)
+            file_set = knowledge_graph.get_file_set(fileset_version=fileset_version)
 
             # Add the current (meta-)data file to the KGE File Set
-            # associated with this kg_version of the graph.
+            # associated with this fileset_version of the graph.
             if file_type in [KgeFileType.KGX_DATA_FILE, KgeFileType.KGE_ARCHIVE]:
                 file_set.add_data_file(
                     object_key=object_key,
@@ -1145,10 +1157,12 @@ class KgeArchiveCatalog:
 
         return catalog
 
+    # TODO: why is this method not implemented?
     def register_kge_file_set(
             self,
             kg_id: str,
-            kg_version: str,
+            biolink_model_release: str,
+            fileset_version: str,
             submitter_name: str,
             submitter_email: str
     ):
@@ -1178,7 +1192,7 @@ _TEST_TSE_PARAMETERS = dict(
     almost 300 Audio-Animatronics dolls representing children
     from every corner of the globe as they sing the classic
     anthem to world peace—in their native languages.""",
-    kg_version="1964-04-22",
+    fileset_version="1964-04-22",
     translator_component="KP",
     translator_team="Disney Knowledge Provider",
     submitter_name="Mickey Mouse",
@@ -1210,15 +1224,15 @@ def test_create_fileset_metadata_file():
     print("\ntest_create_fileset_metadata_entry() test output:\n", file=stderr)
 
     kg_id = "disney_small_world_graph"
-    kg_version = "1964-04-22"
+    fileset_version = "1964-04-22"
 
     fs = KgeFileSet(
         kg_id=kg_id,
-        kg_version=kg_version,
+        fileset_version=fileset_version,
         submitter_name="Mickey Mouse",
         submitter_email="mickey.mouse@disneyland.disney.go.com"
     )
-    file_set_location, _ = with_version(func=get_object_location, version=kg_version)(kg_id)
+    file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
 
     file_name = 'MickeyMouseFanClub_nodes.tsv'
     fs.add_data_file(
@@ -1259,7 +1273,7 @@ def add_to_s3_archive(
         kg_id: str,
         text: str,
         file_name: str,
-        kg_version: str = ''
+        fileset_version: str = ''
 ) -> str:
     """
     Add a file of specified text content and name,
@@ -1267,11 +1281,11 @@ def add_to_s3_archive(
     :param kg_id: knowledge graph
     :param text: string blob contents of the file.
     :param file_name: of the file.
-    :param kg_version: version (optional)
+    :param fileset_version: version (optional)
     :return: str object key of the uploaded file
     """
-    if kg_version:
-        file_set_location, _ = with_version(func=get_object_location, version=kg_version)(kg_id)
+    if fileset_version:
+        file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
     else:
         file_set_location = get_object_location(kg_id)
 
@@ -1366,7 +1380,7 @@ def test_add_to_archive() -> bool:
         kg_id="kge_test_provider_metadata_file",
         text=_TEST_TPMF,
         file_name="test_provider_metadata_file",
-        kg_version="100.0"
+        fileset_version="100.0"
     )
 
     return not outcome == ''
@@ -1627,7 +1641,7 @@ class KgxValidator:
         """
         Validates KGX compliance of a specified data file.
 
-        :param file_set_id: name of the file set, generally a composite identifier of the kg_id plus kg_version?
+        :param file_set_id: name of the file set, generally a composite identifier of the kg_id plus fileset_version?
         :param input_files: list of file path strings pointing to files to be validated (could be a resolvable URL?)
         :param input_format: currently restricted to 'tsv' (its default?) - should be consistent for all input_files
         :param input_compression: currently expected to be 'tar.gz' or 'gz' - should be consistent for all input_files

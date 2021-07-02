@@ -231,15 +231,15 @@ async def view_kge_metadata(request: web.Request) -> web.Response:
         if not kg_id:
             await redirect(request, HOME_PAGE, active_session=True)
 
-        kg_version = request.query.get('kg_version', default='')
+        fileset_version = request.query.get('fileset_version', default='')
         kg_name = request.query.get('kg_name', default='')
 
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
-            "kg_version": kg_version,
-            "get_fileset_metadata": get_fileset_metadata_url(kg_id, kg_version),
-            "meta_knowledge_graph": get_meta_knowledge_graph_url(kg_id, kg_version)
+            "fileset_version": fileset_version,
+            "get_fileset_metadata": get_fileset_metadata_url(kg_id, fileset_version),
+            "meta_knowledge_graph": get_meta_knowledge_graph_url(kg_id, fileset_version)
         }
         response = aiohttp_jinja2.render_template('metadata.html', request=request, context=context)
         return await with_session(request, response)
@@ -298,15 +298,15 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
 
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
-        kg_version = request.query.get('kg_version', default='')
+        fileset_version = request.query.get('fileset_version', default='')
 
         missing: List[str] = []
         if not kg_id:
             missing.append("kg_id")
         if not kg_name:
             missing.append("kg_name")
-        if not kg_version:
-            missing.append("kg_version")
+        if not fileset_version:
+            missing.append("fileset_version")
 
         if missing:
             await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
@@ -314,7 +314,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
-            "kg_version": kg_version,
+            "fileset_version": fileset_version,
             "submitter_name": submitter_name,
             "upload_action": UPLOAD_FILE,
             "publish_file_set_action": PUBLISH_FILE_SET
@@ -341,19 +341,19 @@ async def get_kge_data_unavailable(request: web.Request) -> web.Response:
 
         kg_name = request.query.get('kg_name', default='')
         data_type = request.query.get('data_type', default='')
-        kg_version = request.query.get('kg_version', default='')
+        fileset_version = request.query.get('fileset_version', default='')
 
         missing: List[str] = []
         if not kg_name:
             missing.append("kg_name")
-        if not kg_version:
-            missing.append("kg_version")
+        if not fileset_version:
+            missing.append("fileset_version")
         if missing:
             await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
             
         context = {
             "kg_name": kg_name,
-            "kg_version": kg_version,
+            "fileset_version": fileset_version,
             "data_type": data_type,
             "submitter_name": submitter_name
         }

@@ -79,7 +79,7 @@ async function UploadFile(source) {
     let formData = new FormData();
 
     formData.append("kg_id", "{{kg_id}}");
-    formData.append("kg_version", "{{kg_version}}");
+    formData.append("fileset_version", "{{fileset_version}}");
 
     let kfc_radio = document.querySelector(
         "input[name=kgx_file_content]:checked"
@@ -164,7 +164,7 @@ async function UploadFile(source) {
             let fake_progress = 0;
 
             const url = new URL(window.location.href);
-            await fetch(`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&kg_version=${url.searchParams.get("kg_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
+            await fetch(`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
                 {
                     method: "GET",
                     credentials: "include"
@@ -268,7 +268,7 @@ async function DoneUploading(source) {
     if (source.id === 'done_uploading') {
         try {
             let a = document.createElement("a");
-            a.href = "{{publish_file_set_action}}/{{kg_id}}/{{kg_version}}";
+            a.href = "{{publish_file_set_action}}/{{kg_id}}/{{fileset_version}}";
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -287,7 +287,7 @@ async function DoneUploading(source) {
 <button id="done_uploading" onclick="DoneUploading(this)">Done Uploading</button>
 </div>
 {% endblock %}
-{% block title %}Upload Knowledge Graph<br>{{kg_name}} {{kg_version}}{% endblock %}
+{% block title %}Upload Knowledge Graph<br>{{kg_name}} {{fileset_version}}{% endblock %}
 {% block subtitle %}Submitted by '{{submitter_name}}'{% endblock %}
 {% block content %}
 <div class="subtitle"></div>

@@ -261,7 +261,7 @@ def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
     return True
 
 
-def get_kg_versions_available(bucket_name, kg_id=None):
+def get_fileset_versions_available(bucket_name, kg_id=None):
     kg_files = kg_files_in_location(bucket_name)
 
     def kg_id_to_versions(kg_file):
@@ -278,9 +278,9 @@ def get_kg_versions_available(bucket_name, kg_id=None):
             kg_info.remove('')
 
         _kg_id = kg_info[0]
-        _kg_version = kg_info[1]
+        _fileset_version = kg_info[1]
 
-        return _kg_id, _kg_version
+        return _kg_id, _fileset_version
 
     versions_per_kg = {}
     version_kg_pairs = set(kg_id_to_versions(kg_file) for kg_file in kg_files if kg_id and kg_file[0] is kg_id or True)
@@ -296,11 +296,11 @@ def get_kg_versions_available(bucket_name, kg_id=None):
 
 @prepare_test
 @prepare_test_random_object_location
-def test_get_kg_versions_available(test_object_location, test_bucket=TEST_BUCKET):
+def test_get_fileset_versions_available(test_object_location, test_bucket=TEST_BUCKET):
     try:
-        kg_version_map = get_kg_versions_available(bucket_name=test_bucket)
-        print(kg_version_map)
-        assert (kg_version_map is dict and len(kg_version_map) > 0)
+        fileset_version_map = get_fileset_versions_available(bucket_name=test_bucket)
+        print(fileset_version_map)
+        assert (fileset_version_map is dict and len(fileset_version_map) > 0)
     except AssertionError as e:
         raise AssertionError(e)
     return True
@@ -444,11 +444,11 @@ def compress_file_to_archive(in_filename, out_filename):
     return temp
 
 
-def kg_filepath(kg_id, kg_version, root='', subdir='', attachment=''):
+def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     return Template("$ROOT/$KG_ID/$KG_VERSION$SUB_DIR$ATTACHMENT").substitute(
         ROOT=root,
         KG_ID=kg_id,
-        KG_VERSION=kg_version,
+        KG_VERSION=fileset_version,
         SUB_DIR=subdir + '/',
         ATTACHMENT=attachment
     )
@@ -953,7 +953,7 @@ def get_archive_contents(bucket_name: str) -> \
                 Union[
                     str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
                     Dict[
-                        str,  # kg_version's of versioned KGE File Sets for a kg
+                        str,  # fileset_version's of versioned KGE File Sets for a kg
                         Dict[
                             str,  # tags 'metadata' and 'file_object_keys'
                             Union[
@@ -981,7 +981,7 @@ def get_archive_contents(bucket_name: str) -> \
             Union[
                 str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
                 Dict[
-                    str,  # kg_version's of versioned KGE File Sets for a kg
+                    str,  # fileset_version's of versioned KGE File Sets for a kg
                     Dict[
                         str,  # tags 'metadata' and 'file_object_keys'
                         Union[
@@ -1008,7 +1008,7 @@ def get_archive_contents(bucket_name: str) -> \
             # obtained from a kg_id specific PROVIDER_METADATA_FILE
             # plus one or more versions of KGE File Set
             contents[kg_id] = dict()  # dictionary of kg's, indexed by kg_id
-            contents[kg_id]['versions'] = dict()  # dictionary of versions, indexed by kg_version
+            contents[kg_id]['versions'] = dict()  # dictionary of versions, indexed by fileset_version
 
         if file_part[2] == PROVIDER_METADATA_FILE:
             # Get the provider 'kg_id' associated metadata file just stored
@@ -1021,16 +1021,16 @@ def get_archive_contents(bucket_name: str) -> \
                 )
         else:
             # otherwise, assume file_part[2] is a 'version folder'
-            kg_version = file_part[2]
-            if kg_version not in contents[kg_id]['versions']:
-                contents[kg_id]['versions'][kg_version] = dict()
-                contents[kg_id]['versions'][kg_version]['file_object_keys'] = list()
+            fileset_version = file_part[2]
+            if fileset_version not in contents[kg_id]['versions']:
+                contents[kg_id]['versions'][fileset_version] = dict()
+                contents[kg_id]['versions'][fileset_version]['file_object_keys'] = list()
 
             if file_part[3] == FILE_SET_METADATA_FILE:
                 # Get the provider 'kg_id' associated metadata file just stored
                 # as a blob of text, for content parsing by the function caller
                 # Unlike the kg_id versions, there should only be one such file?
-                contents[kg_id]['versions'][kg_version]['metadata'] = \
+                contents[kg_id]['versions'][fileset_version]['metadata'] = \
                     load_s3_text_file(
                         bucket_name=bucket_name,
                         object_name=file_path
@@ -1040,7 +1040,7 @@ def get_archive_contents(bucket_name: str) -> \
             # simple first iteration just records the list of data file paths
             # (other than the PROVIDER_METADATA_FILE)
             # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
-            contents[kg_id]['versions'][kg_version]['file_object_keys'].append(file_path)
+            contents[kg_id]['versions'][fileset_version]['file_object_keys'].append(file_path)
 
     return contents
 
@@ -1091,7 +1091,7 @@ if __name__ == '__main__':
     run_test(test_kg_files_in_location)
     run_test(test_is_location_available)
     run_test(test_is_not_location_available)
-    run_test(test_get_kg_versions_available)
+    run_test(test_get_fileset_versions_available)
     run_test(test_create_presigned_url)
 
     # run_test(test_tardir)

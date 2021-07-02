@@ -75,7 +75,7 @@ paths:
           data files are being accessed.
         explode: false
         in: path
-        name: kg_version
+        name: fileset_version
         required: true
         schema:
           type: string
@@ -181,7 +181,7 @@ paths:
           which data file metadata are being accessed
         explode: true
         in: query
-        name: kg_version
+        name: fileset_version
         required: true
         schema:
           type: string
@@ -331,7 +331,7 @@ paths:
       - description: Version of KGE File Set of the knowledge graph being accessed.
         explode: false
         in: path
-        name: kg_version
+        name: fileset_version
         required: true
         schema:
           type: string
@@ -379,7 +379,7 @@ paths:
       - description: Version of KGE File Set for a given knowledge graph.
         explode: false
         in: path
-        name: kg_version
+        name: fileset_version
         required: true
         schema:
           type: string
@@ -437,7 +437,7 @@ paths:
           which data file metadata are being accessed
         explode: false
         in: path
-        name: kg_version
+        name: fileset_version
         required: true
         schema:
           type: string
@@ -499,7 +499,7 @@ components:
           title: name
           type: string
         versions:
-          description: List of versions ('kg_version') of a KGE File Set
+          description: List of versions ('fileset_version') of a KGE File Set
           example:
           - "4.1"
           - "4.2"
@@ -708,7 +708,7 @@ components:
         kg_version:
           description: Version identifier of the file set.
           example: "1.0"
-          title: kg_version
+          title: fileset_version
           type: string
         submitter_name:
           description: Name of the submitter of the KGE FileSet
@@ -1105,7 +1105,7 @@ components:
       required:
       - content_name
       - kg_id
-      - kg_version
+      - fileset_version
       - kgx_file_content
       - upload_mode
       type: object

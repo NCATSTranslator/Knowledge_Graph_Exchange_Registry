@@ -15,9 +15,9 @@
                 versions.forEach((v,_) => {
                     version_options += '<option value="' + v + '">' + v + '</option>';
                 });
-                document.getElementById('select_kg_version').innerHTML = version_options;
+                document.getElementById('select_fileset_version').innerHTML = version_options;
             } else {
-                document.getElementById('select_kg_version').innerHTML = ""; // no kg_id selected?
+                document.getElementById('select_fileset_version').innerHTML = ""; // no kg_id selected?
             }
         }
 
@@ -64,11 +64,11 @@
                 return
             }
 
-            let kg_version = document.getElementById('select_kg_version').value;
+            let fileset_version = document.getElementById('select_fileset_version').value;
 
-            // console.log("Entering ViewMetadata(kg_id: '" + kg_id + "', kg_version: '"+kg_version+"')");
+            // console.log("Entering ViewMetadata(kg_id: '" + kg_id + "', fileset_version: '"+fileset_version+"')");
 
-            let metadata_url = `{{metadata_page}}?kg_id=${kg_id}&kg_version=${kg_version}&kg_name=${GetGraphName(kg_id)}`;
+            let metadata_url = `{{metadata_page}}?kg_id=${kg_id}&fileset_version=${fileset_version}&kg_name=${GetGraphName(kg_id)}`;
 
             // console.log("ViewMetadata() URL: '" + metadata_url + "'");
             // window.alert("ViewMetadata() URL: '" + metadata_url + "'");
@@ -135,14 +135,14 @@
         async function DownloadFile(source)
         {
             let kg_id = document.getElementById("select_kg_id").value;
-            let kg_version = document.getElementById("select_kg_version").value;
+            let fileset_version = document.getElementById("select_fileset_version").value;
 
             if(!kg_id) {
                 window.alert("To download data, first choose a knowledge graph.");
                 return
             }
 
-            if(!kg_version) {
+            if(!fileset_version) {
                 window.alert("Please select the file set version to download.");
                 return
             }
@@ -151,7 +151,7 @@
                 "DownloadFile(" +
                     "action: '" + source.target.id + "', " +
                     "kg_id: '" + kg_id + "', " +
-                    "kg_version: '" + kg_version + "'" +
+                    "fileset_version: '" + fileset_version + "'" +
                 "')"
             );
 
@@ -159,11 +159,11 @@
             //     "DownloadFile(" +
             //         "action: '" + source.target.id+"', " +
             //         "kg_id: '" + kg_id + "', " +
-            //         "kg_version: '" + kg_version + "'" +
+            //         "fileset_version: '" + fileset_version + "'" +
             //     "')"
             // );
 
-            let file_set = kg_id + '/' + kg_version
+            let file_set = kg_id + '/' + fileset_version
             let url = '{{backend}}' + file_set + '/' + source.target.id;
 
             console.log("Downloading URL: '" + url + "'");
@@ -246,7 +246,7 @@
             <td>
                 <!-- p><label for="kg_name"><b>Graph Name</b></label>
                 <input id="kg_name" type="text"/ -->
-                <!-- These kg_name and kg_version widgets need to be
+                <!-- These kg_name and fileset_version widgets need to be
                      replaced with an integrated UI which takes the results
                      of call to /catalog, to give the user a list of available
                      KGE File Sets from which to select (by name) and
@@ -260,8 +260,8 @@
                     <br>
                     <!-- Once the given kg_name is selected, then the set of
                          associated versions need to be dynamically listed here? -->
-                    <label class="label" for="select_kg_version">File Set Version:</label>
-                    <select id="select_kg_version">
+                    <label class="label" for="select_fileset_version">File Set Version:</label>
+                    <select id="select_fileset_version">
                     </select>
                 </p>
                 <p>

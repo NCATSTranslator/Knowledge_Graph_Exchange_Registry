@@ -18,7 +18,7 @@ class KgeFileSetMetadata(Model):
     def __init__(self, kg_version: str=None, submitter_name: str=None, submitter_email: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, size: float=None, contents: MetaKnowledgeGraph=None):
         """KgeFileSetMetadata - a model defined in OpenAPI
 
-        :param kg_version: The kg_version of this KgeFileSetMetadata.
+        :param kg_version: The fileset_version of this KgeFileSetMetadata.
         :param submitter_name: The submitter_name of this KgeFileSetMetadata.
         :param submitter_email: The submitter_email of this KgeFileSetMetadata.
         :param status: The status of this KgeFileSetMetadata.
@@ -27,7 +27,7 @@ class KgeFileSetMetadata(Model):
         :param contents: The contents of this KgeFileSetMetadata.
         """
         self.openapi_types = {
-            'kg_version': str,
+            'fileset_version': str,
             'submitter_name': str,
             'submitter_email': str,
             'status': KgeFileSetStatusCode,
@@ -37,7 +37,7 @@ class KgeFileSetMetadata(Model):
         }
 
         self.attribute_map = {
-            'kg_version': 'kg_version',
+            'fileset_version': 'fileset_version',
             'submitter_name': 'submitter_name',
             'submitter_email': 'submitter_email',
             'status': 'status',
@@ -65,22 +65,22 @@ class KgeFileSetMetadata(Model):
 
     @property
     def kg_version(self):
-        """Gets the kg_version of this KgeFileSetMetadata.
+        """Gets the fileset_version of this KgeFileSetMetadata.
 
         Version identifier of the file set.
 
-        :return: The kg_version of this KgeFileSetMetadata.
+        :return: The fileset_version of this KgeFileSetMetadata.
         :rtype: str
         """
         return self._kg_version
 
     @kg_version.setter
     def kg_version(self, kg_version):
-        """Sets the kg_version of this KgeFileSetMetadata.
+        """Sets the fileset_version of this KgeFileSetMetadata.
 
         Version identifier of the file set.
 
-        :param kg_version: The kg_version of this KgeFileSetMetadata.
+        :param kg_version: The fileset_version of this KgeFileSetMetadata.
         :type kg_version: str
         """
 

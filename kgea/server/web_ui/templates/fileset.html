@@ -36,6 +36,35 @@
         </tr>
         <tr>
             <td>
+                <b><span style="color: red; font-weight: bold">*</span>Biolink Model Release:</b><br>
+                <label  class="label" for="biolink_major_version">Major:</label>
+                <input id="biolink_major_version"
+                       name="biolink_major_version"
+                       type="number"
+                       min="1" step="1"
+                       value="{{biolink_major_version}}"
+                       size="5"
+                /><br>
+                <label  class="label" for="biolink_minor_version">Minor:</label>
+                <input id="biolink_minor_version"
+                       name="biolink_minor_version"
+                       type="number"
+                       min="0" step="1"
+                       value="{{biolink_minor_version}}"
+                       size="5"
+                /><br>
+                <label  class="label" for="biolink_patch_version">Patch:</label>
+                <input id="biolink_patch_version"
+                       name="biolink_patch_version"
+                       type="number"
+                       min="0" step="1"
+                       value="{{biolink_patch_version}}"
+                       size="5"
+                /><br>
+            </td>
+        </tr>
+        <tr>
+            <td>
                 <b><span style="color: red; font-weight: bold">*</span>SemVer Version:</b><br>
                 <label  class="label" for="major_version">Major:</label>
                 <input id="major_version"

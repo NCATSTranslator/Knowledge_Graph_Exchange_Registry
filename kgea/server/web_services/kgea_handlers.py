@@ -285,29 +285,59 @@ async def register_kge_file_set(request: web.Request):
                 active_session=True
             )
 
-        # SemVer major versioning of the new KGE File Set
-        major_version = data['major_version']
-        if not major_version:
+        #  SemVer major versioning of the Biolink Model release associated with the file set
+        biolink_major_version = data['biolink_major_version']
+        if not biolink_major_version:
             await report_not_found(
                 request,
-                "register_kge_file_set(): file set major version parameter is empty?",
+                "register_kge_file_set(): Biolink Model release emVer major version parameter is empty?",
+                active_session=True
+            )
+
+        # SemVer minor versioning of the Biolink Model release associated with the file set
+        biolink_minor_version = data['biolink_minor_version']
+        if not biolink_minor_version:
+            await report_not_found(
+                request,
+                "register_kge_file_set(): Biolink Model release SemVer minor version parameter is empty?",
+                active_session=True
+            )
+
+        # SemVer patch versioning of the Biolink Model release associated with the file set
+        biolink_patch_version = data['biolink_patch_version']
+        if not biolink_patch_version:
+            await report_not_found(
+                request,
+                "register_kge_file_set(): Biolink Model release emVer patch version parameter is empty?",
+                active_session=True
+            )
+            
+        # Consolidated Biolink Model release number associated with new KGE File Set
+        biolink_model_release = str(biolink_major_version) + "." + str(biolink_minor_version) + "." + str(biolink_patch_version)
+
+        # SemVer minor versioning of the new KGE File Set
+        fileset_major_version = data['fileset_major_version']
+        if not fileset_major_version:
+            await report_not_found(
+                request,
+                "register_kge_file_set(): file set SemVer major version parameter is empty?",
                 active_session=True
             )
 
         # SemVer minor versioning of the new KGE File Set
-        minor_version = data['minor_version']
-        if not minor_version:
+        fileset_minor_version = data['fileset_minor_version']
+        if not fileset_minor_version:
             await report_not_found(
                 request,
-                "register_kge_file_set(): file set minor version parameter is empty?",
+                "register_kge_file_set(): file set SemVer minor version parameter is empty?",
                 active_session=True
             )
 
         # Consolidated version of new KGE File Set
-        # TODO: Should the kg_version include more than just the major and minor SemVer versioning?
-        kg_version = str(major_version) + "." + str(minor_version)
+        # TODO: Should the fileset_version include more than just the major and minor SemVer versioning?
+        fileset_version = str(fileset_major_version) + "." + str(fileset_minor_version)
 
-        # TODO: do we need to check if this kg_version of
+        # TODO: do we need to check if this fileset_version of
         #       file set already exists? If so, then what?
 
         # Date stamp of the new KGE File Set
@@ -318,7 +348,8 @@ async def register_kge_file_set(request: web.Request):
             "\n\tsubmitter_name: " + submitter_name +
             "\n\tsubmitter_email: " + submitter_email +
             "\n\tkg_id: " + kg_id +
-            "\n\tversion: " + kg_version +
+            "\n\tbiolink_model_release: " + biolink_model_release +
+            "\n\tfileset version: " + fileset_version +
             "\n\tdate_stamp: " + date_stamp
         )
 
@@ -339,7 +370,7 @@ async def register_kge_file_set(request: web.Request):
 
                 # Here we start to start to track a specific
                 # knowledge graph submission within KGE Archive
-                file_set: KgeFileSet = knowledge_graph.get_file_set(kg_version)
+                file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
 
                 if file_set:
                     # existing file set for specified version... hmm... what do I do here?
@@ -347,31 +378,32 @@ async def register_kge_file_set(request: web.Request):
                         await report_error(
                             request,
                             "publish_kge_file_set(): encountered duplicate file set version '" +
-                            kg_version + "' for knowledge graph '" + kg_id + "'?",
+                            fileset_version + "' for knowledge graph '" + kg_id + "'?",
                             active_session=True
                         )
                 else:
                     # expected new instance of KGE File Set to be created and initialized
                     file_set = KgeFileSet(
                         kg_id=kg_id,
-                        kg_version=kg_version,
+                        biolink_model_release=biolink_model_release,
+                        fileset_version=fileset_version,
                         submitter_name=submitter_name,
                         submitter_email=submitter_email,
                         date_stamp=date_stamp
                     )
 
                 # Add new versioned KGE File Set to the Catalog Knowledge Graph entry
-                knowledge_graph.add_file_set(kg_version, file_set)
+                knowledge_graph.add_file_set(fileset_version, file_set)
 
                 await redirect(
                         request,
                         Template(
                            UPLOAD_FORM +
-                           '?kg_id=$kg_id&kg_name=$kg_name&kg_version=$kg_version&submitter_name=$submitter_name'
+                           '?kg_id=$kg_id&kg_name=$kg_name&fileset_version=$fileset_version&submitter_name=$submitter_name'
                         ).substitute(
                            kg_id=kg_id,
                            kg_name=knowledge_graph.get_name(),
-                           kg_version=kg_version,
+                           fileset_version=fileset_version,
                            submitter_name=submitter_name
                         ),
                         active_session=True
@@ -389,22 +421,22 @@ async def register_kge_file_set(request: web.Request):
         await redirect(request, LANDING_PAGE)
 
 
-async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str):
+async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version: str):
     """Publish a registered File Set
 
     :param request:
     :type request: web.Request
     :param kg_id: KGE Knowledge Graph Identifier for the knowledge graph from which data files are being accessed.
     :type kg_id: str
-    :param kg_version: specific version of KGE File Set being published for the specified Knowledge Graph Identifier
-    :type kg_version: str
+    :param fileset_version: specific version of KGE File Set being published for the specified Knowledge Graph Identifier
+    :type fileset_version: str
     """
     logger.debug("Entering publish_kge_file_set()")
 
     session = await get_session(request)
     if not session.empty:
 
-        if not (kg_id and kg_version):
+        if not (kg_id and fileset_version):
             await report_not_found(
                 request,
                 "publish_kge_file_set(): knowledge graph id or file set version are null?"
@@ -412,13 +444,13 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
-        file_set: KgeFileSet = knowledge_graph.get_file_set(kg_version)
+        file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
 
         if not (file_set and file_set.publish()):
             await report_error(
                 request,
                 "publish_kge_file_set() errors: file set version '" +
-                kg_version + "' for knowledge graph '" + kg_id + "'" +
+                fileset_version + "' for knowledge graph '" + kg_id + "'" +
                 "could not be published?"
             )
 
@@ -441,7 +473,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, kg_version: str
 async def setup_kge_upload_context(
         request: web.Request,
         kg_id: str,
-        kg_version: str,
+        fileset_version: str,
         kgx_file_content: str,
         upload_mode: str,
         content_name: str,
@@ -488,7 +520,7 @@ async def setup_kge_upload_context(
         # nodes -> <file_set_location>/nodes/
         # archive -> <file_set_location>/archive/
 
-        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
+        file_set_location, assigned_version = with_version(func=get_object_location, version=fileset_version)(kg_id)
 
         file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
 
@@ -547,7 +579,7 @@ async def setup_kge_upload_context(
             if token not in _upload_tracker['upload']:
                 _upload_tracker['upload'][token] = {
                     "kg_id": kg_id,
-                    "kg_version": kg_version,
+                    "fileset_version": fileset_version,
                     "file_set_location": file_set_location,
                     "object_key": object_key,
                     "kgx_file_content": kgx_file_content,
@@ -778,11 +810,11 @@ async def upload_kge_file(
             
                     # This action adds a file to the given knowledge graph,
                     # identified by the 'kg_id', initiating or continuing a
-                    # the assembly process for the 'kg_version' KGE file set.
+                    # the assembly process for the 'fileset_version' KGE file set.
                     # May raise an Exception if something goes wrong.
                     KgeArchiveCatalog.catalog().add_to_kge_file_set(
                         kg_id=details["kg_id"],
-                        kg_version=details["kg_version"],
+                        fileset_version=details["fileset_version"],
                         file_type=details["file_type"],
                         file_name=content_name,
                         file_size=progress_monitor.get_file_size(),
@@ -793,7 +825,7 @@ async def upload_kge_file(
                 except Exception as exc:
                     error_msg: str = "upload_kge_file(" + \
                         "kg_id: "+details["kg_id"] + ", " \
-                        "kg_version: "+details["kg_version"] + ", " \
+                        "fileset_version: "+details["fileset_version"] + ", " \
                         "file_type: "+str(details["file_type"]) + ", " \
                         "object_key: " + str(uploaded_file_object_key) + \
                         ") threw exception: " + str(exc)
@@ -802,7 +834,7 @@ async def upload_kge_file(
             else:
                 error_msg: str = "upload_kge_file(" + \
                                  "kg_id: " + details["kg_id"] + ", " \
-                                 "kg_version: " + details["kg_version"] + ", " \
+                                 "fileset_version: " + details["fileset_version"] + ", " \
                                  "file_type: " + str(details["file_type"]) + " " \
                                  ") - null S3 object key... file upload failed?"
                 logger.error(error_msg)
@@ -833,15 +865,15 @@ async def upload_kge_file(
 #############################################################
 
 
-async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version: str) -> web.Response:
+async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_version: str) -> web.Response:
     """Get KGE File Set provider metadata.
 
     :param request:
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed
     :type kg_id: str
-    :param kg_version: Specific version of KGE File Set for the knowledge graph for which metadata are being accessed
-    :type kg_version: str
+    :param fileset_version: Specific version of KGE File Set for the knowledge graph for which metadata are being accessed
+    :type fileset_version: str
 
     :return:  KgeMetadata including provider and content metadata with an annotated list of KgeFile entries
     """
@@ -850,18 +882,18 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version
     session = await get_session(request)
     if not session.empty:
 
-        if not (kg_id and kg_version):
+        if not (kg_id and fileset_version):
             await report_not_found(
                 request,
                 "get_kge_file_set_metadata(): Knowledge Graph identifier and File Set version is not specified?"
             )
 
-        logger.debug("...of file set version '" + kg_version + "' for knowledge graph '" + kg_id + "'")
+        logger.debug("...of file set version '" + fileset_version + "' for knowledge graph '" + kg_id + "'")
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
         try:
-            file_set_metadata: KgeMetadata = knowledge_graph.get_metadata(kg_version)
+            file_set_metadata: KgeMetadata = knowledge_graph.get_metadata(fileset_version)
 
             file_set_status_as_dict = file_set_metadata.to_dict()
 
@@ -873,7 +905,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version
             await report_error(
                 request,
                 "get_kge_file_set_metadata() errors: file set version '" +
-                kg_version + "' for knowledge graph '" + kg_id + "'" +
+                fileset_version + "' for knowledge graph '" + kg_id + "'" +
                 "could not be accessed. Error: "+str(rte)
             )
     else:
@@ -885,7 +917,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, kg_version
 async def kge_meta_knowledge_graph(
         request: web.Request,
         kg_id: str,
-        kg_version: str,
+        fileset_version: str,
         downloading: bool = True
 ):
     """Get supported relationships by source and target
@@ -894,26 +926,26 @@ async def kge_meta_knowledge_graph(
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which graph metadata is being accessed.
     :type kg_id: str
-    :param kg_version: Version of KGE File Set for a given knowledge graph.
-    :type kg_version: str
+    :param fileset_version: Version of KGE File Set for a given knowledge graph.
+    :type fileset_version: str
 
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """
-    if not (kg_id and kg_version):
+    if not (kg_id and fileset_version):
         await report_not_found(
             request,
             "kge_meta_knowledge_graph(): KGE File Set 'kg_id' has value " + str(kg_id) +
-            " and 'kg_version' has value " + str(kg_version) + "... both must be non-null."
+            " and 'fileset_version' has value " + str(fileset_version) + "... both must be non-null."
         )
 
-    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
+    logger.debug("Entering kge_meta_knowledge_graph(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
 
     session = await get_session(request)
     if not session.empty:
         
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
-        file_set_location, assigned_version = with_version(func=get_object_location, version=kg_version)(kg_id)
+        file_set_location, assigned_version = with_version(func=get_object_location, version=fileset_version)(kg_id)
 
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
         
@@ -926,9 +958,9 @@ async def kge_meta_knowledge_graph(
                     request,
                     Template(
                         DATA_UNAVAILABLE +
-                        '?kg_version=$kg_version&kg_name=$kg_name&data_type=$data_type'
+                        '?fileset_version=$fileset_version&kg_name=$kg_name&data_type=$data_type'
                     ).substitute(
-                        kg_version=kg_version,
+                        fileset_version=fileset_version,
                         kg_name=knowledge_graph.get_name(),
                         data_type='meta knowledge graph'
                     ),
@@ -963,7 +995,7 @@ async def kge_meta_knowledge_graph(
         await redirect(request, LANDING_PAGE)
 
 
-async def download_kge_file_set(request: web.Request, kg_id, kg_version):
+async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
 
@@ -971,24 +1003,24 @@ async def download_kge_file_set(request: web.Request, kg_id, kg_version):
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
     :type kg_id: str
-    :param kg_version: Version of KGE File Set of the knowledge graph being accessed.
-    :type kg_version: str
+    :param fileset_version: Version of KGE File Set of the knowledge graph being accessed.
+    :type fileset_version: str
 
     :return: None - redirection responses triggered
     """
-    if not (kg_id and kg_version):
+    if not (kg_id and fileset_version):
         await report_not_found(
             request,
             "download_kge_file_set(): KGE File Set 'kg_id' has value " + str(kg_id) +
-            " and 'kg_version' has value " + str(kg_version) + "... both must be non-null."
+            " and 'fileset_version' has value " + str(fileset_version) + "... both must be non-null."
         )
 
-    logger.debug("Entering download_kge_file_set(kg_id: " + kg_id + ", kg_version: " + kg_version + ")")
+    logger.debug("Entering download_kge_file_set(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
 
     session = await get_session(request)
     if not session.empty:
 
-        file_set_object_key, _ = with_version(get_object_location, kg_version)(kg_id)
+        file_set_object_key, _ = with_version(get_object_location, fileset_version)(kg_id)
 
         kg_files_for_version = kg_files_in_location(
             _KGEA_APP_CONFIG['aws']['s3']['bucket'],
