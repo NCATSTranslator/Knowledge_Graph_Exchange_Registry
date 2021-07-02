@@ -419,7 +419,7 @@ paths:
       summary: Meta knowledge graph representation of this KGX knowledge graph.
       tags:
       - content
-      x-openapi-router-controller: kgea_server.kgea.server.web_services.controllers.content_controller
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
   /{kg_id}/{fileset_version}/metadata:
     get:
       operationId: get_file_set_metadata
