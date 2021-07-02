@@ -58,7 +58,7 @@ paths:
       tags:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
-  /publish/{kg_id}/{kg_version}:
+  /publish/{kg_id}/{fileset_version}:
     get:
       operationId: publish_file_set
       parameters:
@@ -316,7 +316,7 @@ paths:
       tags:
       - upload
       x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
-  /{kg_id}/{kg_version}/download:
+  /{kg_id}/{fileset_version}/download:
     get:
       operationId: download_file_set
       parameters:
@@ -363,7 +363,7 @@ paths:
       tags:
       - content
       x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
-  /{kg_id}/{kg_version}/meta_knowledge_graph:
+  /{kg_id}/{fileset_version}/meta_knowledge_graph:
     get:
       operationId: meta_knowledge_graph
       parameters:
@@ -419,8 +419,8 @@ paths:
       summary: Meta knowledge graph representation of this KGX knowledge graph.
       tags:
       - content
-      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
-  /{kg_id}/{kg_version}/metadata:
+      x-openapi-router-controller: kgea_server.kgea.server.web_services.controllers.content_controller
+  /{kg_id}/{fileset_version}/metadata:
     get:
       operationId: get_file_set_metadata
       parameters:
@@ -528,6 +528,8 @@ components:
           translator_component: KP
           license_url: https://creativecommons.org/licenses/by/4.0/legalcode
         fileset:
+          fileset_version: "1.0"
+          biolink_model_release: 2.0.2
           size: 6.0274563
           contents:
             nodes:
@@ -572,7 +574,6 @@ components:
             errors:
             - errors
             - errors
-          kg_version: "1.0"
           submitter_name: John Smith
           submitter_email: jsmith@knowledge.org
       properties:
@@ -657,6 +658,8 @@ components:
       description: Metadata including content metadata and the inventory of associated
         files, for a specific version of KGE File Set.
       example:
+        fileset_version: "1.0"
+        biolink_model_release: 2.0.2
         size: 6.0274563
         contents:
           nodes:
@@ -701,11 +704,15 @@ components:
           errors:
           - errors
           - errors
-        kg_version: "1.0"
         submitter_name: John Smith
         submitter_email: jsmith@knowledge.org
       properties:
-        kg_version:
+        biolink_model_release:
+          description: Biolink Model released associated with the file set.
+          example: 2.0.2
+          title: biolink_model_release
+          type: string
+        fileset_version:
           description: Version identifier of the file set.
           example: "1.0"
           title: fileset_version
@@ -1058,17 +1065,26 @@ components:
       properties:
         kg_id:
           type: string
-        major_version:
+        biolink_major_version:
           type: integer
-        minor_version:
+        biolink_minor_version:
+          type: integer
+        biolink_patch_version:
+          type: integer
+        fileset_major_version:
+          type: integer
+        fileset_minor_version:
           type: integer
         date_stamp:
           format: date
           type: string
       required:
+      - biolink_major_version
+      - biolink_minor_version
+      - biolink_patch_version
+      - fileset_major_version
+      - fileset_minor_version
       - kg_id
-      - major_version
-      - minor_version
       type: object
     UploadRequestBody:
       description: Uploading form posting of (meta-)data files to a specific KGE File
@@ -1089,7 +1105,7 @@ components:
       properties:
         kg_id:
           type: string
-        kg_version:
+        fileset_version:
           type: string
         kgx_file_content:
           type: string
@@ -1104,8 +1120,8 @@ components:
           type: string
       required:
       - content_name
-      - kg_id
       - fileset_version
+      - kg_id
       - kgx_file_content
       - upload_mode
       type: object

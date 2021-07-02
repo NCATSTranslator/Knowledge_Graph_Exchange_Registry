@@ -15,10 +15,11 @@ class KgeFileSetMetadata(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, kg_version: str=None, submitter_name: str=None, submitter_email: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, size: float=None, contents: MetaKnowledgeGraph=None):
+    def __init__(self, biolink_model_release: str=None, fileset_version: str=None, submitter_name: str=None, submitter_email: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, size: float=None, contents: MetaKnowledgeGraph=None):
         """KgeFileSetMetadata - a model defined in OpenAPI
 
-        :param kg_version: The fileset_version of this KgeFileSetMetadata.
+        :param biolink_model_release: The biolink_model_release of this KgeFileSetMetadata.
+        :param fileset_version: The fileset_version of this KgeFileSetMetadata.
         :param submitter_name: The submitter_name of this KgeFileSetMetadata.
         :param submitter_email: The submitter_email of this KgeFileSetMetadata.
         :param status: The status of this KgeFileSetMetadata.
@@ -27,6 +28,7 @@ class KgeFileSetMetadata(Model):
         :param contents: The contents of this KgeFileSetMetadata.
         """
         self.openapi_types = {
+            'biolink_model_release': str,
             'fileset_version': str,
             'submitter_name': str,
             'submitter_email': str,
@@ -37,6 +39,7 @@ class KgeFileSetMetadata(Model):
         }
 
         self.attribute_map = {
+            'biolink_model_release': 'biolink_model_release',
             'fileset_version': 'fileset_version',
             'submitter_name': 'submitter_name',
             'submitter_email': 'submitter_email',
@@ -46,7 +49,8 @@ class KgeFileSetMetadata(Model):
             'contents': 'contents'
         }
 
-        self._kg_version = kg_version
+        self._biolink_model_release = biolink_model_release
+        self._fileset_version = fileset_version
         self._submitter_name = submitter_name
         self._submitter_email = submitter_email
         self._status = status
@@ -64,7 +68,30 @@ class KgeFileSetMetadata(Model):
         return util.deserialize_model(dikt, cls)
 
     @property
-    def kg_version(self):
+    def biolink_model_release(self):
+        """Gets the biolink_model_release of this KgeFileSetMetadata.
+
+        Biolink Model released associated with the file set.
+
+        :return: The biolink_model_release of this KgeFileSetMetadata.
+        :rtype: str
+        """
+        return self._biolink_model_release
+
+    @biolink_model_release.setter
+    def biolink_model_release(self, biolink_model_release):
+        """Sets the biolink_model_release of this KgeFileSetMetadata.
+
+        Biolink Model released associated with the file set.
+
+        :param biolink_model_release: The biolink_model_release of this KgeFileSetMetadata.
+        :type biolink_model_release: str
+        """
+
+        self._biolink_model_release = biolink_model_release
+
+    @property
+    def fileset_version(self):
         """Gets the fileset_version of this KgeFileSetMetadata.
 
         Version identifier of the file set.
@@ -72,19 +99,19 @@ class KgeFileSetMetadata(Model):
         :return: The fileset_version of this KgeFileSetMetadata.
         :rtype: str
         """
-        return self._kg_version
+        return self._fileset_version
 
-    @kg_version.setter
-    def kg_version(self, kg_version):
+    @fileset_version.setter
+    def fileset_version(self, fileset_version):
         """Sets the fileset_version of this KgeFileSetMetadata.
 
         Version identifier of the file set.
 
-        :param kg_version: The fileset_version of this KgeFileSetMetadata.
-        :type kg_version: str
+        :param fileset_version: The fileset_version of this KgeFileSetMetadata.
+        :type fileset_version: str
         """
 
-        self._kg_version = kg_version
+        self._fileset_version = fileset_version
 
     @property
     def submitter_name(self):
