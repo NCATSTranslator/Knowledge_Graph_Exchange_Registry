@@ -268,11 +268,16 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
 
             "submitter_name": session['name'],
             "submitter_email": session['email'],
-    
+
+            # TODO: might be best to look up "latest" Biolink Model Release
+            "biolink_major_version": "2",
+            "biolink_minor_version": "0",
+            "biolink_patch_version": "2",
+
             # TODO: might be best to look up "latest" KGE file set version,
             #       increment it and send it to the form here?
-            "major_version": "1",
-            "minor_version": "0",
+            "fileset_major_version": "1",
+            "fileset_minor_version": "0",
             "date_stamp": get_default_date_stamp(),
             
             "registration_action": REGISTER_FILESET

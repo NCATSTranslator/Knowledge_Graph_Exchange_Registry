@@ -534,6 +534,7 @@ class KgeFileSet:
 
         fileset_metadata: KgeFileSetMetadata = \
             KgeFileSetMetadata(
+                biolink_model_release=self.biolink_model_release,
                 fileset_version=self.fileset_version,
                 submitter_name=self.submitter_name,
                 submitter_email=self.submitter_email,

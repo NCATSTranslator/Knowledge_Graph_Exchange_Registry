@@ -10,7 +10,7 @@ from ..kgea_handlers import (
 async def setup_upload_context(
         request: web.Request,
         kg_id: str,
-        kg_version: str,
+        fileset_version: str,
         kgx_file_content: str,
         upload_mode: str,
         content_name: str,
@@ -35,8 +35,8 @@ async def setup_upload_context(
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data file metadata are being accessed
     :type kg_id: str
-    :param kg_version: Specific version of KGE File Set for the knowledge graph for which data file metadata are being accessed
-    :type kg_version: str
+    :param fileset_version: Specific version of KGE File Set for the knowledge graph for which data file metadata are being accessed
+    :type fileset_version: str
     :param kgx_file_content: Tags the upload as either &#39;metadata&#39;, &#39;nodes&#39;, &#39;edges&#39; or &#39;archive&#39;.
     :type kgx_file_content: str
     :param upload_mode: Specifies the upload mode as either &#39;content_from_local_file&#39; or &#39;content_from_url&#39;
@@ -48,7 +48,7 @@ async def setup_upload_context(
     :rtype: web.Response
     """
     return await setup_kge_upload_context(
-        request, kg_id, kg_version, kgx_file_content, upload_mode, content_name, content_url
+        request, kg_id, fileset_version, kgx_file_content, upload_mode, content_name, content_url
     )
 
 
