@@ -66,7 +66,7 @@ from .kgea_file_ops import (
     s3_client
 )
 
-from kgea.server.web_services.catalog.Catalog import (
+from kgea.server.web_services.catalog import (
     KgeArchiveCatalog,
     KgeKnowledgeGraph,
     KgeFileSet, KgeFileType

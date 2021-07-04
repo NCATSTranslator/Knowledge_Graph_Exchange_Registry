@@ -29,7 +29,7 @@ from kgea.config import (
     get_meta_knowledge_graph_url,
     BACKEND
 )
-from kgea.server.web_services.catalog.Catalog import get_default_model_version
+from kgea.server.web_services.catalog import get_default_model_version
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     redirect,
