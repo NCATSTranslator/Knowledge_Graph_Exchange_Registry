@@ -1480,12 +1480,17 @@ def validate_content_metadata(content_metadata_file) -> List:
         return ["No file name provided - nothing to validate"]
 
 
+def get_default_model_version():
+    semver = Validator.get_default_model_version()
+    return semver.split('.')
+
+
 class KgxValidator:
     
     def __init__(self, tag: str):
         self.tag = tag
         self.kgx_data_validator = Validator()
-    
+
     # KGX Validation process management
     _validation_queue: asyncio.Queue = asyncio.Queue()
     _validation_tasks: List = list()

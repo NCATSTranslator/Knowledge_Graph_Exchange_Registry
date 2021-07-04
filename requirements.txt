@@ -2,7 +2,10 @@
 # connexion
 -e git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion
 
-kgx >= 1.3.0
+# Until the new release has all the latest feastures, we pull KGX directly from master or better
+#kgx >= 1.3.0
+-e git+https://github.com/biolink/kgx@master#egg=kgx
+
 multidict
 swagger-ui-bundle == 0.0.6
 aiohttp_jinja2 == 1.2.0

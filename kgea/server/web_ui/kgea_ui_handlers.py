@@ -28,9 +28,8 @@ from kgea.config import (
     get_fileset_metadata_url,
     get_meta_knowledge_graph_url,
     BACKEND
-) 
-
-
+)
+from kgea.server.web_services.catalog.Catalog import get_default_model_version
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     redirect,
@@ -261,7 +260,10 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
 
         if not kg_id:
             await redirect(request, HOME_PAGE, active_session=True)
-            
+
+        #  Look up "latest" Biolink Model version
+        biolink_semver = get_default_model_version()
+
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
@@ -269,15 +271,15 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
             "submitter_name": session['name'],
             "submitter_email": session['email'],
 
-            # TODO: might be best to look up "latest" Biolink Model Release
-            "biolink_major_version": "2",
-            "biolink_minor_version": "0",
-            "biolink_patch_version": "2",
+            "biolink_major_version": biolink_semver[0],
+            "biolink_minor_version": biolink_semver[1],
+            "biolink_patch_version": biolink_semver[2],
 
-            # TODO: might be best to look up "latest" KGE file set version,
-            #       increment it and send it to the form here?
+            # TODO: might be best to somehow look up "latest" KGE file set version,
+            #       increment it then send it to the form here?
             "fileset_major_version": "1",
             "fileset_minor_version": "0",
+
             "date_stamp": get_default_date_stamp(),
             
             "registration_action": REGISTER_FILESET
