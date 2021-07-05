@@ -102,6 +102,9 @@ def prepare_test(func):
 TRANSLATOR_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 
+BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
+
+
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
@@ -435,7 +438,7 @@ class KgeFileSet:
     # async def publish_file_set(self, kg_id: str, fileset_version: str):
     #
     #     logger.debug(
-    #         "Calling Registry.publish_file_set(" +
+    #         "Calling publish_file_set(" +
     #         "fileset_version: '"+fileset_version+"' of graph kg_id: '"+kg_id+"')"
     #     )
     #
@@ -1229,6 +1232,7 @@ def test_create_fileset_metadata_file():
 
     fs = KgeFileSet(
         kg_id=kg_id,
+        biolink_model_release="2.0.2",
         fileset_version=fileset_version,
         submitter_name="Mickey Mouse",
         submitter_email="mickey.mouse@disneyland.disney.go.com"
@@ -1325,7 +1329,7 @@ def add_to_github(
     
     gh_token = get_github_token()
     
-    logger.debug("Calling Registry.add_to_github(gh_token: '"+str(gh_token)+"')")
+    logger.debug("Calling add_to_github(gh_token: '"+str(gh_token)+"')")
     
     if gh_token and text:
         
@@ -1399,6 +1403,41 @@ def test_add_to_github():
     return outcome
 
 
+def get_github_releases(repo_path: str = ''):
+
+    if not repo_path:
+        logger.error("get_github_releases(): repo_path argument is empty?")
+        return []
+
+    gh_token = get_github_token()
+    if not gh_token:
+        logger.error("get_github_releases(): need a non-null gh_token to access Github!")
+        return []
+
+    logger.debug("Calling get_github_releases(repo_path: '" + str(repo_path) + "')")
+
+    g = Github(gh_token)
+
+    repo = g.get_repo(repo_path)
+
+    releases = repo.get_releases()
+
+    return [entry.tag_name for entry in releases]
+
+
+def get_biolink_releases():
+    return get_github_releases(repo_path=BIOLINK_GITHUB_REPO)
+
+
+@prepare_test
+def test_get_biolink_releases():
+    releases: List = get_biolink_releases()
+    assert('2.0.2' in releases)
+    print("Test access to Biolink releases:")
+    for release in releases:
+        print(f"\t{release}")
+
+
 # TODO: make sure that you clean up all (external) test artifacts here
 def clean_tests(
         kg_id="kge_test_entry",
@@ -1420,7 +1459,7 @@ def clean_tests(
     gh_token = get_github_token()
     
     print(
-        "Calling Registry.clean_tests()",
+        "Calling clean_tests()",
         file=stderr
     )
     
@@ -1790,20 +1829,22 @@ if __name__ == '__main__':
         # thus we comment out this test to avoid repeated commits to the KGE repo. The 'clean_tests()' below
         # is thus not currently needed either, since it simply removes the github artifacts from add_to_github().
         # This code can be uncommented if these features need to be tested again in the future
-        assert (test_create_provider_metadata_file())
-        assert (test_create_fileset_metadata_file())
+        # assert (test_create_provider_metadata_file())
+        # assert (test_create_fileset_metadata_file())
         # assert (test_add_to_archive())
-        assert (test_create_translator_registry_entry())
+        # assert (test_create_translator_registry_entry())
         # assert (test_add_to_github())
 
-        assert (test_get_catalog_entries())
-        
-        print("all KGE Archive Catalog tests passed")
-        
-        print("KGX Validation unit tests")
-        
-        run_test(test_contents_metadata_validator)
-        run_test(test_kgx_data_validator)
+        # assert (test_get_catalog_entries())
+        #
+        # print("all KGE Archive Catalog tests passed")
+        #
+        # print("KGX Validation unit tests")
+        #
+        # run_test(test_contents_metadata_validator)
+        # run_test(test_kgx_data_validator)
+
+        test_get_biolink_releases()
         
         print("all KGX Validation tests passed")
         
