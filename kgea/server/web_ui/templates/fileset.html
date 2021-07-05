@@ -26,8 +26,8 @@
         }
 
         async function setBiolinkRelease(selection) {
-            let biolink_version = document.getElementById('biolink_version');
-            biolink_version.value = selection.value;
+            let biolink_model_release = document.getElementById('biolink_model_release');
+            biolink_model_release.value = selection.value;
             //window.alert("Selected Biolink Version: " + biolink_version.value);
         }
     </script>
@@ -96,7 +96,7 @@
 
         <p></p>
 
-        <input id="biolink_version" type="hidden" name="biolink_version"/>
+        <input id="biolink_model_release" type="hidden" name="biolink_model_release"/>
 
         <input type="submit" value="Register File Set">
     </form>
