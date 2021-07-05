@@ -286,41 +286,20 @@ async def register_kge_file_set(request: web.Request):
             )
 
         #  SemVer major versioning of the Biolink Model release associated with the file set
-        biolink_major_version = data['biolink_major_version']
-        if not biolink_major_version:
+        biolink_model_release = data['biolink_model_release']
+        if not biolink_model_release:
             await report_not_found(
                 request,
-                "register_kge_file_set(): Biolink Model release emVer major version parameter is empty?",
+                "register_kge_file_set(): missing Biolink Model SemVer release?",
                 active_session=True
             )
-
-        # SemVer minor versioning of the Biolink Model release associated with the file set
-        biolink_minor_version = data['biolink_minor_version']
-        if not biolink_minor_version:
-            await report_not_found(
-                request,
-                "register_kge_file_set(): Biolink Model release SemVer minor version parameter is empty?",
-                active_session=True
-            )
-
-        # SemVer patch versioning of the Biolink Model release associated with the file set
-        biolink_patch_version = data['biolink_patch_version']
-        if not biolink_patch_version:
-            await report_not_found(
-                request,
-                "register_kge_file_set(): Biolink Model release emVer patch version parameter is empty?",
-                active_session=True
-            )
-            
-        # Consolidated Biolink Model release number associated with new KGE File Set
-        biolink_model_release = str(biolink_major_version) + "." + str(biolink_minor_version) + "." + str(biolink_patch_version)
 
         # SemVer minor versioning of the new KGE File Set
         fileset_major_version = data['fileset_major_version']
         if not fileset_major_version:
             await report_not_found(
                 request,
-                "register_kge_file_set(): file set SemVer major version parameter is empty?",
+                "register_kge_file_set(): missing file set SemVer major version parameter?",
                 active_session=True
             )
 
@@ -329,7 +308,7 @@ async def register_kge_file_set(request: web.Request):
         if not fileset_minor_version:
             await report_not_found(
                 request,
-                "register_kge_file_set(): file set SemVer minor version parameter is empty?",
+                "register_kge_file_set(): missing file set SemVer minor version parameter?",
                 active_session=True
             )
 

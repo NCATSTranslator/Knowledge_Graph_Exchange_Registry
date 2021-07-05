@@ -1425,13 +1425,13 @@ def get_github_releases(repo_path: str = ''):
     return [entry.tag_name for entry in releases]
 
 
-def get_biolink_releases():
+def get_biolink_model_releases():
     return get_github_releases(repo_path=BIOLINK_GITHUB_REPO)
 
 
 @prepare_test
 def test_get_biolink_releases():
-    releases: List = get_biolink_releases()
+    releases: List = get_biolink_model_releases()
     assert('2.0.2' in releases)
     print("Test access to Biolink releases:")
     for release in releases:
