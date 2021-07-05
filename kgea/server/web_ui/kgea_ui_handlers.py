@@ -29,7 +29,7 @@ from kgea.config import (
     get_meta_knowledge_graph_url,
     BACKEND
 )
-from kgea.server.web_services.catalog import get_default_model_version
+from kgea.server.web_services.catalog import get_default_model_version, get_biolink_releases
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     redirect,
@@ -244,6 +244,9 @@ async def view_kge_metadata(request: web.Request) -> web.Response:
         return await with_session(request, response)
 
 
+#  Look up "latest" Biolink Model version
+_biolink_releases = get_biolink_releases()
+
 async def get_kge_fileset_registration_form(request: web.Request) -> web.Response:
     """Get web form for specifying Versioned KGE File Set Metadata
 
@@ -261,8 +264,7 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
         if not kg_id:
             await redirect(request, HOME_PAGE, active_session=True)
 
-        #  Look up "latest" Biolink Model version
-        biolink_semver = get_default_model_version()
+
 
         context = {
             "kg_id": kg_id,
@@ -271,9 +273,7 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
             "submitter_name": session['name'],
             "submitter_email": session['email'],
 
-            "biolink_major_version": biolink_semver[0],
-            "biolink_minor_version": biolink_semver[1],
-            "biolink_patch_version": biolink_semver[2],
+            "biolink_releases": _biolink_releases,
 
             # TODO: might be best to somehow look up "latest" KGE file set version,
             #       increment it then send it to the form here?

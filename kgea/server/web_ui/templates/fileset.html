@@ -6,8 +6,33 @@
                 window.alert(msg);
             }
         }
+
+        let biolink_releases = [];
+        {% for release in biolink_releases %}
+            biolink_releases.push("{{ release }}");
+        {% endfor %}
+
+        async function LoadBiolinkReleases() {
+            //window.alert("Biolink Releases: " + JSON.stringify(biolink_releases));
+
+            let br_options = "";
+            Object.entries(biolink_releases).forEach(([i,r]) => {
+                // Ignore the older 'v' prefixed releases
+                if(!r.startsWith('v')) {
+                    br_options += '<option value="' + r + '">' + r + '</option>';
+                }
+            });
+            document.getElementById("select_biolink_release").innerHTML = br_options;
+        }
+
+        async function setBiolinkRelease(selection) {
+            let biolink_version = document.getElementById('biolink_version');
+            biolink_version.value = selection.value;
+            //window.alert("Selected Biolink Version: " + biolink_version.value);
+        }
     </script>
 {% endblock %}
+{% block body %}<body onload="LoadBiolinkReleases()">{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
 {% include "home.button" %}
@@ -15,84 +40,67 @@
 {% block title %}Register New Version of KGE File Set<br>
                  for Knowledge Graph<br>{{kg_name}}{% endblock %}
 {% block content %}
-<form method="post"
-      action="{{registration_action}}"
-      enctype="application/x-www-form-urlencoded"
-      accept-charset="utf-8"
->
-    <input id="kg_id" type="hidden" name="kg_id" value="{{kg_id}}" />
-    <table>
-        <tr>
-            <td>
-                <span style="font-size: smaller">Mandatory fields noted by a '<span style="color: red; font-weight: bold">*</span>'.</span><br>
-                <b>Submitter:</b>{{submitter_name}}<br>
-                <b>Email:</b> {{submitter_email}}
-                <input id="submitter_name" type="hidden" name="submitter_name" value="{{submitter_name}}" />
-                <input id="submitter_email" type="hidden" name="submitter_email" value="{{submitter_email}}" />
-            </td>
-            <td>
-                <input type="submit" value="Register File Set">
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2">
-                <b><span style="color: red; font-weight: bold">*</span>Biolink Model Release:</b><br>
-                <label  class="label" for="biolink_major_version">Major:</label>
-                <input id="biolink_major_version"
-                       name="biolink_major_version"
-                       type="number"
-                       min="1" step="1"
-                       value="{{biolink_major_version}}"
-                       size="2"
-                />
-                <label  class="label" for="biolink_minor_version">Minor:</label>
-                <input id="biolink_minor_version"
-                       name="biolink_minor_version"
-                       type="number"
-                       min="0" step="1"
-                       value="{{biolink_minor_version}}"
-                       size="2"
-                />
-                <label  class="label" for="biolink_patch_version">Patch:</label>
-                <input id="biolink_patch_version"
-                       name="biolink_patch_version"
-                       type="number"
-                       min="0" step="1"
-                       value="{{biolink_patch_version}}"
-                       size="2"
-                /><br>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <b><span style="color: red; font-weight: bold">*</span>File Set Version:</b><br>
-                <label  class="label" for="major_version">Major:</label>
-                <input id="fileset_major_version"
-                       name="fileset_major_version"
-                       type="number"
-                       min="1" step="1"
-                       value="{{fileset_major_version}}"
-                       size="2"
-                />
-                <label  class="label" for="minor_version">Minor:</label>
-                <input id="fileset_minor_version"
-                       name="fileset_minor_version"
-                       type="number"
-                       min="0" step="1"
-                       value="{{fileset_minor_version}}"
-                       size="2"
-                /><br>
-            </td>
-            <td>
-                <label  class="label" for="date_stamp">Date Stamp:</label>
-                <input id="date_stamp"
-                       name="date_stamp"
-                       type="date" min="0"
-                       step="1"
-                       value="{{date_stamp}}"
-                />
-            </td>
-        </tr>
-</table>
-</form>
+
+<div style="align-content: center;" >
+
+    <form method="post"
+          action="{{registration_action}}"
+          enctype="application/x-www-form-urlencoded"
+          accept-charset="utf-8"
+    >
+        <input id="kg_id" type="hidden" name="kg_id" value="{{kg_id}}" />
+
+        <span style="font-size: smaller">Mandatory fields noted by a '<span style="color: red; font-weight: bold">*</span>'.</span><br>
+
+        <p></p>
+
+        <b>Submitter:</b>{{submitter_name}},&nbsp; <b>Email:</b> {{submitter_email}}
+        <input id="submitter_name" type="hidden" name="submitter_name" value="{{submitter_name}}" />
+        <input id="submitter_email" type="hidden" name="submitter_email" value="{{submitter_email}}" />
+
+        <p></p>
+
+        <label class="label" for="select_biolink_release">Biolink Release:</label>
+        <select id="select_biolink_release" onchange="setBiolinkRelease(this)">
+        </select>
+
+        <p></p>
+
+        <b><span style="color: red; font-weight: bold">*</span>File Set Version:&nbsp;</b>
+        <label  class="label" for="fileset_major_version">Major:</label>
+        <input id="fileset_major_version"
+               name="fileset_major_version"
+               type="number"
+               min="1" step="1"
+               value="{{fileset_major_version}}"
+               size="2"
+        />
+        <label  class="label" for="fileset_minor_version">Minor:</label>
+        <input id="fileset_minor_version"
+               name="fileset_minor_version"
+               type="number"
+               min="0" step="1"
+               value="{{fileset_minor_version}}"
+               size="2"
+        />
+
+        <p></p>
+
+        <label  class="label" for="date_stamp">Date Stamp:</label>
+        <input id="date_stamp"
+               name="date_stamp"
+               type="date" min="0"
+               step="1"
+               value="{{date_stamp}}"
+        />
+
+        <p></p>
+
+        <input id="biolink_version" type="hidden" name="biolink_version"/>
+
+        <input type="submit" value="Register File Set">
+    </form>
+
+</div>
+
 {% endblock %}
