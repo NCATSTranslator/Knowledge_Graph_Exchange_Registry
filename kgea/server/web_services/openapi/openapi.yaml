@@ -1065,12 +1065,8 @@ components:
       properties:
         kg_id:
           type: string
-        biolink_major_version:
-          type: integer
-        biolink_minor_version:
-          type: integer
-        biolink_patch_version:
-          type: integer
+        biolink_model_release:
+          type: string
         fileset_major_version:
           type: integer
         fileset_minor_version:
@@ -1079,9 +1075,7 @@ components:
           format: date
           type: string
       required:
-      - biolink_major_version
-      - biolink_minor_version
-      - biolink_patch_version
+      - biolink_model_release
       - fileset_major_version
       - fileset_minor_version
       - kg_id
