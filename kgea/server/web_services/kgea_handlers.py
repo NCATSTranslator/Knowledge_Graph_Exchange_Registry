@@ -155,7 +155,7 @@ async def register_kge_knowledge_graph(request: web.Request):
         kg_name = data['kg_name']
 
         if not kg_name:
-            await report_error(request, "register_kge_file_set(): knowledge graph name is unspecified?")
+            await report_error(request, "register_kge_knowledge_graph(): knowledge graph name is unspecified?")
 
         # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
         kg_description = data['kg_description']
@@ -181,7 +181,7 @@ async def register_kge_knowledge_graph(request: web.Request):
             if license_name in _known_licenses:
                 license_url = _known_licenses[license_name]
             elif license_name != "Other":
-                await report_error(request, "register_kge_file_set(): unknown licence_name: '" + license_name + "'?")
+                await report_error(request, "register_kge_knowledge_graph(): unknown licence_name: '" + license_name + "'?")
 
         # terms_of_service: specifically relating to the project, beyond the licensing
         terms_of_service = data['terms_of_service']

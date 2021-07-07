@@ -8,19 +8,21 @@
         }
 
         let biolink_model_releases = [];
-        {% for release in biolink_model_releases %}
-            biolink_model_releases.push("{{ release }}");
-        {% endfor %}
 
         async function LoadBiolinkReleases() {
+
+            {% for release in biolink_model_releases %}
+                biolink_model_releases.push("{{ release }}");
+            {% endfor %}
+
+            let biolink_model_release = document.getElementById('biolink_model_release');
+            biolink_model_release.value = biolink_model_releases[0];
+
             //window.alert("Biolink Releases: " + JSON.stringify(biolink_model_releases));
 
             let br_options = "";
             Object.entries(biolink_model_releases).forEach(([i,r]) => {
-                // Ignore the older 'v' prefixed releases
-                if(!r.startsWith('v')) {
-                    br_options += '<option value="' + r + '">' + r + '</option>';
-                }
+                br_options += '<option value="' + r + '">' + r + '</option>';
             });
             document.getElementById("select_biolink_model_release").innerHTML = br_options;
         }
@@ -28,7 +30,7 @@
         async function setBiolinkRelease(selection) {
             let biolink_model_release = document.getElementById('biolink_model_release');
             biolink_model_release.value = selection.value;
-            //window.alert("Selected Biolink Version: " + biolink_version.value);
+            //window.alert("Selected Biolink Model Version: " + biolink_model_release.value);
         }
     </script>
 {% endblock %}
@@ -98,7 +100,7 @@
 
         <input id="biolink_model_release" type="hidden" name="biolink_model_release"/>
 
-        <input type="submit" value="Register File Set">
+        <input type="submit" value="Register File Set"/>
     </form>
 
 </div>

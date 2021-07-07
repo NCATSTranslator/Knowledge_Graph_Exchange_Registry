@@ -108,6 +108,10 @@ BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
+Number_of_Validator_Tasks = \
+    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] \
+        if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
+
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_provider_metadata.yaml')
 FILE_SET_METADATA_TEMPLATE_FILE_PATH = \
@@ -1426,7 +1430,19 @@ def get_github_releases(repo_path: str = ''):
 
 
 def get_biolink_model_releases():
-    return get_github_releases(repo_path=BIOLINK_GITHUB_REPO)
+    all_releases = get_github_releases(repo_path=BIOLINK_GITHUB_REPO)
+    filtered_releases = list()
+    for r in all_releases:
+        if r.startswith('v'):
+            continue
+        major, minor, patch = r.split('.')
+        if major == '1' and int(minor) < 8:
+            continue
+        if major == '1' and minor == '8' and patch != '2':
+            continue
+        filtered_releases.append(r)
+
+    return filtered_releases
 
 
 @prepare_test
@@ -1524,38 +1540,80 @@ def get_default_model_version():
     return semver.split('.')
 
 
-class KgxValidator:
-    
-    def __init__(self, tag: str):
-        self.tag = tag
-        self.kgx_data_validator = Validator()
+# Catalog of Biolink Model version specific validators
+_biolink_validator = dict()
 
-    # KGX Validation process management
-    _validation_queue: asyncio.Queue = asyncio.Queue()
-    _validation_tasks: List = list()
-    
+
+class ProgressMonitor:
+    # TODO: how do we best track the validation here?
+    #       We start by simply counting the nodes and edges
+    #       and periodically reporting to debug logger.
+    def __init__(self):
+        self._node_count = 0
+        self._edge_count = 0
+
+    def __call__(self, entity_type: GraphEntityType, rec: List):
+        # logger.setLevel(logging.DEBUG)
+        if entity_type == GraphEntityType.EDGE:
+            self._edge_count += 1
+            if self._edge_count % 100000 == 0:
+                logger.debug(str(self._edge_count) + " edges read in so far...")
+        elif entity_type == GraphEntityType.NODE:
+            self._node_count += 1
+            if self._node_count % 10000 == 0:
+                logger.debug(str(self._node_count) + " nodes read in so far...")
+        else:
+            logger.warning("Unexpected GraphEntityType: " + str(entity_type))
+
+
+class KgxValidator:
+
+    def __init__(self, biolink_model_release: str):
+        Validator.set_biolink_model(biolink_model_release)
+        self.kgx_data_validator = Validator(progress_monitor=ProgressMonitor())
+        self._validation_queue: asyncio.Queue = asyncio.Queue()
+
+        # Do I still need a list of task objects here,
+        # to handle multiple validations concurrently?
+        self.number_of_tasks = Number_of_Validator_Tasks
+        self._validation_tasks: List = list()
+
+    def get_validation_queue(self) -> asyncio.Queue:
+        return self._validation_queue
+
+    def get_validation_tasks(self) -> List:
+        return self._validation_tasks
+
     # The method should be called at the beginning of KgxValidator processing
     @classmethod
-    def init_validation_tasks(cls):
-        # Create _NO_KGX_VALIDATION_WORKER_TASKS worker
-        # tasks to concurrently process the validation_queue.
-        for i in range(_NUMBER_OF_KGX_VALIDATION_WORKER_TASKS):
-            task = asyncio.create_task(KgxValidator(f"KGX Validation Worker-{i}")())
-            cls._validation_tasks.append(task)
+    def get_validator(cls, biolink_model_release: str):
+        if biolink_model_release in _biolink_validator:
+            validator = _biolink_validator[biolink_model_release]
+        else:
+            validator = KgxValidator(biolink_model_release)
+            _biolink_validator[biolink_model_release] = validator
+
+        if validator.number_of_tasks:
+            validator.number_of_tasks -= 1
+            validator._validation_tasks.append(asyncio.create_task(validator()))
+        return validator
     
     # The method should be called by at the end of KgxValidator processing
     @classmethod
     async def shutdown_validation_processing(cls):
-        await cls._validation_queue.join()
-        try:
-            # Cancel the KGX validation worker tasks.
-            for task in cls._validation_tasks:
-                task.cancel()
-            # Wait until all worker tasks are cancelled.
-            await asyncio.gather(*cls._validation_tasks, return_exceptions=True)
-        except Exception as exc:
-            msg = "KgxValidator() KGX worker task exception: " + str(exc)
-            logger.error(msg)
+        for validator in _biolink_validator.values():
+            await validator.get_validation_queue().join()
+            try:
+                # Cancel the KGX validation worker tasks
+                for task in validator.get_validation_tasks():
+                    task.cancel()
+
+                # Wait until all worker tasks are cancelled.
+                await asyncio.gather(*validator.get_validation_tasks().values(), return_exceptions=True)
+
+            except Exception as exc:
+                msg = "KgxValidator() KGX worker task exception: " + str(exc)
+                logger.error(msg)
     
     @classmethod
     def validate(cls, file_set: KgeFileSet):
@@ -1566,13 +1624,11 @@ class KgxValidator:
         :return: None
         """
         # First, initialize task queue if not running...
-        if not cls._validation_tasks:
-            cls.init_validation_tasks()
+        validator = cls.get_validator(file_set.biolink_model_release)
         
         # ...then, post the file set to the KGX validation task Queue
-        cls._validation_queue.put_nowait(file_set)
-    
-    #
+        validator._validation_queue.put_nowait(file_set)
+
     async def __call__(self):
         """
         This Callable, undertaking the file validation,
@@ -1636,6 +1692,7 @@ class KgxValidator:
             if file_type == KgeFileType.KGX_DATA_FILE:
                 #
                 # Run validation of KGX knowledge graph data files here
+                #
                 validation_errors: List[str] = \
                     await self.validate_file_set(
                         file_set_id=file_set.id(),
@@ -1675,9 +1732,9 @@ class KgxValidator:
             )
             
             self._validation_queue.task_done()
-    
-    @staticmethod
+
     async def validate_file_set(
+            self,
             file_set_id: str,
             input_files: List[str],
             input_format: str = 'tsv',
@@ -1705,29 +1762,6 @@ class KgxValidator:
             # The putative KGX 'source' input files are currently sitting
             # at the end of S3 signed URLs for streaming into the validation.
             
-            class ProgressMonitor:
-                # TODO: how do we best track the validation here?
-                #       We start by simply counting the nodes and edges
-                #       and periodically reporting to debug logger.
-                def __init__(self):
-                    self._node_count = 0
-                    self._edge_count = 0
-
-                def __call__(self, entity_type: GraphEntityType, rec: List):
-                    # logger.setLevel(logging.DEBUG)
-                    if entity_type == GraphEntityType.EDGE:
-                        self._edge_count += 1
-                        if self._edge_count % 100000 == 0:
-                            logger.debug(str(self._edge_count) + " edges read in so far...")
-                    elif entity_type == GraphEntityType.NODE:
-                        self._node_count += 1
-                        if self._node_count % 10000 == 0:
-                            logger.debug(str(self._node_count) + " nodes read in so far...")
-                    else:
-                        logger.warning("Unexpected GraphEntityType: " + str(entity_type))
-
-            validator = Validator(progress_monitor=ProgressMonitor())
-            
             transformer = Transformer(stream=True)
             
             transformer.transform(
@@ -1742,10 +1776,10 @@ class KgxValidator:
                     # too RAM costly and not needed later
                     'format': 'null'
                 },
-                inspector=validator
+                inspector=self.kgx_data_validator
             )
             
-            errors: List[str] = validator.get_error_messages()
+            errors: List[str] = self.kgx_data_validator.get_error_messages()
 
             logger.debug("Existing validate_file_set()")
             
