@@ -4,7 +4,7 @@
 
 # Until the new release has all the latest feastures, we pull KGX directly from master or better
 #kgx >= 1.3.0
--e git+https://github.com/biolink/kgx@master#egg=kgx
+-e git+https://github.com/biolink/kgx@Biolink-2.0-updates#egg=kgx
 
 multidict
 swagger-ui-bundle == 0.0.6
