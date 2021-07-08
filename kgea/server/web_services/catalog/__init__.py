@@ -13,7 +13,7 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
-
+import re
 import threading
 import time
 import asyncio
@@ -652,12 +652,13 @@ class KgeKnowledgeGraph:
         self._provider_metadata_object_key: Optional[str] = None
 
     _name_filter_table = None
-    
+
+    _spregex = re.compile(r'\s+')
+
     @classmethod
     def _name_filter(cls):
         if not cls._name_filter_table:
             delete_dict = {sp_character: '' for sp_character in punctuation}
-            delete_dict[' '] = '-'
             cls._name_filter_table = str.maketrans(delete_dict)
         return cls._name_filter_table
     
@@ -675,7 +676,7 @@ class KgeKnowledgeGraph:
         
         # just clean up the occasional double space typo
         # (won't fully clean up a series of spaces)
-        kg_id = kg_id.replace("--", "-")
+        kg_id = cls._spregex.sub("-", kg_id)
         
         return kg_id
     
@@ -1209,6 +1210,15 @@ _TEST_TPMF = 'empty'
 _TEST_TFMF = 'empty'
 _TEST_TRE = 'empty'
 
+
+def test_kg_id_normalization():
+    name1 = 'A sample name with spaces'
+    kg_id1 = KgeKnowledgeGraph.normalize_name(name1)
+    assert kg_id1 == 'a-sample-name-with-spaces'
+
+    name2 = 'Cr@%y   and $lick    NAME.'
+    kg_id2 = KgeKnowledgeGraph.normalize_name(name2)
+    assert kg_id2 == 'cry-and-lick-name'
 
 @prepare_test
 def test_create_provider_metadata_file():
@@ -1829,6 +1839,7 @@ if __name__ == '__main__':
         # thus we comment out this test to avoid repeated commits to the KGE repo. The 'clean_tests()' below
         # is thus not currently needed either, since it simply removes the github artifacts from add_to_github().
         # This code can be uncommented if these features need to be tested again in the future
+        # test_kg_id_normalization()
         # assert (test_create_provider_metadata_file())
         # assert (test_create_fileset_metadata_file())
         # assert (test_add_to_archive())
@@ -1844,7 +1855,7 @@ if __name__ == '__main__':
         # run_test(test_contents_metadata_validator)
         # run_test(test_kgx_data_validator)
 
-        test_get_biolink_releases()
+        #test_get_biolink_releases()
         
         print("all KGX Validation tests passed")
         
