@@ -4,38 +4,35 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
 
 ## Table of Contents
 
-- [Development Deployment](#development-deployment)
+- [Deployment for Development](#deployment-for-development)
     - [Cloning the Code](#cloning-the-code)
     - [Configuration](#configuration)
         - [`pipenv`](#pipenv)
             - [Upgrading or Adding to the System via `pipenv`](#upgrading-or-adding-to-the-system-via-pipenv)
-        - [Amazon Web Services Configuration](#amazon-web-services)
-            - [AWS Configuration Files](#aws-configuration-files)
-            - [AWS Environment Variables](#aws-environment-variables)
-        - [Project Configuration File](#project-configuration-file-recommended)
+        - [Amazon Web Services Configuration](#amazon-web-services-configuration)
+        - [Project Configuration File](#project-configuration-file)
+        - [Other Prerequisites](#other-prerequisites)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
     - [Basic Operation of the Server](#basic-operation-of-the-server)
     - [Running the Application within a Docker Container](#running-the-application-within-a-docker-container)
         - [Installation of Docker](#installation-of-docker)
             - [Testing Docker](#testing-docker)    
-- [Production Deployment](#production-deployment)
+- [Deployment for Production](#deployment-for-production)
     - [Operating System](#operating-system)
     - [Cloud Deployment](#cloud-deployment)
         - [Docker Storage Considerations on the Cloud](#docker-storage-considerations-on-the-cloud)
         - [Configuration for Amazon Web Services](#configuration-for-amazon-web-services)
-    - [Installing Docker Compose](#installing-docker-compose)
+    - [Installing Docker and Compose](#installing-docker-and-compose)
         - [Testing Docker Compose](#testing-docker-compose)
     - [Site Configuration](#site-configuration)
+        - [Configuring AWS](#configuring-aws)
         - [Domain and Hostname](#domain-and-hostname)
+        - [NGINX Installation and Configuration](#nginx-installation-and-configuration)
         - [Securing the Site](#securing-the-site)
-            - [NGINX Installation and Configuration](#nginx-installation-and-configuration)
-            - [Configuring NGINX for HTTPS](#configuring-nginx-for-https)
-        - [WSGI Deployment](#wsgi-deployment)
-    - [Client User Authentication](#client-user-authentication)
-    - [Configure AWS](#configure-aws)
-    - [Running the Production System](#running-the-production-system)
+        - [User Authentication and Authorization](#user-authentication-and-authorization)
+        - [Running the Production System as a Docker Compose System Daemon](#running-the-production-system-as-a-docker-compose-system-daemon)
 
-# Development Deployment
+# Deployment for Development
 
 ## Cloning the Code
 
@@ -53,11 +50,13 @@ $ git clone git@github.com:NCATSTranslator/Knowledge_Graph_Exchange_Registry.git
 
 ## Configuration
 
-The project is developed in the latest Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage the Python version in its own virtual environment, as follows.
+We developed the project with the recent Python release (3.9 as of January 2021). If you have multiple Python releases on your machine, you can use the [update-alternatives](https://linuxconfig.org/how-to-change-from-default-to-alternative-python-version-on-debian-linux) to set your default to Python 3.9. Better yet, use `pipenv` to manage the Python version in its own virtual environment, as follows.
 
 ### Pipenv
 
-The project uses the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, both for bare metal development/testing, and within the Docker production development. To install the tool (assuming a user-centric local installation), type:
+**NOTE: Docker deployment of the system does not (currently) use the `pipenv` to manage dependencies but Dockerfile calls to `pip` using requirements.txt files in the root subdirectory, thus pipenv installation is not necessary. However, pipenv is useful for local development deployments (outside Docker containers).**
+
+The project can use the [`pipenv` tool](https://pipenv-fork.readthedocs.io/en/latest/) to manage project dependencies and building, for bare metal development and testing. To install the tool (assuming a user-centric local installation), type:
 
 ```shell
 python -m pip install pipenv
@@ -104,64 +103,116 @@ pipenv install <some-new-python-package>
 
 Note that pipenv, like pip, can install packages from various sources: local, pypi, github, etc. See the [`pipenv` documentation](https://pipenv-fork.readthedocs.io/en/latest/basics.html) for guidance.
 
+Permanent package additions to the project should also be added to the project root directory `requirements.txt` (or `requirements-dev.txt` if only used for development builds) then added to the `pipenv` build by typing:
+
+```
+pipenv install -r requirements.txt
+```
+
 ### Amazon Web Services Configuration
 
-The KGE Archive uses AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which can then be used to receive the (meta-)data files from the upload. 
+The KGE Archive uses various Amazon Web Services to perform its work, such as AWS S3 for storing KGX-formatted dumps of knowledge graphs with associated metadata.  When a user registers a **KGE File Set**, it reserves a location on S3, which the system uses to receive the (meta-)data files from the upload.  The system also leverages other AWS services like EC2 (the server it runs upon if in AWS), Cognito (for user authentication) and SNS (for user notification of KGE updates).
 
-Access to these resources requires configuration of AWS credentials consisting of an access key id and a secret key. These AWS credentials need to be associated with an IAM user with a suitable S3 access policy in place (see [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
+Access to these resources requires configuration of AWS credentials, consisting of an access key id and a secret key. However, storing and maintaining such credentials (i.e. cycling them, as best secure practice demands) is problematic overhead.
 
-There are three options to configure AWS credentials for the KGE Archive system: in AWS configuration files, using environment variables, or, using this project's configuration template.
+Therefore, the latest iteration of the Archive system manages system access to AWS by using a host AWS account IAM Role request temporary AWS credentials. This IAM Role needs to have a suitable AWS service access policies in place (e.g. [Identity and access management in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)).
 
-#### AWS Configuration Files
+To configure this access management, the host AWS account number (`host_account`), a guest-specified (and host-managed IAM role recorded) `external_id` plus the name of the host role (`iam_role_name`), need to be recorded within the project configuration file (next section).  The `external_id` is not completely secret within the system, but it should be a relatively long (uuid4?) identifier kept relatively confidential between the host and guest account administrators.
 
-On Linux, the `awscli` can be installed to facilitate administration (plus _ad hoc_ access to AWS services). Type:
-
-```shell
-sudo install awscli
-```
-
-after which time, aws credentials can be specified and stored on the system using the command:
-
-```shell
-aws configure
-```
-
-This command will record the requested parameters inside of `~/.aws/credentials` or `~/.aws/config` which, by default, KGE will take as its AWS credentials. This is a convention inherited from [boto3](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/index.html), which you can read about in [here](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/quickstart.html#configuration). 
-
-Note that the Docker option of launching the application, currently assumes that $HOME/.aws exists, whose contents can be bound into the container as a volume binding, for use by the web application.
-
-#### AWS Environment Variables
-
-If you don't really want to store your keys outside the project root directory, [Boto can use AWS environment variables](https://boto3.amazonaws.com/v1/documentation/api/1.12.1/guide/configuration.html?highlight=environment#environment-variables). 
+NOTE: 'Development' deployments may rely on the existence of local .aws credentials of the developer, for the `AssumeRole` operation to work, whereas, production deployment on an EC2 server may be configured as a server-level IAM role.
 
 ### Project Configuration File
 
-You must also use the project configuration template. This is the YAML file provided as a template in the root folder as `kgea_config.yaml-template` in the `kgea/server/`, whose contents are noted here: 
+To configure the proper running of the Archive, a configuration file must be set up. It must be located in the `kgea/config` subdirectory of the project and be based on the `config.yaml-template` YAML project configuration template located at that location.  To apply a specific site configuration, make a copy of the template, rename it to simply `config.yaml` (without the `-template` suffix) then fill out the required deployment site-specific configuration parameters (comments provided in the template file).
+
+The configuration file sets the target AWS S3 storage bucket name and user AWS Cognito authentication parameters. It also can contain (optional) AWS credential configuration (optional if another mode of [AWS Configuration](#amazon-web-services-configuration) is used):
 
 ```yaml
-bucket: 'kgea-bucket'   # REQUIRED: the name of the S3 bucket that will host your kgea files
-```
-To apply this file, make a copy of the template in the `kgea/server/` subdirectory, and rename it to `kgea_config.yaml`.  Fill out the required information. Now when you (re)run the Archive web application, this file will be read, and the specified AWS access parameters used to connect to S3 (and other required AWS operations).
+# the actual base URL of a deployed KGE Archive site
+# should also be set as the base URI in the configuration
+# of the 'redirect_uri' of the AWS Cognito User Pool app
+site_hostname: 'https://kgea.translator.ncats.io'
 
-NOTE: `kgea_config.yaml` is in `.gitignore`, but `kgea_config.yaml-template` is not. If you are worried about your keys getting into source control, use one of the other two configuration approaches.
+aws:
+  host_account: '<Host AWS Account Number>'
+  guest_external_id: '<Guest-specified external identifier'
+  iam_role_name: '<Host-specified IAM Role name>'
+  s3:
+    # Amazon S3 storage structure
+    bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+    archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+    
+    # AWS Cognito OAuth2 transaction parameters
+    # These parameters should match those set as 'app client' parameters in Cognito
+    # i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
+  cognito:
+    host:      '<AWS Cognito URL>'
+    client_id: '<myClientid>'     # get from AWS Cognito User Pool app
+    client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
+    site_uri:  '<myArchiveSiteURL>' # get from AWS Cognito User Pool app
+    login_callback:  '/oauth2callback'
+
+github:
+    token: ''
+
+# Uncomment and set this configuration tag value to override
+# hardcoded default of 3 KGX validation worker tasks
+# No_KGX_Validation_Worker_Tasks: 3
+
+# This parameter is automatically set by the system when
+# EncryptedCookieStorage serves for user session management 
+# secret_key: ''
+```
+
+Now when you run the Archive application, this file will be read in, and the specified AWS access parameters used to connect to S3 (and other required AWS operations). NOTE: `config.yaml` is in `.gitignore`, but its template is not. 
+
+## Other Prerequisites
+
+In development (DEVMODE=1), we use a local AIOHTTP Session management, that requires [installation of the `cryptography` Python package](https://cryptography.io/en/latest/installation.html).
 
 ## Project Python Package Dependencies
 
-The project has several Python package dependencies, but these are actually already recorded in the Pipfile which `pipenv` manages. Therefore, installing the required Python dependencies merely requires execution of the following from within the root directory, after the `pipenv` tool itself plus all other non-Python external software (see above) are installed :
+The project has several Python package dependencies.  Installing the required Python dependencies requires execution of the following from within the root directory, after the `pipenv` tool itself plus all other non-Python external software (see above) are installed:
 
 ```shell
 pipenv install
 ```
 
+NOTE: Dependencies only need to be installed on a local system during development. Production deployment of the system uses Docker (see below) which installs the required dependencies inside the container.
+
 ## Basic Operation of the Server
 
-During development, it may be convenient to simply run the server from the command line.  Basic instructions for running the server are provided in the [server README file](./server/README.md) obtained from API code generation. These instructions provide for both for server execution from the command line and within a Docker container (see below).  With respect to command line execution, note the need to change the directory into the `kgea/server` before directly starting the `openapi_server` as a Python module. 
+During development, it may be convenient to simply run the application from the command line. The application is currently split into multiple components running in parallel (preferably each within their own Python virtual environment, to be safe):
 
-Note that the README also mentions some basic Python `tox` tests which can be run. It also mentions the use of Docker, about which we further elaborate here below.
+- A web user interface (kgea/server/web_ui)
+- A back end web services API (kgea/server/web_services)
+
+With respect to command line execution, we start each component from within the root KGEA Archive project directory as independent Python module processes (e.g. as separate run configurations in your IDE, or in separate terminal shells).
+
+Run with the DEV_MODE flag set, the application does not attempt to authenticate externally using AWS Cognito, see below. Note that before running with the DEV_MODE flag, you must also install the pip development package dependencies, namely
+
+```
+pip install -r requirements-dev.txt
+
+# or the pipenv equivalent...
+pipenv install -r requirements-dev.txt
+```
+
+### The Web User interface
+
+```python
+DEV_MODE=1 python -m kgea.server.web_ui
+```
+
+### Back End Web Services
+
+```python
+DEV_MODE=1 python -m kgea.server.web_services
+```
 
 # Running the Application within a Docker Container
 
-The simpler way to deploy and run the application may be within a Docker container.
+The simpler way to deploy and run the application is within a Docker container.
 
 ## Installation of Docker
 
@@ -190,12 +241,7 @@ $ docker run hello-world
 This should result in something akin to the following output:
 
 ```shell
-$ sudo docker run hello-world
-Unable to find image 'hello-world:latest' locally
-latest: Pulling from library/hello-world
-0e03bdcc26d7: Pull complete
-Digest: sha256:31b9c7d48790f0d8c50ab433d9c3b7e17666d6993084c002c2ff1ca09b96391d
-Status: Downloaded newer image for hello-world:latest
+$ docker run hello-world
 
 Hello from Docker!
 This message shows that your installation appears to be working correctly.
@@ -240,27 +286,39 @@ To shut down the server:
 $ docker stop kge-test-run
 ```
 
-# Production Deployment
+# Deployment for Production
 
-The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine (e.g. on an AWS EC2 cloud server instance). Some preparation is required.
+The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine (e.g. on an AWS EC2 cloud server instance).
 
 ## Operating System
 
-The Archive web application is mainly written in Python, so in principle, can tested and run on various operating systems. Our main focus here will be a Linux production deployment (specifically, Ubuntu/Debian flavor of Linux), so production deployment details will be biased in that direction. We leave it to other members of the interested user community to adapt these deployment details to other operating system environments (e.g. Microsoft Windows 10, Mac OSX, etc.).
+We primarily wrote the Archive web application in Python, so in principle, it can tested and run on various operating systems. Our main focus here will be a Linux production deployment (specifically, Ubuntu/Debian flavor of Linux), so production deployment details will be biased in that direction. We leave it to other members of the interested user community to adapt these deployment details to other operating system environments (e.g. Microsoft Windows 10, Mac OSX, etc.).
+
+## Cloning the code
+
+As above, we [git clone the Code](#cloning-the-code) for production as well, this time, into a newly created `/opt/projects` directory (with user account accessible permissions). Within the NGINX config file, we set the HTML `root` path to point to the path to the `.../kgea/server/web_ui/templates` subdirectory, where we maintain the static css and images (see below).
 
 ## Cloud Deployment
 
-The production deployment of the Archive web application targets the Amazon Web Service (AWS) cloud, specifically, EC2 server instances and S3 network storage. We do not cover the basic details of AWS account, EC2 and S3 setup here, except with respect to details specific to the design and operation of the Archive. For those details, consult [AWS EC2 and related documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). Pay attention to the need to set up a Virtual Private Cloud (VPC) with an Internet Gateway with suitable Routing Tables to enable internet access to the server. 
+The production deployment of the Archive web application targets the Amazon Web Service (AWS) cloud, specifically, EC2 server instances and S3 network storage. We do not cover the basic details of AWS account, EC2 and S3 setup here, except with respect to details specific to the design and operation of the Archive. For those details, consult [AWS EC2 and related documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html). 
 
-Here, we assume, as a starting point, a modest sized live instance [AWS EC2 instance running Ubuntu 20.04 or better](ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20201026). We started installations on a live T2-Micro, to be upsized later as use case performance demands)  properly secured for SSH and HTTPS internet access. Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
+Pay attention to the need to set up a Virtual Private Cloud (VPC) with an Internet Gateway with suitable Routing Tables to enable internet access to the server. 
 
-Note that AWS has several complementary options for (Flask) web application deployment, such as [Elastic Beanstalk](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create-deploy-python-flask.html). The utility of deploying the KGE Archive within one of these frameworks could be revisited in the future.
+Here, we assume, as a starting point, a modest sized live instance AWS EC2 instance running Ubuntu 20.04 or better. A basic 'configuration' deployment targets a T3-Medium (2 CPU/4GB RAM) instance, which can be upsized later, as use case performance demands, perhaps to a T3-Large (4 CPU/4GB RAM) or better. with a Security Group configured for SSH and HTTPS internet access (see below). Installation of the Archive system on such a running server simply assumes developer (SSH) command line terminal access.
 
 ### Docker Storage Considerations on the Cloud
 
-By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker** which will end up being hosted on the root volume of a cloud image, which is generally of relatively modest size. To avoid "out of file storage" messages, which related to limits in inode and actual byte storage, it is advised that you remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
+By default, the Docker image/volume cache (and other metadata) resides under **/var/lib/docker**. By default, this directory will end up being hosted on the root volume of a cloud image, which can sometimes be relatively small. To avoid "out of file storage" messages, which relate to limits in inode and actual byte storage, Ttere are two basic options:
 
-In effect, it is generally useful to host the entire portal and its associated docker storage volumes on such an extra mounted volume. We generally use the **/opt** subdirectory as the target of the mount, then directly install various code and related subdirectories there, including the physical target of a symbolic link to the **/var/lib/docker** subdirectory. You will generally wish to set this latter symbolic link first before installing Docker itself (here we assume that docker has _not_ yet been installed (let alone running). Assuming that a suitable (AWS EBS)  volume is attached to the server instance, then:
+#### Option 1
+
+When creating the server (e.g. EC2 instance), ensure that the root volume is "_large enough_" (we don't have a hard number, but we generally aim for 50 gigabytes in size).
+
+#### Option 2
+
+You can remap the **/var/lib/docker** directory onto another larger (AWS EBS) storage volume (which should, of course, be configured to be automounted by _fstab_ configuration). Such a volume should generally be added to the cloud instance at startup but if necessary, added later (see [AWS EBS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) for further details).
+
+In effect, it is generally useful to host the entire portal and its associated docker storage volumes on such an extra mounted volume. We generally use the **/opt** subdirectory as the target of the mount, then directly install various code and related subdirectories there, including the physical target of a symbolic link to the **/var/lib/docker** subdirectory. You will generally wish to set this latter symbolic link first before installing Docker itself.  Here, we assume that docker has _not_ yet been installed (let alone running). Attaching a suitably sized AWS EBS  volume (we used 50GB) to the server instance, then run the following CLI commands:
 
     # Verify the existence of the volume, in this case, xvdb
     $ lsblk
@@ -291,11 +349,11 @@ Now, you can proceed to install Docker and Docker Compose.
 
 ### Configuration for Amazon Web Services
 
-T.B.A.
+Refer to [Amazon Web Services Configuration](#amazon-web-services-configuration) above.
 
-## Installing Docker Compose
+## Installing Docker and Compose
 
-You will then also need to [install Docker Compose](https://docs.docker.com/compose/install/) alongside Docker in your target Linux operating environment.
+After [Installing Docker](#installation-of-docker), you will then also need to [install Docker Compose](https://docs.docker.com/compose/install/) alongside Docker in your target Linux operating environment.
 
 ### Testing Docker Compose
 
@@ -303,25 +361,26 @@ In order to ensure Docker Compose is working correctly, issue the following comm
 
 ```shell
 $ docker-compose --version
-docker-compose version 1.18.0, build 8dd22a9
+docker-compose version 1.29.2, build 5becea4c
 ```
-Note that your particular version and build number may be different than what is shown here. We don't currently expect that docker-compose version differences should have a significant impact on the build, but if in doubt, refer to the release notes of the docker-compose site for advice.
+Note that your particular version and build number may be different than what is shown here.
+We don't currently expect that docker-compose version differences should have a significant
+impact on the build, but if in doubt, refer to the release notes of the docker-compose site for advice.
 
 ## Site Configuration
 
+### Configuring AWS
+
+Refer to [Amazon Web Services Configuration](#amazon-web-services-configuration).  See also [IAM roles for Amazon EC2 instances](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html).
+
 ### Domain and Hostname
 
-The set an 'A' DNS record to resolve to a suitable hostname prefix on an available domain to the (AWS EC2) web server's real public or have Translator proxy a hostname to the (private?) hostname or IP of the machine running on the private subnet.
+Set an 'A' DNS record to resolve to a suitable hostname prefix with your DNS pointing to the IP of the NGINX server. For performance reasons, a standard web server program (we use NGINX; see the next section) needs to be configured to serve as a proxy to the Archive web application running in the background.
 
-### Securing the Site
+### NGINX Installation and Configuration
 
-The KGE Archive has client user authentication (using AWS Cognito). For this to properly work, the Archive needs to be hosted behind HTTPS / SSL.
-
-If the server is proxied through a suitable **https** (Translator) hostname, then HTTPS/SSL access will be handled by the NGINX instance running on the core Translator server. If an independent Archive deployment is being implemented, then the Archive web application access will generally need to proxied through a locally installed copy of NGINX (next section).
-
-#### NGINX Installation and Configuration
-
-NGINX can be operated directly as a program in the operating system or in a Docker container. For now, we choose the direct installation option for simplicity of SSL/HTTPS management. On Ubuntu, typing:
+NGINX can be operated directly as a program in the operating system or in a Docker container.
+For now, we choose the direct installation option for simplicity of SSL/HTTPS management. On Ubuntu, typing:
 
 ```shell
 sudo apt install nginx
@@ -329,12 +388,17 @@ sudo apt install nginx
 
 installs the software.
 
-Next, a copy of the `kge_nginx.conf-template` file (located under the `config` subdirectory) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
-Note that this virtual host configuration proxies to the KGE Archive web application which is assumed locally visible on http://localhost:8080 (modified this proxy insofar necessary).  
+Next, a copy of the `kgea_nginx.conf-template` file (located under the `deployment` subdirectory of the project) is made into the `/etc/nginx/sites-available` folder, then the **localhost** placeholder text replaced with the desired KGE Archive hostname.
 
-The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. Templated static files in the subdirectories of the project `config/static` subdirectory (like `css/styles.css-template`, `images`, etc.) should be copied into the designated location and may also be customized as desired.
+Note that this virtual host configuration proxies to the KGE Archive web ui and service applications which are running in docker containers locally visible on http://localhost on ports 8090 and 8080, respectively.
 
-Finally, a symlink is made to this 'sites-enabled' file into the `/etc/nginx/sites-enabled` subdirectory:
+The NGINX root locations for other static site files (e.g. css) may also be adjusted to site preferences. We provide some templated static files in the subdirectories of the project `.../kgea/server/web_ui/templates` subdirectory (like `css/styles.css-template`, `images`, etc.) that must be copied into the designated location and customized as desired. In particular, correct appearance of the Archive web pages requires the following:
+
+1. The `.../templates/css/styles.css-template` should be copied into a `styles.css` file the NGINX `kge_nginx.conf` specified path for `/css/`
+1. A suitable `banner.jpg` logo image should be placed, alongside other `.../templates/images` files (i.e. `help-icon.png`) into the NGINX `kge_nginx.conf` specified path for `/images/` 
+
+
+Finally, a symlink is made to this `sites-available` file into the `/etc/nginx/sites-enabled` subdirectory:
 
 ```shell
 cd /etc/nginx/sites-enabled
@@ -347,7 +411,7 @@ It is a good idea to validate the `nginx.conf` configurations first by running t
 nginx -t
 ```
 
-The NGINX server needs to be (re-)started for the changes to be applied. The NGINX server daemon is generally controlled by the following:
+The NGINX server needs to be (re-)started for the changes to be applied. The administrative control of the NGINX server daemon is as follows:
 
 ```shell
 sudo systemctl <cmd> nginx
@@ -355,37 +419,35 @@ sudo systemctl <cmd> nginx
 
 where <cmd> can be 'status', 'start', 'stop' and 'restart'.
 
-#### Configuring NGINX for HTTPS
+### Securing the Site
 
-Afterwards, **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux - for using [CertBot tool](https://certbot.eff.org/) , the SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/).  After installing the CertBot tool as recommended on their site, following the prompts of the Certbot command will easily configure SSL/HTTPS (your NGINX configured hostname should be visible in the Certbot list (after it was linked into the `/etc/nginx/sites-enabled` subdirectory, see above):
+The KGE Archive enforces user authentication (using AWS Cognito). For this to properly work, the Archive needs to be hosted behind HTTPS / SSL. 
+
+Suitable **https** SSL certification can be applied to the specified KGE server hostname onto the NGINX configuration file following the instructions - specific to NGINX under Linux -  for the [CertBot tool](https://certbot.eff.org/). Certbot is an open SSL configuration tool associated with [Lets Encrypt](https://letsencrypt.org/).  After installing the CertBot tool as recommended on their site, we run Certbot command as follows:
 
 ```shell
 sudo certbot --nginx
 ```
 
-### WSGI Deployment
+Certbot easily sets up SSL/HTTPS for your NGINX configured hostname, that should be visible in the `/etc/nginx/sites-enabled` subdirectory (see above).
 
-Looking at the Flask server log (using `docker-compose log`), the following start-up message will be noted:
+### User Authentication and Authorization
+
+After we set up the server, the hostname particulars can be used to [configure AWS Cognito for OAuth2-based user authentication and authorization on the system](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). See also the [Project Configuration File](#project-configuration-file) above.
+
+## Running the Production System as a Docker Compose System Daemon
+
+After we build the Archive stack with `docker-compose build`, we deploy it as a service daemon on the system.
+First, we copy the `deployment/kgea.service` template for `systemd` deployment of the Docker Compose managed image into `/etc/systemd/system/kgea.service`. Then, we enable it:
 
 ```
-kge_1  |  * Serving Flask app "__main__" (lazy loading)
-kge_1  |  * Environment: production
-kge_1  |    WARNING: This is a development server. Do not use it in a production deployment.
-kge_1  |    Use a production WSGI server instead.
-kge_1  |  * Debug mode: off
-kge_1  |  * Running on http://0.0.0.0:8080/ (Press CTRL+C to quit)
+sudo systemctl enable kgea  # the root file name of the service
 ```
 
-While lightweight and easy to use, Flask’s built-in server is not suitable for production as it doesn’t scale well.  For this reason, one needs to consider WSGI servers. The [deployment options for WSGI](https://flask.palletsprojects.com/en/1.1.x/deploying/), accordingly, suggest suitable adjustments to the production NGINX and KGE Archive Python application installation and configuration.
+We can then now use the systemctl command to manage its execution:
 
-## Client User Authentication
+``` 
+$ sudo systemctl <command> kgea
+```
 
-The [Archive system leverages AWS Cognito for its client user authentication](KGE_CLIENT_AUTHENTICATION_AUTHORIZATION.md). The  HHTPS schema-prefixed hostname needs to be specified as the login URL's callback endpoint, through the Archive software site configuration.
-
-### Configure AWS
-
-Refer to the [Amazon Web Services Configuration](#amazon-web-services) above.
-
-## Running the Production System
-
-T.B.A.
+where command may be `start`, `restart`, `stop` or `status`.

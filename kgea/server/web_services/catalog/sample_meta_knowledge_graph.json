@@ -1,0 +1,249 @@
+{
+    "nodes": {
+        "biolink:Gene": {
+            "id_prefixes": [
+                "NCBIGene",
+                "ZFIN",
+                "ENSEMBL",
+                "MGI",
+                "RGD",
+                "HGNC",
+                "FlyBase",
+                "PANTHER",
+                "BIOGRID",
+                "STRING"
+            ],
+            "count": 372,
+            "count_by_source": {
+                "NCBIGene": 82,
+                "ZFIN": 8,
+                "ENSEMBL": 65,
+                "MGI": 20,
+                "RGD": 15,
+                "HGNC": 50,
+                "FlyBase": 10,
+                "PANTHER": 13,
+                "BIOGRID": 9,
+                "STRING": 100
+            }
+        },
+        "biolink:CellularComponent": {
+            "id_prefixes": [
+                "GO"
+            ],
+            "count": 8,
+            "count_by_source": {
+                "GO": 8
+            }
+        },
+        "biolink:BiologicalProcess": {
+            "id_prefixes": [
+                "GO"
+            ],
+            "count": 43,
+            "count_by_source": {
+                "GO": 43
+            }
+        },
+        "biolink:AnatomicalEntity": {
+            "id_prefixes": [
+                "BGEE"
+            ],
+            "count": 10,
+            "count_by_source": {
+                "BGEE": 10
+            }
+        },
+        "biolink:PhenotypicFeature": {
+            "id_prefixes": [
+                "OMIM",
+                "HPOA",
+                "ORPHANET"
+            ],
+            "count": 185,
+            "count_by_source": {
+                "OMIM": 50,
+                "HPOA": 75,
+                "ORPHANET": 60
+            }
+        },
+        "biolink:Disease": {
+            "id_prefixes": [
+                "OMIM",
+                "HPOA",
+                "ORPHANET"
+            ],
+            "count": 51,
+            "count_by_source": {
+                "OMIM": 12,
+                "ORPHANET": 26,
+                "HPOA": 5
+            }
+        },
+        "biolink:Pathway": {
+            "id_prefixes": [
+                "REACT"
+            ],
+            "count": 16,
+            "count_by_source": {
+                "REACT": 16
+            }
+        }
+    },
+    "edges": [
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:interacts_with",
+            "object": "biolink:Gene",
+            "relations": [
+                "RO:0002434"
+            ],
+            "count": 165,
+            "count_by_source": {
+                "BIOGRID": 9,
+                "STRING": 159
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:part_of",
+            "object": "biolink:CellularComponent",
+            "relations": [
+                "BFO:0000050"
+            ],
+            "count": 8,
+            "count_by_source": {
+                "GO": 8
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:related_to",
+            "object": "biolink:BiologicalProcess",
+            "relations": [
+                "RO:0002331"
+            ],
+            "count": 143,
+            "count_by_source": {
+                 "GO": 143
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:related_to",
+            "object": "biolink:MolecularActivity",
+            "relations": [
+                "RO:0002327"
+            ],
+            "count": 8,
+            "count_by_source": {
+                "GO": 8
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:related_to",
+            "object": "biolink:Pathway",
+            "relations": [
+                "RO:0002331"
+            ],
+            "count": 8,
+            "count_by_source": {
+                "REACT": 8
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:orthologous_to",
+            "object": "biolink:Gene",
+            "relations": [
+                "RO:HOM0000020",
+                "RO:HOM0000017"
+            ],
+            "count": 13,
+            "count_by_source": {
+                "PANTHER": 13,
+                "ZFIN": 2
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:expressed_in",
+            "object": "biolink:AnatomicalEntity",
+            "relations": [
+                "RO:0002206"
+            ],
+            "count": 20,
+            "count_by_source": {
+                "BGEE": 20
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:has_phenotype",
+            "object": "biolink:PhenotypicFeature",
+            "relations": [
+                "RO:0002200"
+            ],
+            "count": 111,
+            "count_by_source": {
+                "OMIM": 54,
+                "HPOA": 111,
+                "ORPHANET": 72
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:related_to",
+            "object": "biolink:Disease",
+            "relations": [
+                "RO:0003303",
+                "RO:0004013",
+                "RO:0004015"
+            ],
+            "count": 18,
+            "count_by_source": {
+                "OMIM": 4,
+                "ORPHANET": 14
+            }
+        },
+        {
+            "subject": "biolink:Gene",
+            "predicate": "biolink:contributes_to",
+            "object": "biolink:Disease",
+            "relations": [
+                "RO:0003304"
+            ],
+            "count": 2,
+            "count_by_source": {
+                "OMIM": 2
+            }
+        },
+        {
+            "subject": "biolink:Disease",
+            "predicate": "biolink:involved_in",
+            "object": "biolink:Pathway",
+            "relations": [
+                "RO:0002331"
+            ],
+            "count": 22,
+            "count_by_source": {
+                "OMIM": 8,
+                "REACT": 16,
+                "ORPHANET": 14
+            }
+        },
+        {
+            "subject": "biolink:Disease",
+            "predicate": "biolink:has_phenotype",
+            "object": "biolink:PhenotypicFeature",
+            "relations": [
+                "RO:0002200"
+            ],
+            "count": 13,
+            "count_by_source": {
+                "HPOA": 13
+            }
+        }
+    ]
+}

@@ -2,12 +2,33 @@ version: '3.9'
 
 services:
 
-  kge:
+  ui:
     build:
-      context: ./kgea/server
-      dockerfile: KGEA_Dockerfile
-    #environment:
-    #  - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
+      context: .
+      dockerfile: ./kgea/server/KGEA_UI_Dockerfile
+    #    environment:
+    #      # TODO: the need for explicit AWS credentials should be removed AWS IAM Roles are fully used
+    #      - AWS_ACCESS_KEY_ID
+    #      - AWS_SECRET_ACCESS_KEY
+    #      - REGION_NAME=${REGION_NAME:-us-east-1}
+    ports:
+    - "8090:8090"
+    # depends_on:
+    # - "archive"
+    volumes:
+    - $HOME/.aws:/root/.aws
+    networks:
+    - default
+
+  archive:
+    build:
+      context: .
+      dockerfile: ./kgea/server/KGEA_Archive_Dockerfile
+    #    environment:
+    #      # TODO: the need for explicit AWS credentials will be removed AWS IAM Roles are fully used
+    #      - AWS_ACCESS_KEY_ID
+    #      - AWS_SECRET_ACCESS_KEY
+    #      - REGION_NAME=${REGION_NAME:-us-east-1}
     ports:
     - "8080:8080"
     # depends_on:
@@ -17,17 +38,10 @@ services:
     networks:
     - default
 
-  #  kgx:
-  #    image: python:3.9
-  #    environment:
-  #      - SOME_ENV_VARIABLE=${SOME_ENV_VARIABLE:-default_value}
-  #    ports:
-  #      - "8090:8080"
-  #    volumes:
-  #      - $HOME/data:/data
-  #      - $HOME/logs:/logs
-  #    networks:
-  #        - default
+  memcached:
+      image: memcached:latest
+      ports:
+        - "11211:11211"
 
 networks:
     default:

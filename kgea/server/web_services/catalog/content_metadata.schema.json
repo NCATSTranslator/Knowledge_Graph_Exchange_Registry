@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/kgea/api/content_metadata.schema.json",
+  "title": "KGX Content Metadata",
+  "description": "Description of a node category for Knowledge Graph eXchange (KGX) knowledge graph content metadata",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "description": "Collection of node categories provided by this TRAPI web service, indexed by Biolink class CURIEs.",
+      "type": "object",
+      "patternProperties": {
+          "^biolink:[A-Z][a-zA-Z]*$": {
+              "$ref": "#/$defs/MetaNode"
+          }
+      },
+      "additionalProperties": false
+    },
+    "edges": {
+      "description": "List of edges/predicates provided by this knowledge graph.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/MetaEdge"
+      }
+    }
+  },
+  "required": [ "nodes", "edges" ],
+  "$defs": {
+    "MetaNode": {
+      "type": "object",
+      "properties": {
+        "id_prefixes": {
+          "type": "array",
+          "description": "List of CURIE prefixes for the node category that this Knowledge Graph contains.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_.]+$"
+          },
+          "minItems": 1
+        },
+        "count": {
+          "type": "integer",
+          "description": "Total number of node instances of this node category known to this knowledge graph, or -1 if the number is not known."
+        },
+        "count_by_source": {
+          "type": "object",
+          "description": "Number of node instances by knowledge source URI or CURIE or plain namespace identifier",
+          "patternProperties": {
+           "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|([A-Z]+:)?[a-zA-Z_.]+)$": {
+                "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [ "id_prefixes" ]
+    },
+    "MetaEdge": {
+      "type": "object",
+      "description": "Edge in a meta knowledge map describing relationship between a subject Biolink class and an object Biolink class.",
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/BiolinkEntity",
+          "description": "Subject node category of this relationship edge."
+        },
+        "predicate": {
+          "$ref": "#/$defs/BiolinkPredicate",
+          "description":  "Biolink relationship between the subject and object categories."
+        },
+        "object": {
+          "$ref": "#/$defs/BiolinkEntity",
+          "description": "Object node category of this relationship edge."
+        },
+        "relations": {
+          "type": "array",
+          "description":  "Low-level relations from the underlying source.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "count": {
+          "type": "integer",
+          "description":  "Total number of edge instances of this (subject, predicate, object) triple known to this knowledge graph, or -1 if the number is not known."
+        },
+        "count_by_source": {
+          "type": "object",
+          "description": "Number of edge instances by knowledge source URI or CURIE or plain namespace identifier",
+          "patternProperties": {
+           "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|([A-Z]+:)?[a-zA-Z_.]+)$": {
+                "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [ "subject", "predicate", "object" ]
+    },
+    "BiolinkEntity": {
+      "description": "Compact URI (CURIE) for a Biolink class, biolink:NamedThing or a child thereof. The CURIE must use the prefix 'biolink:' followed by the PascalCase class name.",
+      "type": "string",
+      "pattern": "^biolink:[A-Z][a-zA-Z]*$"
+    },
+    "BiolinkPredicate": {
+      "description": "CURIE for a Biolink 'predicate' slot, taken from the Biolink slot ('is_a') hierarchy rooted in biolink:related_to (snake_case). This predicate defines the Biolink relationship between the subject and object nodes of a biolink:Association defining a knowledge graph edge.",
+      "type": "string",
+      "pattern": "^biolink:[a-z][a-z_]*$"
+    }
+  }
+}

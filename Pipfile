@@ -4,10 +4,31 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-boto3 = "*"
-flask = "*"
+multidict = "*"
+aiohttp = "<3.7"
+aiohttp-jinja2 = "==1.2.0"
+aiohttp_cors = ">=0.7.0"
+PyYAML = "*"
+Jinja2 = "==2.11.3"
+cryptography = "*"
+aiohttp-session = "*"
+aiomcache = "*"
+swagger-ui-bundle = "==0.0.6"
+botocore = "<1.21.0,>=1.20.12"
+boto3 = ">=1.17.0"
+pygithub = "*"
+s3-tar = "*"
+requests = "*"
+jsonschema = "*"
+PyGithub = "*"
+smart_open = "*"
+kgx = ">=1.3.0"
 
 [dev-packages]
+cryptography
 
 [requires]
 python_version = "3.9"
+
+[packages]
+connexion = {git = "https://github.com/STARInformatics/connexion.git", editable = true, ref = "fix-urlencoded-body-parameter-parsing"}

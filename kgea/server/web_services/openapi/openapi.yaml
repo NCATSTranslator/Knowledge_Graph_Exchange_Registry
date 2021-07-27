@@ -1,0 +1,1127 @@
+openapi: 3.0.1
+info:
+  contact:
+    email: richard.bruskiewich@delphinai.com
+    name: Richard Bruskiewich
+    x-role: responsible developer
+    x-id: https://github.com/RichardBruskiewich
+  description: OpenAPI for the NCATS Biomedical Translator Knowledge Graph Exchange
+    Archive
+  license:
+    name: MIT 2.0
+    url: https://en.wikipedia.org/wiki/MIT_License
+  termsOfService: https://ncats.nih.gov/translator
+  title: OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive. Although
+    this API is SmartAPI compliant, it will not normally be visible in the Translator
+    SmartAPI Registry since it is mainly meant to be accessed through Registry indexed
+    KGE File Sets, which will have distinct entries in the Registry.
+  version: 1.0.0-dev
+  x-translator:
+    component: SRI service
+    team:
+    - SRI
+externalDocs:
+  description: Documentation for the NCATS Biomedical Translator Knowledge Graph Exchange
+    (KGE) Archive
+  url: https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
+servers:
+- description: Localhost URL for server, to be proxied to the real internet
+  url: http://localhost:8080/archive
+tags:
+- description: Designates a NCATS Biomedical Data Translator component API
+  name: translator
+- description: Designates a Translator Knowledge Graph eXchange (KGE) Archive API
+  name: kge
+- description: Endpoints to access catalog of KGE file sets
+  name: catalog
+- description: Endpoints for KGE file set upload
+  name: upload
+- description: Endpoints to access version specific KGE file set content (meta-)data.
+  name: content
+paths:
+  /catalog:
+    get:
+      operationId: get_knowledge_graph_catalog
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/KgeFileSetEntry'
+                description: Dictionary of available KGE File Sets, with a list of
+                  (at least one) version. The keys of the dictionary are the internal
+                  normalized identifiers ('kg_id') of the file sets.
+                type: object
+          description: Catalog of available KGE File Sets, their name and their versions.
+      summary: Returns the catalog of available KGE File Sets
+      tags:
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
+  /publish/{kg_id}/{fileset_version}:
+    get:
+      operationId: publish_file_set
+      parameters:
+      - description: KGE Knowledge Graph identifier for the knowledge graph for which
+          data files are being accessed.
+        explode: false
+        in: path
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: KGE File Set version identifier for the knowledge graph for which
+          data files are being accessed.
+        explode: false
+        in: path
+        name: fileset_version
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "302":
+          description: After KGE File Set publication is triggered, user gets redirected
+            to /home.
+      summary: Publish a registered File Set
+      tags:
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
+  /register/fileset:
+    post:
+      description: Register core metadata for a newly persisted file set version of
+        a KGE persisted Knowledge Graph. Since this endpoint assumes a web session
+        authenticated session user, this user is automatically designated as the 'owner'
+        of the new versioned file set.
+      operationId: register_file_set
+      requestBody:
+        $ref: '#/components/requestBodies/RegisterFileSetRequestBody'
+        x-body-name: body
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: New file set registration operation successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or not just
+            recognized).
+      summary: Register core metadata for a distinctly versioned file set of a KGE
+        Knowledge Graph
+      tags:
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
+      x-codegen-request-body-name: body
+  /register/graph:
+    post:
+      description: Register core metadata for a new KGE persisted Knowledge Graph.
+        Since this endpoint assumes assumes a web session authenticated user, this
+        user is automatically designated as the 'owner' of the new KGE graph.
+      operationId: register_knowledge_graph
+      requestBody:
+        $ref: '#/components/requestBodies/RegisterGraphRequestBody'
+        x-body-name: body
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: New knowledge graph registration operation  successfully completed.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or not just
+            recognized).
+      summary: Register core metadata for a distinct KGE Knowledge Graph
+      tags:
+      - catalog
+      x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
+      x-codegen-request-body-name: body
+  /upload:
+    get:
+      description: Uploading of (meta-)data files to a specific KGE File Set version,
+        belonging to a specific Knowledge Graph. The 'upload_mode' argument specifies
+        the upload mode as either 'content_from_local_file' or 'content_from_url'.
+        If 'content_from_local_file' is indicated, then a follow-up HTTP POST call
+        to the /upload endpoint is expected, with the 'upload token' returned from
+        this call and an 'uploaded_file' parameter set to the file to be uploaded.
+        If 'upload_mode' is set to 'content_from_url' then the 'content_url' parameter
+        is taken as a REST endpoint of the file to be transferred into the Archive
+        (http authentication not yet supported, therefore, the URL should provide
+        for unauthenticated access). The 'content_name' should be set either to the
+        file name of the 'content_from_local_file', or url transfers, set by inference
+        or as specified by the caller (especially if the 'content_url' doesn't resolve
+        to a definitive file name). The specific KGX file content of the current upload
+        file is set by the `kgx_file_content' for KGX data files uploaded in the 'content_from_local_file'
+        or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
+        button.
+      operationId: setup_upload_context
+      parameters:
+      - description: KGE File Set identifier for the knowledge graph for which data
+          file metadata are being accessed
+        explode: true
+        in: query
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Specific version of KGE File Set for the knowledge graph for
+          which data file metadata are being accessed
+        explode: true
+        in: query
+        name: fileset_version
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Tags the upload as either 'metadata', 'nodes', 'edges' or 'archive'.
+        explode: true
+        in: query
+        name: kgx_file_content
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Specifies the upload mode as either 'content_from_local_file'
+          or 'content_from_url'
+        explode: true
+        in: query
+        name: upload_mode
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: The file name of the data set to be uploaded.
+        explode: true
+        in: query
+        name: content_name
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: (Optional) URL to a web based file resource to be directly uploaded
+          to the KGE Archive from it's server.
+        explode: true
+        in: query
+        name: content_url
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadTokenObject'
+          description: Upload configuration successful, returning associated object
+            key.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or KGE File Set version is unknown (not registered).
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Configure upload context for a specific file of a KGE File Set.
+      tags:
+      - upload
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
+    post:
+      operationId: upload_file
+      requestBody:
+        $ref: '#/components/requestBodies/UploadRequestBody'
+        x-body-name: body
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Upload successfully completed.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or requested KGE File Set version is unknown.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Uploading of a specified file from a local computer.
+      tags:
+      - upload
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
+      x-codegen-request-body-name: body
+  /upload/progress:
+    get:
+      description: Poll the status of a given upload process.
+      operationId: get_upload_status
+      parameters:
+      - description: Upload token associated with a given file for uploading to the
+          Archive as specified by a preceding /upload GET call.
+        explode: true
+        in: query
+        name: upload_token
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadProgressToken'
+          description: Details about the status of a file upload operation.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Specified object key is unknown (not registered).
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Get the progress of uploading for a specific file of a KGE File Set.
+      tags:
+      - upload
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
+  /{kg_id}/{fileset_version}/download:
+    get:
+      operationId: download_file_set
+      parameters:
+      - description: KGE File Set identifier for the knowledge graph being accessed.
+        explode: false
+        in: path
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Version of KGE File Set of the knowledge graph being accessed.
+        explode: false
+        in: path
+        name: fileset_version
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/gzip:
+              schema:
+                format: binary
+                type: string
+          description: A KGE File Set as a gzip compressed tar archive of KGX compliant
+            files plus an associated metadata json file
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or requested KGE File Set version is unknown.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Returns specified KGE File Set as a gzip compressed tar archive
+      tags:
+      - content
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
+  /{kg_id}/{fileset_version}/meta_knowledge_graph:
+    get:
+      operationId: meta_knowledge_graph
+      parameters:
+      - description: KGE File Set identifier for the knowledge graph for which graph
+          metadata is being accessed.
+        explode: false
+        in: path
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Version of KGE File Set for a given knowledge graph.
+        explode: false
+        in: path
+        name: fileset_version
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: 'Boolean flag indicating whether data is to be downloaded as
+          an attachment or rather if a signed URL (string) is to be returned to the
+          caller, for direct access to the data file (default: true).'
+        explode: true
+        in: query
+        name: downloading
+        required: false
+        schema:
+          type: boolean
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaKnowledgeGraph'
+          description: Returns meta knowledge graph representation of this KGX knowledge
+            graph.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or requested KGE File Set version is unknown.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Meta knowledge graph representation of this KGX knowledge graph.
+      tags:
+      - content
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
+  /{kg_id}/{fileset_version}/metadata:
+    get:
+      operationId: get_file_set_metadata
+      parameters:
+      - description: KGE File Set identifier for the knowledge graph for which data
+          file metadata are being accessed
+        explode: false
+        in: path
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Specific version of KGE File Set for the knowledge graph for
+          which data file metadata are being accessed
+        explode: false
+        in: path
+        name: fileset_version
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KgeMetadata'
+          description: Provider and content metadata relating to the given version
+            of a specified KGE File Set.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or requested KGE File Set version is unknown.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Get provider and content metadata for a specified KGE File Set version.
+      tags:
+      - content
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
+components:
+  requestBodies:
+    RegisterGraphRequestBody:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/RegisterGraphRequestBody'
+      required: true
+    RegisterFileSetRequestBody:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/RegisterFileSetRequestBody'
+      required: true
+    UploadRequestBody:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/UploadRequestBody'
+      description: KGE File Set metadata or data file submitted
+      required: true
+  schemas:
+    KgeFileSetEntry:
+      description: Basic KGE Archive catalog entry indexing a KGE File Set.
+      properties:
+        name:
+          description: Human readable KGE File Set name ('kg_name')
+          example: Semantic Medline Database
+          title: name
+          type: string
+        versions:
+          description: List of versions ('fileset_version') of a KGE File Set
+          example:
+          - "4.1"
+          - "4.2"
+          - "4.3"
+          items:
+            type: string
+          minItems: 1
+          title: versions
+          type: array
+      title: KgeFileSetEntry
+      type: object
+    KgeMetadata:
+      description: KGE File Set provider and content metadata, including the inventory
+        of associated files.
+      example:
+        provider:
+          kg_name: Semantic Medline Database
+          license_name: Creative-Commons-4.0
+          translator_team: RENCI
+          kg_description: Curated Biolink Model-compliant knowledge graph subset of
+            the Semantic Medline Database
+          terms_of_service: https://ncats.nih.gov/translator
+          kg_id: semantic_medline_database
+          submitter_name: John Smith
+          submitter_email: jsmith@knowledge.org
+          translator_component: KP
+          license_url: https://creativecommons.org/licenses/by/4.0/legalcode
+        fileset:
+          fileset_version: "1.0"
+          biolink_model_release: 2.0.2
+          size: 6.0274563
+          contents:
+            nodes:
+              key:
+                id_prefixes:
+                - CHEMBL.COMPOUND
+                - INCHIKEY
+                count: 0
+                count_by_source:
+                  ChEMBL: 1234
+            edges:
+            - predicate: biolink:interacts_with
+              subject: biolink:PhenotypicFeature
+              count: 6
+              relations:
+              - inhibits
+              - activates
+              count_by_source:
+                ChEMBL: 1234
+              object: biolink:PhenotypicFeature
+            - predicate: biolink:interacts_with
+              subject: biolink:PhenotypicFeature
+              count: 6
+              relations:
+              - inhibits
+              - activates
+              count_by_source:
+                ChEMBL: 1234
+              object: biolink:PhenotypicFeature
+          files:
+          - file_type: file_type
+            original_name: original_name
+            assigned_name: assigned_name
+            file_size: 0.8008282
+            errors:
+            - errors
+            - errors
+          - file_type: file_type
+            original_name: original_name
+            assigned_name: assigned_name
+            file_size: 0.8008282
+            errors:
+            - errors
+            - errors
+          submitter_name: John Smith
+          submitter_email: jsmith@knowledge.org
+      properties:
+        provider:
+          $ref: '#/components/schemas/KgeProviderMetadata'
+        fileset:
+          $ref: '#/components/schemas/KgeFileSetMetadata'
+      title: KgeMetadata
+      type: object
+    KgeProviderMetadata:
+      description: KGE File Set provider and content metadata, including the inventory
+        of associated files.
+      example:
+        kg_name: Semantic Medline Database
+        license_name: Creative-Commons-4.0
+        translator_team: RENCI
+        kg_description: Curated Biolink Model-compliant knowledge graph subset of
+          the Semantic Medline Database
+        terms_of_service: https://ncats.nih.gov/translator
+        kg_id: semantic_medline_database
+        submitter_name: John Smith
+        submitter_email: jsmith@knowledge.org
+        translator_component: KP
+        license_url: https://creativecommons.org/licenses/by/4.0/legalcode
+      properties:
+        kg_id:
+          description: Identifier of the knowledge graph that the metadata describes.
+          example: semantic_medline_database
+          title: kg_id
+          type: string
+        kg_name:
+          description: Semantic Medline Database.
+          example: Semantic Medline Database
+          title: kg_name
+          type: string
+        kg_description:
+          description: Identifier of the knowledge graph that the metadata describes.
+          example: Curated Biolink Model-compliant knowledge graph subset of the Semantic
+            Medline Database
+          title: kg_description
+          type: string
+        translator_component:
+          description: Type of Translator component generating the knowledge graph
+            (i.e. KP, ARA, SRI).
+          example: KP
+          title: translator_component
+          type: string
+        translator_team:
+          description: Translator team providing the knowledge graph data.
+          example: RENCI
+          title: translator_team
+          type: string
+        submitter_name:
+          description: Name of the submitter/owner of the knowledge graph provider
+          example: John Smith
+          title: submitter_name
+          type: string
+        submitter_email:
+          description: Email address for the submitter/owner of the knowledge graph
+            provider.
+          example: jsmith@knowledge.org
+          title: submitter_email
+          type: string
+        license_name:
+          description: Name of Knowledge Graph data use license.
+          example: Creative-Commons-4.0
+          title: license_name
+          type: string
+        license_url:
+          description: URL to Knowledge Graph license data use description.
+          example: https://creativecommons.org/licenses/by/4.0/legalcode
+          title: license_url
+          type: string
+        terms_of_service:
+          description: URL to Knowledge Graph data use "terms of service".
+          example: https://ncats.nih.gov/translator
+          title: terms_of_service
+          type: string
+      title: KgeProviderMetadata
+      type: object
+    KgeFileSetMetadata:
+      description: Metadata including content metadata and the inventory of associated
+        files, for a specific version of KGE File Set.
+      example:
+        fileset_version: "1.0"
+        biolink_model_release: 2.0.2
+        size: 6.0274563
+        contents:
+          nodes:
+            key:
+              id_prefixes:
+              - CHEMBL.COMPOUND
+              - INCHIKEY
+              count: 0
+              count_by_source:
+                ChEMBL: 1234
+          edges:
+          - predicate: biolink:interacts_with
+            subject: biolink:PhenotypicFeature
+            count: 6
+            relations:
+            - inhibits
+            - activates
+            count_by_source:
+              ChEMBL: 1234
+            object: biolink:PhenotypicFeature
+          - predicate: biolink:interacts_with
+            subject: biolink:PhenotypicFeature
+            count: 6
+            relations:
+            - inhibits
+            - activates
+            count_by_source:
+              ChEMBL: 1234
+            object: biolink:PhenotypicFeature
+        files:
+        - file_type: file_type
+          original_name: original_name
+          assigned_name: assigned_name
+          file_size: 0.8008282
+          errors:
+          - errors
+          - errors
+        - file_type: file_type
+          original_name: original_name
+          assigned_name: assigned_name
+          file_size: 0.8008282
+          errors:
+          - errors
+          - errors
+        submitter_name: John Smith
+        submitter_email: jsmith@knowledge.org
+      properties:
+        biolink_model_release:
+          description: Biolink Model released associated with the file set.
+          example: 2.0.2
+          title: biolink_model_release
+          type: string
+        fileset_version:
+          description: Version identifier of the file set.
+          example: "1.0"
+          title: fileset_version
+          type: string
+        submitter_name:
+          description: Name of the submitter of the KGE FileSet
+          example: John Smith
+          title: submitter_name
+          type: string
+        submitter_email:
+          description: Email address for the submitter.
+          example: jsmith@knowledge.org
+          title: submitter_email
+          type: string
+        status:
+          $ref: '#/components/schemas/KgeFileSetStatusCode'
+        files:
+          description: Annotated list of files within a given file set.
+          items:
+            $ref: '#/components/schemas/KgeFile'
+          title: files
+          type: array
+        size:
+          description: approximate aggregate size of data files in the file set (megabytes)
+          format: float
+          title: size
+          type: number
+        contents:
+          $ref: '#/components/schemas/MetaKnowledgeGraph'
+      title: KgeFileSetMetadata
+      type: object
+    KgeFileSetStatusCode:
+      description: Code for status of processing for a KGE File Set.
+      enum:
+      - Created
+      - Loaded
+      - Processing
+      - Validated
+      - Error
+      title: KgeFileSetStatusCode
+      type: string
+    KgeFile:
+      additionalProperties: false
+      description: Annotated file in a KGE File Set.
+      example:
+        file_type: file_type
+        original_name: original_name
+        assigned_name: assigned_name
+        file_size: 0.8008282
+        errors:
+        - errors
+        - errors
+      properties:
+        original_name:
+          description: original name of file (as uploaded)
+          title: original_name
+          type: string
+        assigned_name:
+          description: assigned name of file (by archive, for export)
+          title: assigned_name
+          type: string
+        file_type:
+          description: Designates if the file is (content or file set) meta-, node
+            or edge data
+          title: file_type
+          type: string
+        file_size:
+          description: size of file in megabytes
+          format: float
+          title: file_size
+          type: number
+        kgx_compliance_status:
+          $ref: '#/components/schemas/KgxCompliance'
+        errors:
+          description: if 'non-compliant' file, list of error messags
+          items:
+            type: string
+          title: errors
+          type: array
+      required:
+      - assigned_name
+      - file_size
+      - file_type
+      - kgx_compliance_status
+      - original_name
+      title: KgeFile
+      type: object
+    KgxCompliance:
+      description: KGX compliance status of a specific KGE File.
+      enum:
+      - Assessing
+      - Compliant
+      - Non-Compliant
+      title: KgxCompliance
+      type: string
+    UploadTokenObject:
+      additionalProperties: false
+      description: Upload token associated with a file for uploading into a KGE File
+        Set.
+      example:
+        upload_token: upload_token
+      properties:
+        upload_token:
+          description: Upload object key returned, for use in a local file upload
+            and/or in  in progress monitoring of a local upload or a URL-specified
+            file transfer.
+          title: upload_token
+          type: string
+      required:
+      - upload_token
+      title: UploadTokenObject
+      type: object
+    UploadProgressToken:
+      additionalProperties: false
+      description: Token tracking the upload progress of a file into a KGE File Set.
+      example:
+        upload_token: upload_token
+        current_position: 0
+        end_position: 6
+      properties:
+        upload_token:
+          description: Upload token associated with a given uploading file.
+          title: upload_token
+          type: string
+        current_position:
+          description: Number of bytes uploaded so far.
+          title: current_position
+          type: integer
+        end_position:
+          description: Total expected bytes to be uploaded.
+          title: end_position
+          type: integer
+      required:
+      - current_position
+      - end_position
+      - upload_token
+      title: UploadProgressToken
+      type: object
+    BiolinkEntity:
+      description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing or
+        a child thereof. The CURIE must use the prefix 'biolink:' followed by the
+        PascalCase class name.
+      example: biolink:PhenotypicFeature
+      externalDocs:
+        description: Biolink model entities
+        url: https://biolink.github.io/biolink-model/docs/NamedThing.html
+      pattern: ^biolink:[A-Z][a-zA-Z]*$
+      title: BiolinkEntity
+      type: string
+    BiolinkPredicate:
+      description: CURIE for a Biolink 'predicate' slot, taken from the Biolink slot
+        ('is_a') hierarchy rooted in biolink:related_to (snake_case). This predicate
+        defines the Biolink relationship between the subject and object nodes of a
+        biolink:Association defining a knowledge graph edge.
+      example: biolink:interacts_with
+      externalDocs:
+        description: Biolink model predicates
+        url: https://biolink.github.io/biolink-model/docs/related_to.html
+      pattern: ^biolink:[a-z][a-z_]*$
+      title: BiolinkPredicate
+      type: string
+    MetaKnowledgeGraph:
+      description: Knowledge-map representation of this KGX knowledge graph.
+      example:
+        nodes:
+          key:
+            id_prefixes:
+            - CHEMBL.COMPOUND
+            - INCHIKEY
+            count: 0
+            count_by_source:
+              ChEMBL: 1234
+        edges:
+        - predicate: biolink:interacts_with
+          subject: biolink:PhenotypicFeature
+          count: 6
+          relations:
+          - inhibits
+          - activates
+          count_by_source:
+            ChEMBL: 1234
+          object: biolink:PhenotypicFeature
+        - predicate: biolink:interacts_with
+          subject: biolink:PhenotypicFeature
+          count: 6
+          relations:
+          - inhibits
+          - activates
+          count_by_source:
+            ChEMBL: 1234
+          object: biolink:PhenotypicFeature
+      properties:
+        nodes:
+          additionalProperties:
+            $ref: '#/components/schemas/MetaNode'
+          description: Collection of node categories provided by this KGX knowledge
+            graph, indexed by Biolink class CURIEs.
+          title: nodes
+          type: object
+        edges:
+          description: List of edges/predicates provided by this KGX knowledge graph.
+          items:
+            $ref: '#/components/schemas/MetaEdge'
+          minItems: 1
+          title: edges
+          type: array
+      title: MetaKnowledgeGraph
+      type: object
+    MetaNode:
+      additionalProperties: false
+      description: Description of a node category provided by this KGX knowledge graph.
+      example:
+        id_prefixes:
+        - CHEMBL.COMPOUND
+        - INCHIKEY
+        count: 0
+        count_by_source:
+          ChEMBL: 1234
+      properties:
+        id_prefixes:
+          description: List of CURIE prefixes for the node category that this TRAPI
+            web service understands and accepts on the input.
+          example:
+          - CHEMBL.COMPOUND
+          - INCHIKEY
+          items:
+            type: string
+          minItems: 1
+          title: id_prefixes
+          type: array
+        count:
+          description: Total number of node instances of this node category known
+            to this KGX knowledge graph, or -1 if the number is not known.
+          title: count
+          type: integer
+        count_by_source:
+          additionalProperties:
+            type: integer
+          description: Number of node instances by their source
+          example:
+            ChEMBL: 1234
+          title: count_by_source
+          type: object
+      required:
+      - id_prefixes
+      title: MetaNode
+      type: object
+    MetaEdge:
+      additionalProperties: false
+      description: Edge in a meta knowledge map describing relationship between a
+        subject Biolink class and an object Biolink class.
+      example:
+        predicate: biolink:interacts_with
+        subject: biolink:PhenotypicFeature
+        count: 6
+        relations:
+        - inhibits
+        - activates
+        count_by_source:
+          ChEMBL: 1234
+        object: biolink:PhenotypicFeature
+      properties:
+        subject:
+          description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing
+            or a child thereof. The CURIE must use the prefix 'biolink:' followed
+            by the PascalCase class name.
+          example: biolink:PhenotypicFeature
+          externalDocs:
+            description: Biolink model entities
+            url: https://biolink.github.io/biolink-model/docs/NamedThing.html
+          pattern: ^biolink:[A-Z][a-zA-Z]*$
+          title: BiolinkEntity
+          type: string
+        predicate:
+          description: CURIE for a Biolink 'predicate' slot, taken from the Biolink
+            slot ('is_a') hierarchy rooted in biolink:related_to (snake_case). This
+            predicate defines the Biolink relationship between the subject and object
+            nodes of a biolink:Association defining a knowledge graph edge.
+          example: biolink:interacts_with
+          externalDocs:
+            description: Biolink model predicates
+            url: https://biolink.github.io/biolink-model/docs/related_to.html
+          pattern: ^biolink:[a-z][a-z_]*$
+          title: BiolinkPredicate
+          type: string
+        object:
+          description: Compact URI (CURIE) for a Biolink class, biolink:NamedThing
+            or a child thereof. The CURIE must use the prefix 'biolink:' followed
+            by the PascalCase class name.
+          example: biolink:PhenotypicFeature
+          externalDocs:
+            description: Biolink model entities
+            url: https://biolink.github.io/biolink-model/docs/NamedThing.html
+          pattern: ^biolink:[A-Z][a-zA-Z]*$
+          title: BiolinkEntity
+          type: string
+        relations:
+          description: Low-level relations from the underlying source.
+          example:
+          - inhibits
+          - activates
+          items:
+            type: string
+          title: relations
+          type: array
+        count:
+          description: Total number of edge instances of this (subject, predicate,
+            object) triple known to this KGX knowledge graph, or -1 if the number
+            is not known.
+          title: count
+          type: integer
+        count_by_source:
+          additionalProperties:
+            type: integer
+          description: Number of edge instances by their source.
+          example:
+            ChEMBL: 1234
+          title: count_by_source
+          type: object
+      required:
+      - object
+      - predicate
+      - subject
+      title: MetaEdge
+      type: object
+    RegisterGraphRequestBody:
+      description: KGE Knowledge Graph registration metadata.
+      properties:
+        translator_component:
+          type: string
+        translator_team:
+          type: string
+        kg_name:
+          type: string
+        kg_description:
+          type: string
+        license_name:
+          type: string
+        license_url:
+          type: string
+        terms_of_service:
+          type: string
+      required:
+      - kg_name
+      - translator_component
+      - translator_team
+      type: object
+    RegisterFileSetRequestBody:
+      description: Versioned KGE File Set registration metadata.
+      properties:
+        kg_id:
+          type: string
+        biolink_major_version:
+          type: integer
+        biolink_minor_version:
+          type: integer
+        biolink_patch_version:
+          type: integer
+        fileset_major_version:
+          type: integer
+        fileset_minor_version:
+          type: integer
+        date_stamp:
+          format: date
+          type: string
+      required:
+      - biolink_major_version
+      - biolink_minor_version
+      - biolink_patch_version
+      - fileset_major_version
+      - fileset_minor_version
+      - kg_id
+      type: object
+    UploadRequestBody:
+      description: Uploading form posting of (meta-)data files to a specific KGE File
+        Set version, belonging to a specific Knowledge Graph. The 'upload_mode' argument
+        specifies the category and/or mode as one of 'metadata', 'content_from_local_file'
+        or 'content_from_url'. If 'metadata' or 'content_from_local_file' are indicated,
+        then the 'uploaded_file' parameter should be set to the file to be uploaded.
+        If 'upload_mode' is set to 'content_from_url' then the 'content_url' parameter
+        is taken as a REST endpoint of the file to be transferred into the Archive
+        (authentication not yet supported - URL should provide unauthenticated access).
+        The 'content_name' should be set either to the file name of the 'metadata'
+        or 'content_from_local_file', or url transfers, set by inference or as specified
+        by the caller (especially if the 'content_url' doesn't resolve to a definitive
+        file name). The specific KGX file content of the current upload file is set
+        by the `kgx_file_content' for KGX data files uploaded in the 'content_from_local_file'
+        or 'content_from_url' modes set by the selected 'nodes' versus 'edges' radio
+        button.
+      properties:
+        kg_id:
+          type: string
+        fileset_version:
+          type: string
+        kgx_file_content:
+          type: string
+        upload_mode:
+          type: string
+        content_name:
+          type: string
+        content_url:
+          type: string
+        uploaded_file:
+          format: binary
+          type: string
+      required:
+      - content_name
+      - fileset_version
+      - kg_id
+      - kgx_file_content
+      - upload_mode
+      type: object

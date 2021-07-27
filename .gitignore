@@ -135,8 +135,16 @@ dmypy.json
 .DS_Store
 ._.DS_Store
 
+# OpenAPI codegen Java JAR...
+.openapi-generator/
+*.jar
+
+# ignore local virtual environments
+py*/
+
 # Project & site configuration ignored
 .aws
-kgea_config.yaml
+config.yaml
 styles.css
 banner.jpg
+kgea/server/test/output/*.yaml

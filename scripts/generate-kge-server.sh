@@ -12,6 +12,9 @@ echo
 NAME="kge-archive"
 echo "Project name: "$NAME
 
+SERVER_TARGET=python-aiohttp
+echo "Target server type: "$SERVER_TARGET
+
 DESCRIPTION="NCATS_Knowledge_Graph_Exchange_Archive_Web_Services"
 echo "Project description: "$DESCRIPTION
 echo
@@ -40,6 +43,9 @@ MODULE="server"
 OUTPUT=$SRC/$MODULE
 echo "Generated "$MODULE" code: "$OUTPUT
 
+PACKAGE="web_services"
+echo "Root package name: "$PACKAGE
+
 #
 # A SemVer major.minor.patch version identifier (e.g. 0.0.1)
 # can be given as the first argument of the script.
@@ -62,10 +68,10 @@ fi
 # Maybe can use '(g)awk' to capture?
 
 $CODE_GEN_CLI generate \
-   -g python-flask \
+   -g $SERVER_TARGET \
    -i $SPECIFICATION \
    -o $OUTPUT \
-   --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,projectVersion=$VERSION,featureCORS=true
+   --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,packageName=$PACKAGE,projectVersion=$VERSION,featureCORS=true
 
 #
 # After code generation, the package.json has been overwritten again,

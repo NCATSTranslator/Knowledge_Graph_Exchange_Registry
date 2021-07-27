@@ -1,0 +1,5 @@
+<div class="menu_item">
+<form action="/logout">
+    <input type="submit" value="Logout" />
+</form>
+</div>

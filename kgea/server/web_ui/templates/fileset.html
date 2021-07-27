@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+{% block scripts %}
+    <script>
+        function help(msg)  {
+            if(msg) {
+                window.alert(msg);
+            }
+        }
+    </script>
+{% endblock %}
+{% block menu %}
+{% include "logout.button" %}
+{% include "home.button" %}
+{% endblock %}
+{% block title %}Register New Version of KGE File Set<br>
+                 for Knowledge Graph<br>{{kg_name}}{% endblock %}
+{% block content %}
+<form method="post"
+      action="{{registration_action}}"
+      enctype="application/x-www-form-urlencoded"
+      accept-charset="utf-8"
+>
+    <input id="kg_id" type="hidden" name="kg_id" value="{{kg_id}}" />
+    <table>
+        <tr>
+            <td>
+                <span style="font-size: smaller">Mandatory fields noted by a '<span style="color: red; font-weight: bold">*</span>'.</span><br>
+                <b>Submitter:</b>{{submitter_name}}<br>
+                <b>Email:</b> {{submitter_email}}
+                <input id="submitter_name" type="hidden" name="submitter_name" value="{{submitter_name}}" />
+                <input id="submitter_email" type="hidden" name="submitter_email" value="{{submitter_email}}" />
+            </td>
+            <td>
+                <input type="submit" value="Register File Set">
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <b><span style="color: red; font-weight: bold">*</span>Biolink Model Release:</b><br>
+                <label  class="label" for="biolink_major_version">Major:</label>
+                <input id="biolink_major_version"
+                       name="biolink_major_version"
+                       type="number"
+                       min="1" step="1"
+                       value="{{biolink_major_version}}"
+                       size="2"
+                />
+                <label  class="label" for="biolink_minor_version">Minor:</label>
+                <input id="biolink_minor_version"
+                       name="biolink_minor_version"
+                       type="number"
+                       min="0" step="1"
+                       value="{{biolink_minor_version}}"
+                       size="2"
+                />
+                <label  class="label" for="biolink_patch_version">Patch:</label>
+                <input id="biolink_patch_version"
+                       name="biolink_patch_version"
+                       type="number"
+                       min="0" step="1"
+                       value="{{biolink_patch_version}}"
+                       size="2"
+                /><br>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b><span style="color: red; font-weight: bold">*</span>File Set Version:</b><br>
+                <label  class="label" for="major_version">Major:</label>
+                <input id="fileset_major_version"
+                       name="fileset_major_version"
+                       type="number"
+                       min="1" step="1"
+                       value="{{fileset_major_version}}"
+                       size="2"
+                />
+                <label  class="label" for="minor_version">Minor:</label>
+                <input id="fileset_minor_version"
+                       name="fileset_minor_version"
+                       type="number"
+                       min="0" step="1"
+                       value="{{fileset_minor_version}}"
+                       size="2"
+                /><br>
+            </td>
+            <td>
+                <label  class="label" for="date_stamp">Date Stamp:</label>
+                <input id="date_stamp"
+                       name="date_stamp"
+                       type="date" min="0"
+                       step="1"
+                       value="{{date_stamp}}"
+                />
+            </td>
+        </tr>
+</table>
+</form>
+{% endblock %}
