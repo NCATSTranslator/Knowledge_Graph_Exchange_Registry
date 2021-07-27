@@ -39,7 +39,7 @@ from jsonschema import (
 )
 
 import yaml
-from kgx import GraphEntityType
+from kgx.utils.kgx_utils import GraphEntityType
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
