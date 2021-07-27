@@ -22,7 +22,6 @@ pyyaml
 # AIOHTTP 3.7.4 has a bug which is problematic for KGE, anticipated to be fixed in a 4.* release
 # See
 aiohttp<3.7
-
 aiohttp-session
 aiomcache
 jsonschema

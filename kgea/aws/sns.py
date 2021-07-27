@@ -29,25 +29,9 @@ def usage(err_msg: str = ''):
 
 # Run the module as a CLI
 if __name__ == '__main__':
-    
-    account_id_from_user: str = ""
-    external_id: str = ""
-    role_name_from_user: str = ""
-    
-    # Prompt user for target and action for the EC2 service
-    if len(sys.argv) >= 4:
-        
-        account_id_from_user = sys.argv[1]
-        external_id = sys.argv[2]
-        role_name_from_user = sys.argv[3]
-        
-        assumed_role = AssumeRole(
-            account_id_from_user,
-            external_id,
-            role_name_from_user
-        )
-        
-        sns_client = assumed_role.get_client('sns')
 
-        # TODO: SNS specific actions here
-    
+    assumed_role = AssumeRole()
+
+    sns_client = assumed_role.get_client('sns')
+
+    # TODO: SNS specific actions here

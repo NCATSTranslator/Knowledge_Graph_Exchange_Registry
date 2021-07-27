@@ -2,7 +2,7 @@ from os import path
 import connexion
 import aiohttp_cors
 
-from kgea.server.web_services.catalog.Catalog import KgeArchiveCatalog
+from kgea.server.web_services.catalog import KgeArchiveCatalog
 from kgea.server.web_services.controllers.content_controller import download_file_set
 from kgea.server.web_services.kgea_session import KgeaSession
 

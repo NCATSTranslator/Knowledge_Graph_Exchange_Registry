@@ -1,0 +1,7 @@
+oauth2:
+  host:      'https://delphinai-star-ncats-translator-kge-archive-test-server.auth.us-east-1.amazoncognito.com'
+  client_id: '23tp0beft19mteekp0pg6dablp'
+  site_uri:  'https://kge.starinformatics.ca'
+  login_callback:  '/oauth2callback'
+
+bucket: 'kgea-bucket' 

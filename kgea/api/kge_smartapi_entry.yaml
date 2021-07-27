@@ -39,7 +39,7 @@ paths:
   /{kg_version}/meta_knowledge_graph:
     get:
       parameters:
-        - name: kg_version
+        - name: fileset_version
           in: path
           description: >-
             Version of KGE File Set for a given knowledge graph.
@@ -77,7 +77,7 @@ paths:
 /{kg_version}/download:
     get:
       parameters:
-        - name: kg_version
+        - name: fileset_version
           in: path
           description: >-
             Version of KGE File Set of the knowledge graph being accessed.

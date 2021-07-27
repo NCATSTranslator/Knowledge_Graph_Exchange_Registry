@@ -4,12 +4,16 @@
 site_hostname: 'https://archive.translator.ncats.io'
 
 aws:
+  # optional 'assume-role' access parameters
+  # Note the EC2 instances generally use the
+  # EC2 instance profile to get at an EC2 role
   host_account: '<Host AWS Account Number>'
   guest_external_id: '<Guest-specified external identifier'
   iam_role_name: '<Host-specified IAM Role name>'
   s3:
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+    region: <S3 bucket region>    # even though S3 is global, the actual bucket endpoint may be regiospecific
     archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
   cognito:
     # AWS Cognito OAuth2 transaction parameters

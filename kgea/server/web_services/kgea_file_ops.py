@@ -9,7 +9,7 @@ Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biol
 """
 import io
 from sys import stderr
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Optional
 from functools import wraps
 from string import Template
 import random
@@ -42,7 +42,6 @@ from kgea.config import (
     FILE_SET_METADATA_FILE
 )
 
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -51,24 +50,28 @@ logger.setLevel(logging.INFO)
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
-
 #
 # Obtain an AWS S3 Client using an Assumed IAM Role
+# with default parameters (loaded from config.yaml)
 #
-aws_config = _KGEA_APP_CONFIG['aws']
-the_role = AssumeRole(
-    aws_config['host_account'],
-    aws_config['guest_external_id'],
-    aws_config['iam_role_name']
-)
+the_role = AssumeRole()
 
 
-def s3_client(assumed_role=the_role, config=Config(signature_version='s3v4')):
+def s3_client(
+        assumed_role=the_role,
+        config=Config(
+            signature_version='s3v4',
+            region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
+        )
+):
     return assumed_role.get_client('s3', config=config)
 
 
 def s3_resource(assumed_role=the_role):
-    return assumed_role.get_resource('s3')
+    return assumed_role.get_resource(
+        's3',
+        region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
+    )
 
 
 def create_location(bucket, kg_id):
@@ -170,7 +173,7 @@ def object_key_exists(bucket_name, object_key) -> bool:
     """
     if not object_key:
         return False
-    
+
     bucket = s3_resource().Bucket(bucket_name)
     key = object_key
     objs = list(bucket.objects.filter(Prefix=key))
@@ -258,7 +261,7 @@ def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
     return True
 
 
-def get_kg_versions_available(bucket_name, kg_id=None):
+def get_fileset_versions_available(bucket_name, kg_id=None):
     kg_files = kg_files_in_location(bucket_name)
 
     def kg_id_to_versions(kg_file):
@@ -275,9 +278,9 @@ def get_kg_versions_available(bucket_name, kg_id=None):
             kg_info.remove('')
 
         _kg_id = kg_info[0]
-        _kg_version = kg_info[1]
+        _fileset_version = kg_info[1]
 
-        return _kg_id, _kg_version
+        return _kg_id, _fileset_version
 
     versions_per_kg = {}
     version_kg_pairs = set(kg_id_to_versions(kg_file) for kg_file in kg_files if kg_id and kg_file[0] is kg_id or True)
@@ -293,18 +296,18 @@ def get_kg_versions_available(bucket_name, kg_id=None):
 
 @prepare_test
 @prepare_test_random_object_location
-def test_get_kg_versions_available(test_object_location, test_bucket=TEST_BUCKET):
+def test_get_fileset_versions_available(test_object_location, test_bucket=TEST_BUCKET):
     try:
-        kg_version_map = get_kg_versions_available(bucket_name=test_bucket)
-        print(kg_version_map)
-        assert (kg_version_map is dict and len(kg_version_map) > 0)
+        fileset_version_map = get_fileset_versions_available(bucket_name=test_bucket)
+        print(fileset_version_map)
+        assert (fileset_version_map is dict and len(fileset_version_map) > 0)
     except AssertionError as e:
         raise AssertionError(e)
     return True
 
 
 # TODO: clarify expiration time - default to 1 day (in seconds)
-def create_presigned_url(bucket, object_key, expiration=86400):
+def create_presigned_url(bucket, object_key, expiration=86400) -> Optional[str]:
     """Generate a pre-signed URL to share an S3 object
 
     :param bucket: string
@@ -316,19 +319,24 @@ def create_presigned_url(bucket, object_key, expiration=86400):
     # Generate a pre-signed URL for the S3 object
     # https://stackoverflow.com/a/52642792
     #
-    # This may thrown a Boto related exception - assume that it will be catch by the caller
-    response = s3_client().generate_presigned_url(
-        ClientMethod='get_object',
-        Params={
-            'Bucket': bucket,
-            'Key': object_key,
-            'ResponseContentDisposition': 'attachment'
-        },
-        ExpiresIn=expiration
-    )
+    # This may thrown a Boto related exception - assume that it will be caught by the caller
+    #
+    try:
+        endpoint = s3_client().generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': bucket,
+                'Key': object_key,
+                'ResponseContentDisposition': 'attachment',
+            },
+            ExpiresIn=expiration
+        )
+    except Exception as e:
+        logger.error("create_presigned_url() error: "+str(e))
+        return None
 
-    # The response contains the pre-signed URL
-    return response
+    # The endpoint contains the pre-signed URL
+    return endpoint
 
 
 @prepare_test
@@ -436,18 +444,18 @@ def compress_file_to_archive(in_filename, out_filename):
     return temp
 
 
-def kg_filepath(kg_id, kg_version, root='', subdir='', attachment=''):
+def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     return Template("$ROOT/$KG_ID/$KG_VERSION$SUB_DIR$ATTACHMENT").substitute(
         ROOT=root,
         KG_ID=kg_id,
-        KG_VERSION=kg_version,
+        KG_VERSION=fileset_version,
         SUB_DIR=subdir + '/',
         ATTACHMENT=attachment
     )
 
 
 def tardir(directory, name) -> str:
-    logger.error("Calling tardir(directory='"+directory+"', name='"+name+"')")
+    logger.error("Calling tardir(directory='" + directory + "', name='" + name + "')")
     raise RuntimeError("Not yet implemented!")
 
 
@@ -596,7 +604,7 @@ def upload_file_multipart(
 
 
 def package_file(name: str, target_file):
-    logger.error("Calling package_file(name='"+name+"', name='"+target_file+"')")
+    logger.error("Calling package_file(name='" + name + "', name='" + target_file + "')")
     raise RuntimeError("Not yet implemented!")
 
 
@@ -858,9 +866,8 @@ async def compress_download(
         file_set_object_key,
         # open_file=False
 ) -> str:
-
     part = file_set_object_key.split('/')
-    archive_file_name = str(part[-3]).strip()+"_"+str(part[-2]).strip()
+    archive_file_name = str(part[-3]).strip() + "_" + str(part[-2]).strip()
     archive_path = "{file_set_object_key}archive/{archive_file_name}.tar.gz".format(
         file_set_object_key=file_set_object_key,
         archive_file_name=archive_file_name,
@@ -877,7 +884,7 @@ async def compress_download(
     job.add_files(file_set_object_key)
 
     # Add the Knowledge Graph provider.yaml file as well
-    provider_metadata_file_object_key = part[0]+"/"+part[1]+"/provider.yaml"
+    provider_metadata_file_object_key = part[0] + "/" + part[1] + "/provider.yaml"
     job.add_file(provider_metadata_file_object_key)
 
     # execute the job
@@ -933,7 +940,7 @@ def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') ->
         if mode == 'text':
             data_string = data_bytes.decode('utf-8')
     except Exception as e:
-        logger.error('ERROR: _load_s3_text_file(): '+str(e))
+        logger.error('ERROR: _load_s3_text_file(): ' + str(e))
 
     return data_string
 
@@ -946,7 +953,7 @@ def get_archive_contents(bucket_name: str) -> \
                 Union[
                     str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
                     Dict[
-                        str,  # kg_version's of versioned KGE File Sets for a kg
+                        str,  # fileset_version's of versioned KGE File Sets for a kg
                         Dict[
                             str,  # tags 'metadata' and 'file_object_keys'
                             Union[
@@ -968,23 +975,23 @@ def get_archive_contents(bucket_name: str) -> \
     all_files = kg_files_in_location(bucket_name=bucket_name)
 
     contents: Dict[
-        str,   # kg_id's of every KGE archived knowledge graph
+        str,  # kg_id's of every KGE archived knowledge graph
         Dict[
             str,  # tags 'metadata' and 'versions'
             Union[
-                str,   # 'metadata' field value: kg specific 'provider' text file blob from S3
+                str,  # 'metadata' field value: kg specific 'provider' text file blob from S3
                 Dict[
-                    str,  # kg_version's of versioned KGE File Sets for a kg
+                    str,  # fileset_version's of versioned KGE File Sets for a kg
                     Dict[
                         str,  # tags 'metadata' and 'file_object_keys'
                         Union[
-                            str,   # 'metadata' field value: 'file set' specific text file blob from S3
+                            str,  # 'metadata' field value: 'file set' specific text file blob from S3
                             List[str]  # list of data file object keys in a given KGE File Set
-                            ]
                         ]
                     ]
                 ]
             ]
+        ]
     ] = dict()
 
     for file_path in all_files:
@@ -1001,7 +1008,7 @@ def get_archive_contents(bucket_name: str) -> \
             # obtained from a kg_id specific PROVIDER_METADATA_FILE
             # plus one or more versions of KGE File Set
             contents[kg_id] = dict()  # dictionary of kg's, indexed by kg_id
-            contents[kg_id]['versions'] = dict()  # dictionary of versions, indexed by kg_version
+            contents[kg_id]['versions'] = dict()  # dictionary of versions, indexed by fileset_version
 
         if file_part[2] == PROVIDER_METADATA_FILE:
             # Get the provider 'kg_id' associated metadata file just stored
@@ -1014,16 +1021,16 @@ def get_archive_contents(bucket_name: str) -> \
                 )
         else:
             # otherwise, assume file_part[2] is a 'version folder'
-            kg_version = file_part[2]
-            if kg_version not in contents[kg_id]['versions']:
-                contents[kg_id]['versions'][kg_version] = dict()
-                contents[kg_id]['versions'][kg_version]['file_object_keys'] = list()
+            fileset_version = file_part[2]
+            if fileset_version not in contents[kg_id]['versions']:
+                contents[kg_id]['versions'][fileset_version] = dict()
+                contents[kg_id]['versions'][fileset_version]['file_object_keys'] = list()
 
             if file_part[3] == FILE_SET_METADATA_FILE:
                 # Get the provider 'kg_id' associated metadata file just stored
                 # as a blob of text, for content parsing by the function caller
                 # Unlike the kg_id versions, there should only be one such file?
-                contents[kg_id]['versions'][kg_version]['metadata'] = \
+                contents[kg_id]['versions'][fileset_version]['metadata'] = \
                     load_s3_text_file(
                         bucket_name=bucket_name,
                         object_name=file_path
@@ -1033,7 +1040,7 @@ def get_archive_contents(bucket_name: str) -> \
             # simple first iteration just records the list of data file paths
             # (other than the PROVIDER_METADATA_FILE)
             # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
-            contents[kg_id]['versions'][kg_version]['file_object_keys'].append(file_path)
+            contents[kg_id]['versions'][fileset_version]['file_object_keys'].append(file_path)
 
     return contents
 
@@ -1084,7 +1091,7 @@ if __name__ == '__main__':
     run_test(test_kg_files_in_location)
     run_test(test_is_location_available)
     run_test(test_is_not_location_available)
-    run_test(test_get_kg_versions_available)
+    run_test(test_get_fileset_versions_available)
     run_test(test_create_presigned_url)
 
     # run_test(test_tardir)

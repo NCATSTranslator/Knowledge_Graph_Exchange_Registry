@@ -28,9 +28,8 @@ from kgea.config import (
     get_fileset_metadata_url,
     get_meta_knowledge_graph_url,
     BACKEND
-) 
-
-
+)
+from kgea.server.web_services.catalog import get_default_model_version
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     redirect,
@@ -231,15 +230,15 @@ async def view_kge_metadata(request: web.Request) -> web.Response:
         if not kg_id:
             await redirect(request, HOME_PAGE, active_session=True)
 
-        kg_version = request.query.get('kg_version', default='')
+        fileset_version = request.query.get('fileset_version', default='')
         kg_name = request.query.get('kg_name', default='')
 
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
-            "kg_version": kg_version,
-            "get_fileset_metadata": get_fileset_metadata_url(kg_id, kg_version),
-            "meta_knowledge_graph": get_meta_knowledge_graph_url(kg_id, kg_version)
+            "fileset_version": fileset_version,
+            "get_fileset_metadata": get_fileset_metadata_url(kg_id, fileset_version),
+            "meta_knowledge_graph": get_meta_knowledge_graph_url(kg_id, fileset_version)
         }
         response = aiohttp_jinja2.render_template('metadata.html', request=request, context=context)
         return await with_session(request, response)
@@ -261,18 +260,26 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
 
         if not kg_id:
             await redirect(request, HOME_PAGE, active_session=True)
-            
+
+        #  Look up "latest" Biolink Model version
+        biolink_semver = get_default_model_version()
+
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
 
             "submitter_name": session['name'],
             "submitter_email": session['email'],
-    
-            # TODO: might be best to look up "latest" KGE file set version,
-            #       increment it and send it to the form here?
-            "major_version": "1",
-            "minor_version": "0",
+
+            "biolink_major_version": biolink_semver[0],
+            "biolink_minor_version": biolink_semver[1],
+            "biolink_patch_version": biolink_semver[2],
+
+            # TODO: might be best to somehow look up "latest" KGE file set version,
+            #       increment it then send it to the form here?
+            "fileset_major_version": "1",
+            "fileset_minor_version": "0",
+
             "date_stamp": get_default_date_stamp(),
             
             "registration_action": REGISTER_FILESET
@@ -298,15 +305,15 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
 
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
-        kg_version = request.query.get('kg_version', default='')
+        fileset_version = request.query.get('fileset_version', default='')
 
         missing: List[str] = []
         if not kg_id:
             missing.append("kg_id")
         if not kg_name:
             missing.append("kg_name")
-        if not kg_version:
-            missing.append("kg_version")
+        if not fileset_version:
+            missing.append("fileset_version")
 
         if missing:
             await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
@@ -314,7 +321,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
-            "kg_version": kg_version,
+            "fileset_version": fileset_version,
             "submitter_name": submitter_name,
             "upload_action": UPLOAD_FILE,
             "publish_file_set_action": PUBLISH_FILE_SET
@@ -341,19 +348,19 @@ async def get_kge_data_unavailable(request: web.Request) -> web.Response:
 
         kg_name = request.query.get('kg_name', default='')
         data_type = request.query.get('data_type', default='')
-        kg_version = request.query.get('kg_version', default='')
+        fileset_version = request.query.get('fileset_version', default='')
 
         missing: List[str] = []
         if not kg_name:
             missing.append("kg_name")
-        if not kg_version:
-            missing.append("kg_version")
+        if not fileset_version:
+            missing.append("fileset_version")
         if missing:
             await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
             
         context = {
             "kg_name": kg_name,
-            "kg_version": kg_version,
+            "fileset_version": fileset_version,
             "data_type": data_type,
             "submitter_name": submitter_name
         }

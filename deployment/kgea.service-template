@@ -1,19 +1,19 @@
 # Save as /etc/systemd/system/kgea.service
 [Unit]
-Description=Knowledge Graph Exchange Archive
+Description=Knowledge Graph Exchange Archive service with docker compose
 Requires=docker.service
 After=docker.service
 
 [Service]
 Restart=always
+RemainAfterExit=true
 User=ubuntu
 Group=docker
-# Shutdown container (if running) when unit is stopped
-ExecStartPre=/usr/local/bin/docker-compose -f /opt/projects/Knowledge_Graph_Exchange_Registry/docker-compose.yml down -v
+WorkingDirectory=/opt/projects/Knowledge_Graph_Exchange_Registry
 # Start container when unit is started
-ExecStart=/usr/local/bin/docker-compose -f /opt/projects/Knowledge_Graph_Exchange_Registry/docker-compose.yml up
+ExecStart=/usr/local/bin/docker-compose up --remove-orphans
 # Stop container when unit is stopped
-ExecStop=/usr/local/bin/docker-compose -f /opt/projects/Knowledge_Graph_Exchange_Registry/docker-compose.yml down -v
+ExecStop=/usr/local/bin/docker-compose down -v
 
 [Install]
 WantedBy=multi-user.target

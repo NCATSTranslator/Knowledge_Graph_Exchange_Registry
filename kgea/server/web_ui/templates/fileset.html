@@ -35,23 +35,52 @@
             </td>
         </tr>
         <tr>
-            <td>
-                <b><span style="color: red; font-weight: bold">*</span>SemVer Version:</b><br>
-                <label  class="label" for="major_version">Major:</label>
-                <input id="major_version"
-                       name="major_version"
+            <td colspan="2">
+                <b><span style="color: red; font-weight: bold">*</span>Biolink Model Release:</b><br>
+                <label  class="label" for="biolink_major_version">Major:</label>
+                <input id="biolink_major_version"
+                       name="biolink_major_version"
                        type="number"
                        min="1" step="1"
-                       value="{{major_version}}"
-                       size="5"
-                /><br>
-                <label  class="label" for="minor_version">Minor:</label>
-                <input id="minor_version"
-                       name="minor_version"
+                       value="{{biolink_major_version}}"
+                       size="2"
+                />
+                <label  class="label" for="biolink_minor_version">Minor:</label>
+                <input id="biolink_minor_version"
+                       name="biolink_minor_version"
                        type="number"
                        min="0" step="1"
-                       value="{{minor_version}}"
-                       size="5"
+                       value="{{biolink_minor_version}}"
+                       size="2"
+                />
+                <label  class="label" for="biolink_patch_version">Patch:</label>
+                <input id="biolink_patch_version"
+                       name="biolink_patch_version"
+                       type="number"
+                       min="0" step="1"
+                       value="{{biolink_patch_version}}"
+                       size="2"
+                /><br>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <b><span style="color: red; font-weight: bold">*</span>File Set Version:</b><br>
+                <label  class="label" for="major_version">Major:</label>
+                <input id="fileset_major_version"
+                       name="fileset_major_version"
+                       type="number"
+                       min="1" step="1"
+                       value="{{fileset_major_version}}"
+                       size="2"
+                />
+                <label  class="label" for="minor_version">Minor:</label>
+                <input id="fileset_minor_version"
+                       name="fileset_minor_version"
+                       type="number"
+                       min="0" step="1"
+                       value="{{fileset_minor_version}}"
+                       size="2"
                 /><br>
             </td>
             <td>

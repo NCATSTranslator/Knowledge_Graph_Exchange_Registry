@@ -67,7 +67,7 @@ class KgeFileSetEntry(Model):
     def versions(self):
         """Gets the versions of this KgeFileSetEntry.
 
-        List of versions ('kg_version') of a KGE File Set
+        List of versions ('fileset_version') of a KGE File Set
 
         :return: The versions of this KgeFileSetEntry.
         :rtype: List[str]
@@ -78,7 +78,7 @@ class KgeFileSetEntry(Model):
     def versions(self, versions):
         """Sets the versions of this KgeFileSetEntry.
 
-        List of versions ('kg_version') of a KGE File Set
+        List of versions ('fileset_version') of a KGE File Set
 
         :param versions: The versions of this KgeFileSetEntry.
         :type versions: List[str]
