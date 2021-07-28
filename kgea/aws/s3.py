@@ -19,7 +19,7 @@ from kgea.aws.assume_role import AssumeRole, aws_config
 def upload_file(client, bucket_name: str, filepath: str, object_key: str):
     # Upload a test file
     print(
-        "\n###Creating a test object '" + object_key +
+        "\n###Uploading file '" + filepath + "' object '" + object_key +
         "' in the S3 bucket '" + bucket_name + "'\n"
     )
     
@@ -113,6 +113,7 @@ if __name__ == '__main__':
 
         elif s3_operation.upper() == 'LIST':
             list_files(s3_client, s3_bucket_name)
+        
         elif s3_operation.upper() == 'DELETE':
             if len(sys.argv) >= 3:
                 object_keys = sys.argv[2:]

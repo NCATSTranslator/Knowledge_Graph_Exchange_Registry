@@ -39,12 +39,14 @@ from jsonschema import (
 )
 
 import yaml
-from kgx import GraphEntityType
+from kgx.utils.kgx_utils import GraphEntityType
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml.scanner import ScannerError
 except ImportError:
     from yaml import Loader, Dumper
+    from yaml.scanner import ScannerError
 
 from github import Github
 from github.GithubException import UnknownObjectException
@@ -634,7 +636,7 @@ class KgeKnowledgeGraph:
             if key not in self._expected_provider_metadata:
                 logger.warning("Unexpected KgeKnowledgeGraph parameter '"+str(key)+"'... ignored!")
                 continue
-            self.parameter[key] = value
+            self.parameter[key] = self.sanitize(key, value)
 
         # File Set Versions
         self._file_set_versions: Dict[str, KgeFileSet] = dict()
@@ -659,10 +661,33 @@ class KgeKnowledgeGraph:
 
     _spregex = re.compile(r'\s+')
 
+    _indent = " "*4
+    
+    def sanitize(self, key, value):
+        """
+        This function fixes the text of specific values of the
+        Knowledge Graph metadata to be YAML friendly
+        
+        :param key: yaml key field
+        :param value: text value to be fixed (if necessary)
+        :return:
+        """
+        if key == "kg_description":
+            # Sanity check: remove carriage returns
+            value = value.replace("\r", "")
+            value = value.replace("\n", "\n"+" "*4)
+            # Fix both ends
+            value = value.strip()
+            value += " "*4
+        return value
+
     @classmethod
     def _name_filter(cls):
         if not cls._name_filter_table:
             delete_dict = {sp_character: '' for sp_character in punctuation}
+            # make exception for hyphen and period: keep/convert to hyphen
+            delete_dict['-'] = '-'
+            delete_dict['.'] = '-'
             cls._name_filter_table = str.maketrans(delete_dict)
         return cls._name_filter_table
     
@@ -972,9 +997,10 @@ class KgeArchiveCatalog:
          to load into a KgeFileSet
          for indexing in the KgeArchiveCatalog
         """
-        if 'metadata' in entry:
+        if not (
+            'metadata' in entry and
             self.load_provider_metadata(kg_id=kg_id, metadata_text=entry['metadata'])
-        else:
+        ):
             # provider.yaml metadata was not loaded, then, ignore this entry and return...
             logger.warning(
                 "load_archive_entry(): no 'metadata' loaded from archive... ignoring knowledge graph '"+kg_id+"'?"
@@ -985,18 +1011,29 @@ class KgeArchiveCatalog:
             knowledge_graph: KgeKnowledgeGraph = self.get_knowledge_graph(kg_id)
             knowledge_graph.load_file_set_versions(versions=entry['versions'])
 
-    def load_provider_metadata(self, kg_id, metadata_text: str):
-        # Assumed to be a YAML string to be parsed into a Python dictionary
+    def load_provider_metadata(self, kg_id, metadata_text: str) -> bool:
+        """
+        Metadata assumed to be a YAML string to be parsed into a Python dictionary
+        :param kg_id:
+        :param metadata_text:
+        :return:
+        """
         mf = StringIO(metadata_text)
-        md_raw = yaml.load(mf, Loader=Loader)
+        try:
+            md_raw = yaml.load(mf, Loader=Loader)
+        except ScannerError:
+            logger.warning("Ignoring improperly formed provider metadata YAML file: "+metadata_text)
+            return False
+            
         md = dict(md_raw)
 
         # id: "disney_small_world_graph" ## == kg_id
         if kg_id != md.setdefault('id', ''):
-            raise RuntimeError(
+            logger.warning(
                 "load_archive_entry(): archive folder kg_id '" + kg_id +
                 " != id in "+PROVIDER_METADATA_FILE+"?"
             )
+            return False
 
         # name:  "Disneyland Small World Graph"
         kg_name = md.setdefault('name', 'Unknown')
@@ -1058,6 +1095,8 @@ class KgeArchiveCatalog:
             license_url=license_url,
             terms_of_service=terms_of_service
         )
+        
+        return True
     
     # TODO: what is the required idempotency of this KG addition
     #       relative to submitters (can submitters change?)

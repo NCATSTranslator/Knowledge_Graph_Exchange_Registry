@@ -13,6 +13,10 @@
         }
     </style>
     <script>
+        function scrollable_text_box(msg) {
+            return "<div style=\"height:100px;width:auto;overflow:auto;border:2px solid darkblue;padding:2%\">"+
+                   msg+"</div>";
+        }
         async function loadMetadata() {
 
             // window.alert("Loading metadata for FileSet version '{{fileset_version}}' of graph '{{kg_name}}'");
@@ -56,7 +60,17 @@
                                                 value2 = Math.round(value2*100)/100;
                                                 value2 = value2.toLocaleString();
                                             }
-                                            metadata_table += "<tr><th>" + tag_label + "</th><td>" + value2 + "</td>";
+                                            if (tag_label === "Graph Description")  {
+                                                value2 = value2.replace(/\n/,"<br>");
+                                                value2 = value2.replace(/^\s{4}?/m,"&nbsp;&nbsp;&nbsp;&nbsp;");
+                                                //window.alert(value2);
+                                                value2 = scrollable_text_box(value2)
+                                            }
+                                            if(tag_label === "License Url" || tag_label === "Terms Of Service" )  {
+                                                value2 = "<a  style=\"color:blue;\" href=\"" + value2 + "\">" + value2 + "</a>";
+                                            }
+                                            metadata_table += "<tr><th style=\"width:25%;\">" + tag_label +
+                                                              "</th><td style=\"width:75%;\">" + value2 + "</td>";
                                         }
                                         metadata_table += "</tr>";
                                     });
