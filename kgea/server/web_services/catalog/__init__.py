@@ -678,7 +678,7 @@ class KgeKnowledgeGraph:
             value = value.replace("\n", "\n"+" "*4)
             # Fix both ends
             value = value.strip()
-            value += " "*4
+            value = " "*4 + value
         return value
 
     @classmethod
