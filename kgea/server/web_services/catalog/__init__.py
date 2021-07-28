@@ -49,7 +49,7 @@ except ImportError:
     from yaml.scanner import ScannerError
 
 from github import Github
-from github.GithubException import UnknownObjectException
+from github.GithubException import UnknownObjectException, BadCredentialsException
 
 from kgx.transformer import Transformer
 from kgx.validator import Validator
@@ -1400,14 +1400,21 @@ def add_to_github(
             
             g = Github(gh_token)
 
-            # TODO: should I be explicit somewhere here
-            #       about the repo branch being used? How?
-            repo = g.get_repo(repo_path)
-
+            content_file = repo = None
+            
             try:
+                # TODO: should I be explicit somewhere here
+                #       about the repo branch being used? How?
+                repo = g.get_repo(repo_path)
                 content_file = repo.get_contents(entry_path)
+            except BadCredentialsException:
+                repo = None
             except UnknownObjectException:
                 content_file = None
+            
+            if not repo:
+                logger.error("Could not connect to Github repo: "+repo_path)
+                return False
             
             if not content_file:
                 repo.create_file(
