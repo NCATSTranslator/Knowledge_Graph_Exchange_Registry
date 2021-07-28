@@ -13,7 +13,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
         - [Project Configuration File](#project-configuration-file)
         - [Other Prerequisites](#other-prerequisites)
         - [Project Python Package Dependencies](#project-python-package-dependencies)
-    - [Basic Operation of the Server](#basic-operation-of-the-server)
+    - [Basic Operation of the Server during Development](#basic-operation-of-the-server-during-development)
     - [Running the Application within a Docker Container](#running-the-application-within-a-docker-container)
         - [Installation of Docker](#installation-of-docker)
             - [Testing Docker](#testing-docker)    
@@ -180,16 +180,16 @@ pipenv install
 
 NOTE: Dependencies only need to be installed on a local system during development. Production deployment of the system uses Docker (see below) which installs the required dependencies inside the container.
 
-## Basic Operation of the Server
+## Basic Operation of the Server during Development
 
-During development, it may be convenient to simply run the application from the command line. The application is currently split into multiple components running in parallel (preferably each within their own Python virtual environment, to be safe):
+During development, it may be convenient to simply run the application from the command line. We split the application into multiple components which are run in parallel (preferably each within their own Python virtual environment, to be safe):
 
 - A web user interface (kgea/server/web_ui)
 - A back end web services API (kgea/server/web_services)
 
 With respect to command line execution, we start each component from within the root KGEA Archive project directory as independent Python module processes (e.g. as separate run configurations in your IDE, or in separate terminal shells).
 
-Run with the DEV_MODE flag set, the application does not attempt to authenticate externally using AWS Cognito, see below. Note that before running with the DEV_MODE flag, you must also install the pip development package dependencies, namely
+Unless you expose your development server with a hostname to the internet, you would need to run the server with the DEV_MODE flag set (with a non-false value), so that the application does not attempt to authenticate externally using AWS Cognito (see below). Note that before running with the DEV_MODE flag, you must also install additional pip development package dependencies:
 
 ```
 pip install -r requirements-dev.txt
