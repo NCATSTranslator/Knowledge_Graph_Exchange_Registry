@@ -1407,7 +1407,8 @@ def add_to_github(
                 #       about the repo branch being used? How?
                 repo = g.get_repo(repo_path)
                 content_file = repo.get_contents(entry_path)
-            except BadCredentialsException:
+            except BadCredentialsException as bce:
+                logger.error(str(bce))
                 repo = None
             except UnknownObjectException:
                 content_file = None
