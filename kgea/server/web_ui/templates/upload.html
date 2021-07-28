@@ -248,6 +248,15 @@ async function UploadFile(source) {
                 })
 
             document.getElementById("content_from_local_file").disabled = false;
+
+            if (kgx_file_content === "metadata") {
+                document.getElementById("uploaded_metadata").innerHTML += "<li>"+filename+"</li>"
+            } else if (kgx_file_content === "nodes") {
+                document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+"</li>"
+            } else if (kgx_file_content === "edges") {
+                document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+"</li>"
+            }
+
             // document.getElementById('spinner").style.display = "none";
             document.getElementById("percentage").style.display = "none";
             document.getElementById("spinner-text").style.display = "none";
@@ -362,6 +371,17 @@ Uploading file, please don't navigate away from the page...</span>
 
 
             </span>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2">
+            <em>Files uploaded:</em><br>
+            <b>Metadata:</b><br>
+            <ul id="uploaded_metadata"></ul>
+            <b>Nodes:</b><br>
+            <ul id="uploaded_node_files"></ul>
+            <b>Edges:</b><br>
+            <ul id="uploaded_edge_files"></ul>
         </td>
     </tr>
     <!-- <tr>

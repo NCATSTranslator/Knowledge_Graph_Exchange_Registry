@@ -2,7 +2,7 @@
 # connexion
 -e git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion
 
-# Short term workaround - pull this kgx release directly from the repo
+# Until the new release has all the latest feastures, we pull KGX directly from master or better
 #kgx >= 1.4.0
 -e git+https://github.com/biolink/kgx.git@1.4.0#egg=kgx
 
