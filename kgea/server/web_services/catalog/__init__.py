@@ -1771,9 +1771,13 @@ class KgxValidator:
         if input_files:
             # The putative KGX 'source' input files are currently sitting
             # at the end of S3 signed URLs for streaming into the validation.
-            
+
+            logger.debug("KgxValidator.validate_data_file(): creating transformer...")
+
             transformer = Transformer(stream=True)
-            
+
+            logger.debug("KgxValidator.validate_data_file(): running transform...")
+
             transformer.transform(
                 input_args={
                     'name': file_set_id,
@@ -1788,16 +1792,18 @@ class KgxValidator:
                 },
                 inspector=self.kgx_data_validator
             )
+
+            logger.debug("KgxValidator.validate_data_file(): transform validate inspection complete: getting errors..")
             
             errors: List[str] = self.kgx_data_validator.get_error_messages()
-
-            logger.debug("Existing validate_file_set()")
             
             if errors:
                 n = len(errors)
                 n = 9 if n >= 10 else n
                 logger.debug("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
-            
+
+            logger.debug("KgxValidator.validate_data_file(): Exiting validate_file_set()")
+
             return errors
         
         else:
