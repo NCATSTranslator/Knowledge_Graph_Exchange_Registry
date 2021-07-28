@@ -1,7 +1,7 @@
 id: "${kg_id}"
 name:  "${kg_name}"
-description: >-
-  ${kg_description}
+description: |
+${kg_description}
 translator:
   component: "${translator_component}"
   team: "${translator_team}"
