@@ -15,7 +15,6 @@ KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 import re
 import threading
-import time
 import asyncio
 from sys import stderr
 from os import getenv
@@ -89,6 +88,11 @@ CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
 
 
 def prepare_test(func):
+    """
+    
+    :param func:
+    :return:
+    """
     def wrapper():
         print("\n" + str(func) + " ----------------\n")
         return func()
@@ -111,8 +115,7 @@ BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
 _KGEA_APP_CONFIG = get_app_config()
 
 Number_of_Validator_Tasks = \
-    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] \
-        if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
+    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
 
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_provider_metadata.yaml')
