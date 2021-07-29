@@ -1688,15 +1688,15 @@ class ProgressMonitor:
         self._edge_count = 0
 
     def __call__(self, entity_type: GraphEntityType, rec: List):
-        # logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
         if entity_type == GraphEntityType.EDGE:
             self._edge_count += 1
             if self._edge_count % 100000 == 0:
-                logger.debug(str(self._edge_count) + " edges read in so far...")
+                logger.debug(str(self._edge_count) + " edges processed so far...")
         elif entity_type == GraphEntityType.NODE:
             self._node_count += 1
             if self._node_count % 10000 == 0:
-                logger.debug(str(self._node_count) + " nodes read in so far...")
+                logger.debug(str(self._node_count) + " nodes processed so far...")
         else:
             logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
@@ -1918,11 +1918,11 @@ class KgxValidator:
             # The putative KGX 'source' input files are currently sitting
             # at the end of S3 signed URLs for streaming into the validation.
 
-            logger.debug("KgxValidator.validate_data_file(): creating transformer...")
+            logger.debug("KgxValidator.validate_data_file(): creating the Transformer...")
 
             transformer = Transformer(stream=True)
 
-            logger.debug("KgxValidator.validate_data_file(): running transform...")
+            logger.debug("KgxValidator.validate_data_file(): running the Transformer.transform...")
 
             transformer.transform(
                 input_args={
