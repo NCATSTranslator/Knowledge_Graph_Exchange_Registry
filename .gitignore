@@ -26,6 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+src/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -109,6 +110,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+py*/
 
 # Spyder project settings
 .spyderproject
@@ -139,12 +141,9 @@ dmypy.json
 .openapi-generator/
 *.jar
 
-# ignore local virtual environments
-py*/
-
 # Project & site configuration ignored
 .aws
-config.yaml
+*config.yaml
 styles.css
 banner.jpg
 kgea/server/test/output/*.yaml
