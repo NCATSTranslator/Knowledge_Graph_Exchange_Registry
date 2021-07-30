@@ -443,7 +443,11 @@ class KgeFileSet:
         # In this way, the graph node and edge data can be analysed all together?
 
         # Post the KGE File Set to the KGX validation (async) task queue
-        KgxValidator.validate(self)
+        # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
+        # KgxValidator.validate(self)
+        
+        # Tag as "LOADED" for now (not yet validated)
+        self.status = KgeFileSetStatusCode.LOADED
 
         # Can't go wrong here (yet...)
         return True
