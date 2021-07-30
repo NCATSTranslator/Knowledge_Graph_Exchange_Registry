@@ -45,7 +45,7 @@
           "type": "object",
           "description": "Number of node instances by knowledge source URI or CURIE or plain namespace identifier",
           "patternProperties": {
-                  "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|((\w|\.)+:)?(\w|\.|\-)+)$": {
+                  "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|((\\w|\\.)+:)?(\\w|\\.|-)+)$": {
                   "type": "integer"
             }
           },
@@ -86,7 +86,7 @@
           "type": "object",
           "description": "Number of edge instances by knowledge source URI or CURIE or plain namespace identifier",
           "patternProperties": {
-           "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|((\\w|\\.)+:)?(\\w|\\.)+)$": {
+                "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|((\\w|\\.)+:)?(\\w|\\.|-)+)$": {
                 "type": "integer"
             }
           },

@@ -354,6 +354,7 @@ async def register_kge_file_set(request: web.Request):
                 if file_set:
                     # existing file set for specified version... hmm... what do I do here?
                     if DEV_MODE:
+                        # TODO: need to fail more gracefully here
                         await report_error(
                             request,
                             "publish_kge_file_set(): encountered duplicate file set version '" +

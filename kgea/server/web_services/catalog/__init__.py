@@ -15,7 +15,6 @@ KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 import re
 import threading
-import time
 import asyncio
 from sys import stderr
 from os import getenv
@@ -89,6 +88,11 @@ CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
 
 
 def prepare_test(func):
+    """
+    
+    :param func:
+    :return:
+    """
     def wrapper():
         print("\n" + str(func) + " ----------------\n")
         return func()
@@ -111,8 +115,7 @@ BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
 _KGEA_APP_CONFIG = get_app_config()
 
 Number_of_Validator_Tasks = \
-    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] \
-        if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
+    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
 
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_provider_metadata.yaml')
@@ -1688,15 +1691,15 @@ class ProgressMonitor:
         self._edge_count = 0
 
     def __call__(self, entity_type: GraphEntityType, rec: List):
-        # logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
         if entity_type == GraphEntityType.EDGE:
             self._edge_count += 1
             if self._edge_count % 100000 == 0:
-                logger.debug(str(self._edge_count) + " edges read in so far...")
+                logger.debug(str(self._edge_count) + " edges processed so far...")
         elif entity_type == GraphEntityType.NODE:
             self._node_count += 1
             if self._node_count % 10000 == 0:
-                logger.debug(str(self._node_count) + " nodes read in so far...")
+                logger.debug(str(self._node_count) + " nodes processed so far...")
         else:
             logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
@@ -1917,9 +1920,13 @@ class KgxValidator:
         if input_files:
             # The putative KGX 'source' input files are currently sitting
             # at the end of S3 signed URLs for streaming into the validation.
-            
+
+            logger.debug("KgxValidator.validate_data_file(): creating the Transformer...")
+
             transformer = Transformer(stream=True)
-            
+
+            logger.debug("KgxValidator.validate_data_file(): running the Transformer.transform...")
+
             transformer.transform(
                 input_args={
                     'name': file_set_id,
@@ -1934,16 +1941,18 @@ class KgxValidator:
                 },
                 inspector=self.kgx_data_validator
             )
+
+            logger.debug("KgxValidator.validate_data_file(): transform validate inspection complete: getting errors..")
             
             errors: List[str] = self.kgx_data_validator.get_error_messages()
-
-            logger.debug("Existing validate_file_set()")
             
             if errors:
                 n = len(errors)
                 n = 9 if n >= 10 else n
                 logger.debug("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
-            
+
+            logger.debug("KgxValidator.validate_data_file(): Exiting validate_file_set()")
+
             return errors
         
         else:
