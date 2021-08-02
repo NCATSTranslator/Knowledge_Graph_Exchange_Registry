@@ -1,5 +1,7 @@
 # coding: utf-8
 
+from datetime import date
+
 from typing import List
 
 from kgea.server.web_services.models.base_model_ import Model
@@ -15,11 +17,12 @@ class KgeFileSetMetadata(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, biolink_model_release: str=None, fileset_version: str=None, submitter_name: str=None, submitter_email: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, size: float=None, contents: MetaKnowledgeGraph=None):
+    def __init__(self, biolink_model_release: str=None, fileset_version: str=None, date_stamp: date=None, submitter_name: str=None, submitter_email: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, size: float=None, contents: MetaKnowledgeGraph=None):
         """KgeFileSetMetadata - a model defined in OpenAPI
 
         :param biolink_model_release: The biolink_model_release of this KgeFileSetMetadata.
         :param fileset_version: The fileset_version of this KgeFileSetMetadata.
+        :param date_stamp: The date_stamp of this KgeFileSetMetadata.
         :param submitter_name: The submitter_name of this KgeFileSetMetadata.
         :param submitter_email: The submitter_email of this KgeFileSetMetadata.
         :param status: The status of this KgeFileSetMetadata.
@@ -30,6 +33,7 @@ class KgeFileSetMetadata(Model):
         self.openapi_types = {
             'biolink_model_release': str,
             'fileset_version': str,
+            'date_stamp': date,
             'submitter_name': str,
             'submitter_email': str,
             'status': KgeFileSetStatusCode,
@@ -41,6 +45,7 @@ class KgeFileSetMetadata(Model):
         self.attribute_map = {
             'biolink_model_release': 'biolink_model_release',
             'fileset_version': 'fileset_version',
+            'date_stamp': 'date_stamp',
             'submitter_name': 'submitter_name',
             'submitter_email': 'submitter_email',
             'status': 'status',
@@ -51,6 +56,7 @@ class KgeFileSetMetadata(Model):
 
         self._biolink_model_release = biolink_model_release
         self._fileset_version = fileset_version
+        self._date_stamp = date_stamp
         self._submitter_name = submitter_name
         self._submitter_email = submitter_email
         self._status = status
@@ -112,6 +118,29 @@ class KgeFileSetMetadata(Model):
         """
 
         self._fileset_version = fileset_version
+
+    @property
+    def date_stamp(self):
+        """Gets the date_stamp of this KgeFileSetMetadata.
+
+        Date stamp of the file set.
+
+        :return: The date_stamp of this KgeFileSetMetadata.
+        :rtype: date
+        """
+        return self._date_stamp
+
+    @date_stamp.setter
+    def date_stamp(self, date_stamp):
+        """Sets the date_stamp of this KgeFileSetMetadata.
+
+        Date stamp of the file set.
+
+        :param date_stamp: The date_stamp of this KgeFileSetMetadata.
+        :type date_stamp: date
+        """
+
+        self._date_stamp = date_stamp
 
     @property
     def submitter_name(self):

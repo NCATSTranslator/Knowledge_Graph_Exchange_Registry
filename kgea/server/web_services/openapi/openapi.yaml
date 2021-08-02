@@ -529,6 +529,7 @@ components:
           license_url: https://creativecommons.org/licenses/by/4.0/legalcode
         fileset:
           fileset_version: "1.0"
+          date_stamp: 2000-01-23
           biolink_model_release: 2.0.2
           size: 6.0274563
           contents:
@@ -659,6 +660,7 @@ components:
         files, for a specific version of KGE File Set.
       example:
         fileset_version: "1.0"
+        date_stamp: 2000-01-23
         biolink_model_release: 2.0.2
         size: 6.0274563
         contents:
@@ -716,6 +718,11 @@ components:
           description: Version identifier of the file set.
           example: "1.0"
           title: fileset_version
+          type: string
+        date_stamp:
+          description: Date stamp of the file set.
+          format: date
+          title: date_stamp
           type: string
         submitter_name:
           description: Name of the submitter of the KGE FileSet
@@ -1076,6 +1083,7 @@ components:
           type: string
       required:
       - biolink_model_release
+      - date_stamp
       - fileset_major_version
       - fileset_minor_version
       - kg_id
