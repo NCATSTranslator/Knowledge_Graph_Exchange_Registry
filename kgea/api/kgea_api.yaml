@@ -584,6 +584,11 @@ components:
             Version identifier of the file set.
           type: string
           example: "1.0"
+        date_stamp:
+          description: >-
+            Date stamp of the file set.
+          type: string
+          format: date
         submitter_name:
           description: >-
             Name of the submitter of the KGE FileSet
@@ -858,6 +863,7 @@ components:
       - biolink_model_release
       - fileset_major_version
       - fileset_minor_version
+      - date_stamp
     UploadRequestBody:
       description: Uploading form posting of (meta-)data files to a specific KGE File
         Set version, belonging to a specific Knowledge Graph. The 'upload_mode' argument
