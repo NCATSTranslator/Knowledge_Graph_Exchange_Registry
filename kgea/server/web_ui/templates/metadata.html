@@ -29,7 +29,7 @@
                         // console.log("loadMetadata() FSM HTTP response code:" + response.status.toString());
                         response.json()
                             .then(metadata => {
-                                window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
+                                // window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
                                 Object.entries(metadata).forEach(([tag1,value1]) => {
                                     //provider_metadata_table +=
                                     //      "<tr><th>" +  tag1[0].toUpperCase() + tag1.substring(1) + "</th>";
