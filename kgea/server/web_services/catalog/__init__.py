@@ -22,6 +22,7 @@ from os.path import dirname, abspath
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
 from string import punctuation
 from io import BytesIO, StringIO
+from datetime import date
 
 # TODO: maybe convert Catalog components to Python Dataclasses?
 # from dataclasses import dataclass
@@ -94,6 +95,10 @@ def prepare_test(func):
     :return:
     """
     def wrapper():
+        """
+        
+        :return:  function called
+        """
         print("\n" + str(func) + " ----------------\n")
         return func()
     return wrapper
@@ -137,10 +142,15 @@ def _populate_template(filename, **kwargs) -> str:
 
 
 def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
-    # assume that format and compression is encoded in the file_name
-    # as standardized period-delimited parts of the name. This is a
-    # hacky first version of this method that only recognizes common
-    # KGX file input format and compression.
+    """
+    Assumes that format and compression is encoded in the file_name
+    as standardized period-delimited parts of the name. This is a
+    hacky first version of this method that only recognizes common
+    KGX file input format and compression.
+    
+    :param file_name:
+    :return: Tuple of input_format, compression
+    """
     part = file_name.split('.')
     if 'tsv' in part:
         input_format = 'tsv'
@@ -164,6 +174,9 @@ def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
 
 
 class KgeFileType(Enum):
+    """
+    KGE File types Enumerated
+    """
     KGX_UNKNOWN = "unknown file type"
     KGX_CONTENT_METADATA_FILE = "KGX metadata file"
     KGX_DATA_FILE = "KGX data file"
@@ -234,15 +247,29 @@ class KgeFileSet:
         return "File set version " + self.fileset_version + " of graph " + self.kg_id
     
     def get_kg_id(self):
+        """
+        :return: the knowledge graph identifier string
+        """
         return self.kg_id
     
     def get_biolink_model_release(self):
+        """
+        
+        :return: Biolink Model release Semantic Version (major.minor.patch)
+        """
         return self.biolink_model_release
 
     def get_fileset_version(self):
+        """
+        :return: File set version as Semantic Version (major.minor)
+        """
         return self.fileset_version
 
     def get_date_stamp(self):
+        """
+        Date stamp of file set as ISO format ("YYYY-MM-DD")
+        :return:
+        """
         return self.date_stamp
     
     def id(self):
@@ -252,15 +279,29 @@ class KgeFileSet:
         return self.kg_id + "." + self.fileset_version
     
     def get_submitter_name(self):
+        """
+        Submitter of the file set version.
+        :return:
+        """
         return self.submitter_name
 
     def get_submitter_email(self):
+        """
+        Email for the submitter of the file set.
+        :return:
+        """
         return self.submitter_email
 
     def get_data_file_object_keys(self) -> Set[str]:
+        """
+        :return: S3 object keys of file set data files.
+        """
         return set(self.data_files.keys())
 
     def get_data_file_names(self) -> Set[str]:
+        """
+        :return: String root file names of the files in the file set.
+        """
         return set([x["file_name"] for x in self.data_files.values()])
 
     # Note: content metadata file name is already normalized on S3 to 'content_metadata.yaml'
@@ -355,6 +396,11 @@ class KgeFileSet:
         self.data_files.update(data_files)
 
     def remove_data_file(self, object_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Remove a specified data file from the Archive S3 repository.
+        :param object_key: of the file to be removed
+        :return: details of the removed file
+        """
         details: Optional[Dict[str, Any]] = None
         try:
             # TODO: need to be careful here with data file removal in case
@@ -362,12 +408,17 @@ class KgeFileSet:
             details = self.data_files.pop(object_key)
         except KeyError:
             logger.warning(
-                "File with object key '" + object_key +"' was not found in " +
+                "File with object key '" + object_key + "' was not found in " +
                 "KGE File Set version '" + self.fileset_version + "'"
             )
         return details
 
     def load_data_files(self, file_object_keys: List[str]):
+        """
+        Uploads data files using file object keys.
+        :param file_object_keys: a list of object keys of the files to be uploaded.
+        :return:
+        """
         # TODO: see if there any other information here to be captured or inferred,
         #       e.g. file compression (from file extension), file type, size, etc.
         for object_key in file_object_keys:
@@ -511,6 +562,10 @@ class KgeFileSet:
     # return errors
 
     async def confirm_kgx_data_file_set_validation(self):
+        """
+        Confirms KGX validation of a file set.
+        :return:
+        """
         # check if any errors were returned by KGX Validation
         errors: List = []
         for data_file in self.data_files.values():
@@ -530,6 +585,10 @@ class KgeFileSet:
         return errors
 
     def generate_fileset_metadata_file(self) -> str:
+        """
+        Generates the fileset metadata file using a template.
+        :return: Populated fileset metadata YAML contents (as a string)
+        """
         self.revisions = 'Creation'
         # TODO: Maybe also add in the inventory of files here?
         files = ""
@@ -541,6 +600,7 @@ class KgeFileSet:
             kg_id=self.kg_id,
             biolink_model_release=self.biolink_model_release,
             fileset_version=self.fileset_version,
+            date_stamp=self.date_stamp,
             submitter_name=self.submitter_name,
             submitter_email=self.submitter_email,
             size=self.size,
@@ -551,11 +611,14 @@ class KgeFileSet:
         return fileset_metadata_yaml
 
     def get_metadata(self) -> KgeFileSetMetadata:
-
+        """
+        :return: KGE File Set metadata (output) object of this KgeFileSet.
+        """
         fileset_metadata: KgeFileSetMetadata = \
             KgeFileSetMetadata(
                 biolink_model_release=self.biolink_model_release,
                 fileset_version=self.fileset_version,
+                date_stamp=date.fromisoformat(self.date_stamp),
                 submitter_name=self.submitter_name,
                 submitter_email=self.submitter_email,
                 status=self.status,
@@ -582,6 +645,11 @@ class KgeFileSet:
         return fileset_metadata
 
     def add_file_size(self, file_size: int):
+        """
+        Add new file_size to aggregate total of file sizes for the file set.
+        :param file_size:
+        :return:
+        """
         self.size += file_size
 
 
@@ -848,6 +916,7 @@ class KgeKnowledgeGraph:
                                 self.kg_id,
                                 biolink_model_release='',
                                 fileset_version=fileset_version,
+                                date_stamp=get_default_date_stamp(),
                                 submitter_name=self.parameter.setdefault('submitter_name', ''),
                                 submitter_email=self.parameter.setdefault('submitter_email', ''),
                                 archive_record=True
@@ -887,6 +956,9 @@ class KgeKnowledgeGraph:
 
         # fileset_version: "1.0"
         fileset_version = md.setdefault('fileset_version', 'latest')
+        
+        # date_stamp: "1964-04-22"
+        date_stamp = md.setdefault('date_stamp', get_default_date_stamp())
 
         # revisions: >-
         #   ${revisions}
@@ -915,6 +987,7 @@ class KgeKnowledgeGraph:
             self.kg_id,
             biolink_model_release=biolink_model_release,
             fileset_version=fileset_version,
+            date_stamp=date_stamp,
             submitter_name=submitter_name,
             submitter_email=submitter_email,
             size=size,
@@ -942,7 +1015,11 @@ class KgeKnowledgeGraph:
     # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
     # kg_listing = [content_location for content_location in kg_files if re.match(pattern, content_location)]
     # kg_urls = dict(
-    #     map(lambda kg_file: [Path(kg_file).stem, create_presigned_url(_KGEA_APP_CONFIG['aws']['s3']['bucket'], kg_file)],
+    #     map(
+    #         lambda kg_file: [
+    #             Path(kg_file).stem,
+    #             create_presigned_url(_KGEA_APP_CONFIG['aws']['s3']['bucket'], kg_file)
+    #         ],
     #         kg_listing))
     # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
     def get_metadata(self, fileset_version: str) -> KgeMetadata:
@@ -1330,12 +1407,14 @@ def test_create_fileset_metadata_file():
     print("\ntest_create_fileset_metadata_entry() test output:\n", file=stderr)
 
     kg_id = "disney_small_world_graph"
-    fileset_version = "1964-04-22"
+    fileset_version = "1.0"
+    date_stamp = "1964-04-22"
 
     fs = KgeFileSet(
         kg_id=kg_id,
         biolink_model_release="2.0.2",
         fileset_version=fileset_version,
+        date_stamp=date_stamp,
         submitter_name="Mickey Mouse",
         submitter_email="mickey.mouse@disneyland.disney.go.com"
     )

@@ -25,12 +25,14 @@
             fetch("{{get_fileset_metadata}}", {method: "GET", credentials: "include"})
                 .then(
                     response => {
-                        console.log("loadMetadata() FSM HTTP response code:", response.status);
+                        // window.alert("loadMetadata() FSM HTTP response code:" + response.status.toString());
+                        // console.log("loadMetadata() FSM HTTP response code:" + response.status.toString());
                         response.json()
                             .then(metadata => {
-                                // window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
+                                window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
                                 Object.entries(metadata).forEach(([tag1,value1]) => {
-                                    //provider_metadata_table += "<tr><th>" +  tag1[0].toUpperCase() + tag1.substring(1) + "</th>";
+                                    //provider_metadata_table +=
+                                    //      "<tr><th>" +  tag1[0].toUpperCase() + tag1.substring(1) + "</th>";
                                     // Each of the values of the metadata tags are objects
                                     let metadata_table = "<table class=\"metadata\">";
                                     Object.entries(value1).forEach(([tag2,value2]) => {
@@ -67,7 +69,8 @@
                                                 value2 = scrollable_text_box(value2)
                                             }
                                             if(tag_label === "License Url" || tag_label === "Terms Of Service" )  {
-                                                value2 = "<a  style=\"color:blue;\" href=\"" + value2 + "\">" + value2 + "</a>";
+                                                value2 = "<a  style=\"color:blue;\" href=\"" +
+                                                         value2 + "\">" + value2 + "</a>";
                                             }
                                             metadata_table += "<tr><th style=\"width:25%;\">" + tag_label +
                                                               "</th><td style=\"width:75%;\">" + value2 + "</td>";
@@ -80,7 +83,9 @@
                                     } else if(tag1  ===  'fileset') {
                                         document.getElementById('fileset_metadata').innerHTML = metadata_table;
                                     } else {
-                                        window.alert("Unknown top level metadata tag: "+ String(tag1) + "?...ignored!" );
+                                        window.alert(
+                                            "Unknown top level metadata tag: " + String(tag1) + "?...ignored!"
+                                        );
                                     }
                                 });
                             })

@@ -146,6 +146,10 @@ def get_object_location(kg_id):
 
 
 def get_default_date_stamp():
+    """
+    Returns the default date stamp as 'now', as an ISO Format string 'YYYY-MM-DD'
+    :return:
+    """
     return datetime.now().strftime('%Y-%m-%d')
 
 

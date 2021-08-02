@@ -1,8 +1,14 @@
+"""
+Knowledge Graph Exchange Archive backend web service handlers.
+"""
+import json
 import sys
+from json import JSONEncoder
 
 from os import getenv
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Set
+from datetime import date
 
 from .models import (
     KgeMetadata,
@@ -181,7 +187,10 @@ async def register_kge_knowledge_graph(request: web.Request):
             if license_name in _known_licenses:
                 license_url = _known_licenses[license_name]
             elif license_name != "Other":
-                await report_error(request, "register_kge_knowledge_graph(): unknown licence_name: '" + license_name + "'?")
+                await report_error(
+                    request,
+                    "register_kge_knowledge_graph(): unknown licence_name: '" + license_name + "'?"
+                )
 
         # terms_of_service: specifically relating to the project, beyond the licensing
         terms_of_service = data['terms_of_service']
@@ -367,9 +376,9 @@ async def register_kge_file_set(request: web.Request):
                         kg_id=kg_id,
                         biolink_model_release=biolink_model_release,
                         fileset_version=fileset_version,
+                        date_stamp=date_stamp,
                         submitter_name=submitter_name,
-                        submitter_email=submitter_email,
-                        date_stamp=date_stamp
+                        submitter_email=submitter_email
                     )
 
                 # Add new versioned KGE File Set to the Catalog Knowledge Graph entry
@@ -379,7 +388,9 @@ async def register_kge_file_set(request: web.Request):
                         request,
                         Template(
                            UPLOAD_FORM +
-                           '?kg_id=$kg_id&kg_name=$kg_name&fileset_version=$fileset_version&submitter_name=$submitter_name'
+                           '?kg_id=$kg_id&kg_name=$kg_name&' +
+                           'fileset_version=$fileset_version&' +
+                           'submitter_name=$submitter_name'
                         ).substitute(
                            kg_id=kg_id,
                            kg_name=knowledge_graph.get_name(),
@@ -408,7 +419,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
     :type request: web.Request
     :param kg_id: KGE Knowledge Graph Identifier for the knowledge graph from which data files are being accessed.
     :type kg_id: str
-    :param fileset_version: specific version of KGE File Set being published for the specified Knowledge Graph Identifier
+    :param fileset_version: specific version of KGE File Set published for the specified Knowledge Graph Identifier
     :type fileset_version: str
     """
     logger.debug("Entering publish_kge_file_set()")
@@ -459,6 +470,18 @@ async def setup_kge_upload_context(
         content_name: str,
         content_url: str = None
 ):
+    """
+    Configure file upload context (for a progress monitored multi-part upload.
+    
+    :param request:
+    :param kg_id:
+    :param fileset_version:
+    :param kgx_file_content:
+    :param upload_mode:
+    :param content_name:
+    :param content_url:
+    :return:
+    """
     logger.debug("Entering upload_kge_file()")
 
     session = await get_session(request)
@@ -722,10 +745,17 @@ async def upload_kge_file(
                 return 0
 
         def update_session(current_bytes):
+            """
+            Update the upload session tracker byte progress count.
+            :param current_bytes: byte progress count.
+            :return:
+            """
             _upload_tracker['upload'][upload_token]['current_position'] = current_bytes
 
         class ProgressPercentage(object):
-
+            """
+            Class to track percentage completion of an upload.
+            """
             def __init__(self, filename, file_size):
                 self._filename = filename
                 self.size = file_size
@@ -733,6 +763,9 @@ async def upload_kge_file(
                 self._lock = threading.Lock()
 
             def get_file_size(self):
+                """
+                :return: file size of the file being uploaded.
+                """
                 return self.size
 
             def __call__(self, bytes_amount):
@@ -741,9 +774,15 @@ async def upload_kge_file(
                 # with self._lock:
                 self._seen_so_far += bytes_amount
                 update_session(self._seen_so_far)
-                # print('progress_raw', _upload_tracker['upload'][upload_token]['current_position'] / _upload_tracker['upload'][upload_token]['end_position'] * 100)
-                # print('progress', upload_token, session['upload'][upload_token]['current_position'] / session['upload'][upload_token]['end_position'], percentage)
-        
+                # print(
+                #   'progress_raw', _upload_tracker['upload'][upload_token]['current_position'] /
+                #   _upload_tracker['upload'][upload_token]['end_position'] * 100
+                # )
+                # print(
+                #   'progress', upload_token,
+                #   session['upload'][upload_token]['current_position'] /
+                #   session['upload'][upload_token]['end_position'], percentage
+                # )
 
         # import concurrent.futures
 
@@ -762,7 +801,10 @@ async def upload_kge_file(
             content_name = uploaded_file.filename
 
         def threaded_upload():
-            
+            """
+            Threaded upload process.
+            :return:
+            """
             local_role = AssumeRole()
             client = s3_client(assumed_role=local_role, config=cfg)
 
@@ -843,6 +885,19 @@ async def upload_kge_file(
 #     download_kge_file_set
 # )
 #############################################################
+def _sanitize_metadata(metadata: Dict):
+    """
+    Cleans up the metadata for JSON serialization. For now,
+    just coercing the fileset.date_stamp into an ISOFormat string
+    
+    :param metadata: Dictionary from KgeMetadata
+    :return: nothing... the metadata is mutable, thus changed in situ
+    """
+    if metadata:
+        if 'fileset' in metadata and 'date_stamp' in metadata['fileset']:
+            # date_stamp assumed in KgeFileSetMetadata to be a
+            # Python datetime.date object, so serialize it to ISOFormat
+            metadata['fileset']['date_stamp'] = metadata['fileset']['date_stamp'].isoformat()
 
 
 async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_version: str) -> web.Response:
@@ -852,7 +907,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data files are being accessed
     :type kg_id: str
-    :param fileset_version: Specific version of KGE File Set for the knowledge graph for which metadata are being accessed
+    :param fileset_version: Specific version of KGE File Set for the knowledge graph for which metadata are accessed
     :type fileset_version: str
 
     :return:  KgeMetadata including provider and content metadata with an annotated list of KgeFile entries
@@ -877,7 +932,9 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
 
             file_set_status_as_dict = file_set_metadata.to_dict()
 
-            response = web.json_response(file_set_status_as_dict, status=200)
+            _sanitize_metadata(file_set_status_as_dict)
+
+            response = web.json_response(file_set_status_as_dict, status=200)  # , dumps=kge_dumps)
 
             return await with_session(request, response)
 
@@ -908,6 +965,8 @@ async def kge_meta_knowledge_graph(
     :type kg_id: str
     :param fileset_version: Version of KGE File Set for a given knowledge graph.
     :type fileset_version: str
+    :param downloading: flag set 'True' if file downloading in progress.
+    :type downloading: bool
 
     :rtype: web.Response( Dict[str, Dict[str, List[str]]] )
     """

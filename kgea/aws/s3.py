@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-#
-# This CLI script will take  host AWS account id, guest external id and
-# the name of a host account IAM role, to obtain temporary AWS service
-# credentials to execute an AWS Secure Token Service-mediated access
-# to a Simple Storage Service (S3) bucket given as an argument.
-#
+"""
+This CLI script will take  host AWS account id, guest external id and
+the name of a host account IAM role, to obtain temporary AWS service
+credentials to execute an AWS Secure Token Service-mediated access
+to a Simple Storage Service (S3) bucket given as an argument.
+"""
 import sys
+from json import dumps
 from os.path import abspath, dirname
 from pathlib import Path
 
@@ -17,7 +18,15 @@ from kgea.aws.assume_role import AssumeRole, aws_config
 
 
 def upload_file(client, bucket_name: str, filepath: str, object_key: str):
-    # Upload a test file
+    """
+    Upload a test file.
+    
+    :param client:
+    :param bucket_name:
+    :param filepath:
+    :param object_key:
+    :return:
+    """
     print(
         "\n###Uploading file '" + filepath + "' object '" + object_key +
         "' in the S3 bucket '" + bucket_name + "'\n"
@@ -30,7 +39,13 @@ def upload_file(client, bucket_name: str, filepath: str, object_key: str):
 
 
 def get_object_keys(client, bucket_name: str, filter_prefix='') -> List[str]:
-    # Check for the new file in the bucket listing
+    """
+    Check for the new file in the bucket listing.
+    :param client:
+    :param bucket_name:
+    :param filter_prefix:
+    :return:
+    """
     response = client.list_objects_v2(Bucket=bucket_name, Prefix=filter_prefix)
 
     if 'Contents' in response:
@@ -41,9 +56,14 @@ def get_object_keys(client, bucket_name: str, filter_prefix='') -> List[str]:
         print("S3 bucket '" + bucket_name + "' is empty?")
         return []
 
-def list_files(client, bucket_name: str):
 
-    # Check for the new file in the bucket listing
+def list_files(client, bucket_name: str):
+    """
+    Check for the new file in the bucket listing.
+    :param client:
+    :param bucket_name:
+    :return:
+    """
     response = client.list_objects_v2(Bucket=bucket_name)
     
     if 'Contents' in response:
@@ -54,18 +74,49 @@ def list_files(client, bucket_name: str):
         print("S3 bucket '" + bucket_name + "' is empty?")
 
 
+def download_file(client, bucket_name, object_key: str, filename: str = ''):
+    """
+    Delete an object key (file) in a given bucket.
+
+    :param client: S3 client to access S3 bucket
+    :param bucket_name: the target bucket
+    :param object_key: the target object_key
+    :param filename: filename to which to save the file
+    :return:
+    """
+    print(
+        "\n### Downloading the test object '" + object_key +
+        "' from the S3 bucket '" + bucket_name + "' to file " + str(filename)
+    )
+    with open(filename, 'wb') as fd:
+        client.download_fileobj(Bucket=bucket_name, Key=object_key, Fileobj=fd)
+
+
 def delete_object(client, bucket_name, object_key: str):
-    # delete the test file
+    """
+    Delete an object key (file) in a given bucket.
+    
+    :param client:
+    :param bucket_name:
+    :param object_key:
+    :return:
+    """
     # print(
     #     "\n### Deleting the test object '" + object_key +
     #     "' in the S3 bucket '" + bucket_name + "'"
     # )
     response = client.delete_object(Bucket=bucket_name, Key=object_key)
-    #print(dumps(response))
+    # print(dumps(response))
 
 
 def test_assumed_role_s3_access(client, bucket_name: str):
+    """
+    Test for assumed role s3 access on a given bucket.
     
+    :param client:
+    :param bucket_name:
+    :return:
+    """
     TEST_FILE_PATH = abspath(dirname(__file__) + '/README.md')
     TEST_FILE_OBJECT_KEY = 'test_file.txt'
     
@@ -113,6 +164,14 @@ if __name__ == '__main__':
 
         elif s3_operation.upper() == 'LIST':
             list_files(s3_client, s3_bucket_name)
+
+        elif s3_operation.upper() == 'DOWNLOAD':
+            if len(sys.argv) >= 3:
+                object_key = sys.argv[2]
+                filename = sys.argv[3] if len(sys.argv) >= 4 else object_key.split("/")[-1]
+                download_file(s3_client, s3_bucket_name, object_key, filename)
+            else:
+                print("\nMissing S3 object key for file to download?")
         
         elif s3_operation.upper() == 'DELETE':
             if len(sys.argv) >= 3:
