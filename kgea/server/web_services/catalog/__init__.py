@@ -511,6 +511,10 @@ class KgeFileSet:
     # return errors
 
     async def confirm_kgx_data_file_set_validation(self):
+        """
+        Confirms KGX validation of a file set.
+        :return:
+        """
         # check if any errors were returned by KGX Validation
         errors: List = []
         for data_file in self.data_files.values():
@@ -530,6 +534,10 @@ class KgeFileSet:
         return errors
 
     def generate_fileset_metadata_file(self) -> str:
+        """
+        Generates the fileset metadata file using a template.
+        :return: Populated fileset metadata YAML contents (as a string)
+        """
         self.revisions = 'Creation'
         # TODO: Maybe also add in the inventory of files here?
         files = ""
