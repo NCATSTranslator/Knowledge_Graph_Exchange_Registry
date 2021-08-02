@@ -25,12 +25,14 @@
             fetch("{{get_fileset_metadata}}", {method: "GET", credentials: "include"})
                 .then(
                     response => {
-                        console.log("loadMetadata() FSM HTTP response code:", response.status);
+                        // window.alert("loadMetadata() FSM HTTP response code:" + response.status.toString());
+                        // console.log("loadMetadata() FSM HTTP response code:" + response.status.toString());
                         response.json()
                             .then(metadata => {
-                                // window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
+                                window.alert("JSON FSM metadata returned: " + JSON.stringify(metadata));
                                 Object.entries(metadata).forEach(([tag1,value1]) => {
-                                    //provider_metadata_table += "<tr><th>" +  tag1[0].toUpperCase() + tag1.substring(1) + "</th>";
+                                    //provider_metadata_table +=
+                                    //      "<tr><th>" +  tag1[0].toUpperCase() + tag1.substring(1) + "</th>";
                                     // Each of the values of the metadata tags are objects
                                     let metadata_table = "<table class=\"metadata\">";
                                     Object.entries(value1).forEach(([tag2,value2]) => {

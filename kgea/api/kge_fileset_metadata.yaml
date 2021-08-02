@@ -1,6 +1,7 @@
 id: "${kg_id}"
 biolink_model_release:  "${biolink_model_release}"
 fileset_version:  "${fileset_version}"
+date_stamp: "${date_stamp}"
 # TODO: we can perhaps user comments about File Set revisions here
 revisions: ${revisions}
 submitter:

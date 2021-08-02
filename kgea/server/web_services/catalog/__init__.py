@@ -600,6 +600,7 @@ class KgeFileSet:
             kg_id=self.kg_id,
             biolink_model_release=self.biolink_model_release,
             fileset_version=self.fileset_version,
+            date_stamp=self.date_stamp,
             submitter_name=self.submitter_name,
             submitter_email=self.submitter_email,
             size=self.size,

@@ -1,11 +1,14 @@
 """
 Knowledge Graph Exchange Archive backend web service handlers.
 """
+import json
 import sys
+from json import JSONEncoder
 
 from os import getenv
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Set
+from datetime import date
 
 from .models import (
     KgeMetadata,
@@ -882,6 +885,19 @@ async def upload_kge_file(
 #     download_kge_file_set
 # )
 #############################################################
+def _sanitize_metadata(metadata: Dict):
+    """
+    Cleans up the metadata for JSON serialization. For now,
+    just coercing the fileset.date_stamp into an ISOFormat string
+    
+    :param metadata: Dictionary from KgeMetadata
+    :return: nothing... the metadata is mutable, thus changed in situ
+    """
+    if metadata:
+        if 'fileset' in metadata and 'date_stamp' in metadata['fileset']:
+            # date_stamp assumed in KgeFileSetMetadata to be a
+            # Python datetime.date object, so serialize it to ISOFormat
+            metadata['fileset']['date_stamp'] = metadata['fileset']['date_stamp'].isoformat()
 
 
 async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_version: str) -> web.Response:
@@ -916,7 +932,9 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
 
             file_set_status_as_dict = file_set_metadata.to_dict()
 
-            response = web.json_response(file_set_status_as_dict, status=200)
+            _sanitize_metadata(file_set_status_as_dict)
+
+            response = web.json_response(file_set_status_as_dict, status=200)  # , dumps=kge_dumps)
 
             return await with_session(request, response)
 
