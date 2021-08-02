@@ -367,9 +367,9 @@ async def register_kge_file_set(request: web.Request):
                         kg_id=kg_id,
                         biolink_model_release=biolink_model_release,
                         fileset_version=fileset_version,
+                        date_stamp=date_stamp,
                         submitter_name=submitter_name,
-                        submitter_email=submitter_email,
-                        date_stamp=date_stamp
+                        submitter_email=submitter_email
                     )
 
                 # Add new versioned KGE File Set to the Catalog Knowledge Graph entry
