@@ -58,12 +58,17 @@ from .kgea_file_ops import (
     create_presigned_url,
     kg_files_in_location,
     get_object_location,
+    get_object_from_bucket,
     with_version,
     object_key_exists,
     get_default_date_stamp,
     with_subfolder,
     infix_string,
     s3_client
+)
+
+from .sha_utils import (
+    fileSha1
 )
 
 from kgea.server.web_services.catalog import (
@@ -1013,8 +1018,22 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
         if len(maybe_archive) == 1:
             archive_key = maybe_archive[0]
         else:
-            # download_url = download_file(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key, open_file=True)
             archive_key = await compress_fileset(_KGEA_APP_CONFIG['aws']['s3']['bucket'], file_set_object_key)
+
+        # compute hash
+        def hash():
+
+        archive = get_object_from_bucket(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key)
+
+        from io import BytesIO
+        bstream = BytesIO(archive.get()['Body'].read())
+        print(
+            'archive',
+            archive,
+            type(archive),
+            archive.get(),
+            bstream,
+        )
 
         download_url = create_presigned_url(bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'], object_key=archive_key)
         print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)

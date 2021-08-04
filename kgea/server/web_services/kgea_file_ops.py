@@ -165,6 +165,16 @@ def with_subfolder(location: str, subfolder: str):
         location += subfolder + '/'
     return location
 
+def get_object_from_bucket(bucket_name, object_key):
+    bucket = s3_resource().Bucket(bucket_name)
+    return bucket.Object(object_key)
+
+def match_objects_from_bucket(bucket_name, object_key):
+    bucket = s3_resource().Bucket(bucket_name)
+    key = object_key
+    objs = list(bucket.objects.filter(Prefix=key))
+    return [w.key == key for w in objs]
+
 def object_key_exists(bucket_name, object_key) -> bool:
     """
     Checks for the existence of the specified object key
@@ -175,11 +185,7 @@ def object_key_exists(bucket_name, object_key) -> bool:
     """
     if not object_key:
         return False
-
-    bucket = s3_resource().Bucket(bucket_name)
-    key = object_key
-    objs = list(bucket.objects.filter(Prefix=key))
-    return any([w.key == key for w in objs])
+    return any(match_objects_from_bucket(bucket_name, object_key))
 
 
 def location_available(bucket_name, object_key) -> bool:
