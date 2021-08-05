@@ -1025,28 +1025,35 @@ def get_archive_contents(bucket_name: str) -> \
                     bucket_name=bucket_name,
                     object_name=file_path
                 )
+            # we ignore this file in the main versioned file list
+            # since it is global to the knowledge graph.  In fact,
+            # sometimes, the fileset_version may not yet be properly set!
+            continue
+            
         else:
             # otherwise, assume file_part[2] is a 'version folder'
             fileset_version = file_part[2]
             if fileset_version not in contents[kg_id]['versions']:
                 contents[kg_id]['versions'][fileset_version] = dict()
                 contents[kg_id]['versions'][fileset_version]['file_object_keys'] = list()
+            
+            # if the fileset versioned object key is not empty?
+            if len(file_part) >= 4:
+                if file_part[3] == FILE_SET_METADATA_FILE:
+                    # Get the provider 'kg_id' associated metadata file just stored
+                    # as a blob of text, for content parsing by the function caller
+                    # Unlike the kg_id versions, there should only be one such file?
+                    contents[kg_id]['versions'][fileset_version]['metadata'] = \
+                        load_s3_text_file(
+                            bucket_name=bucket_name,
+                            object_name=file_path
+                        )
+                    continue
 
-            if file_part[3] == FILE_SET_METADATA_FILE:
-                # Get the provider 'kg_id' associated metadata file just stored
-                # as a blob of text, for content parsing by the function caller
-                # Unlike the kg_id versions, there should only be one such file?
-                contents[kg_id]['versions'][fileset_version]['metadata'] = \
-                    load_s3_text_file(
-                        bucket_name=bucket_name,
-                        object_name=file_path
-                    )
-                continue
-
-            # simple first iteration just records the list of data file paths
-            # (other than the PROVIDER_METADATA_FILE)
-            # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
-            contents[kg_id]['versions'][fileset_version]['file_object_keys'].append(file_path)
+                # simple first iteration just records the list of data file paths
+                # (other than the PROVIDER_METADATA_FILE and FILE_SET_METADATA_FILE)
+                # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
+                contents[kg_id]['versions'][fileset_version]['file_object_keys'].append(file_path)
 
     return contents
 
