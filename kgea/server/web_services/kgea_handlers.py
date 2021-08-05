@@ -774,17 +774,6 @@ async def upload_kge_file(
                 # with self._lock:
                 self._seen_so_far += bytes_amount
                 update_session(self._seen_so_far)
-                # print(
-                #   'progress_raw', _upload_tracker['upload'][upload_token]['current_position'] /
-                #   _upload_tracker['upload'][upload_token]['end_position'] * 100
-                # )
-                # print(
-                #   'progress', upload_token,
-                #   session['upload'][upload_token]['current_position'] /
-                #   session['upload'][upload_token]['end_position'], percentage
-                # )
-
-        # import concurrent.futures
 
         num_threads = 16
         cfg = Config(signature_version='s3v4', max_pool_connections=num_threads)
