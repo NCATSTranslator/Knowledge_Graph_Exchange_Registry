@@ -13,9 +13,6 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
-import re
-import threading
-import asyncio
 from sys import stderr
 from os import getenv
 from os.path import dirname, abspath
@@ -23,6 +20,11 @@ from typing import Dict, Union, Set, List, Any, Optional, Tuple
 from string import punctuation
 from io import BytesIO, StringIO
 from datetime import date
+import time
+import re
+import threading
+import asyncio
+from asyncio import Task
 
 # TODO: maybe convert Catalog components to Python Dataclasses?
 # from dataclasses import dataclass
@@ -118,6 +120,9 @@ BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
+
+Number_of_Archiver_Tasks = \
+    _KGEA_APP_CONFIG['Number_of_Archiver_Tasks'] if 'Number_of_Archiver_Tasks' in _KGEA_APP_CONFIG else 3
 
 Number_of_Validator_Tasks = \
     _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
@@ -440,7 +445,7 @@ class KgeFileSet:
             }
 
     ############################################################################
-    # KGE Publication to the Archive ###########################################
+    # KGE FileSet Publication to the Archive ###################################
     ############################################################################
     def publish(self) -> bool:
         """
@@ -489,6 +494,9 @@ class KgeFileSet:
         
         :return: True if successful; False otherwise
         """
+        # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
+        KgeArchiver.process(self)
+        
         # KGX validation of KGX-formatted nodes and edges data files
         # managed here instead of just after the upload of each file.
         # In this way, the graph node and edge data can be analysed all together?
@@ -1092,9 +1100,13 @@ class KgeArchiveCatalog:
         
         :return: None
         """
+        # Shut down KgxArchiver background processing here
+        await KgeArchiver.shutdown_tasks()
+
         # Shut down KgxValidator background processing here
-        await KgxValidator.shutdown_validation_processing()
-    
+        # TODO: uncomment this once the KgxValidator.validate() is used again?
+        # await KgxValidator.shutdown_tasks()
+
     @classmethod
     def catalog(cls):
         """
@@ -1401,15 +1413,10 @@ def test_create_provider_metadata_file():
     return True
 
 
-@prepare_test
-def test_create_fileset_metadata_file():
-    global _TEST_TFMF
-    print("\ntest_create_fileset_metadata_entry() test output:\n", file=stderr)
-
+def test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     kg_id = "disney_small_world_graph"
-    fileset_version = "1.0"
     date_stamp = "1964-04-22"
-
+    
     fs = KgeFileSet(
         kg_id=kg_id,
         biolink_model_release="2.0.2",
@@ -1419,24 +1426,35 @@ def test_create_fileset_metadata_file():
         submitter_email="mickey.mouse@disneyland.disney.go.com"
     )
     file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
-
+    
     file_name = 'MickeyMouseFanClub_nodes.tsv'
     fs.add_data_file(
-        object_key=file_set_location+"/"+file_name,
+        object_key=file_set_location + file_name,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name='MickeyMouseFanClub_nodes.tsv',
         file_size=666,
         s3_file_url=''
     )
-
+    
     file_name = 'MinnieMouseFanClub_edges.tsv'
     fs.add_data_file(
-        object_key=file_set_location+"/"+file_name,
+        object_key=file_set_location + file_name,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
         file_size=999,
         s3_file_url=''
     )
+    
+    return fs
+
+
+@prepare_test
+def test_create_fileset_metadata_file():
+    global _TEST_TFMF
+    print("\ntest_create_fileset_metadata_entry() test output:\n", file=stderr)
+
+    fs = test_file_set()
+    
     _TEST_TFMF = fs.generate_fileset_metadata_file()
 
     print(str(_TEST_TPMF), file=stderr)
@@ -1787,6 +1805,147 @@ class ProgressMonitor:
             logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
 
+class KgeArchiver:
+    """
+    KGX Archive building wrapper.
+    """
+    
+    def __init__(self, task_id: int):
+        """
+        Constructor for a single archiver task wrapper.
+        :param task_id: task_id
+        """
+        self.task_id = task_id
+
+    _archiver_queue: asyncio.Queue = asyncio.Queue()
+    _archiver_tasks: List[Task] = list()
+
+    async def __call__(self):
+        """
+        This Callable, undertaking the archiving of a file set,
+        is intended to be executed inside an asyncio Task.
+        """
+        while True:
+            file_set: KgeFileSet = await self._archiver_queue.get()
+        
+            ################################################
+            # Collect the KGX data files names and metadata.
+            # Not sure how much of this information
+            # is needed for the archiving operation.
+            ################################################
+            input_files: List[str] = list()
+            file_type: Optional[KgeFileType] = None
+            input_format: Optional[str] = None
+            input_compression: Optional[str] = None
+        
+            for entry in file_set.data_files.values():
+                #
+                # ... where each entry is a dictionary contains the following keys:
+                #
+                # "file_name": str
+            
+                # "file_type": KgeFileType (from Catalog)
+                # "input_format": str
+                # "input_compression": str
+                # "kgx_compliant": bool
+                #
+                # "object_key": str
+                # "s3_file_url": str
+                #
+                # TODO: we just take the first values encountered, but
+                #       we should probably guard against inconsistent
+                #       input format and compression somewhere upstream
+                if not file_type:
+                    file_type = entry["file_type"]
+                if not input_format:
+                    input_format = entry["input_format"]
+                if not input_compression:
+                    input_compression = entry["input_compression"]
+            
+                file_name = entry["file_name"]
+                object_key = entry["object_key"]
+                s3_file_url = entry["s3_file_url"]
+            
+                print(
+                    f"KgxArchiver task {self.task_id} processing file '{file_name}' "
+                    f"\n\twith object key '{object_key}' of type '{file_type}' "
+                    f"\n\tof input format '{input_format}' and with compression '{input_compression}', ",
+                    file=stderr
+                )
+            
+                # The file to be processed should currently be
+                # a resource accessible from this S3 authenticated URL?
+                input_files.append(s3_file_url)
+            
+            print(f"KgxArchiver task {self.task_id} starting archiving of {str(file_set)}", file=stderr)
+            
+            ########################
+            # Do the Archiving Here?
+            ########################
+            
+            # stub simulation of the delay
+            await asyncio.sleep(15)
+            
+            # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
+            
+            # 2. Copy/merge all uploaded *_nodes.tsv files into one nodes.tsv; all *_edges.tsv into one edges.tsv.
+            
+            # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file containing the aggregated
+            #    nodes.tsv, edges.tsv, content_metadata.json, provider.yaml metadata and file_set.yaml metadata files.
+            
+            # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the file_set.yaml
+            #    file to the archive, it would not really help to embed the hash sum into the fileset yaml itself,
+            #    but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
+            #    the catalog loading, for communication back to the user as part of the catalog metadata
+            #    (once the archiving and hash generation is completed...)
+
+            print(f"KgxArchiver task {self.task_id} finished archiving of {str(file_set)}", file=stderr)
+        
+            self._archiver_queue.task_done()
+
+    @classmethod
+    def initialize(cls):
+        """
+        Initializes Archiver tasks if not yet running
+         and less than Number_of_Archiver_Tasks.
+        """
+        if len(cls._archiver_tasks) < Number_of_Archiver_Tasks:
+            task_id: int = len(cls._archiver_tasks)
+            cls._archiver_tasks.append(asyncio.create_task(KgeArchiver(task_id)()))
+
+    @classmethod
+    async def shutdown_tasks(cls):
+        """
+        Shut down the background KGE Archive processing.
+        :return:
+        """
+        await cls._archiver_queue.join()
+        try:
+            # Cancel the KGX validation worker tasks
+            for task in cls._archiver_tasks:
+                task.cancel()
+        
+            # Wait until all worker tasks are cancelled.
+            await asyncio.gather(*cls._archiver_tasks, return_exceptions=True)
+    
+        except Exception as exc:
+            msg = "KgxArchiver() worker task shutdown exception: " + str(exc)
+            logger.error(msg)
+
+    @classmethod
+    def process(cls, file_set: KgeFileSet):
+        """
+        This method posts a KgeFileSet to the KgxArchiver for processing.
+
+        :param file_set: KgeFileSet.
+        :return: None
+        """
+        cls.initialize()
+        
+        # Post the file set to the KGX archiver task Queue for processing
+        cls._archiver_queue.put_nowait(file_set)
+
+
 class KgxValidator:
     """
     KGX Validation wrapper.
@@ -1803,14 +1962,12 @@ class KgxValidator:
 
     def get_validation_queue(self) -> asyncio.Queue:
         """
-        
         :return:
         """
         return self._validation_queue
 
     def get_validation_tasks(self) -> List:
         """
-        
         :return:
         """
         return self._validation_tasks
@@ -1819,7 +1976,6 @@ class KgxValidator:
     @classmethod
     def get_validator(cls, biolink_model_release: str):
         """
-        
         :param biolink_model_release:
         :return:
         """
@@ -1836,7 +1992,7 @@ class KgxValidator:
     
     # The method should be called by at the end of KgxValidator processing
     @classmethod
-    async def shutdown_validation_processing(cls):
+    async def shutdown_tasks(cls):
         """
         Shut down the background validation processing.
         
@@ -2042,6 +2198,39 @@ class KgxValidator:
             return ["Missing file name inputs for validation?"]
 
 
+# This is a simple test of the KgxArchive queue/task.
+# It cannot be run with the given test_file_set object
+# since the data files don't exist in S3!
+def test_stub_archiver() -> bool:
+    
+    async def archive_test():
+        """
+        async archive test wrapper
+        :return:
+        """
+        
+        print("\ntest_stub_archiver() startup of tasks\n", file=stderr)
+    
+        fs = test_file_set("1.0")
+        KgeArchiver.process(fs)
+        fs = test_file_set("1.1")
+        KgeArchiver.process(fs)
+        fs = test_file_set("1.2")
+        KgeArchiver.process(fs)
+        fs = test_file_set("1.3")
+        KgeArchiver.process(fs)
+
+        # Don't want to finish too quickly...
+        await asyncio.sleep(30)
+        
+        print("\ntest_stub_archiver() shutdown now!\n", file=stderr)
+        await KgeArchiver.shutdown_tasks()
+
+    asyncio.run(archive_test())
+    
+    return True
+
+
 """
 Test Parameters + Decorator
 """
@@ -2088,21 +2277,21 @@ def test_kgx_data_validator():
     return not errors
 
 
-# def run_test(test_func):
-#     """
-#     Wrapper to run a test.
-#
-#     :param test_func:
-#     :return:
-#     """
-#     try:
-#         start = time.time()
-#         assert (test_func())
-#         end = time.time()
-#         print("{} passed: {} seconds".format(test_func.__name__, end - start))
-#     except Exception as e:
-#         logger.error("{} failed!".format(test_func.__name__))
-#         logger.error(e)
+def run_test(test_func):
+    """
+    Wrapper to run a test.
+
+    :param test_func:
+    :return:
+    """
+    try:
+        start = time.time()
+        assert (test_func())
+        end = time.time()
+        print("{} passed: {} seconds".format(test_func.__name__, end - start))
+    except Exception as e:
+        logger.error("{} failed!".format(test_func.__name__))
+        logger.error(e)
 
 
 """
@@ -2118,7 +2307,7 @@ if __name__ == '__main__':
     
     if RUN_TESTS:
         
-        print("KGE Archive modules functions and tests")
+        print("Catalog package module tests")
         
         # The generate_translator_registry_entry() and add_to_github() methods both work as coded as of 29 March 2021,
         # thus we comment out this test to avoid repeated commits to the KGE repo. The 'clean_tests()' below
@@ -2135,14 +2324,19 @@ if __name__ == '__main__':
         #
         # print("all KGE Archive Catalog tests passed")
         #
-        # print("KGX Validation unit tests")
+        # print("KgxArchiver unit tests")
+        #
+        # Just a test of the basic KgxArchiver queue/task
+        run_test(test_stub_archiver)
+        #
+        # print("KgxValidator unit tests")
         #
         # run_test(test_contents_metadata_validator)
         # run_test(test_kgx_data_validator)
 
         # test_get_biolink_releases()
         
-        print("all KGX Validation tests passed")
+        print("Catalog package module tests completed?")
         
     # if CLEAN_TESTS:
     #     clean_tests()

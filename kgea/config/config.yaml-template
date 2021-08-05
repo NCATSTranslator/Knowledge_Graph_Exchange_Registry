@@ -29,7 +29,8 @@ github:
     token: ''
 
 # Uncomment and set this configuration tag value to override
-# hardcoded default of 3 KGX validation worker tasks
+# hardcoded default number of KGX Archiver and/or (KGX) Validator worker tasks
+# Number_of_Archiver_Tasks: 3
 # Number_of_Validator_Tasks: 3
 
 # This parameter is automatically set by the system when
