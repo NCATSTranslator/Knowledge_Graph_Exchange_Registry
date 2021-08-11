@@ -868,10 +868,12 @@ def infix_string(name, infix, delimiter="."):
 async def compress_download(
         bucket,
         file_set_object_key,
+        filename=None
         # open_file=False
 ) -> str:
     part = file_set_object_key.split('/')
-    archive_file_name = str(part[-3]).strip() + "_" + str(part[-2]).strip()
+    archive_file_name = str(part[-3]).strip() + "_" + str(part[-2]).strip() if filename is None else filename
+
     archive_path = "{file_set_object_key}archive/{archive_file_name}.tar.gz".format(
         file_set_object_key=file_set_object_key,
         archive_file_name=archive_file_name,

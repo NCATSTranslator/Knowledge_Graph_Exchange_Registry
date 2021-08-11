@@ -76,6 +76,7 @@ from kgea.server.web_services.kgea_file_ops import (
     get_archive_contents,
     with_version,
     load_s3_text_file,
+    compress_download,
     upload_file
 )
 
@@ -1825,9 +1826,10 @@ class KgeArchiver:
         This Callable, undertaking the archiving of a file set,
         is intended to be executed inside an asyncio Task.
         """
+        file_set: KgeFileSet = await self._archiver_queue.get()
+
         while True:
-            file_set: KgeFileSet = await self._archiver_queue.get()
-        
+
             ################################################
             # Collect the KGX data files names and metadata.
             # Not sure how much of this information
@@ -1852,9 +1854,11 @@ class KgeArchiver:
                 # "object_key": str
                 # "s3_file_url": str
                 #
+
                 # TODO: we just take the first values encountered, but
                 #       we should probably guard against inconsistent
                 #       input format and compression somewhere upstream
+
                 if not file_type:
                     file_type = entry["file_type"]
                 if not input_format:
@@ -1887,17 +1891,25 @@ class KgeArchiver:
             await asyncio.sleep(15)
             
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
-            
+
             # 2. Copy/merge all uploaded *_nodes.tsv files into one nodes.tsv; all *_edges.tsv into one edges.tsv.
             
             # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file containing the aggregated
             #    nodes.tsv, edges.tsv, content_metadata.json, provider.yaml metadata and file_set.yaml metadata files.
-            
+
+            kg_id = file_set.kg_id
+            fileset_version = file_set.fileset_version
+
+            archive_name = '{}.{}.tar.gz'.format(kg_id, fileset_version)
+            archive_path = await compress_download(_KGEA_APP_CONFIG['aws']['s3']['bucket'], file_set, archive_name)
+
             # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the file_set.yaml
             #    file to the archive, it would not really help to embed the hash sum into the fileset yaml itself,
             #    but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
             #    the catalog loading, for communication back to the user as part of the catalog metadata
             #    (once the archiving and hash generation is completed...)
+
+            shat
 
             print(f"KgxArchiver task {self.task_id} finished archiving of {str(file_set)}", file=stderr)
         
