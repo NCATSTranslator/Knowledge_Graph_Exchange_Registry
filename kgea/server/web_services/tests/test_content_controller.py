@@ -1,12 +1,5 @@
 # coding: utf-8
 
-import pytest
-import json
-from aiohttp import web
-
-from web_services.models.kge_metadata import KgeMetadata
-from web_services.models.meta_knowledge_graph import MetaKnowledgeGraph
-
 
 async def test_download_file_set(client):
     """Test case for download_file_set

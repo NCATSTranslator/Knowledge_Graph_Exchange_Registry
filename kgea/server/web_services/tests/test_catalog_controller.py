@@ -1,12 +1,8 @@
 # coding: utf-8
+import json
+from typing import Dict
 
 import pytest
-import json
-from aiohttp import web
-
-from web_services.models.kge_file_set_entry import KgeFileSetEntry
-from web_services.models.register_file_set_request_body import RegisterFileSetRequestBody
-from web_services.models.register_graph_request_body import RegisterGraphRequestBody
 
 
 async def test_get_knowledge_graph_catalog(client):
@@ -46,7 +42,8 @@ async def test_register_file_set(client):
 
     Register core metadata for a distinctly versioned file set of a KGE Knowledge Graph
     """
-    body = web_services.RegisterFileSetRequestBody()
+    test_file_registration: Dict = dict()
+    body = json.dumps(test_file_registration)
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -66,7 +63,8 @@ async def test_register_knowledge_graph(client):
 
     Register core metadata for a distinct KGE Knowledge Graph
     """
-    body = web_services.RegisterGraphRequestBody()
+    test_kg_registration: Dict = dict()
+    body = json.dumps(test_kg_registration)
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',

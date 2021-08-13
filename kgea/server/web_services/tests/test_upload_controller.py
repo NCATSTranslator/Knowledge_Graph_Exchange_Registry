@@ -1,13 +1,6 @@
 # coding: utf-8
 
 import pytest
-import json
-from aiohttp import web
-from aiohttp import FormData
-
-from web_services.models.upload_progress_token import UploadProgressToken
-from web_services.models.upload_request_body import UploadRequestBody
-from web_services.models.upload_token_object import UploadTokenObject
 
 
 async def test_get_upload_status(client):
