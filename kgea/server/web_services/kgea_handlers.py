@@ -3,10 +3,10 @@ Knowledge Graph Exchange Archive backend web service handlers.
 """
 import sys
 
-
-from os import getenv
+from os import getenv, path
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple, Any
+import uuid
 
 from .models import (
     KgeMetadata,
@@ -453,10 +453,102 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
 #
 # from ..kgea_handlers import (
 #     setup_kge_upload_context,
+#     kge_transfer_from_url,
 #     get_kge_upload_status,
 #     upload_kge_file
 # )
 #############################################################
+async def _validate_and_set_up_archive_target(
+        request: web.Request,
+        kg_id: str,
+        fileset_version: str,
+        kgx_file_content: str,
+        content_name: str
+) -> Tuple[Any, str, KgeFileType]:
+    """
+    
+    :param request:
+    :param kg_id:
+    :param fileset_version:
+    :param kgx_file_content:
+    :param content_name:
+    :return:
+    """
+    # """
+    # BEGIN Error Handling: checking if parameters
+    # passed are sufficient for a well-formed request
+    # """
+    if not kg_id:
+        # must not be empty string
+        await report_error(request, "setup_kge_upload_context(): empty Knowledge Graph Identifier?")
+    
+    if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
+        # must not be empty string
+        await report_error(
+            request,
+            "setup_kge_upload_context(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
+        )
+    
+    if not content_name:
+        # must not be empty string
+        await report_error(request, "setup_kge_upload_context(): empty Content Name?")
+    
+    # """
+    # END Error Handling
+    # """
+    
+    # The final key for the object is dependent on its type
+    # content metadata -> <file_set_location>
+    # edges -> <file_set_location>/edges/
+    # nodes -> <file_set_location>/nodes/
+    # archive -> <file_set_location>/archive/
+    
+    file_set_location, assigned_version = with_version(func=get_object_location, version=fileset_version)(kg_id)
+    
+    file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
+    
+    if kgx_file_content in ['nodes', 'edges']:
+        file_set_location = with_subfolder(location=file_set_location, subfolder=kgx_file_content)
+        file_type = KgeFileType.KGX_DATA_FILE
+    
+    elif kgx_file_content == "metadata":
+        
+        # TODO: this file is expected to be JSON; how do we protect here against users
+        #       inadvertently or deliberately (maliciously?) uploading a large, non-JSON
+        #       file, like a gzip archive of node or edge data? Can we perhaps quietly
+        #       intercept it within the upload.html form, by checking the declared
+        #       MIME type of the File object? See https://developer.mozilla.org/en-US/docs/Web/API/File
+        
+        # metadata stays in the kg_id 'root' version folder
+        file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
+        
+        # We coerce the content metadata file name
+        # into a standard name, during transfer to S3
+        content_name = CONTENT_METADATA_FILE
+    
+    elif kgx_file_content == "archive":
+        # TODO this is tricky.. not yet sure how to handle an archive
+        #      with respect to properly persisting it in the S3 bucket...
+        #      Leave it in the kg_id 'root' version folder for now?
+        #
+        # The archive may has metadata too, but the data's the main thing.
+        file_type = KgeFileType.KGE_ARCHIVE
+    
+    # we modify the filename so that they can be validated by KGX natively by tar.gz
+    if kgx_file_content in ['nodes', 'edges']:
+        part = content_name.split(".")
+        if not (len(part) > 1 and part[-2].find(kgx_file_content) >= 0):
+            content_name = infix_string(
+                content_name, f"_{kgx_file_content}"
+            )
+    
+    object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
+        ROOT=file_set_location,
+        FILENAME=Path(content_name).stem,
+        EXTENSION=path.splitext(content_name)[1]
+    )
+    
+    return file_set_location, object_key, file_type
 
 
 async def setup_kge_upload_context(
@@ -464,9 +556,7 @@ async def setup_kge_upload_context(
         kg_id: str,
         fileset_version: str,
         kgx_file_content: str,
-        upload_mode: str,
-        content_name: str,
-        content_url: str = None
+        content_name: str
 ):
     """
     Configure file upload context (for a progress monitored multi-part upload.
@@ -475,99 +565,20 @@ async def setup_kge_upload_context(
     :param kg_id:
     :param fileset_version:
     :param kgx_file_content:
-    :param upload_mode:
     :param content_name:
-    :param content_url:
     :return:
     """
     logger.debug("Entering upload_kge_file()")
 
     session = await get_session(request)
     if not session.empty:
-
-        # """
-        # BEGIN Error Handling: checking if parameters
-        # passed are sufficient for a well-formed request
-        # """
-        if not kg_id:
-            # must not be empty string
-            await report_error(request, "setup_kge_upload_context(): empty Knowledge Graph Identifier?")
-        
-        if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
-            # must not be empty string
-            await report_error(
-                request,
-                "setup_kge_upload_context(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
+    
+        file_set_location, object_key, file_type = \
+            await _validate_and_set_up_archive_target(
+                request, kg_id, fileset_version, kgx_file_content, content_name
             )
 
-        if upload_mode not in ['content_from_local_file', 'content_from_url']:
-            # Invalid upload mode
-            await report_error(
-                request,
-                "setup_kge_upload_context(): empty or invalid upload_mode: '" + str(upload_mode) + "'?"
-            )
-
-        if not content_name:
-            # must not be empty string
-            await report_error(request, "upload_kge_file(): empty Content Name?")
-
-        # """
-        # END Error Handling
-        # """
-
-        # The final key for the object is dependent on its type
-        # content metadata -> <file_set_location>
-        # edges -> <file_set_location>/edges/
-        # nodes -> <file_set_location>/nodes/
-        # archive -> <file_set_location>/archive/
-
-        file_set_location, assigned_version = with_version(func=get_object_location, version=fileset_version)(kg_id)
-
-        file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
-
-        if kgx_file_content in ['nodes', 'edges']:
-            file_set_location = with_subfolder(location=file_set_location, subfolder=kgx_file_content)
-            file_type = KgeFileType.KGX_DATA_FILE
-
-        elif kgx_file_content == "metadata":
-
-            # TODO: this file is expected to be JSON; how do we protect here against users
-            #       inadvertently or deliberately (maliciously?) uploading a large, non-JSON
-            #       file, like a gzip archive of node or edge data? Can we perhaps quietly
-            #       intercept it within the upload.html form, by checking the declared
-            #       MIME type of the File object? See https://developer.mozilla.org/en-US/docs/Web/API/File
-
-            # metadata stays in the kg_id 'root' version folder
-            file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
-
-            # We coerce the content metadata file name
-            # into a standard name, during transfer to S3
-            content_name = CONTENT_METADATA_FILE
-
-        elif kgx_file_content == "archive":
-            # TODO this is tricky.. not yet sure how to handle an archive
-            #      with respect to properly persisting it in the S3 bucket...
-            #      Leave it in the kg_id 'root' version folder for now?
-            #
-            # The archive may has metadata too, but the data's the main thing.
-            file_type = KgeFileType.KGE_ARCHIVE
-
-        # we modify the filename so that they can be validated by KGX natively by tar.gz
-        if kgx_file_content in ['nodes', 'edges']:
-            part = content_name.split(".")
-            if not(len(part) > 1 and part[-2].find(kgx_file_content) >= 0):
-                content_name = infix_string(
-                    content_name, f"_{kgx_file_content}"
-                )
-
-        import uuid
-        import os
-
-        object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
-            ROOT=file_set_location,
-            FILENAME=Path(content_name).stem,
-            EXTENSION=os.path.splitext(content_name)[1]
-        )
+        # Set up Progress Indication Token mechanism
 
         with threading.Lock():
             token = str(uuid.uuid4())
@@ -585,7 +596,6 @@ async def setup_kge_upload_context(
                     "object_key": object_key,
                     "kgx_file_content": kgx_file_content,
                     "file_type": file_type,
-                    "upload_mode": upload_mode,
                     "content_name": content_name,
                 }
  
@@ -595,6 +605,73 @@ async def setup_kge_upload_context(
 
             response = web.json_response(upload_token)
             return await with_session(request, response)
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING_PAGE)
+
+
+async def kge_transfer_from_url(
+        request: web.Request,
+        kg_id: str,
+        fileset_version: str,
+        kgx_file_content: str,
+        content_url: str,
+        content_name: str
+):
+    """
+    Trigger direct URL file transfer of a specific file of a KGE File Set.
+
+    :param request:
+    :param kg_id:
+    :param fileset_version:
+    :param kgx_file_content:
+    :param content_url:
+    :param content_name:
+    :return:
+    """
+    logger.debug("Entering kge_transfer_from_url()")
+
+    session = await get_session(request)
+    if not session.empty:
+        
+        if not content_url:
+            # must not be empty string
+            await report_error(request, "kge_transfer_from_url(): empty Content URL?")
+            
+        logger.debug("kge_transfer_from_url(): content_url == '" + content_url + "')")
+        
+        file_set_location, object_key, file_type = \
+            await _validate_and_set_up_archive_target(
+                request, kg_id, fileset_version, kgx_file_content, content_name
+            )
+
+        logger.debug(
+            "kge_transfer_from_url(): " +
+            "file_set_location == '" + file_set_location + "'" +
+            "object_key == '" + object_key + "'" +
+            "file_type == '" + str(file_type) + "')"
+        )
+        
+        # TODO: initiate background content_url transfer of file_type file to object_key in file_set_location
+
+        # Initial stub implementation is "do nothing" for now?
+        #
+        # uploaded_file_object_key = transfer_file_from_url(
+        #         url=content_url,
+        #         file_name=content_name,
+        #         bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        #         object_location=file_set_location
+        # )
+        #
+        
+        token = str(uuid.uuid4())
+        
+        upload_token = UploadTokenObject(token).to_dict()
+    
+        response = web.json_response(upload_token)
+        return await with_session(request, response)
+    
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
@@ -637,48 +714,6 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
         await redirect(request, LANDING_PAGE)
-
-#########################################################################
-# NOTE: Keeping this commented legacy code around a bit longer pending
-#       a full resolution of the 'content_from_url' transfers which will
-#       now not likely run through the upload_kge_file() handler as
-#       previously, but perhaps, in a dedicated endpoint/handler, if
-#       attempted at all within the web application.
-#########################################################################
-#
-# if upload_mode == 'content_from_url':
-#
-#     logger.debug("upload_kge_file(): content_url == '" + content_url + "')")
-#
-#     uploaded_file_object_key = transfer_file_from_url(
-#         url=content_url,
-#         file_name=content_name,
-#         bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-#         object_location=file_set_location
-#     )
-#
-# elif upload_mode == 'content_from_local_file':
-#
-#     """
-#     Although earlier on I experimented with approaches that streamed directly into an archive,
-#     it failed for what should have been obvious reasons: gzip is non-commutative, so without unpacking
-#     then zipping up consecutively uploaded files I can't add new gzip files to the package after compression.
-#
-#     So for now we're just streaming into the bucket, only archiving when required - on download.
-#     """
-#
-#     uploaded_file_object_key = upload_file(
-#         data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
-#         file_name=content_name,  # The new name for the file
-#         bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-#         object_location=file_set_location
-#     )
-#
-# else:
-#     await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
-#
-# """END File Upload Protocol"""
-#
 
 
 async def upload_kge_file(
