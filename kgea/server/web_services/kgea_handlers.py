@@ -1,14 +1,12 @@
 """
 Knowledge Graph Exchange Archive backend web service handlers.
 """
-import json
 import sys
-from json import JSONEncoder
+
 
 from os import getenv
 from pathlib import Path
-from typing import Dict, Set
-from datetime import date
+from typing import Dict
 
 from .models import (
     KgeMetadata,

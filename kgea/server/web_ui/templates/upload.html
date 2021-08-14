@@ -66,7 +66,8 @@ async function GetUrl(source) {
         content_name =
             Math.random().toString(16).substr(2, 8).toUpperCase() + ".kgx";
     } else {
-        content_name = pathname.split("/")[1];
+        let file_path_parts = pathname.split("/");
+        content_name = file_path_parts[file_path_parts.length-1]
     }
     document.getElementById("file_name").value = content_name;
     SetFileName(content_name)
@@ -109,10 +110,23 @@ async function UploadFile(source) {
         if (content_url) {
             console.log("Content URL: '" + content_url + "')");
             formData.append("content_url", content_url);
+
+            let file_name = document.getElementById("file_name").value;
+
+            // somehow post the direct file URL transfer here?
+            window.alert("Direct transfer of file from URL: " + content_url);
+
+            // .. then clear the direct URL fields?
+            document.getElementById("content_url").value = ""
+            document.getElementById("file_name").value = ""
+            SetFileName("unknown")
+
+            // .. then post the file name transferred
+            update_file_list(kgx_file_content, filename)
+
         } else {
             console.log("KGX content file URL is undefined?");
             window.alert("KGX content file URL is undefined");
-            return;
         }
 
     } else if (source.id === "content_from_local_file") {
@@ -249,13 +263,7 @@ async function UploadFile(source) {
 
             document.getElementById("content_from_local_file").disabled = false;
 
-            if (kgx_file_content === "metadata") {
-                document.getElementById("uploaded_metadata").innerHTML += "<li>"+filename+"</li>"
-            } else if (kgx_file_content === "nodes") {
-                document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+"</li>"
-            } else if (kgx_file_content === "edges") {
-                document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+"</li>"
-            }
+            update_file_list(kgx_file_content, filename)
 
             // document.getElementById('spinner").style.display = "none";
             document.getElementById("percentage").style.display = "none";
@@ -268,8 +276,17 @@ async function UploadFile(source) {
         } else {
             console.log("KGX " + kgx_file_content + " file is undefined?");
             window.alert("KGX " + kgx_file_content + " file is undefined");
-            return;
         }
+    }
+}
+
+function update_file_list(kgx_file_content, filename) {
+    if (kgx_file_content === "metadata") {
+        document.getElementById("uploaded_metadata").innerHTML += "<li>"+filename+"</li>"
+    } else if (kgx_file_content === "nodes") {
+        document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+"</li>"
+    } else if (kgx_file_content === "edges") {
+        document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+"</li>"
     }
 }
 
@@ -304,7 +321,7 @@ async function DoneUploading(source) {
     therefore, please ensure that you have validated your files (with KGX tools) prior to uploading.</p>
 <table>
     <tr>
-        <td rowspan="2">
+        <td rowspan="3">
             <div class="header" style="text-align: center;">
                 KGX Content Type
             </div>
@@ -352,13 +369,13 @@ async function DoneUploading(source) {
             -->
     <p></p>
         </td>
-        <td>
+        <td colspan="2">
             <div class="header">
                 Upload from your computer
             </div>
             <p>Choose a KGX content type for uploading.</p>
             <span>
-                <label for="content_file"><b>Select File</b></label><br>
+                <label for="content_file"><b>Select File:</b></label><br>
                 <input id="content_file"  class="textbox" type="file" style="display: inline-block"/>
                 <button id="content_from_local_file" onclick="UploadFile(this)" style="display: inline-block">
                     Upload
@@ -370,9 +387,21 @@ async function DoneUploading(source) {
                 <span id="spinner-text" style="font-size: smaller; display:none;">
 Uploading file, please don't navigate away from the page...</span>
                <!-- div id="spinner" class="spin"></div -->
-
-
             </span>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div class="header">
+                Transfer from a URL
+            </div>
+            <label for="content_url"><b>URL to the File:</b></label><br>
+            <input id="content_url" type="text" oninput="GetUrl(this)"/>
+            <br><label for="file_name"><b>File Name:</b></label><br>
+            <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
+        </td>
+        <td>
+            <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
         </td>
     </tr>
     <tr>
@@ -386,16 +415,6 @@ Uploading file, please don't navigate away from the page...</span>
             <ul id="uploaded_edge_files"></ul>
         </td>
     </tr>
-    <!-- <tr>
-        <td>
-            <h4>Transfer from a URL</h4>
-            <label for="content_url"><b>URL to File</b></label><br>
-            <input id="content_url" type="text" oninput="GetUrl(this)"/>
-            <br><label for="file_name"><b>File Name</b></label><br>
-            <input id="file_name" type="text" onchange="SetFileName(this.value)"/><br>
-            <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
-        </td>
-    </tr> -->
 </table>
 {% endblock %}
 {% block app_footer %}
