@@ -323,6 +323,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             "fileset_version": fileset_version,
             "submitter_name": submitter_name,
             "upload_action": UPLOAD_FILE,
+            "direct_url_transfer_action": DIRECT_URL_TRANSFER,
             "publish_file_set_action": PUBLISH_FILE_SET
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)

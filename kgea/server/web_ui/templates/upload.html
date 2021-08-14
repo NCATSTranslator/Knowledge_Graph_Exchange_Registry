@@ -115,6 +115,17 @@ async function UploadFile(source) {
 
             // somehow post the direct file URL transfer here?
             window.alert("Direct transfer of file from URL: " + content_url);
+            await fetch(`{{direct_url_transfer_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&content_url=${content_url}`,
+                {
+                    method: "GET",
+                    credentials: "include"
+                }
+            )
+            .then(r => r.json())
+            .then(async result => {
+                console.log("Content URL transfer response:"+result.toString());
+                window.alert("Content URL transfer response:"+result.toString());
+            })
 
             // .. then clear the direct URL fields?
             document.getElementById("content_url").value = ""
@@ -122,7 +133,7 @@ async function UploadFile(source) {
             SetFileName("unknown")
 
             // .. then post the file name transferred
-            update_file_list(kgx_file_content, filename)
+            update_file_list(kgx_file_content, file_name)
 
         } else {
             console.log("KGX content file URL is undefined?");
@@ -184,82 +195,82 @@ async function UploadFile(source) {
                     credentials: "include"
                 }
             )
-                .then(r => r.json())
-                .then(async result => {
-                    formData.append('upload_token', result.upload_token)
-                    fetch(`{{upload_action}}`, {
-                        method: "POST",
-                        body: formData,
-                        credentials: "include"
-                    })
-                    return result.upload_token
+            .then(r => r.json())
+            .then(async result => {
+                formData.append('upload_token', result.upload_token)
+                fetch(`{{upload_action}}`, {
+                    method: "POST",
+                    body: formData,
+                    credentials: "include"
                 })
-                .then(async upload_token => {
+                return result.upload_token
+            })
+            .then(async upload_token => {
 
-                    // use mutual recursion to create a progress element that always updates the exact amount required
-                    document.getElementById('percentage').textContent = `(0.0%)`;
+                // use mutual recursion to create a progress element that always updates the exact amount required
+                document.getElementById('percentage').textContent = `(0.0%)`;
 
-                    let delay = 1000;
+                let delay = 1000;
 
-                    // callback for mutual recursion
-                    async function askForProgress() {
-                        return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
-                            .then(r => r.json())
-                            .then(j => {
-                                let progress_ratio = 0;
-                                if (!!j.end_position) {
-                                    delay = 1000;
-                                    progress_ratio = j.current_position / j.end_position;
-                                } else {
-                                    delay = 5000;
-                                    if(fake_progress < 900) {
-                                        fake_progress++;
-                                    }
-                                    progress_ratio = fake_progress / 1000
+                // callback for mutual recursion
+                async function askForProgress() {
+                    return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
+                        .then(r => r.json())
+                        .then(j => {
+                            let progress_ratio = 0;
+                            if (!!j.end_position) {
+                                delay = 1000;
+                                progress_ratio = j.current_position / j.end_position;
+                            } else {
+                                delay = 5000;
+                                if(fake_progress < 900) {
+                                    fake_progress++;
                                 }
-                                let percentage = Number(progress_ratio * 100).toFixed(1);
-                                document.getElementById('percentage').textContent = `(${percentage}%)`;
-                                let progressbar = $("#ldBar");
-                                progressbar.progressbar({
-                                    // ceil to err on the side of displaying progress
-                                    value: Math.ceil(progress_ratio * 100)
-                                });
-                                return j;
-                            })
-                    }
-
-                    // timer helper for deferring execution of next recursion step
-                    // "value" will be a function here
-                    function later(delay, value) {
-                        return new Promise(resolve => setTimeout(resolve, delay, value));
-                    }
-
-                    // control flow for mutual recursion
-                    async function execute(callback) {
-                        return await callback().then(async received => {
-                            // NOTE: Sometimes it takes awhile for
-                            // received.end_position to initialize, particularly
-                            // if the file size is > ~1GB (works fine at ~300mb).
-                            // In that case, received.end_position is going
-                            // to be undefined. So this will still execute and
-                            // essentially wait until received.end_position is
-                            // defined, and will stop once received.current_position
-                            // is equal to j.end_position (because the file has
-                            // been completely read and uploaded).
-                            if (!(received.current_position === received.end_position)) {
-                                return await later(delay, askForProgress).then(execute)
+                                progress_ratio = fake_progress / 1000
                             }
+                            let percentage = Number(progress_ratio * 100).toFixed(1);
+                            document.getElementById('percentage').textContent = `(${percentage}%)`;
+                            let progressbar = $("#ldBar");
+                            progressbar.progressbar({
+                                // ceil to err on the side of displaying progress
+                                value: Math.ceil(progress_ratio * 100)
+                            });
+                            return j;
                         })
-                    }
+                }
 
-                    // put the pieces together
-                    try {
-                        return await later(delay, askForProgress).then(execute);
-                    } catch (e) {
-                        console.error(e);
-                    }
+                // timer helper for deferring execution of next recursion step
+                // "value" will be a function here
+                function later(delay, value) {
+                    return new Promise(resolve => setTimeout(resolve, delay, value));
+                }
 
-                })
+                // control flow for mutual recursion
+                async function execute(callback) {
+                    return await callback().then(async received => {
+                        // NOTE: Sometimes it takes awhile for
+                        // received.end_position to initialize, particularly
+                        // if the file size is > ~1GB (works fine at ~300mb).
+                        // In that case, received.end_position is going
+                        // to be undefined. So this will still execute and
+                        // essentially wait until received.end_position is
+                        // defined, and will stop once received.current_position
+                        // is equal to j.end_position (because the file has
+                        // been completely read and uploaded).
+                        if (!(received.current_position === received.end_position)) {
+                            return await later(delay, askForProgress).then(execute)
+                        }
+                    })
+                }
+
+                // put the pieces together
+                try {
+                    return await later(delay, askForProgress).then(execute);
+                } catch (e) {
+                    console.error(e);
+                }
+
+            })
 
             document.getElementById("content_from_local_file").disabled = false;
 
