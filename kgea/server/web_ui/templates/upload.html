@@ -100,6 +100,9 @@ async function UploadFile(source) {
         return;
     }
 
+    // Need to know where I am in the internet space...
+    const url = new URL(window.location.href);
+
     formData.append("upload_mode", source.id);
 
     if (source.id === "content_from_url") {
@@ -114,17 +117,19 @@ async function UploadFile(source) {
             let file_name = document.getElementById("file_name").value;
 
             // somehow post the direct file URL transfer here?
-            window.alert("Direct transfer of file from URL: " + content_url);
-            await fetch(`{{direct_url_transfer_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&content_url=${content_url}`,
-                {
+            //window.alert("Direct transfer of file from URL: " + content_url);
+            let duta_endpoint = `{{direct_url_transfer_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&content_url=${content_url}&content_name=${file_name}`;
+            //window.alert("Direct URL transfer action endpoint: " + duta_endpoint);
+            await fetch(duta_endpoint,                {
                     method: "GET",
                     credentials: "include"
                 }
             )
             .then(r => r.json())
             .then(async result => {
-                console.log("Content URL transfer response:" + result.toString());
-                window.alert("Content URL transfer response:" + result.toString());
+                let msg = JSON.stringify(result)
+                console.log("Content URL transfer response:" + msg);
+                //window.alert("Content URL transfer response:" + msg);
             })
 
             // .. then clear the direct URL fields?
@@ -133,7 +138,7 @@ async function UploadFile(source) {
             SetFileName("unknown")
 
             // .. then post the file name transferred
-            update_file_list(kgx_file_content, file_name)
+            update_file_list(kgx_file_content, file_name, "Transferring...")
 
         } else {
             console.log("KGX content file URL is undefined?");
@@ -187,10 +192,9 @@ async function UploadFile(source) {
             // alternate progress monitor while waiting
             // for the 'real' value from S3
             let fake_progress = 0;
-
-            const url = new URL(window.location.href);
-            await fetch(`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
-                {
+            let ua_endpoint =`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`;
+            //window.alert("upload_action endpoint: " + ua_endpoint);
+            await fetch(ua_endpoint,                {
                     method: "GET",
                     credentials: "include"
                 }
@@ -274,7 +278,7 @@ async function UploadFile(source) {
 
             document.getElementById("content_from_local_file").disabled = false;
 
-            update_file_list(kgx_file_content, filename)
+            update_file_list(kgx_file_content, filename, "Uploaded!")
 
             // document.getElementById('spinner").style.display = "none";
             document.getElementById("percentage").style.display = "none";
@@ -291,13 +295,15 @@ async function UploadFile(source) {
     }
 }
 
-function update_file_list(kgx_file_content, filename) {
+/* the 'status' is simply a client specified status of the file
+   in the list: 'uploaded' (if local upload) or 'processing' (direct url) */
+function update_file_list(kgx_file_content, filename, status) {
     if (kgx_file_content === "metadata") {
-        document.getElementById("uploaded_metadata").innerHTML += "<li>"+filename+"</li>"
+        document.getElementById("uploaded_metadata").innerHTML += "<li>"+filename+" ("+status+")</li>"
     } else if (kgx_file_content === "nodes") {
-        document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+"</li>"
+        document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
     } else if (kgx_file_content === "edges") {
-        document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+"</li>"
+        document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
     }
 }
 
@@ -328,8 +334,6 @@ async function DoneUploading(source) {
 {% block subtitle %}Submitted by '{{submitter_name}}'{% endblock %}
 {% block content %}
 <div class="subtitle"></div>
-<p><b>Disclaimer:</b> KGX validation of uploaded node and edges files is not yet in operation at this time,
-    therefore, please ensure that you have validated your files (with KGX tools) prior to uploading.</p>
 <table>
     <tr>
         <td rowspan="3">
@@ -413,6 +417,17 @@ Uploading file, please don't navigate away from the page...</span>
         </td>
         <td>
             <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
+            <div class="tooltip">
+                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
+                <span class="tooltiptext">
+                    Note: this operation triggers a background server process for the direct
+                    transfer of a file from an internet URL which is not guaranteed to be
+                    completed during a given user session (especially, for large files)
+                </span>
+            </div>
+
+            <br>
+            <p><small>
         </td>
     </tr>
     <tr>
@@ -427,6 +442,9 @@ Uploading file, please don't navigate away from the page...</span>
         </td>
     </tr>
 </table>
+<p><b>Disclaimer:</b> KGX validation of uploaded node and edges files is not yet in operation at this time,
+therefore, please ensure that you have validated your files (with KGX tools) prior to uploading. Do also consider using
+the <b>kgx graph-summary -r meta-knowledge-graph</b> tool to generate a (content) metadata file for uploading.</p>
 {% endblock %}
 {% block app_footer %}
 (*) Read more about KGX formatted (meta-)data files

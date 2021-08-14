@@ -157,6 +157,13 @@ def get_default_date_stamp():
 
 # Don't use date stamp for versioning anymore
 def with_version(func, version="1.0"):
+    """
+    Wrapper appends a version path string to a given function object key.
+    
+    :param func:
+    :param version:
+    :return:
+    """
     def wrapper(kg_id):
         return func(kg_id + '/' + version), version
 
@@ -164,6 +171,13 @@ def with_version(func, version="1.0"):
 
 
 def with_subfolder(location: str, subfolder: str):
+    """
+    Wrapper to appends a subfolder to a location.
+    
+    :param location:
+    :param subfolder:
+    :return:
+    """
     if subfolder:
         location += subfolder + '/'
     return location
