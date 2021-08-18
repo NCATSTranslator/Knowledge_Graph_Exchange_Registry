@@ -57,16 +57,21 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     upload_file,
-    compress_download,
+    compress_fileset,
     create_presigned_url,
     kg_files_in_location,
     get_object_location,
+    get_object_from_bucket,
     with_version,
     object_key_exists,
     get_default_date_stamp,
     with_subfolder,
     infix_string,
     s3_client
+)
+
+from .sha_utils import (
+    fileSha1
 )
 
 from kgea.server.web_services.catalog import (
@@ -1034,7 +1039,6 @@ async def kge_meta_knowledge_graph(
 async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
-
     :param request:
     :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
@@ -1071,11 +1075,88 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
         if len(maybe_archive) == 1:
             archive_key = maybe_archive[0]
         else:
-            # download_url = download_file(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key, open_file=True)
-            archive_key = await compress_download(_KGEA_APP_CONFIG['aws']['s3']['bucket'], file_set_object_key)
+            archive_key = await compress_fileset(
+                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                file_set_object_key,
+                '{}.{}'.format(kg_id, fileset_version)
+            )
+
+        # archive = get_object_from_bucket(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key)
+        #
+        # from io import BytesIO
+        # bstream = BytesIO(archive.get()['Body'].read())
+        # print(
+        #     'archive',
+        #     archive,
+        #     type(archive),
+        #     archive.get(),
+        #     bstream,
+        # )
 
         download_url = create_presigned_url(bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'], object_key=archive_key)
         print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
+
+        await download(request, download_url)
+
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING_PAGE)
+
+
+def fileset_manifest(param, file_set_object_key):
+    pass
+
+
+async def kge_fileset_archive_sha(request: web.Request, kg_id, fileset_version):
+    """Returns specified KGE File Set's sha1 codes for the different files
+
+    :param request:
+    :type request: web.Request
+    :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
+    :type kg_id: str
+    :param fileset_version: Version of KGE File Set of the knowledge graph being accessed.
+    :type fileset_version: str
+
+    :return: None - redirection responses triggered
+    """
+
+    if not (kg_id and fileset_version):
+        await report_not_found(
+            request,
+            "kge_fileset_archive_sha(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            " and 'fileset_version' has value " + str(fileset_version) + "... both must be non-null."
+        )
+
+    logger.debug("Entering kge_fileset_archive_sha(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
+
+    session = await get_session(request)
+    if not session.empty:
+
+        file_set_object_key = with_version(get_object_location, fileset_version)(kg_id)
+
+        kg_files_for_version = kg_files_in_location(
+            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            file_set_object_key,
+        )
+
+        maybe_manifest = [
+            kg_path for kg_path in kg_files_for_version
+            if "manifest.tsv" in kg_path
+        ]
+
+        if len(maybe_manifest) == 1:
+            manifest_key = maybe_manifest[0]
+        else:
+            manifest_key = await fileset_manifest(
+                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                file_set_object_key
+            )
+
+        download_url = create_presigned_url(
+            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            object_key=manifest_key
+        )
 
         await download(request, download_url)
 
