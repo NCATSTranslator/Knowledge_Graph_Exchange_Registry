@@ -2018,7 +2018,7 @@ class KgeArchiver:
 
             from pprint import pformat
             with smart_open.open(shaS3path, 'w') as sha1file:
-                sha1file.write(str(sha1sum))
+                sha1file.write(sha1sum[1])
 
         print(f"KgxArchiver task {self.task_id} finished archiving of {str(file_set)}", file=stderr)
 
