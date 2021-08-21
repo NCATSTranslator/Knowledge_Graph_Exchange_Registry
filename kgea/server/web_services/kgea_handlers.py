@@ -67,7 +67,7 @@ from .kgea_file_ops import (
     get_default_date_stamp,
     with_subfolder,
     infix_string,
-    s3_client
+    s3_client, upload_from_link
 )
 
 from kgea.server.web_services.catalog import (
@@ -551,6 +551,64 @@ async def _validate_and_set_up_archive_target(
     return file_set_location, object_key, file_type
 
 
+async def _initialize_upload_token(
+        request: web.Request,
+        kg_id: str,
+        fileset_version: str,
+        kgx_file_content: str,
+        content_name: str
+) -> UploadTokenObject:
+    """
+    Set up Progress Indication Token mechanism
+    """
+    file_set_location, object_key, file_type = \
+        await _validate_and_set_up_archive_target(
+            request, kg_id, fileset_version, kgx_file_content, content_name
+        )
+
+    logger.debug(
+        "_initialize_upload_token(): " +
+        "file_set_location == '" + file_set_location + "'" +
+        "object_key == '" + object_key + "'" +
+        "file_type == '" + str(file_type) + "')"
+    )
+
+    with threading.Lock():
+        token = str(uuid.uuid4())
+        if 'upload' not in _upload_tracker:
+            # TODO: not quite sure why we wouldn't
+            #       rather store this in the 'session' context?
+            #       i.e. session[token] = dict() ?
+            _upload_tracker['upload'] = {}
+
+        if token not in _upload_tracker['upload']:
+            _upload_tracker['upload'][token] = {
+                "kg_id": kg_id,
+                "fileset_version": fileset_version,
+                "file_set_location": file_set_location,
+                "object_key": object_key,
+                "kgx_file_content": kgx_file_content,
+                "file_type": file_type,
+                "content_name": content_name,
+            }
+
+        print('session upload token', token, _upload_tracker['upload'][token])
+
+        upload_token_object = UploadTokenObject(token)
+
+        return upload_token_object
+
+
+def get_upload_tracker_details(token_object: str) -> Dict:
+
+    global _upload_tracker
+
+    # get details of file upload from token
+    details = _upload_tracker['upload'][token_object]
+
+    return details
+
+
 async def setup_kge_upload_context(
         request: web.Request,
         kg_id: str,
@@ -572,39 +630,13 @@ async def setup_kge_upload_context(
 
     session = await get_session(request)
     if not session.empty:
-    
-        file_set_location, object_key, file_type = \
-            await _validate_and_set_up_archive_target(
-                request, kg_id, fileset_version, kgx_file_content, content_name
-            )
 
-        # Set up Progress Indication Token mechanism
+        upload_token_object: UploadTokenObject = \
+            await _initialize_upload_token(request, kg_id, fileset_version, kgx_file_content, content_name)
 
-        with threading.Lock():
-            token = str(uuid.uuid4())
-            if 'upload' not in _upload_tracker:
-                # TODO: not quite sure why we wouldn't
-                #       rather store this in the 'session' context?
-                #       i.e. session[token] = dict() ?
-                _upload_tracker['upload'] = {}
-                
-            if token not in _upload_tracker['upload']:
-                _upload_tracker['upload'][token] = {
-                    "kg_id": kg_id,
-                    "fileset_version": fileset_version,
-                    "file_set_location": file_set_location,
-                    "object_key": object_key,
-                    "kgx_file_content": kgx_file_content,
-                    "file_type": file_type,
-                    "content_name": content_name,
-                }
- 
-            print('session upload token', token, _upload_tracker['upload'][token])
-            
-            upload_token = UploadTokenObject(token).to_dict()
+        response = web.json_response(upload_token_object.to_dict())
 
-            response = web.json_response(upload_token)
-            return await with_session(request, response)
+        return await with_session(request, response)
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
@@ -640,36 +672,29 @@ async def kge_transfer_from_url(
             await report_error(request, "kge_transfer_from_url(): empty Content URL?")
             
         logger.debug("kge_transfer_from_url(): content_url == '" + content_url + "')")
-        
-        file_set_location, object_key, file_type = \
-            await _validate_and_set_up_archive_target(
-                request, kg_id, fileset_version, kgx_file_content, content_name
+
+        upload_token_object: UploadTokenObject = \
+            await _initialize_upload_token(request, kg_id, fileset_version, kgx_file_content, content_name)
+
+        details: Dict = get_upload_tracker_details(upload_token_object.upload_token)
+
+        try:
+            # TODO: need to run the upload as a background process here...
+            upload_from_link(
+                url=content_url,
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                object_key=details['object_key'],
+                callback=None  # progress_monitor
             )
-
-        logger.debug(
-            "kge_transfer_from_url(): " +
-            "file_set_location == '" + file_set_location + "'" +
-            "object_key == '" + object_key + "'" +
-            "file_type == '" + str(file_type) + "')"
-        )
-        
-        # TODO: initiate background content_url transfer of file_type file to object_key in file_set_location
-
-        # Initial stub implementation is "do nothing" for now?
-        #
-        # uploaded_file_object_key = transfer_file_from_url(
-        #         url=content_url,
-        #         file_name=content_name,
-        #         bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-        #         object_location=file_set_location
-        # )
-        #
-        
-        token = str(uuid.uuid4())
-        
-        upload_token = UploadTokenObject(token).to_dict()
+        except RuntimeError as rte:
+            logger.error('Failed file transfer for content_url '+content_url+'?: ' + str(rte))
+            await report_error(
+                request,
+                'Failed file transfer for content_url '+content_url+'?: ' + str(rte)
+            )
     
-        response = web.json_response(upload_token)
+        response = web.json_response(upload_token_object.to_dict())
+
         return await with_session(request, response)
     
     else:
@@ -735,11 +760,8 @@ async def upload_kge_file(
 
     session = await get_session(request)
     if not session.empty:
-        
-        global _upload_tracker
 
-        # get details of file upload from token
-        details = _upload_tracker['upload'][upload_token]
+        details = get_upload_tracker_details(upload_token)
 
         # TODO: turn into withable
         async def pathless_file_size(data_file):
