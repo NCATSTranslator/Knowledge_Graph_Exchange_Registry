@@ -38,7 +38,7 @@ def test_upload_from_link(
             Class to track percentage completion of an upload.
             """
 
-            REPORTING_INCREMENT: int = 100000
+            REPORTING_INCREMENT: int = 1000000
 
             def __init__(self, filename, file_size, cont=None):
                 self._filename = filename
