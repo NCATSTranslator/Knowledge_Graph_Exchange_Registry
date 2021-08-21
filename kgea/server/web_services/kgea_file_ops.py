@@ -15,12 +15,14 @@ from string import Template
 import random
 import time
 from datetime import datetime
+import requests
 
 from os.path import abspath, splitext
 from io import BytesIO
 import tempfile
 from pathlib import Path
 import tarfile
+import smart_open
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -101,11 +103,16 @@ Test Parameters + Decorator
 """
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
+TEST_FILESET_VERSION = '4.3'
 TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
 
-TEST_LINK = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
-TEST_LINK_FILENAME = 'sri-reference-kg_nodes.tsv'
+# DIRECT_TRANSFER_TEST_LINK = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
+# DIRECT_TRANSFER_TEST_LINK_FILENAME = 'sri-reference-kg_nodes.tsv'
+
+DIRECT_TRANSFER_TEST_LINK = 'https://github.com/NCATSTranslator/semmeddb-biolink-kg/blob/master/R2020-7-9/semmeddb_edges-1_20200709.tsv.gz'
+DIRECT_TRANSFER_TEST_LINK_FILENAME = 'semmeddb_edges.tsv.gz'
+
 
 def prepare_test(func):
     @wraps(func)
@@ -1084,22 +1091,29 @@ Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
 
-import smart_open
 
-def upload_from_link(url, filename, bucket, key, callback=None, aws_client=s3_client()):
+def upload_from_link(url, filename, bucket, kg_id, fs_version, callback=None, aws_client=s3_client()):
     # errors are ignored here as they usually talk about coding mismatches,
     # which don't matter when transferring bytes directly
     with smart_open.open(url) as fin:
-        path = '{}/{}'.format(key, filename)
-        with smart_open.open('s3://{}/{}'.format(bucket, path), 'w', transport_params={'client': aws_client}) as fout:
+        path = f"{kg_id}/{fs_version}/{filename}"
+        with smart_open.open(f"s3://{bucket}/{path}", 'w', transport_params={'client': aws_client}) as fout:
             for line in fin:
                 fout.write(line)
                 if callback:
                     # pass increment of bytes
                     callback(len(line.encode(fin.encoding)))
 
+
 @prepare_test
-def test_upload_from_link(test_bucket=TEST_BUCKET, test_link=TEST_LINK, test_link_filename=TEST_LINK_FILENAME, test_kg=TEST_KG_NAME, logging=False):
+def test_upload_from_link(
+        test_bucket=TEST_BUCKET,
+        test_link=DIRECT_TRANSFER_TEST_LINK,
+        test_link_filename=DIRECT_TRANSFER_TEST_LINK_FILENAME,
+        test_kg=TEST_KG_NAME,
+        test_fileset_version=TEST_FILESET_VERSION,
+        logging=False
+):
     progress_monitor = None
 
     if logging:
@@ -1108,10 +1122,13 @@ def test_upload_from_link(test_bucket=TEST_BUCKET, test_link=TEST_LINK, test_lin
             Class to track percentage completion of an upload.
             """
 
+            REPORTING_INCREMENT: int = 100000
+
             def __init__(self, filename, file_size, cont=None):
                 self._filename = filename
                 self.size = file_size
                 self._seen_so_far = 0
+                self._report_threshold = self.REPORTING_INCREMENT
                 self.cont = cont
 
             def get_file_size(self):
@@ -1128,10 +1145,10 @@ def test_upload_from_link(test_bucket=TEST_BUCKET, test_link=TEST_LINK, test_lin
 
                 if self.cont is not None:
                     # cont lets us inject e.g. logging
-                    self.cont(self)
+                    if self._seen_so_far > self._report_threshold:
+                        self.cont(self)
+                        self._report_threshold += self.REPORTING_INCREMENT
 
-        import requests
-        # importing the requests module
         # url = "https://speed.hetzner.de/100MB.bin"
         # just a dummy file URL
         info = requests.head(test_link)
@@ -1145,13 +1162,22 @@ def test_upload_from_link(test_bucket=TEST_BUCKET, test_link=TEST_LINK, test_lin
         )
 
     print("\ntest_upload_from_link() test output:\n", file=stderr)
+
     try:
-        upload_from_link(test_link, test_link_filename, test_bucket, test_kg, callback=progress_monitor)
-    except Exception as e:
+        upload_from_link(
+            url=test_link,
+            filename=test_link_filename,
+            bucket=test_bucket,
+            kg_id=test_kg,
+            fs_version=test_fileset_version,
+            callback=progress_monitor
+        )
+    except RuntimeError as rte:
+        print('Failed?: '+str(rte))
         return False
-    finally:
-        return True
-    print('done')
+    print('Success!')
+    return True
+
 
 def run_test(test_func, **kwargs):
     try:
@@ -1162,7 +1188,6 @@ def run_test(test_func, **kwargs):
     except Exception as e:
         logger.error("{} failed!".format(test_func.__name__))
         logger.error(e)
-
 
 
 if __name__ == '__main__':
@@ -1186,22 +1211,21 @@ if __name__ == '__main__':
 
     run_test(test_upload_from_link, logging=True)
 
-
-    run_test(test_kg_files_in_location)
-    run_test(test_is_location_available)
-    run_test(test_is_not_location_available)
-    run_test(test_get_fileset_versions_available)
-    run_test(test_create_presigned_url)
+    # run_test(test_kg_files_in_location)
+    # run_test(test_is_location_available)
+    # run_test(test_is_not_location_available)
+    # run_test(test_get_fileset_versions_available)
+    # run_test(test_create_presigned_url)
 
     # run_test(test_tardir)
     # run_test(test_package_manifest)
 
     # run_test(test_upload_file_multipart)
     # run_test(test_upload_file_as_archive)
-
-    run_test(test_upload_file_to_archive)
+    #
+    # run_test(test_upload_file_to_archive)
     # run_test(test_download_file)
 
-    run_test(test_get_archive_contents)
+    # run_test(test_get_archive_contents)
 
     print("tests complete")

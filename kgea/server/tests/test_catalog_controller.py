@@ -1,12 +1,6 @@
 # coding: utf-8
 
 import pytest
-import json
-from aiohttp import web
-
-from web_services.models.kge_file_set_entry import KgeFileSetEntry
-from web_services.models.register_file_set_request_body import RegisterFileSetRequestBody
-from web_services.models.register_graph_request_body import RegisterGraphRequestBody
 
 
 async def test_get_knowledge_graph_catalog(client):
