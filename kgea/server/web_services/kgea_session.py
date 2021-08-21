@@ -173,7 +173,7 @@ async def _process_redirection(request, response, active_session):
             session = await get_session(request)
             await KgeaSession.save_session(request, response, session)
         except RuntimeError as rte:
-            await report_error(request, "kgea_session._process_redirection() RuntimeError: " + str(rte))
+            logger.error("kgea_session._process_redirection() RuntimeError?!??: " + str(rte))
 
     raise response
 
