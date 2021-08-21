@@ -803,7 +803,6 @@ def decompress_in_place(gzipped_key, location=None):
                     Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
                     Key=location+entry.name
                 )
-                print(file_entries)
                 file_entries.append({
                     "file_type": "KGX data file",
                     "file_name": entry.name,

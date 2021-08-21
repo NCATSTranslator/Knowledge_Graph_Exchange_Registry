@@ -74,9 +74,6 @@ if __name__ == '__main__':
     if RUN_TESTS:
         with open(os.path.abspath('./test/data/somedata.csv'), 'rb') as test_file:
             sha1 = sha1Manifest(test_file)
-            # TODO does sha1Manifest = the system implementation?
-            print(sha1)
-
         with tempfile.NamedTemporaryFile(suffix='.tsv', prefix=os.path.basename(__file__), buffering=0) as testfile:
             files = [testfile]
             manifestFile = sha1ManifestFile(files)

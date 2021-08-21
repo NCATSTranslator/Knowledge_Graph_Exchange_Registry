@@ -15,6 +15,7 @@ KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 from sys import stderr
 from os import getenv
+import os
 from os.path import dirname, abspath
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
 from string import punctuation
@@ -1467,43 +1468,86 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     )
     file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
 
-    with tempfile.NamedTemporaryFile() as test_file:
-        test_file.write(bytes(_random_alpha_string(), "UTF-8"))
-        test_file.seek(0)
-        size = test_file.tell()
-        file_name = 'MickeyMouseFanClub_nodes.tsv'
-        key = upload_file(
-            test_file,
-            file_name,
-            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            file_set_location
-        )
-        fs.add_data_file(
-            object_key=file_set_location + file_name,
-            file_type=KgeFileType.KGX_DATA_FILE,
-            file_name=file_name,
-            file_size=666,
-            s3_file_url=''
-        )
+    test_file1 = tempfile.NamedTemporaryFile()
+    test_file1.write(bytes(_random_alpha_string(), "UTF-8"))
+    test_file1.seek(0)
+    size = test_file1.tell()
+    file_name = 'MickeyMouseFanClub_nodes.tsv'
+    key = upload_file(
+        test_file1,
+        file_name,
+        _KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        file_set_location
+    )
+    fs.add_data_file(
+        object_key=file_set_location + file_name,
+        file_type=KgeFileType.KGX_DATA_FILE,
+        file_name=file_name,
+        file_size=666,
+        s3_file_url=''
+    )
+    test_file1.close()
 
-    with tempfile.NamedTemporaryFile() as test_file:
-        test_file.write(bytes(_random_alpha_string(), "UTF-8"))
-        test_file.seek(0)
-        size = test_file.tell()
-        file_name = 'MinnieMouseFanClub_edges.tsv'
-        key = upload_file(
-            test_file,
-            file_name,
-            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            file_set_location
-        )
-        fs.add_data_file(
-            object_key=file_set_location + file_name,
-            file_type=KgeFileType.KGX_DATA_FILE,
-            file_name=file_name,
-            file_size=999,
-            s3_file_url=''
-        )
+    test_file2 = tempfile.NamedTemporaryFile()
+    test_file2.write(bytes(_random_alpha_string(), "UTF-8"))
+    test_file2.seek(0)
+    size = test_file2.tell()
+    file_name = 'MinnieMouseFanClub_edges.tsv'
+    key = upload_file(
+        test_file2,
+        file_name,
+        _KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        file_set_location
+    )
+    fs.add_data_file(
+        object_key=file_set_location + file_name,
+        file_type=KgeFileType.KGX_DATA_FILE,
+        file_name=file_name,
+        file_size=999,
+        s3_file_url=''
+    )
+    test_file2.close()
+
+    with tempfile.TemporaryDirectory() as tempdir:
+
+        # homogenize the names so these files don't clutter the test folder when uploaded
+        test_name = {
+            'nodes': 'test_nodes.tsv',
+            'edges': 'test_edges.tsv',
+            'archive': 'test_archive.tar.gz'
+        }
+
+        test_file3 = tempfile.NamedTemporaryFile(suffix='_nodes.tsv', delete=False)
+        test_file3.write(bytes(_random_alpha_string(), "UTF-8"))
+        test_file3.close()
+
+        test_file4 = tempfile.NamedTemporaryFile(suffix='_edges.tsv', delete=False)
+        test_file4.write(bytes(_random_alpha_string(), "UTF-8"))
+        test_file4.close()
+
+        import tarfile
+        tar_file_name = _random_alpha_string()+'.tar.gz'
+        with tarfile.open(name=tempdir+'/'+tar_file_name, mode='w:gz') as test_tarfile:
+            # OR use os.path.basename()
+            test_tarfile.add(test_file3.name, arcname=test_name['nodes'])
+            test_tarfile.add(test_file4.name, arcname=test_name['edges'])
+        with open(tempdir+'/'+tar_file_name, 'rb') as test_tarfile1:
+
+            key = upload_file(
+                test_tarfile1,
+                test_name['archive'],
+                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                file_set_location
+            )
+
+            fs.add_data_file(
+                object_key=file_set_location + test_name['archive'],
+                file_type=KgeFileType.KGX_DATA_FILE,
+                file_name=test_name['archive'],
+                file_size=999,
+                s3_file_url=''
+            )
+
 
     return fs
 
@@ -2022,11 +2066,9 @@ class KgeArchiver:
                 ),
                 FILE_NAME=sha1tsv
             )
-            try:
-                with smart_open.open(shaS3path, 'w') as sha1file:
-                    sha1file.write(sha1sum_value)
-            except Exception as error:
-                print(error)
+            with smart_open.open(shaS3path, 'w') as sha1file:
+                sha1file.write(sha1sum_value)
+
         print(f"KgxArchiver task {self.task_id} finished archiving of {str(file_set)}", file=stderr)
 
         # self._archiver_queue.task_done()
