@@ -1092,12 +1092,11 @@ Unit Tests
 """
 
 
-def upload_from_link(url, filename, bucket, kg_id, fs_version, callback=None, aws_client=s3_client()):
+def upload_from_link(url, bucket, object_key, callback=None, aws_client=s3_client()):
     # errors are ignored here as they usually talk about coding mismatches,
     # which don't matter when transferring bytes directly
     with smart_open.open(url) as fin:
-        path = f"{kg_id}/{fs_version}/{filename}"
-        with smart_open.open(f"s3://{bucket}/{path}", 'w', transport_params={'client': aws_client}) as fout:
+        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': aws_client}) as fout:
             for line in fin:
                 fout.write(line)
                 if callback:
@@ -1163,13 +1162,13 @@ def test_upload_from_link(
 
     print("\ntest_upload_from_link() test output:\n", file=stderr)
 
+    object_key = f"{test_kg}/{test_fileset_version}/{test_link_filename}"
+
     try:
         upload_from_link(
             url=test_link,
-            filename=test_link_filename,
             bucket=test_bucket,
-            kg_id=test_kg,
-            fs_version=test_fileset_version,
+            object_key=object_key,
             callback=progress_monitor
         )
     except RuntimeError as rte:

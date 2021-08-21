@@ -79,15 +79,15 @@ def test_upload_from_link(
             )
         )
 
-    logger.debug("\ntest_upload_from_link() test output:\n")
+    object_key = f"{test_kg}/{test_fileset_version}/{test_link_filename}"
+
+    logger.debug("\ntest_upload_from_link() url: '"+test_link+"' to object key '"+object_key+"':\n")
 
     try:
         upload_from_link(
             url=test_link,
-            filename=test_link_filename,
             bucket=test_bucket,
-            kg_id=test_kg,
-            fs_version=test_fileset_version,
+            object_key=object_key,
             callback=progress_monitor
         )
     except RuntimeError as rte:
