@@ -81,7 +81,8 @@ from kgea.server.web_services.kgea_file_ops import (
     compress_fileset,
     aggregate_files,
     upload_file,
-    _random_alpha_string
+    _random_alpha_string,
+    decompress_in_place
 )
 
 from kgea.server.web_services.sha_utils import (
@@ -271,7 +272,7 @@ class KgeFileSet:
 
     def get_biolink_model_release(self):
         """
-        
+
         :return: Biolink Model release Semantic Version (major.minor.patch)
         """
         return self.biolink_model_release
@@ -324,28 +325,28 @@ class KgeFileSet:
     def get_nodes(self, flat=False):
         node_files = []
         if not flat:
-            node_files = filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys())
+            node_files = list(filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys()))
         elif flat:
             #TODO
-            node_files = filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys())
+            node_files = list(filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys()))
         return node_files
 
     def get_edges(self, flat=False):
         edge_files = []
         if not flat:
-            edge_files = filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys())
+            edge_files = list(filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys()))
         elif flat:
             # TODO
-            edge_files = filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys())
+            edge_files = list(filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys()))
         return edge_files
 
     def get_archives(self, flat=False):
         archive_files = []
         if not flat:
-            archive_files = filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys())
+            archive_files = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
         elif flat:
             #TODO
-            archive_files = filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys())
+            archive_files = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
         return archive_files
 
     # Note: content metadata file name is already normalized on S3 to 'content_metadata.yaml'
@@ -530,7 +531,7 @@ class KgeFileSet:
     def post_process_file_set(self) -> bool:
         """
         After a file_set is uploaded, post-process the file set including KGX validation.
-        
+
         :return: True if successful; False otherwise
         """
         # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
@@ -794,7 +795,7 @@ class KgeKnowledgeGraph:
         """
         This function fixes the text of specific values of the
         Knowledge Graph metadata to be YAML friendly
-        
+
         :param key: yaml key field
         :param value: text value to be fixed (if necessary)
         :return:
@@ -822,10 +823,10 @@ class KgeKnowledgeGraph:
     def normalize_name(cls, kg_name: str) -> str:
         """
         Normalize a user name to knowledge graph identifier name
-        
+
         :param kg_name: user provided knowledge name
         :return: normalized knowledge graph identifier name
-        
+
         """
         # TODO: need to review graph name normalization and indexing
         #       against various internal graph use cases, e.g. lookup
@@ -845,7 +846,7 @@ class KgeKnowledgeGraph:
 
     def set_provider_metadata_object_key(self, object_key: str):
         """
-        
+
         :param object_key:
         :return:
         """
@@ -853,14 +854,14 @@ class KgeKnowledgeGraph:
 
     def get_provider_metadata_object_key(self):
         """
-        
+
         :return:
         """
         return self._provider_metadata_object_key
 
     def publish_provider_metadata(self):
         """
-        
+
         :return:
         """
         logger.debug("Publishing knowledge graph '" + self.kg_id + "' to the Archive")
@@ -882,7 +883,7 @@ class KgeKnowledgeGraph:
 
     def get_name(self) -> str:
         """
-        
+
         :return:
         """
         return self.parameter.setdefault("kg_name", self.kg_id)
@@ -911,7 +912,7 @@ class KgeKnowledgeGraph:
     # - terms_of_service - specifically relating to the project, beyond the licensing
     def generate_provider_metadata_file(self) -> str:
         """
-        
+
         :return:
         """
         return _populate_template(
@@ -921,7 +922,7 @@ class KgeKnowledgeGraph:
 
     def generate_translator_registry_entry(self) -> str:
         """
-        
+
         :return:
         """
         return _populate_template(
@@ -931,7 +932,7 @@ class KgeKnowledgeGraph:
 
     def get_version_names(self) -> List[str]:
         """
-        
+
         :return:
         """
         return list(self._file_set_versions.keys())
@@ -950,7 +951,7 @@ class KgeKnowledgeGraph:
             ]
     ):
         """
-        
+
         :param versions:
         :return:
         """
@@ -972,7 +973,7 @@ class KgeKnowledgeGraph:
 
     def add_file_set(self, fileset_version: str, file_set: KgeFileSet):
         """
-        
+
         :param fileset_version:
         :param file_set:
         :return:
@@ -981,7 +982,7 @@ class KgeKnowledgeGraph:
 
     def load_fileset_metadata(self, metadata_text: str) -> KgeFileSet:
         """
-        
+
         :param metadata_text:
         :return:
         """
@@ -1071,7 +1072,7 @@ class KgeKnowledgeGraph:
     # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
     def get_metadata(self, fileset_version: str) -> KgeMetadata:
         """
-        
+
         :param fileset_version:
         :return:
         """
@@ -1136,7 +1137,7 @@ class KgeArchiveCatalog:
         """
         This method needs to be called after the KgeArchiveCatalog is no longer needed,
         since it releases some program resources which may be open at the end of processing)
-        
+
         :return: None
         """
         # Shut down KgxArchiver background processing here
@@ -1325,7 +1326,7 @@ class KgeArchiveCatalog:
         updated files, within which files formats are asynchronously validated
         to KGX compliance, and the entire file set assessed for completeness.
         An exception is raise if there is an error.
-    
+
         :param kg_id: identifier of the KGE Archive managed Knowledge Graph of interest
         :param fileset_version: version of interest of the KGE File Set associated with the Knowledge Graph
         :param file_type: KgeFileType of the file being added
@@ -1366,7 +1367,7 @@ class KgeArchiveCatalog:
 
     def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
         """
-        
+
         :return:
         """
         # TODO: see KgeFileSetEntry schema in the ~/kgea/api/kgea_api.yaml
@@ -1944,9 +1945,14 @@ class KgeArchiver:
         # Do the Archiving Here
         ########################
 
-        # 1. TODO Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
+        # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
 
-        # 2. DONE Copy/merge all uploaded *_nodes.tsv files into one nodes.tsv; all *_edges.tsv into one edges.tsv.
+        for archive in file_set.get_archives():
+            # returns entries that follow the KgeFileSetEntry Schema
+            archive_file_entries = decompress_in_place(archive)  # decompresses the archive and sends the files to s3
+            for entry in archive_file_entries:
+                # spread the entry across the add_data_file function, which will take all its values as arguments
+                file_set.add_data_file(**entry)
 
         nodefiles_aggregate_path = aggregate_files(
             _KGEA_APP_CONFIG['aws']['s3']['bucket'],
@@ -1956,7 +1962,7 @@ class KgeArchiver:
             ),
             'nodes.tsv',
             file_set.get_nodes(),
-            lambda x: '_nodes.tsv' in x
+            lambda x: 'nodes.tsv' in x
         )
 
         edgefiles_aggregate_path = aggregate_files(
@@ -1967,7 +1973,7 @@ class KgeArchiver:
             ),
             'edges.tsv',
             file_set.get_edges(),
-            lambda x: '_edges.tsv' in x
+            lambda x: 'edges.tsv' in x
         )
 
         # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file containing the aggregated
@@ -2005,6 +2011,7 @@ class KgeArchiver:
             #    (once the archiving and hash generation is completed...)
 
             sha1sum = sha1Manifest(archive)
+            sha1sum_value = sha1sum[archive.name]
             sha1tsv = '{}.{}.sha1.txt'.format(file_set.kg_id, file_set.fileset_version)
 
             shaS3path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
@@ -2015,11 +2022,11 @@ class KgeArchiver:
                 ),
                 FILE_NAME=sha1tsv
             )
-
-            from pprint import pformat
-            with smart_open.open(shaS3path, 'w') as sha1file:
-                sha1file.write(sha1sum[1])
-
+            try:
+                with smart_open.open(shaS3path, 'w') as sha1file:
+                    sha1file.write(sha1sum_value)
+            except Exception as error:
+                print(error)
         print(f"KgxArchiver task {self.task_id} finished archiving of {str(file_set)}", file=stderr)
 
         # self._archiver_queue.task_done()

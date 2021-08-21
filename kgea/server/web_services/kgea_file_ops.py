@@ -17,6 +17,7 @@ import random
 import time
 import smart_open
 from datetime import datetime
+import gzip
 
 from os.path import abspath, splitext
 import tempfile
@@ -785,6 +786,34 @@ async def compress_fileset(
 
     return archive_path
 
+def decompress_in_place(gzipped_key, location=None):
+    if location is None:
+        location = '/'.join(gzipped_key.split('/')[:-1])+'/'
+    tarfile_location = 's3://{BUCKET}/{KEY}'.format(
+        BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        KEY=gzipped_key
+    )
+    file_entries = []
+    with smart_open.open(tarfile_location, 'rb', compression="disable") as fd:
+        with tarfile.open(fileobj=fd, mode='r:gz') as tf:
+            for entry in tf:  # list each entry one by one
+                fileobj = tf.extractfile(entry)
+                s3_client().upload_fileobj(  # upload a new obj to s3
+                    Fileobj=io.BytesIO(fileobj.read()),
+                    Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
+                    Key=location+entry.name
+                )
+                print(file_entries)
+                file_entries.append({
+                    "file_type": "KGX data file",
+                    "file_name": entry.name,
+                    "file_size": entry.size,
+                    # TODO deal with import circularities: reorganize the project
+                    "object_key": location+entry.name,
+                    "s3_file_url": '',
+                })
+    return file_entries
+
 
 def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: True) -> str:
     agg_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
@@ -792,7 +821,6 @@ def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: Tru
         PATH=path,
         FILE_NAME=name
     )
-    # open in append mode to ensure that writes concatenate onto the node file
     with smart_open.open(agg_path, 'w') as aggregated_file:
         file_paths = filter(match_function, file_paths)
         for file_path in file_paths:
@@ -801,7 +829,8 @@ def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: Tru
                 KEY=file_path
             )
             with smart_open.open(path, 'r') as subfile:
-                aggregated_file.write(subfile.read())
+                # because smart_open doesn't support an append mode, use writelines and add a newline
+                aggregated_file.writelines(subfile.read()+'\n')
     return agg_path
 
 
@@ -962,49 +991,6 @@ def get_archive_contents(bucket_name: str) -> \
                 # (other than the PROVIDER_METADATA_FILE and FILE_SET_METADATA_FILE)
                 # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
                 contents[kg_id]['versions'][fileset_version]['file_object_keys'].append(file_path)
-# =======
-#             kg_id = file_part[1]
-#             if kg_id not in contents:
-#                 # each Knowledge Graph may have high level 'metadata'
-#                 # obtained from a kg_id specific PROVIDER_METADATA_FILE
-#                 # plus one or more versions of KGE File Set
-#                 contents[kg_id] = dict()  # dictionary of kg's, indexed by kg_id
-#                 contents[kg_id]['versions'] = dict()  # dictionary of versions, indexed by fileset_version
-#
-#         if len(file_part) > 2:
-#             if file_part[2] == PROVIDER_METADATA_FILE:
-#                 # Get the provider 'kg_id' associated metadata file just stored
-#                 # as a blob of text, for content parsing by the function caller
-#                 # Unlike the kg_id versions, there should only be one such file?
-#                 contents[kg_id]['metadata'] = \
-#                     load_s3_text_file(
-#                         bucket_name=bucket_name,
-#                         object_name=file_path
-#                     )
-#             else:
-#                 # otherwise, assume file_part[2] is a 'version folder'
-#                 fileset_version = file_part[2]
-#                 if fileset_version not in contents[kg_id]['versions'] and fileset_version != '':
-#                     contents[kg_id]['versions'][fileset_version] = dict()
-#                     contents[kg_id]['versions'][fileset_version]['file_object_keys'] = list()
-#
-#                     if len(file_part) > 3:
-#                         if file_part[3] == FILE_SET_METADATA_FILE:
-#                             # Get the provider 'kg_id' associated metadata file just stored
-#                             # as a blob of text, for content parsing by the function caller
-#                             # Unlike the kg_id versions, there should only be one such file?
-#                             contents[kg_id]['versions'][fileset_version]['metadata'] = \
-#                                 load_s3_text_file(
-#                                     bucket_name=bucket_name,
-#                                     object_name=file_path
-#                                 )
-#                             continue
-#
-#                     # simple first iteration just records the list of data file paths
-#                     # (other than the PROVIDER_METADATA_FILE)
-#                     # TODO: how should subfolders (i.e. 'nodes' and 'edges') be handled?
-#                     contents[kg_id]['versions'][fileset_version]['file_object_keys'].append(file_path)
-# >>>>>>> checksum
     return contents
 
 
