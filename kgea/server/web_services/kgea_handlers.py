@@ -835,8 +835,6 @@ async def upload_kge_file(
 
         filesize = await pathless_file_size(uploaded_file.file)
 
-        # TODO: how do I capture this file size in the
-        #       KgeFile entry in the current KgeFileSet?
         _upload_tracker['upload'][upload_token]['end_position'] = filesize
 
         if 'content_name' in _upload_tracker['upload'][upload_token]:
@@ -865,6 +863,7 @@ async def upload_kge_file(
                 client=client,
                 callback=progress_monitor
             )
+
             # Assuming success, the new file should be
             # added to into the file set in the Catalog.
             if uploaded_file_object_key:
@@ -910,6 +909,7 @@ async def upload_kge_file(
         loop.run_in_executor(None, threaded_upload)
 
         response = web.Response(text=str(_upload_tracker['upload'][upload_token]['end_position']), status=200)
+
         await with_session(request, response)
 
     else:
