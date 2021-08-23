@@ -1,14 +1,13 @@
 """
 Knowledge Graph Exchange Archive backend web service handlers.
 """
-import json
+from os import getenv, path
 import sys
-from json import JSONEncoder
 
-from os import getenv
 from pathlib import Path
-from typing import Dict, Set
-from datetime import date
+from typing import Dict
+
+import uuid
 
 from .models import (
     KgeMetadata,
@@ -25,7 +24,7 @@ except ImportError:
 from string import Template
 
 from aiohttp import web
-from aiohttp_session import get_session
+from aiohttp_session import get_session, Session
 
 import threading
 
@@ -107,7 +106,36 @@ KGX_FILE_CONTENT_TYPES = ['metadata', 'nodes', 'edges', 'archive']
 # )
 #############################################################
 
-_upload_tracker = {}
+
+def get_upload_tracker_catalog(session: Session) -> Dict:
+    if 'kgea_upload_tracker' not in session:
+        session['kgea_upload_tracker'] = {}
+    return session['kgea_upload_tracker']
+
+
+def create_upload_tracker(session: Session, **kwargs):
+    """
+    Create a new upload tracker, returning the id token
+    """
+    token = str(uuid.uuid4())
+
+    catalog = get_upload_tracker_catalog(session)
+
+    if token not in catalog:
+        catalog[token] = kwargs
+
+    print('session upload token', token, catalog[token])
+
+    return token
+
+
+def get_upload_tracker(session: Session, token: str):
+    catalog = get_upload_tracker_catalog(session)
+    if token in catalog:
+        return catalog[token]
+    else:
+        # empty tracker - doesn't exist for given token id string?
+        return dict()
 
 
 async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
@@ -119,7 +147,7 @@ async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
     catalog: Dict = dict()
 
     # Paranoia: can't see the catalog without being logged in a user session
-    session = await get_session(request)
+    session: Session = await get_session(request)
     if not session.empty:
         catalog = KgeArchiveCatalog.catalog().get_kg_entries()
 
@@ -562,36 +590,32 @@ async def setup_kge_upload_context(
                     content_name, f"_{kgx_file_content}"
                 )
 
-        import uuid
-        import os
-
         object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
             ROOT=file_set_location,
             FILENAME=Path(content_name).stem,
-            EXTENSION=os.path.splitext(content_name)[1]
+            EXTENSION=path.splitext(content_name)[1]
         )
 
         with threading.Lock():
-            token = str(uuid.uuid4())
-            if 'upload' not in _upload_tracker:
-                # TODO: not quite sure why we wouldn't
-                #       rather store this in the 'session' context?
-                #       i.e. session[token] = dict() ?
-                _upload_tracker['upload'] = {}
-                
-            if token not in _upload_tracker['upload']:
-                _upload_tracker['upload'][token] = {
-                    "kg_id": kg_id,
-                    "fileset_version": fileset_version,
-                    "file_set_location": file_set_location,
-                    "object_key": object_key,
-                    "kgx_file_content": kgx_file_content,
-                    "file_type": file_type,
-                    "upload_mode": upload_mode,
-                    "content_name": content_name,
-                }
- 
-            print('session upload token', token, _upload_tracker['upload'][token])
+
+            token = create_upload_tracker(
+                        session,
+
+                        kg_id=kg_id,
+                        fileset_version=fileset_version,
+                        file_set_location=file_set_location,
+                        object_key=object_key,
+                        kgx_file_content=kgx_file_content,
+
+                        # Only serialize the name of the KgeFileType
+                        file_type=file_type.name,
+
+                        upload_mode=upload_mode,
+                        content_name=content_name,
+
+                        current_position=0,
+                        end_position=0
+            )
             
             upload_token = UploadTokenObject(token).to_dict()
 
@@ -626,12 +650,15 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         In that case, we leave end_position is going to be undefined. The consumer of this endpoint must be willing
         to consistently poll until end_position is given a value.
         """
-        tracker = _upload_tracker['upload'][upload_token]
+
+        _upload_tracker = get_upload_tracker(session, upload_token)
+
         progress_token = UploadProgressToken(
             upload_token=upload_token,
-            current_position=tracker['current_position'] if 'current_position' in tracker else 0,
-            end_position=tracker['end_position'] if 'end_position' in tracker else None,
+            current_position=_upload_tracker['current_position'] if 'current_position' in _upload_tracker else 0,
+            end_position=_upload_tracker['end_position'] if 'end_position' in _upload_tracker else None,
         ).to_dict()
+
         response = web.json_response(progress_token)
         return await with_session(request, response)
 
@@ -702,11 +729,8 @@ async def upload_kge_file(
 
     session = await get_session(request)
     if not session.empty:
-        
-        global _upload_tracker
 
-        # get details of file upload from token
-        details = _upload_tracker['upload'][upload_token]
+        _upload_tracker = get_upload_tracker(session, upload_token)
 
         # TODO: turn into withable
         async def pathless_file_size(data_file):
@@ -750,7 +774,11 @@ async def upload_kge_file(
             :param current_bytes: byte progress count.
             :return:
             """
-            _upload_tracker['upload'][upload_token]['current_position'] = current_bytes
+            _upload_tracker['current_position'] = current_bytes
+
+            # Need to signal the change of the
+            # upload_tracker 'current_position' in the Session?
+            session.changed()
 
         class ProgressPercentage(object):
             """
@@ -775,13 +803,13 @@ async def upload_kge_file(
                 self._seen_so_far += bytes_amount
                 update_session(self._seen_so_far)
                 # print(
-                #   'progress_raw', _upload_tracker['upload'][upload_token]['current_position'] /
-                #   _upload_tracker['upload'][upload_token]['end_position'] * 100
+                #   'progress_raw', _upload_tracker['current_position'] /
+                #   _upload_tracker['end_position'] * 100
                 # )
                 # print(
                 #   'progress', upload_token,
-                #   session['upload'][upload_token]['current_position'] /
-                #   session['upload'][upload_token]['end_position'], percentage
+                #   _upload_tracker['current_position'] /
+                #   _upload_tracker['end_position'], percentage
                 # )
 
         # import concurrent.futures
@@ -791,12 +819,14 @@ async def upload_kge_file(
 
         filesize = await pathless_file_size(uploaded_file.file)
 
-        # TODO: how do I capture this file size in the
-        #       KgeFile entry in the current KgeFileSet?
-        _upload_tracker['upload'][upload_token]['end_position'] = filesize
+        _upload_tracker['end_position'] = filesize
 
-        if 'content_name' in _upload_tracker['upload'][upload_token]:
-            content_name = _upload_tracker['upload'][upload_token]['content_name']
+        # Need to signal the change of the
+        # upload_tracker filesize in the Session?
+        session.changed()
+
+        if 'content_name' in _upload_tracker:
+            content_name = _upload_tracker['content_name']
         else:
             content_name = uploaded_file.filename
 
@@ -810,14 +840,14 @@ async def upload_kge_file(
 
             progress_monitor = ProgressPercentage(
                 uploaded_file.filename,
-                _upload_tracker['upload'][upload_token]['end_position']
+                _upload_tracker['end_position']
             )
 
             uploaded_file_object_key = upload_file(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
                 file_name=content_name,        # The new name for the file
                 bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                object_location=details['file_set_location'],
+                object_location=_upload_tracker['file_set_location'],
                 client=client,
                 callback=progress_monitor
             )
@@ -834,10 +864,17 @@ async def upload_kge_file(
                     # identified by the 'kg_id', initiating or continuing a
                     # the assembly process for the 'fileset_version' KGE file set.
                     # May raise an Exception if something goes wrong.
+
+                    file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
+                    try:
+                        file_type = KgeFileType.__getattr__(_upload_tracker["file_type"])
+                    except AttributeError as ae:
+                        file_type = KgeFileType.KGX_UNKNOWN
+
                     KgeArchiveCatalog.catalog().add_to_kge_file_set(
-                        kg_id=details["kg_id"],
-                        fileset_version=details["fileset_version"],
-                        file_type=details["file_type"],
+                        kg_id=_upload_tracker["kg_id"],
+                        fileset_version=_upload_tracker["fileset_version"],
+                        file_type=file_type,
                         file_name=content_name,
                         file_size=progress_monitor.get_file_size(),
                         object_key=uploaded_file_object_key,
@@ -846,18 +883,18 @@ async def upload_kge_file(
 
                 except Exception as exc:
                     error_msg: str = "upload_kge_file(" + \
-                        "kg_id: "+details["kg_id"] + ", " \
-                        "fileset_version: "+details["fileset_version"] + ", " \
-                        "file_type: "+str(details["file_type"]) + ", " \
+                        "kg_id: "+_upload_tracker["kg_id"] + ", " \
+                        "fileset_version: "+_upload_tracker["fileset_version"] + ", " \
+                        "file_type: "+str(_upload_tracker["file_type"]) + ", " \
                         "object_key: " + str(uploaded_file_object_key) + \
                         ") threw exception: " + str(exc)
                     logger.error(error_msg)
                     raise RuntimeError(error_msg)
             else:
                 error_msg: str = "upload_kge_file(" + \
-                                 "kg_id: " + details["kg_id"] + ", " \
-                                 "fileset_version: " + details["fileset_version"] + ", " \
-                                 "file_type: " + str(details["file_type"]) + " " \
+                                 "kg_id: " + _upload_tracker["kg_id"] + ", " \
+                                 "fileset_version: " + _upload_tracker["fileset_version"] + ", " \
+                                 "file_type: " + str(_upload_tracker["file_type"]) + " " \
                                  ") - null S3 object key... file upload failed?"
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
@@ -865,7 +902,7 @@ async def upload_kge_file(
         loop = asyncio.get_event_loop()
         loop.run_in_executor(None, threaded_upload)
 
-        response = web.Response(text=str(_upload_tracker['upload'][upload_token]['end_position']), status=200)
+        response = web.Response(text=str(_upload_tracker['end_position']), status=200)
         await with_session(request, response)
 
     else:

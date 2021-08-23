@@ -5,7 +5,7 @@
 #     last_visit = session['last_visit'] if 'last_visit' in session else None
 #     text = 'Last visited: {}'.format(last_visit)
 #     return web.Response(text=text)
-
+import json
 from os import getenv
 from typing import Dict
 from uuid import uuid4
