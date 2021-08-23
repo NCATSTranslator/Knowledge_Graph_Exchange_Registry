@@ -45,7 +45,9 @@ def test_content_metadata_source_regex(query):
             ],
             "count": 29906,
             "count_by_source": {
-                "infores:flyBase": 29906
+                "provided_by": {
+                    "infores:flyBase": 29906
+                }
             }
         },
         "biolink:OntologyClass": {
@@ -54,7 +56,9 @@ def test_content_metadata_source_regex(query):
             ],
             "count": 2928,
             "count_by_source": {
-                "infores:go": 2928
+                "provided_by": {
+                    "infores:go": 2928
+                }
             }
         }
     },
@@ -66,16 +70,41 @@ def test_content_metadata_source_regex(query):
             "relations": [
                 "RO:0002327"
             ],
-            "count_by_source": {
-                "infores:go": 6
+            "count_by_source":  {
+                "knowledge_source": {
+                    "infores:go": 6
+                }
             },
             "count": 6
         }
     ],
-    "name": "Test Graph"
+    "name": "Correct Test Graph"
 }
 """,
                 True
+        )
+,
+        (
+                """
+{
+    "nodes": {
+        "biolink:Gene": {
+            "id_prefixes": [
+                "FlyBase"
+            ],
+            "count": 29906,
+            "count_by_source": {
+                "original_knowledge_source": {
+                    "infores:flyBase": 29906
+                }
+            }
+        }
+    },
+    "edges": [],
+    "name": "Graph with incorrect node knowledge source category"
+}
+""",
+                False
         )
 ,
         (
@@ -94,4 +123,4 @@ def test_content_metadata_source_regex(query):
 def test_content_metadata_schema(query):
     metadata_json = json.loads(query[0])
     errors = validate_content_metadata(metadata_json)
-    assert not errors == query[1]
+    assert (not errors) == query[1]

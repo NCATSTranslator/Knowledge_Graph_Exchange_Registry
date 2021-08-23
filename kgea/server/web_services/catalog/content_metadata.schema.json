@@ -43,11 +43,18 @@
         },
         "count_by_source": {
           "type": "object",
-          "description": "Number of node instances by knowledge source URI or CURIE or plain namespace identifier",
+          "description": "Counts of node instances, binned by knowledge source provenance categories",
           "patternProperties": {
-                  "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|((\\w|\\.)+:)?(\\w|\\.|-)+)$": {
-                  "type": "integer"
-            }
+                "^provided_by$": {
+                  "type": "object",
+                  "description": "Count of node instances by source URI or CURIE or plain namespace identifier",
+                  "patternProperties": {
+                    "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|((\\w|\\.)+:)?(\\w|\\.|-)+)$": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
+                }
           },
           "additionalProperties": false
         }
@@ -84,11 +91,18 @@
         },
         "count_by_source": {
           "type": "object",
-          "description": "Number of edge instances by knowledge source URI or CURIE or plain namespace identifier",
+          "description": "Counts of node instances, binned by knowledge source provenance categories",
           "patternProperties": {
-                "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|((\\w|\\.)+:)?(\\w|\\.|-)+)$": {
-                "type": "integer"
-            }
+                "^(provided_by|knowledge_source|aggregating_knowledge_source|original_knowledge_source)$": {
+                  "type": "object",
+                  "description": "Count of node instances by source URI or CURIE or plain namespace identifier",
+                  "patternProperties": {
+                    "^(https?://[a-z.]+(/[a-zA-Z_.]+)*/?|((\\w|\\.)+:)?(\\w|\\.|-)+)$": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
+                }
           },
           "additionalProperties": false
         }
