@@ -794,6 +794,8 @@ def decompress_in_place(gzipped_key, location=None):
         KEY=gzipped_key
     )
     file_entries = []
+
+    # one step decompression - use the tarfile library's ability to open gzip files transparently to avoid gzip+tar step
     with smart_open.open(tarfile_location, 'rb', compression="disable") as fd:
         with tarfile.open(fileobj=fd, mode='r:gz') as tf:
             for entry in tf:  # list each entry one by one

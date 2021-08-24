@@ -77,10 +77,15 @@ from .sha_utils import (
 from kgea.server.web_services.catalog import (
     KgeArchiveCatalog,
     KgeKnowledgeGraph,
-    KgeFileSet, KgeFileType
+    KgeFileSet, KgeFileType,
+    KgeArchiver
 )
 
 import logging
+
+#############################################################
+# Configuration
+#############################################################
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -439,6 +444,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
 
         file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
 
+        # file_set.publish() -> triggers workflows onto the fileset?
         if not (file_set and file_set.publish()):
             await report_error(
                 request,
