@@ -15,7 +15,7 @@ KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 from sys import stderr
 from os import getenv
-import os
+
 from os.path import dirname, abspath
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
 from string import punctuation
@@ -86,11 +86,7 @@ from kgea.server.web_services.kgea_file_ops import (
     decompress_in_place
 )
 
-from kgea.server.web_services.sha_utils import (
-    sha1ManifestFile,
-    sha1Manifest,
-    fileSha1
-)
+from kgea.server.web_services.sha_utils import sha1Manifest
 
 import logging
 logger = logging.getLogger(__name__)
@@ -101,6 +97,7 @@ OVERRIDE = True
 
 RUN_TESTS = getenv('RUN_TESTS', default=True)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
+
 
 def prepare_test(func):
     """
@@ -324,15 +321,25 @@ class KgeFileSet:
         return set([x["file_name"] for x in self.data_files.values()])
 
     def get_nodes(self, flat=False):
+        """
+
+        :param flat:
+        :return:
+        """
         node_files = []
         if not flat:
             node_files = list(filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys()))
         elif flat:
-            #TODO
+            # TODO
             node_files = list(filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys()))
         return node_files
 
     def get_edges(self, flat=False):
+        """
+
+        :param flat:
+        :return:
+        """
         edge_files = []
         if not flat:
             edge_files = list(filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys()))
@@ -1461,6 +1468,11 @@ def test_create_provider_metadata_file():
 
 
 def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
+    """
+
+    :param fileset_version:
+    :return:
+    """
     kg_id = "disney_small_world_graph"
     date_stamp = "1964-04-22"
 
@@ -1553,7 +1565,6 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
                 file_size=999,
                 s3_file_url=''
             )
-
 
     return fs
 
@@ -1920,7 +1931,6 @@ class KgeArchiver:
     KGX Archive building wrapper.
     """
 
-    from asyncio import Queue
     _archiver_queue = []
     _archiver_tasks: List[Task] = list()
 
