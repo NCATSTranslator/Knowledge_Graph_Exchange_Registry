@@ -342,11 +342,16 @@ class KgeFileSet:
         return edge_files
 
     def get_archives(self, flat=False):
+        """
+
+        :param flat:
+        :return:
+        """
         archive_files = []
         if not flat:
             archive_files = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
         elif flat:
-            #TODO
+            # TODO
             archive_files = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
         return archive_files
 
@@ -541,6 +546,7 @@ class KgeFileSet:
         # KGX validation of KGX-formatted nodes and edges data files
         # managed here instead of just after the upload of each file.
         # In this way, the graph node and edge data can be analysed all together?
+        # Perhaps, just run the KgeArchiver tar.gz file through the validator(?)
 
         # Post the KGE File Set to the KGX validation (async) task queue
         # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
@@ -2095,6 +2101,8 @@ class KgeArchiver:
         Shut down the background KGE Archive processing.
         :return:
         """
+        # TODO: do we need to await here the completion of
+        #       processing of any outstanding archiver queue data
         # await cls._archiver_queue.join()
         try:
             # Cancel the KGX validation worker tasks

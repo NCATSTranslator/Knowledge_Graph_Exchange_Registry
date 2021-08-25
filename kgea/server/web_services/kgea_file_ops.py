@@ -168,9 +168,11 @@ def with_subfolder(location: str, subfolder: str):
         location += subfolder + '/'
     return location
 
+
 def get_object_from_bucket(bucket_name, object_key):
     bucket = s3_resource().Bucket(bucket_name)
     return bucket.Object(object_key)
+
 
 def match_objects_from_bucket(bucket_name, object_key):
     bucket = s3_resource().Bucket(bucket_name)
@@ -774,7 +776,7 @@ async def compress_fileset(
     )
 
     # add the file the running archive
-    #TODO folder key vs list of file keys
+    # TODO folder key vs list of file keys
     job.add_files(file_set_location)
 
     # # Add the Knowledge Graph provider.yaml file as well
@@ -786,7 +788,14 @@ async def compress_fileset(
 
     return archive_path
 
+
 def decompress_in_place(gzipped_key, location=None):
+    """
+
+    :param gzipped_key:
+    :param location:
+    :return:
+    """
     if location is None:
         location = '/'.join(gzipped_key.split('/')[:-1])+'/'
     tarfile_location = 's3://{BUCKET}/{KEY}'.format(
@@ -815,6 +824,16 @@ def decompress_in_place(gzipped_key, location=None):
 
 
 def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: True) -> str:
+    """
+
+
+    :param bucket:
+    :param path:
+    :param name:
+    :param file_paths:
+    :param match_function:
+    :return:
+    """
     agg_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
         BUCKET=bucket,
         PATH=path,
