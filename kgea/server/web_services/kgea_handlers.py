@@ -349,7 +349,7 @@ async def register_kge_file_set(request: web.Request):
         if not knowledge_graph:
             await report_not_found(
                 request,
-                "publish_kge_file_set(): knowledge graph '" + kg_id + "' was not found in the catalog?",
+                "register_kge_file_set(): knowledge graph '" + kg_id + "' was not found in the catalog?",
                 active_session=True
             )
         if True:  # location_available(bucket_name, object_key):
@@ -368,7 +368,7 @@ async def register_kge_file_set(request: web.Request):
                         # TODO: need to fail more gracefully here
                         await report_error(
                             request,
-                            "publish_kge_file_set(): encountered duplicate file set version '" +
+                            "register_kge_file_set(): encountered duplicate file set version '" +
                             fileset_version + "' for knowledge graph '" + kg_id + "'?",
                             active_session=True
                         )
@@ -1075,10 +1075,14 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
         if len(maybe_archive) == 1:
             archive_key = maybe_archive[0]
         else:
-            archive_key = await compress_fileset(
-                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                file_set_object_key,
-                '{}.{}'.format(kg_id, fileset_version)
+            # archive_key = await compress_fileset(
+            #     _KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            #     file_set_object_key,
+            #     '{}.{}'.format(kg_id, fileset_version)
+            # )
+            await report_not_found(
+                request,
+                "download_kge_file_set(): archive not (yet) available for {}.{}".format(kg_id, fileset_version)
             )
 
         # archive = get_object_from_bucket(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key)
