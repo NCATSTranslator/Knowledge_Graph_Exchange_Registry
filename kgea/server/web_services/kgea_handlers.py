@@ -83,6 +83,13 @@ from kgea.server.web_services.catalog import (
 
 import logging
 
+
+#############################################################
+# Service Workers
+#############################################################
+
+ARCHIVER = KgeArchiver()
+
 #############################################################
 # Configuration
 #############################################################
@@ -440,11 +447,11 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
                 "publish_kge_file_set(): knowledge graph id or file set version are null?"
             )
 
+
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
         file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
 
-        # file_set.publish() -> triggers workflows onto the fileset?
         if not (file_set and file_set.publish()):
             await report_error(
                 request,

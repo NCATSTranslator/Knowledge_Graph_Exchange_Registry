@@ -493,7 +493,7 @@ class KgeFileSet:
     ############################################################################
     # KGE FileSet Publication to the Archive ###################################
     ############################################################################
-    def publish(self) -> bool:
+    def publish(self, archiver) -> bool:
         """
         Publish file set in the Archive.
 
@@ -501,8 +501,7 @@ class KgeFileSet:
         """
         self.status = KgeFileSetStatusCode.PROCESSING
 
-        # TODO
-        if not self.post_process_file_set():
+        if not self.post_process_file_set(archiver):
             self.status = KgeFileSetStatusCode.ERROR
             msg = "post_process_file_set(): failed for" + \
                   "' for KGE File Set version '" + self.fileset_version + \
@@ -535,7 +534,7 @@ class KgeFileSet:
 
     # TODO: need here to more fully implement required post-processing of
     #       the assembled file set (after files are uploaded by the client)
-    def post_process_file_set(self) -> bool:
+    def post_process_file_set(self, archiver, validator=None) -> bool:
         """
         After a file_set is uploaded, post-process the file set including KGX validation.
 
@@ -543,7 +542,9 @@ class KgeFileSet:
         """
         try:
             # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
-            KgeArchiver.process(self)
+            archiver.process(self)
+            # TODO: how many workers?
+            archiver.create_workers(1)
 
             # KGX validation of KGX-formatted nodes and edges data files
             # managed here instead of just after the upload of each file.
@@ -2139,7 +2140,6 @@ class KgeArchiver:
         # from pprint import pp
         # pp(inspect.getmembers(cls))
 
-        print('processing fileset')
         """
         This method posts a KgeFileSet to the KgxArchiver for processing.
 
