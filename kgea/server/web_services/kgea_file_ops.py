@@ -17,7 +17,6 @@ import random
 import time
 import smart_open
 from datetime import datetime
-import gzip
 
 from os.path import abspath, splitext
 import tempfile
@@ -66,10 +65,21 @@ def s3_client(
             region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
         )
 ):
+    """
+
+    :param assumed_role:
+    :param config:
+    :return:
+    """
     return assumed_role.get_client('s3', config=config)
 
 
 def s3_resource(assumed_role=the_role):
+    """
+
+    :param assumed_role:
+    :return:
+    """
     return assumed_role.get_resource(
         's3',
         region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
@@ -77,10 +87,22 @@ def s3_resource(assumed_role=the_role):
 
 
 def create_location(bucket, kg_id):
+    """
+
+    :param bucket:
+    :param kg_id:
+    :return:
+    """
     return s3_client().put_object(Bucket=bucket, Key=get_object_location(kg_id))
 
 
 def delete_location(bucket, kg_id):
+    """
+
+    :param bucket:
+    :param kg_id:
+    :return:
+    """
     return s3_client().delete(Bucket=bucket, Key=get_object_location(kg_id))
 
 
@@ -108,8 +130,17 @@ TEST_FILE_NAME = 'somedata.csv'
 
 
 def prepare_test(func):
+    """
+
+    :param func:
+    :return:
+    """
     @wraps(func)
     def wrapper():
+        """
+
+        :return:
+        """
         TEST_BUCKET = 'kgea-test-bucket'
         TEST_KG_NAME = 'test_kg'
         return func()
@@ -118,8 +149,18 @@ def prepare_test(func):
 
 
 def prepare_test_random_object_location(func):
+    """
+
+    :param func:
+    :return:
+    """
     @wraps(func)
     def wrapper(object_key=_random_alpha_string()):
+        """
+
+        :param object_key:
+        :return:
+        """
         s3_client().put_object(
             Bucket='kgea-test-bucket',
             Key=get_object_location(object_key)
@@ -157,26 +198,58 @@ def get_default_date_stamp():
 
 # Don't use date stamp for versioning anymore
 def with_version(func, version="1.0"):
+    """
+
+    :param func:
+    :param version:
+    :return:
+    """
     def wrapper(kg_id):
+        """
+
+        :param kg_id:
+        :return:
+        """
         return func(kg_id + '/' + version), version
 
     return wrapper
 
 
 def with_subfolder(location: str, subfolder: str):
+    """
+
+    :param location:
+    :param subfolder:
+    :return:
+    """
     if subfolder:
         location += subfolder + '/'
     return location
 
+
 def get_object_from_bucket(bucket_name, object_key):
+    """
+
+    :param bucket_name:
+    :param object_key:
+    :return:
+    """
     bucket = s3_resource().Bucket(bucket_name)
     return bucket.Object(object_key)
 
+
 def match_objects_from_bucket(bucket_name, object_key):
+    """
+
+    :param bucket_name:
+    :param object_key:
+    :return:
+    """
     bucket = s3_resource().Bucket(bucket_name)
     key = object_key
     objs = list(bucket.objects.filter(Prefix=key))
     return [w.key == key for w in objs]
+
 
 def object_key_exists(bucket_name, object_key) -> bool:
     """
@@ -244,6 +317,12 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
 
 
 def kg_files_in_location(bucket_name, object_location='') -> List[str]:
+    """
+
+    :param bucket_name:
+    :param object_location:
+    :return:
+    """
     bucket_listings: List = list()
     # print(s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket_name))
     for p in s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket_name):
@@ -293,7 +372,11 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
     kg_files = kg_files_in_location(bucket_name)
 
     def kg_id_to_versions(kg_file):
+        """
 
+        :param kg_file:
+        :return:
+        """
         # to obtain the version, we need to break apart the path string
         # the path string looks like <root directory>/<folder for the graph>/<version>/<files>...
         # we take advantage of the fact that <version> comes right after <folder for the graph>, corresponding to kg_id
@@ -313,10 +396,11 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
         if len(kg_info) > 1:
             return kg_info[0], kg_info[1]
         else:
-            # NOTE: this shouldn't occur, BUT (at least in tests) we encounter empty buckets with no version information
-            # To ensure that this is a total function we support the None case for no version
-            # `get_fileset_versions_available` should filter these out (since `None` will transliterate as a string when
-            # passed to the browser, instead of 'null' or an empty value, or nop, all of which would have been acceptable)
+            # NOTE: this shouldn't occur, BUT (at least in tests) we encounter empty buckets
+            #       with no version information. To ensure that this is a total function we support
+            #       the None case for no version `get_fileset_versions_available` should filter these
+            #       out (since `None` will transliterate as a string when passed to the browser, instead
+            #       of 'null' or an empty value, or nop, all of which would have been acceptable)
             return kg_info[0], None
 
     versions_per_kg = {}
@@ -394,7 +478,17 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
         return False
     return True
 
+
 def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
+    """
+
+    :param kg_id:
+    :param fileset_version:
+    :param root:
+    :param subdir:
+    :param attachment:
+    :return:
+    """
     return Template("$ROOT/$KG_ID/$KG_VERSION$SUB_DIR$ATTACHMENT").substitute(
         ROOT=root,
         KG_ID=kg_id,
@@ -405,6 +499,11 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
 
 
 def tardir(directory, name) -> str:
+    """
+
+    :param directory:
+    :param name:
+    """
     logger.error("Calling tardir(directory='" + directory + "', name='" + name + "')")
     raise RuntimeError("Not yet implemented!")
 
@@ -426,6 +525,11 @@ def test_tardir():
 
 
 def package_file_manifest(tar_path):
+    """
+
+    :param tar_path:
+    :return:
+    """
     with tarfile.open(tar_path, 'r|gz') as tar:
         manifest = dict()
         for tarinfo in tar:
@@ -553,6 +657,11 @@ def upload_file_multipart(
 
 
 def package_file(name: str, target_file):
+    """
+
+    :param name:
+    :param target_file:
+    """
     logger.error("Calling package_file(name='" + name + "', name='" + target_file + "')")
     raise RuntimeError("Not yet implemented!")
 
@@ -609,6 +718,15 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
 
 
 def upload_file_to_archive(archive_name, data_file, file_name, bucket, object_location):
+    """
+
+    :param archive_name:
+    :param data_file:
+    :param file_name:
+    :param bucket:
+    :param object_location:
+    :return:
+    """
     # upload the file
     object_key = upload_file_multipart(
         data_file=data_file,
@@ -749,10 +867,18 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
 
 
 def infix_string(name, infix, delimiter="."):
+    """
+
+    :param name:
+    :param infix:
+    :param delimiter:
+    :return:
+    """
     tokens = name.split(delimiter)
     *pre_name, end_name = tokens
     name = ''.join([delimiter.join(pre_name), infix, delimiter, end_name])
     return name
+
 
 async def compress_fileset(
         bucket,
@@ -760,7 +886,14 @@ async def compress_fileset(
         target_path,
         archive_name
 ) -> str:
+    """
 
+    :param bucket:
+    :param file_set_location:
+    :param target_path:
+    :param archive_name:
+    :return:
+    """
     archive_path = "{target_path}{archive_name}.tar.gz".format(
         target_path=target_path,
         archive_name=archive_name,
@@ -774,7 +907,7 @@ async def compress_fileset(
     )
 
     # add the file the running archive
-    #TODO folder key vs list of file keys
+    # TODO folder key vs list of file keys
     job.add_files(file_set_location)
 
     # # Add the Knowledge Graph provider.yaml file as well
@@ -786,7 +919,14 @@ async def compress_fileset(
 
     return archive_path
 
+
 def decompress_in_place(gzipped_key, location=None):
+    """
+
+    :param gzipped_key:
+    :param location:
+    :return:
+    """
     if location is None:
         location = '/'.join(gzipped_key.split('/')[:-1])+'/'
     tarfile_location = 's3://{BUCKET}/{KEY}'.format(
@@ -817,6 +957,16 @@ def decompress_in_place(gzipped_key, location=None):
 
 
 def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: True) -> str:
+    """
+
+
+    :param bucket:
+    :param path:
+    :param name:
+    :param file_paths:
+    :param match_function:
+    :return:
+    """
     agg_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
         BUCKET=bucket,
         PATH=path,
@@ -1001,12 +1151,18 @@ def test_get_archive_contents(test_bucket=TEST_BUCKET):
     contents = get_archive_contents(test_bucket)
     return True
 
+
 """
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
 """
 
+
 def run_test(test_func):
+    """
+
+    :param test_func:
+    """
     try:
         start = time.time()
         assert (test_func())

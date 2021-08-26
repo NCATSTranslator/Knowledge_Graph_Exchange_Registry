@@ -15,7 +15,7 @@ KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 from sys import stderr
 from os import getenv
-import os
+
 from os.path import dirname, abspath
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
 from string import punctuation
@@ -89,11 +89,7 @@ from kgea.server.web_services.kgea_file_ops import (
     decompress_in_place
 )
 
-from kgea.server.web_services.sha_utils import (
-    sha1ManifestFile,
-    sha1Manifest,
-    fileSha1
-)
+from kgea.server.web_services.sha_utils import sha1Manifest
 
 import logging
 logger = logging.getLogger(__name__)
@@ -104,6 +100,7 @@ OVERRIDE = True
 
 RUN_TESTS = getenv('RUN_TESTS', default=True)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
+
 
 def prepare_test(func):
     """
@@ -329,15 +326,25 @@ class KgeFileSet:
         return set([x["file_name"] for x in self.data_files.values()])
 
     def get_nodes(self, flat=False):
+        """
+
+        :param flat:
+        :return:
+        """
         node_files = []
         if not flat:
             node_files = list(filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys()))
         elif flat:
-            #TODO
+            # TODO
             node_files = list(filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys()))
         return node_files
 
     def get_edges(self, flat=False):
+        """
+
+        :param flat:
+        :return:
+        """
         edge_files = []
         if not flat:
             edge_files = list(filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys()))
@@ -347,11 +354,16 @@ class KgeFileSet:
         return edge_files
 
     def get_archives(self, flat=False):
+        """
+
+        :param flat:
+        :return:
+        """
         archive_files = []
         if not flat:
             archive_files = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
         elif flat:
-            #TODO
+            # TODO
             archive_files = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
         return archive_files
 
@@ -501,7 +513,17 @@ class KgeFileSet:
         """
         self.status = KgeFileSetStatusCode.PROCESSING
 
-        if not self.post_process_file_set(archiver):
+        # Publish a 'file_set.yaml' metadata file to the
+        # versioned archive subdirectory containing the KGE File Set
+        fileset_metadata_file = self.generate_fileset_metadata_file()
+        fileset_metadata_object_key = add_to_s3_repository(
+            kg_id=self.kg_id,
+            text=fileset_metadata_file,
+            file_name=FILE_SET_METADATA_FILE,
+            fileset_version=self.fileset_version
+        )
+        
+        if not self.post_process_file_set():
             self.status = KgeFileSetStatusCode.ERROR
             msg = "post_process_file_set(): failed for" + \
                   "' for KGE File Set version '" + self.fileset_version + \
@@ -509,16 +531,6 @@ class KgeFileSet:
             logger.warning(msg)
             self.errors.append(msg)
             return False
-
-        # Publish a 'file_set.yaml' metadata file to the
-        # versioned archive subdirectory containing the KGE File Set
-        fileset_metadata_file = self.generate_fileset_metadata_file()
-        fileset_metadata_object_key = add_to_s3_archive(
-            kg_id=self.kg_id,
-            text=fileset_metadata_file,
-            file_name=FILE_SET_METADATA_FILE,
-            fileset_version=self.fileset_version
-        )
 
         if fileset_metadata_object_key:
             return True
@@ -549,6 +561,7 @@ class KgeFileSet:
             # KGX validation of KGX-formatted nodes and edges data files
             # managed here instead of just after the upload of each file.
             # In this way, the graph node and edge data can be analysed all together?
+            # Perhaps, just run the KgeArchiver tar.gz file through the validator(?)
 
             # Post the KGE File Set to the KGX validation (async) task queue
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
@@ -879,7 +892,7 @@ class KgeKnowledgeGraph:
         logger.debug("Publishing knowledge graph '" + self.kg_id + "' to the Archive")
         provider_metadata_file = self.generate_provider_metadata_file()
         # no fileset_version given since the provider metadata is global to Knowledge Graph
-        object_key = add_to_s3_archive(
+        object_key = add_to_s3_repository(
             kg_id=self.kg_id,
             text=provider_metadata_file,
             file_name=PROVIDER_METADATA_FILE
@@ -1466,6 +1479,11 @@ def test_create_provider_metadata_file():
 
 
 def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
+    """
+
+    :param fileset_version:
+    :return:
+    """
     kg_id = "disney_small_world_graph"
     date_stamp = "1964-04-22"
 
@@ -1559,7 +1577,6 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
                 s3_file_url=''
             )
 
-
     return fs
 
 
@@ -1588,7 +1605,7 @@ def test_create_translator_registry_entry():
     return True
 
 
-def add_to_s3_archive(
+def add_to_s3_repository(
         kg_id: str,
         text: str,
         file_name: str,
@@ -1714,7 +1731,7 @@ _TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
 
 @prepare_test
 def test_add_to_archive() -> bool:
-    outcome: str = add_to_s3_archive(
+    outcome: str = add_to_s3_repository(
         kg_id="kge_test_provider_metadata_file",
         text=_TEST_TPMF,
         file_name="test_provider_metadata_file",
