@@ -563,7 +563,7 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     return True
 
 
-def upload_file(data_file, file_name, bucket, object_location, client=s3_client(), config=None, callback=None):
+def upload_file(data_file, file_name, bucket, object_location, client=None, config=None, callback=None):
     """Upload a file to an S3 bucket
 
     :param client:
@@ -585,6 +585,8 @@ def upload_file(data_file, file_name, bucket, object_location, client=s3_client(
         FILENAME=Path(file_name).stem,
         EXTENSION=splitext(file_name)[1]
     )
+    if client is None:
+        client = s3_client()
     # Upload the file
     try:
         # TODO: can these S3 calls measure the size of the file which was uploaded?
