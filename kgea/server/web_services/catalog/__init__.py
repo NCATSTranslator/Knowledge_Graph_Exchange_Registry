@@ -148,7 +148,7 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
 
 # TODO: operational parameter dependent configuration
-MAX_WAIT = -1  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
+MAX_WAIT = 100  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
 MAX_QUEUE = 0  # amount of queueing until we stop pushing onto the queue. 0 for unlimited queue items
 
 def _populate_template(filename, **kwargs) -> str:
@@ -558,7 +558,7 @@ class KgeFileSet:
 
     # TODO: need here to more fully implement required post-processing of
     #       the assembled file set (after files are uploaded by the client)
-    def post_process_file_set(self, archiver, validator=None) -> bool:
+    async def post_process_file_set(self, archiver, validator=None) -> bool:
         """
         After a file_set is uploaded, post-process the file set including KGX validation.
 
@@ -567,7 +567,11 @@ class KgeFileSet:
         try:
 
             # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
-            archiver.process(self)
+            try:
+                await archiver.process(self)
+            except TimeoutError as error:
+                self.status = KgeFileSetStatusCode.ERROR
+                return False
             archiver.create_workers(1)
 
             # KGX validation of KGX-formatted nodes and edges data files
@@ -2160,7 +2164,7 @@ class KgeArchiver:
             msg = "KgxArchiver() worker shutdown exception: " + str(exc)
             logger.error(msg)
 
-    async def process(cls, file_set: KgeFileSet, wait=10, waits=0, maxwait=MAX_WAIT):
+    async def process(self, file_set: KgeFileSet, wait=10, waits=0, maxwait=MAX_WAIT):
         """
         This method posts a KgeFileSet to the KgxArchiver for processing.
 
@@ -2170,14 +2174,14 @@ class KgeArchiver:
         # Post the file set to the KGX archiver task Queue for processing
         try:
             print('putting fileset on queue')
-            await cls._archiver_queue.put(
+            await self._archiver_queue.put_nowait(
                 file_set
             )
         except QueueFull as full:
             await asyncio.sleep(wait)
             if waits < maxwait:
                 waits += 1
-                cls.initialize(file_set, wait, waits, maxwait)
+                await self.process(file_set, wait, waits, maxwait)
             else:
                 raise TimeoutError
 
