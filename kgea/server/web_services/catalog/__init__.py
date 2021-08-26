@@ -124,9 +124,10 @@ def prepare_test(func):
 #
 # TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 # KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
+
+# TODO: Deployment-dependent constants
 TRANSLATOR_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
-
 BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
 
 
@@ -146,6 +147,7 @@ FILE_SET_METADATA_TEMPLATE_FILE_PATH = \
 TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
 
+# TODO: operational parameter dependent configuration
 MAX_WAIT = -1  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
 MAX_QUEUE = 0  # amount of queueing until we stop pushing onto the queue. 0 for unlimited queue items
 
@@ -1942,31 +1944,22 @@ class KgeArchiver:
     KGX Archive building wrapper.
     """
 
-    _archiver_queue: Queue = Queue()
-    _archiver_worker: List[Task] = list()
-    max_wait: int
-    max_queue: int
-
     def __init__(self, max_tasks=Number_of_Archiver_Tasks, max_queue=MAX_QUEUE, max_wait=MAX_WAIT):
         """
         Constructor for a single archiver task wrapper.
         """
-        self._archiver_queue = Queue(maxsize=max_queue)
-        self._archiver_worker = list()
+        self._archiver_queue: Queue = Queue(maxsize=max_queue)
+        self._archiver_worker: List[Task] = list()
 
-        self.max_tasks = max_tasks
-        self.max_wait = max_wait
+        self.max_tasks: int = max_tasks
+        self.max_wait: int = max_wait
 
-    async def worker(self, task_id=len(_archiver_worker)):
-        print('initiating worker')
-        """
-        This Callable, undertaking the archiving of a file set,
-        is intended to be executed inside an asyncio Task.
-        """
+    async def worker(self, task_id=None):
+        if task_id is None:
+            task_id = len(self._archiver_worker)
+
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
-            print('found fileset', file_set)
-
             """
             ################################################
             # Collect the KGX data files names and metadata.
@@ -2110,6 +2103,7 @@ class KgeArchiver:
 
             self._archiver_queue.task_done()
 
+    @classmethod
     def create_workers(cls, worker_count):
         """
         Initializes Archiver tasks if not yet running
@@ -2152,11 +2146,8 @@ class KgeArchiver:
             msg = "KgxArchiver() worker shutdown exception: " + str(exc)
             logger.error(msg)
 
+    @classmethod
     async def process(cls, file_set: KgeFileSet, wait=10, waits=0, maxwait=MAX_WAIT):
-        # import inspect
-        # from pprint import pp
-        # pp(inspect.getmembers(cls))
-
         """
         This method posts a KgeFileSet to the KgxArchiver for processing.
 
@@ -2177,6 +2168,8 @@ class KgeArchiver:
             else:
                 raise TimeoutError
 
+ARCHIVER = KgeArchiver()
+BIG_ARCHIVER = KgeArchiver(max_tasks=100)
 
 class KgxValidator:
     """
@@ -2434,7 +2427,7 @@ class KgxValidator:
 # It cannot be run with the given test_file_set object
 # since the data files don't exist in S3!
 def test_stub_archiver() -> bool:
-    ArchiverWorker = KgeArchiver()
+    Archiver = KgeArchiver()
     async def archive_test():
         """
         async archive test wrapper
@@ -2444,8 +2437,8 @@ def test_stub_archiver() -> bool:
         print("\ntest_stub_archiver() startup of tasks\n", file=stderr)
 
         fs = prepare_test_file_set("1.0")
-        await ArchiverWorker.process(fs)
-        ArchiverWorker.create_workers(2)
+        await Archiver.process(fs)
+        Archiver.create_workers(2)
 
         # fs = test_file_set("1.1")
         # KgeArchiver.process(fs)
