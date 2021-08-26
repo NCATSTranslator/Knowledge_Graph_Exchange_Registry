@@ -27,4 +27,4 @@ aiohttp-session
 aiomcache
 jsonschema
 PyGithub
-smart_open
+smart_open>=5.1.0
