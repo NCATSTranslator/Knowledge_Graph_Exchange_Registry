@@ -525,7 +525,7 @@ class KgeFileSet:
             fileset_version=self.fileset_version
         )
         
-        if not self.post_process_file_set():
+        if not self.post_process_file_set(archiver):
             self.status = KgeFileSetStatusCode.ERROR
             msg = "post_process_file_set(): failed for" + \
                   "' for KGE File Set version '" + self.fileset_version + \
@@ -576,6 +576,7 @@ class KgeFileSet:
             return True
 
         except Exception as error:
+            logger.error("post_process_file_set(): {}".format(error))
             return False
 
     # async def publish_file_set(self, kg_id: str, fileset_version: str):
@@ -1941,7 +1942,7 @@ class ProgressMonitor:
 
 class KgeArchiver:
     """
-    KGX Archive building wrapper.
+    KGE Archive building wrapper.
     """
 
     def __init__(self, max_tasks=Number_of_Archiver_Tasks, max_queue=MAX_QUEUE, max_wait=MAX_WAIT):
@@ -2103,7 +2104,6 @@ class KgeArchiver:
 
             self._archiver_queue.task_done()
 
-    @classmethod
     def create_workers(cls, worker_count):
         """
         Initializes Archiver tasks if not yet running
@@ -2146,7 +2146,6 @@ class KgeArchiver:
             msg = "KgxArchiver() worker shutdown exception: " + str(exc)
             logger.error(msg)
 
-    @classmethod
     async def process(cls, file_set: KgeFileSet, wait=10, waits=0, maxwait=MAX_WAIT):
         """
         This method posts a KgeFileSet to the KgxArchiver for processing.
@@ -2167,9 +2166,6 @@ class KgeArchiver:
                 cls.initialize(file_set, wait, waits, maxwait)
             else:
                 raise TimeoutError
-
-ARCHIVER = KgeArchiver()
-BIG_ARCHIVER = KgeArchiver(max_tasks=100)
 
 class KgxValidator:
     """
@@ -2250,7 +2246,11 @@ class KgxValidator:
         validator = cls.get_validator(file_set.biolink_model_release)
 
         # ...then, post the file set to the KGX validation task Queue
-        validator._validation_queue.put_nowait(file_set)
+        try:
+            validator._validation_queue.put_nowait(file_set)
+        except QueueFull as exception:
+            # TODO: retry?
+            raise QueueFull
 
     async def __call__(self):
         """
