@@ -508,15 +508,6 @@ class KgeFileSet:
         """
         self.status = KgeFileSetStatusCode.PROCESSING
 
-        if not self.post_process_file_set():
-            self.status = KgeFileSetStatusCode.ERROR
-            msg = "post_process_file_set(): failed for" + \
-                  "' for KGE File Set version '" + self.fileset_version + \
-                  "' of knowledge graph '" + self.kg_id + "'"
-            logger.warning(msg)
-            self.errors.append(msg)
-            return False
-
         # Publish a 'file_set.yaml' metadata file to the
         # versioned archive subdirectory containing the KGE File Set
         fileset_metadata_file = self.generate_fileset_metadata_file()
@@ -526,6 +517,15 @@ class KgeFileSet:
             file_name=FILE_SET_METADATA_FILE,
             fileset_version=self.fileset_version
         )
+        
+        if not self.post_process_file_set():
+            self.status = KgeFileSetStatusCode.ERROR
+            msg = "post_process_file_set(): failed for" + \
+                  "' for KGE File Set version '" + self.fileset_version + \
+                  "' of knowledge graph '" + self.kg_id + "'"
+            logger.warning(msg)
+            self.errors.append(msg)
+            return False
 
         if fileset_metadata_object_key:
             return True
