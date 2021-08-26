@@ -515,17 +515,27 @@ class KgeFileSet:
         """
         self.status = KgeFileSetStatusCode.PROCESSING
 
-        # Publish a 'file_set.yaml' metadata file to the
-        # versioned archive subdirectory containing the KGE File Set
-        fileset_metadata_file = self.generate_fileset_metadata_file()
-        fileset_metadata_object_key = add_to_s3_repository(
-            kg_id=self.kg_id,
-            text=fileset_metadata_file,
-            file_name=FILE_SET_METADATA_FILE,
-            fileset_version=self.fileset_version
-        )
-        
-        if not self.post_process_file_set(archiver):
+        try:
+            # Publish a 'file_set.yaml' metadata file to the
+            # versioned archive subdirectory containing the KGE File Set
+            fileset_metadata_file = self.generate_fileset_metadata_file()
+            fileset_metadata_object_key = add_to_s3_repository(
+                kg_id=self.kg_id,
+                text=fileset_metadata_file,
+                file_name=FILE_SET_METADATA_FILE,
+                fileset_version=self.fileset_version
+            )
+        except Exception as exception:
+            logger.error("publish(): generate_fileset_metadata_file: {} {} {}".format(self.kg_id, self.fileset_version, exception))
+            raise exception
+
+        try:
+            post_processed = self.post_process_file_set(archiver)
+        except Exception as exception:
+            logger.error("publish(): post_processed: {} {} {}".format(self.kg_id, self.fileset_version, exception))
+            raise exception
+
+        if not post_processed:
             self.status = KgeFileSetStatusCode.ERROR
             msg = "post_process_file_set(): failed for" + \
                   "' for KGE File Set version '" + self.fileset_version + \
@@ -555,9 +565,9 @@ class KgeFileSet:
         :return: True if successful; False otherwise
         """
         try:
+
             # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
             archiver.process(self)
-            # TODO: how many workers?
             archiver.create_workers(1)
 
             # KGX validation of KGX-formatted nodes and edges data files
@@ -670,19 +680,23 @@ class KgeFileSet:
         files = ""
         for entry in self.data_files.values():
             files += "- " + entry["file_name"]+"\n"
-        fileset_metadata_yaml = _populate_template(
-            host=_KGEA_APP_CONFIG['site_hostname'],
-            filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
-            kg_id=self.kg_id,
-            biolink_model_release=self.biolink_model_release,
-            fileset_version=self.fileset_version,
-            date_stamp=self.date_stamp,
-            submitter_name=self.submitter_name,
-            submitter_email=self.submitter_email,
-            size=self.size,
-            revisions=self.revisions,
-            files=files
-        )
+        try:
+            fileset_metadata_yaml = _populate_template(
+                host=_KGEA_APP_CONFIG['site_hostname'],
+                filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
+                kg_id=self.kg_id,
+                biolink_model_release=self.biolink_model_release,
+                fileset_version=self.fileset_version,
+                date_stamp=self.date_stamp,
+                submitter_name=self.submitter_name,
+                submitter_email=self.submitter_email,
+                size=self.size,
+                revisions=self.revisions,
+                files=files
+            )
+        except Exception as exception:
+            logger.error("generate_fileset_metadata_file(): {} {} {}".format(self.kg_id, self.fileset_version, exception))
+            raise exception
 
         return fileset_metadata_yaml
 
