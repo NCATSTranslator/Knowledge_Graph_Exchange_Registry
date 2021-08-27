@@ -2174,7 +2174,7 @@ class KgeArchiver:
         # Post the file set to the KGX archiver task Queue for processing
         try:
             print('putting fileset on queue')
-            await self._archiver_queue.put_nowait(
+            self._archiver_queue.put_nowait(
                 file_set
             )
         except QueueFull as full:
@@ -2184,6 +2184,7 @@ class KgeArchiver:
                 await self.process(file_set, wait, waits, maxwait)
             else:
                 raise TimeoutError
+
 
 class KgxValidator:
     """
