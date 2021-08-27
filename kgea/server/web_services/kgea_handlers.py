@@ -452,7 +452,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
 
         file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
         try:
-            published = file_set.publish(ARCHIVER)
+            published = await file_set.publish(ARCHIVER)
         except Exception as exception:
             logger.error(str(exception))
             raise exception

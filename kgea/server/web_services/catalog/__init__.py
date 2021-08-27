@@ -507,7 +507,7 @@ class KgeFileSet:
     ############################################################################
     # KGE FileSet Publication to the Archive ###################################
     ############################################################################
-    def publish(self, archiver) -> bool:
+    async def publish(self, archiver) -> bool:
         """
         Publish file set in the Archive.
 
@@ -530,7 +530,7 @@ class KgeFileSet:
             raise exception
 
         try:
-            post_processed = self.post_process_file_set(archiver)
+            post_processed = await self.post_process_file_set(archiver)
         except Exception as exception:
             logger.error("publish(): post_processed: {} {} {}".format(self.kg_id, self.fileset_version, exception))
             raise exception
