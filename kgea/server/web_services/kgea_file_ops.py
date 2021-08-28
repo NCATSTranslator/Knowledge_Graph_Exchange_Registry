@@ -906,6 +906,7 @@ async def compress_fileset(
         bucket,
         archive_path,
         allow_dups=True,
+        s3_max_retries=20,
     )
 
     # add the file the running archive
