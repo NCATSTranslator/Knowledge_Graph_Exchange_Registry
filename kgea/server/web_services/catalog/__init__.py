@@ -335,10 +335,14 @@ class KgeFileSet:
         """
         node_files = []
         if not flat:
-            node_files = list(filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys()))
+            node_files = list(filter(
+                lambda x: 'nodes/' in x, self.get_data_file_object_keys()
+            ))
         elif flat:
             # TODO
-            node_files = list(filter(lambda x: 'nodes.tsv' in x, self.get_data_file_object_keys()))
+            node_files = list(filter(
+                lambda x: 'nodes/' in x, self.get_data_file_object_keys()
+            ))
         return node_files
 
     def get_edges(self, flat=False):
@@ -349,10 +353,14 @@ class KgeFileSet:
         """
         edge_files = []
         if not flat:
-            edge_files = list(filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys()))
+            edge_files = list(filter(
+                lambda x: 'edges/' in x, self.get_data_file_object_keys()
+            ))
         elif flat:
             # TODO
-            edge_files = list(filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys()))
+            edge_files = list(filter(
+                lambda x: 'edges/' in x, self.get_data_file_object_keys()
+            ))
         return edge_files
 
     def get_archives(self, flat=False):
