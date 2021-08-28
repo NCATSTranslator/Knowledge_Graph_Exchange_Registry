@@ -327,55 +327,36 @@ class KgeFileSet:
         """
         return set([x["file_name"] for x in self.data_files.values()])
 
-    def get_nodes(self, flat=False):
+    def get_nodes(self):
         """
 
         :param flat:
         :return:
         """
-        node_files = []
-        if not flat:
-            node_files = list(filter(
-                lambda x: 'nodes/' in x, self.get_data_file_object_keys()
-            ))
-        elif flat:
-            # TODO
-            node_files = list(filter(
-                lambda x: 'nodes/' in x, self.get_data_file_object_keys()
-            ))
-        return node_files
+        node_files_keys = list(filter(
+            lambda x: 'nodes/' or 'nodes.tsv' in x and not ('aggregates/' in x), self.get_data_file_object_keys()
+        ))
+        return node_files_keys
 
-    def get_edges(self, flat=False):
+    def get_edges(self):
         """
 
         :param flat:
         :return:
         """
-        edge_files = []
-        if not flat:
-            edge_files = list(filter(
-                lambda x: 'edges/' in x, self.get_data_file_object_keys()
-            ))
-        elif flat:
-            # TODO
-            edge_files = list(filter(
-                lambda x: 'edges/' in x, self.get_data_file_object_keys()
-            ))
-        return edge_files
+        edge_files_keys = list(filter(
+            lambda x: 'edges/' or 'edges.tsv' in x and not ('aggregates/' in x), self.get_data_file_object_keys()
+        ))
+        return edge_files_keys
 
-    def get_archives(self, flat=False):
+    def get_archives(self):
         """
 
         :param flat:
         :return:
         """
-        archive_files = []
-        if not flat:
-            archive_files = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
-        elif flat:
-            # TODO
-            archive_files = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
-        return archive_files
+        archive_files_keys = list(filter(lambda x: '.tar.gz' in x, self.get_data_file_object_keys()))
+        return archive_files_keys
 
     # Note: content metadata file name is already normalized on S3 to 'content_metadata.yaml'
     def set_content_metadata_file(self, file_name: str, file_size: int, object_key: str, s3_file_url: str):
