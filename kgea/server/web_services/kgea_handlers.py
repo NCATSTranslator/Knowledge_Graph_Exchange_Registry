@@ -57,21 +57,15 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     upload_file,
-    compress_fileset,
     create_presigned_url,
     kg_files_in_location,
     get_object_location,
-    get_object_from_bucket,
     with_version,
     object_key_exists,
     get_default_date_stamp,
     with_subfolder,
     infix_string,
     s3_client
-)
-
-from .sha_utils import (
-    fileSha1
 )
 
 from kgea.server.web_services.catalog import (
@@ -446,7 +440,6 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
                 request,
                 "publish_kge_file_set(): knowledge graph id or file set version are null?"
             )
-
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 

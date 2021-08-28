@@ -355,6 +355,7 @@ class KgeFileSet:
             edge_files = list(filter(lambda x: 'edges.tsv' in x, self.get_data_file_object_keys()))
         return edge_files
 
+    # TODO: extend this to simply tsv.gz files, not just tsv.tar.gz files
     def get_archives(self, flat=False):
         """
 
@@ -2042,66 +2043,67 @@ class KgeArchiver:
 
             for archive in file_set.get_archives():
                 # returns entries that follow the KgeFileSetEntry Schema
-                archive_file_entries = decompress_in_place(archive)  # decompresses the archive and sends the files to s3
+                archive_file_entries = decompress_in_place(archive)  # decompresses the archive and sends files to s3
                 for entry in archive_file_entries:
                     # spread the entry across the add_data_file function, which will take all its values as arguments
                     file_set.add_data_file(**entry)
 
-            nodefiles_aggregate_path = aggregate_files(
-                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
+            aggregate_files(
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
                     KG_ID=file_set.kg_id,
                     VERSION=file_set.fileset_version
                 ),
-                'nodes.tsv',
-                file_set.get_nodes(),
-                lambda x: 'nodes.tsv' in x
+                name='nodes.tsv',
+                file_paths=file_set.get_nodes(),
+                match_function=lambda x: 'nodes.tsv' in x
             )
 
-            edgefiles_aggregate_path = aggregate_files(
-                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
+            aggregate_files(
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
                     KG_ID=file_set.kg_id,
                     VERSION=file_set.fileset_version
                 ),
-                'edges.tsv',
-                file_set.get_edges(),
-                lambda x: 'edges.tsv' in x
+                name='edges.tsv',
+                file_paths=file_set.get_edges(),
+                match_function=lambda x: 'edges.tsv' in x
             )
 
-            # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file containing the aggregated
-            #    nodes.tsv, edges.tsv, TODO content_metadata.json, provider.yaml metadata and file_set.yaml metadata files.
+            # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
+            #    containing the aggregated nodes.tsv, edges.tsv,
+            #    TODO: copy over the content_metadata.json, provider.yaml metadata and file_set.yaml metadata files.
 
             # Appending `file_set_root_key` with 'aggregates/' and 'archive/' to prevent multiple compress_fileset runs
             # from compressing the previous compression (so the source of files is distinct from the target written to)
             archive_path = await compress_fileset(
-                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                file_set_location='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
                     KG_ID=file_set.kg_id,
                     VERSION=file_set.fileset_version
                 ),
-                'kge-data/{KG_ID}/{VERSION}/archive/'.format(
+                target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(
                     KG_ID=file_set.kg_id,
                     VERSION=file_set.fileset_version
                 ),
-                '{}.{}'.format(file_set.kg_id, file_set.fileset_version)  # archive name
+                archive_name='{}.{}'.format(file_set.kg_id, file_set.fileset_version)
             )
 
-            archiveS3path = 's3://{BUCKET}/{ARCHIVE_KEY}'.format(
+            archive_s3_path = 's3://{BUCKET}/{ARCHIVE_KEY}'.format(
                 BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 ARCHIVE_KEY=archive_path
             )
 
             # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format of whatever
-            #   is being opened. If we let this happen, then the hash function would run over an decompressed buffer; not
-            #   the compressed file/buffer that we expect our users to use when they download and validate the archive.
-            with smart_open.open(archiveS3path, 'rb', compression='disable') as archive:
+            # is being opened. If we let this happen, then the hash function would run over an decompressed buffer; not
+            # the compressed file/buffer that we expect our users to use when they download and validate the archive.
+            with smart_open.open(archive_s3_path, 'rb', compression='disable') as archive:
 
-                # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the file_set.yaml
-                #    file to the archive, it would not really help to embed the hash sum into the fileset yaml itself,
-                #    but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
-                #    the catalog loading, for communication back to the user as part of the catalog metadata
-                #    (once the archiving and hash generation is completed...)
+                # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
+                #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
+                #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
+                #  the catalog loading, for communication back to the user as part of the catalog metadata
+                #  (once the archiving and hash generation is completed...)
 
                 sha1sum = sha1Manifest(archive)
                 sha1sum_value = sha1sum[archive.name]
