@@ -906,6 +906,7 @@ async def compress_fileset(
         bucket,
         archive_path,
         allow_dups=True,
+        s3_max_retries=20,
     )
 
     # add the file the running archive
@@ -960,7 +961,7 @@ def decompress_in_place(gzipped_key, location=None):
 
 def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: True) -> str:
     """
-
+    Aggregates files matching a match_function.
 
     :param bucket:
     :param path:
@@ -969,6 +970,9 @@ def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: Tru
     :param match_function:
     :return:
     """
+    if not file_paths:
+        return ''
+    
     agg_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
         BUCKET=bucket,
         PATH=path,
@@ -983,7 +987,8 @@ def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: Tru
             )
             with smart_open.open(path, 'r') as subfile:
                 # because smart_open doesn't support an append mode, use writelines and add a newline
-                aggregated_file.writelines(subfile.read()+'\n')
+                aggregated_file.writelines(subfile.read())
+                aggregated_file.writelines('\n')
     return agg_path
 
 

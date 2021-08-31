@@ -64,4 +64,3 @@ async def publish_file_set(request: web.Request, kg_id: str, fileset_version: st
     # This method raises an obligatory web.HTTPFound
     # redirection exception back to /home page
     await publish_kge_file_set(request, kg_id, fileset_version)
-
