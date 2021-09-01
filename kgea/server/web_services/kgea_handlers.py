@@ -812,7 +812,7 @@ async def upload_kge_file(
             :param current_bytes: byte progress count.
             :return:
             """
-            _upload_tracker['upload'][upload_token]['current_position'] = current_bytes
+            tracker['current_position'] = current_bytes
 
         class ProgressPercentage(object):
             """
@@ -842,10 +842,10 @@ async def upload_kge_file(
 
         filesize = await pathless_file_size(uploaded_file.file)
 
-        _upload_tracker['upload'][upload_token]['end_position'] = filesize
+        tracker['end_position'] = filesize
 
-        if 'content_name' in _upload_tracker['upload'][upload_token]:
-            content_name = _upload_tracker['upload'][upload_token]['content_name']
+        if 'content_name' in tracker:
+            content_name = tracker['content_name']
         else:
             content_name = uploaded_file.filename
 
@@ -859,7 +859,7 @@ async def upload_kge_file(
 
             progress_monitor = ProgressPercentage(
                 uploaded_file.filename,
-                _upload_tracker['upload'][upload_token]['end_position']
+                tracker['end_position']
             )
 
             uploaded_file_object_key = upload_file(
@@ -915,7 +915,7 @@ async def upload_kge_file(
         loop = asyncio.get_event_loop()
         loop.run_in_executor(None, threaded_upload)
 
-        response = web.Response(text=str(_upload_tracker['upload'][upload_token]['end_position']), status=200)
+        response = web.Response(text=str(tracker['end_position']), status=200)
 
         await with_session(request, response)
 
