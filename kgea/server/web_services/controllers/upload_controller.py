@@ -18,13 +18,15 @@ async def setup_upload_context(
     """Configure form upload context for a specific file of a KGE File Set.
 
     Uploading of (meta-)data files to a specific KGE File Set version, belonging to a specified Knowledge Graph.
-    The files are assumed to be html form file \&quot;blob\&quot; objects. The &#39;get&#39; only sets up the
+    The files are assumed to be html form file &quot;blob&quot; objects. The &#39;get&#39; only sets up the
     file uploading (with progress indications). A follow-up HTTP POST call to the /upload endpoint is expected,
     with the &#39;upload token&#39; returned from this call and an &#39;uploaded_file&#39; parameter set to the
     file to be uploaded.  The &#39;content_name&#39; should be set either to the file name. The specific
     KGX file content of the current upload file is set by the &#x60;kgx_file_content&#39; for KGX data files
     uploaded as set by the selected &#39;metadata&#39;, &#39;nodes&#39; or &#39;edges&#39; radio button.
 
+    :param request:
+    :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data file metadata are being accessed
     :type kg_id: str
     :param fileset_version: Specific version of KGE File Set for the knowledge graph for which data file metadata are being accessed
@@ -58,6 +60,8 @@ async def transfer_from_url(
     by the &#x60;kgx_file_content&#39; for KGX data files uploaded as set by the selected &#39;metadata&#39;,
     &#39;nodes&#39; or &#39;edges&#39; radio button.
 
+    :param request:
+    :type request: web.Request
     :param kg_id: KGE File Set identifier for the knowledge graph for which data file metadata are being accessed
     :type kg_id: str
     :param fileset_version: Specific version of KGE File Set for the knowledge graph for which data file metadata are being accessed
