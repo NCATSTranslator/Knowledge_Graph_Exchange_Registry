@@ -647,66 +647,6 @@ async def setup_kge_upload_context(
         await redirect(request, LANDING_PAGE)
 
 
-async def kge_transfer_from_url(
-        request: web.Request,
-        kg_id: str,
-        fileset_version: str,
-        kgx_file_content: str,
-        content_url: str,
-        content_name: str
-):
-    """
-    Trigger direct URL file transfer of a specific file of a KGE File Set.
-
-    :param request:
-    :param kg_id:
-    :param fileset_version:
-    :param kgx_file_content:
-    :param content_url:
-    :param content_name:
-    :return:
-    """
-    logger.debug("Entering kge_transfer_from_url()")
-
-    session = await get_session(request)
-    if not session.empty:
-        
-        if not content_url:
-            # must not be empty string
-            await report_error(request, "kge_transfer_from_url(): empty Content URL?")
-            
-        logger.debug("kge_transfer_from_url(): content_url == '" + content_url + "')")
-
-        upload_token_object: UploadTokenObject = \
-            await _initialize_upload_token(request, kg_id, fileset_version, kgx_file_content, content_name)
-
-        tracker: Dict = get_upload_tracker_details(upload_token_object.upload_token)
-
-        try:
-            # TODO: need to run the upload as a background process here...
-            upload_from_link(
-                url=content_url,
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                object_key=tracker['object_key'],
-                callback=None  # progress_monitor
-            )
-        except RuntimeError as rte:
-            logger.error('Failed file transfer for content_url '+content_url+'?: ' + str(rte))
-            await report_error(
-                request,
-                'Failed file transfer for content_url '+content_url+'?: ' + str(rte)
-            )
-    
-        response = web.json_response(upload_token_object.to_dict())
-
-        return await with_session(request, response)
-    
-    else:
-        # If session is not active, then just a redirect
-        # directly back to unauthenticated landing page
-        await redirect(request, LANDING_PAGE)
-
-
 async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.Response:
     """Get the progress of uploading for a specific file of a KGE File Set.
 
@@ -719,14 +659,14 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
     :type upload_token: str
 
     """
-
+    
     session = await get_session(request)
     if not session.empty:
-
+        
         """
         NOTE: Sometimes it takes awhile for end_position to be calculated initialize, particularly if the
         file size is > ~1GB (works fine at ~300mb).
-        
+
         In that case, we leave end_position is going to be undefined. The consumer of this endpoint must be willing
         to consistently poll until end_position is given a value.
         """
@@ -741,7 +681,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         response = web.json_response(progress_token.to_dict())
         
         return await with_session(request, response)
-
+    
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
@@ -804,10 +744,88 @@ class ProgressPercentage(object):
         self.transfer_tracker['current_position'] = self._seen_so_far
 
 
+_num_s3_threads = 16
+_s3_transfer_cfg = Config(signature_version='s3v4', max_pool_connections=_num_s3_threads)
+
+
+def threaded_file_transfer(filename, tracker, transfer_function, **kwargs):
+    
+    def threaded_upload():
+        """
+        Threaded upload process.
+        :return:
+        """
+
+        local_role = AssumeRole()
+        client = s3_client(assumed_role=local_role, config=_s3_transfer_cfg)
+        
+        if 'content_name' in tracker:
+            content_name = tracker['content_name']
+        else:
+            content_name = filename
+
+        progress_monitor = ProgressPercentage(
+            filename=content_name,
+            transfer_tracker=tracker
+        )
+
+        uploaded_file_object_key = transfer_function(
+            filename=content_name,  # The new name for the file
+            client=client,
+            callback=progress_monitor,
+            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            object_location=tracker['file_set_location'],
+            **kwargs
+        )
+        
+        # Assuming success, the new file should be
+        # added to into the file set in the Catalog.
+        if uploaded_file_object_key:
+            try:
+                s3_file_url = create_presigned_url(
+                    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                    object_key=uploaded_file_object_key
+                )
+                
+                # This action adds a file to the given knowledge graph,
+                # identified by the 'kg_id', initiating or continuing a
+                # the assembly process for the 'fileset_version' KGE file set.
+                # May raise an Exception if something goes wrong.
+                KgeArchiveCatalog.catalog().add_to_kge_file_set(
+                    kg_id=tracker["kg_id"],
+                    fileset_version=tracker["fileset_version"],
+                    file_type=tracker["file_type"],
+                    file_name=content_name,
+                    file_size=progress_monitor.get_file_size(),
+                    object_key=uploaded_file_object_key,
+                    s3_file_url=s3_file_url
+                )
+            
+            except Exception as exc:
+                exc_msg: str = "threaded_file_transfer(" + \
+                                "kg_id: " + tracker["kg_id"] + ", " + \
+                                "fileset_version: " + tracker["fileset_version"] + ", " + \
+                                "file_type: " + str(tracker["file_type"]) + ", " + \
+                                "object_key: " + str(uploaded_file_object_key) + ") threw exception: " + str(exc)
+                logger.error(exc_msg)
+                raise RuntimeError(exc_msg)
+        else:
+            error_msg: str = "threaded_file_transfer(" + \
+                             "kg_id: " + tracker["kg_id"] + ", " + \
+                             "fileset_version: " + tracker["fileset_version"] + ", " + \
+                             "file_type: " + str(tracker["file_type"]) + " " + \
+                             ") - null S3 object key... file upload failed?"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+    
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, threaded_upload)
+
+
 async def upload_kge_file(
         request: web.Request,
-        upload_token=None,
-        uploaded_file=None
+        upload_token,
+        uploaded_file
 ):
     """Uploading of a specified file from a local computer.
 
@@ -816,7 +834,7 @@ async def upload_kge_file(
     :param upload_token: Object key associated with a given file for uploading.
     :type upload_token: str
     :param uploaded_file: File (blob) object to be uploaded.
-    :type uploaded_file: str
+    :type uploaded_file: blob
     :rtype: web.Response
     """
     logger.debug("Entering upload_kge_file()")
@@ -826,88 +844,80 @@ async def upload_kge_file(
 
         tracker = get_upload_tracker_details(upload_token)
 
-        num_threads = 16
-        cfg = Config(signature_version='s3v4', max_pool_connections=num_threads)
-
         filesize = await _pathless_file_size(uploaded_file.file)
-
         tracker['end_position'] = filesize
 
-        if 'content_name' in tracker:
-            content_name = tracker['content_name']
-        else:
-            content_name = uploaded_file.filename
-
-        def threaded_upload():
-            """
-            Threaded upload process.
-            :return:
-            """
-            local_role = AssumeRole()
-            client = s3_client(assumed_role=local_role, config=cfg)
-
-            progress_monitor = ProgressPercentage(
-                filename=uploaded_file.filename,
-                transfer_tracker=tracker
-            )
-
-            uploaded_file_object_key = upload_file(
-                data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
-                file_name=content_name,        # The new name for the file
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                object_location=tracker['file_set_location'],
-                client=client,
-                callback=progress_monitor
-            )
-
-            # Assuming success, the new file should be
-            # added to into the file set in the Catalog.
-            if uploaded_file_object_key:
-                try:
-                    s3_file_url = create_presigned_url(
-                        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                        object_key=uploaded_file_object_key
-                    )
-            
-                    # This action adds a file to the given knowledge graph,
-                    # identified by the 'kg_id', initiating or continuing a
-                    # the assembly process for the 'fileset_version' KGE file set.
-                    # May raise an Exception if something goes wrong.
-                    KgeArchiveCatalog.catalog().add_to_kge_file_set(
-                        kg_id=tracker["kg_id"],
-                        fileset_version=tracker["fileset_version"],
-                        file_type=tracker["file_type"],
-                        file_name=content_name,
-                        file_size=progress_monitor.get_file_size(),
-                        object_key=uploaded_file_object_key,
-                        s3_file_url=s3_file_url
-                    )
-
-                except Exception as exc:
-                    error_msg: str = "upload_kge_file(" + \
-                        "kg_id: "+tracker["kg_id"] + ", " \
-                        "fileset_version: "+tracker["fileset_version"] + ", " \
-                        "file_type: "+str(tracker["file_type"]) + ", " \
-                        "object_key: " + str(uploaded_file_object_key) + \
-                        ") threw exception: " + str(exc)
-                    logger.error(error_msg)
-                    raise RuntimeError(error_msg)
-            else:
-                error_msg: str = "upload_kge_file(" + \
-                                 "kg_id: " + tracker["kg_id"] + ", " \
-                                 "fileset_version: " + tracker["fileset_version"] + ", " \
-                                 "file_type: " + str(tracker["file_type"]) + " " \
-                                 ") - null S3 object key... file upload failed?"
-                logger.error(error_msg)
-                raise RuntimeError(error_msg)
-
-        loop = asyncio.get_event_loop()
-        loop.run_in_executor(None, threaded_upload)
+        threaded_file_transfer(
+            filename=uploaded_file.filename,
+            tracker=tracker,
+            transfer_function=upload_file,
+            data_file=uploaded_file.file  # The raw file object (e.g. as a byte stream)
+        )
 
         response = web.Response(text=str(tracker['end_position']), status=200)
 
         await with_session(request, response)
 
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING_PAGE)
+
+
+async def kge_transfer_from_url(
+        request: web.Request,
+        kg_id: str,
+        fileset_version: str,
+        kgx_file_content: str,
+        content_url: str,
+        content_name: str
+):
+    """
+    Trigger direct URL file transfer of a specific file of a KGE File Set.
+
+    :param request:
+    :param kg_id:
+    :param fileset_version:
+    :param kgx_file_content:
+    :param content_url:
+    :param content_name:
+    :return:
+    """
+    logger.debug("Entering kge_transfer_from_url()")
+    
+    session = await get_session(request)
+    if not session.empty:
+        
+        if not content_url:
+            # must not be empty string
+            await report_error(request, "kge_transfer_from_url(): empty Content URL?")
+        
+        logger.debug("kge_transfer_from_url(): content_url == '" + content_url + "')")
+        
+        upload_token_object: UploadTokenObject = \
+            await _initialize_upload_token(request, kg_id, fileset_version, kgx_file_content, content_name)
+        
+        tracker: Dict = get_upload_tracker_details(upload_token_object.upload_token)
+        
+        try:
+            # TODO: need to run the upload as a background process here...
+            upload_from_link(
+                url=content_url,
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                object_key=tracker['object_key'],
+                callback=None  # progress_monitor
+            )
+        except RuntimeError as rte:
+            logger.error('Failed file transfer for content_url ' + content_url + '?: ' + str(rte))
+            await report_error(
+                request,
+                'Failed file transfer for content_url ' + content_url + '?: ' + str(rte)
+            )
+        
+        response = web.json_response(upload_token_object.to_dict())
+        
+        return await with_session(request, response)
+    
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page

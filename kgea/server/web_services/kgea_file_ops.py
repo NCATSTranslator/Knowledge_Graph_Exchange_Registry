@@ -536,12 +536,12 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME, test_fi
     return True
 
 
-def upload_file(data_file, file_name, bucket, object_location, client=s3_client(), config=None, callback=None):
+def upload_file(data_file, filename, bucket, object_location, client=s3_client(), config=None, callback=None):
     """Upload a file to an S3 bucket
 
     :param client:
     :param data_file: File to upload (can be read in binary mode)
-    :param file_name: Filename to use
+    :param filename: Filename to use
     :param bucket: Bucket to upload to
     :param object_location: root S3 object location name.
     :param config: a means of configuring the network call
@@ -555,8 +555,8 @@ def upload_file(data_file, file_name, bucket, object_location, client=s3_client(
     """
     object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
         ROOT=object_location,
-        FILENAME=Path(file_name).stem,
-        EXTENSION=splitext(file_name)[1]
+        FILENAME=Path(filename).stem,
+        EXTENSION=splitext(filename)[1]
     )
     # Upload the file
     try:
@@ -631,6 +631,11 @@ def upload_file_multipart(
 
 
 def package_file(name: str, target_file):
+    """
+
+    :param name:
+    :param target_file:
+    """
     logger.error("Calling package_file(name='" + name + "', name='" + target_file + "')")
     raise RuntimeError("Not yet implemented!")
 

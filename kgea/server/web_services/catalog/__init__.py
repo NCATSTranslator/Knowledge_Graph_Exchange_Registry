@@ -1480,7 +1480,7 @@ def add_to_s3_archive(
         data_bytes = text.encode('utf-8')
         uploaded_file_object_key = upload_file(
             data_file=BytesIO(data_bytes),
-            file_name=file_name,
+            filename=file_name,
             bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
             object_location=file_set_location
         )
