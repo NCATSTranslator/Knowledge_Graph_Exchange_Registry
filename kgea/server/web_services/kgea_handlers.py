@@ -748,6 +748,62 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         await redirect(request, LANDING_PAGE)
 
 
+async def _pathless_file_size(data_file):
+    """
+    Takes an open file-like object, gets its end location (in bytes),
+    and returns it as a measure of the file size.
+
+    Traditionally, one would use a systems-call to get the size
+    of a file (using the `os` module). But `TemporaryFileWrapper`s
+    do not feature a location in the filesystem, and so cannot be
+    tested with `os` methods, as they require access to a filepath,
+    or a file-like object that supports a path, in order to work.
+
+    This function seeks the end of a file-like object, records
+    the location, and then seeks back to the beginning so that
+    the file behaves as if it was opened for the first time.
+    This way you can get a file's size before reading it.
+
+    (Note how we aren't using a `with` block, which would close
+    the file after use. So this function leaves the file open,
+    as an implicit non-effect. Closing is problematic for
+     TemporaryFileWrappers which wouldn't be operable again)
+
+    :param data_file:
+    :return size:
+    """
+    if not data_file.closed:
+        data_file.seek(0, 2)
+        size = data_file.tell()
+        print(size)
+        data_file.seek(0, 0)
+        return size
+    else:
+        return 0
+
+
+class ProgressPercentage(object):
+    """
+    Class to track percentage completion of an upload.
+    """
+    def __init__(self, filename, transfer_tracker):
+        self._filename = filename
+        # transfer_tracker should be a Python dictionary
+        # used to monitor file upload/transfer metadata
+        self.transfer_tracker = transfer_tracker
+        self._seen_so_far = 0
+
+    def get_file_size(self):
+        """
+        :return: file size of the file being uploaded.
+        """
+        return self.transfer_tracker['end_position']
+
+    def __call__(self, bytes_amount):
+        self._seen_so_far += bytes_amount
+        self.transfer_tracker['current_position'] = self._seen_so_far
+
+
 async def upload_kge_file(
         request: web.Request,
         upload_token=None,
@@ -770,77 +826,10 @@ async def upload_kge_file(
 
         tracker = get_upload_tracker_details(upload_token)
 
-        # TODO: turn into withable
-        async def pathless_file_size(data_file):
-            """
-            pathless_file_size
-
-            Takes an open file-like object, gets its end location (in bytes),
-            and returns it as a measure of the file size.
-
-            Traditionally, one would use a systems-call to get the size
-            of a file (using the `os` module). But `TemporaryFileWrapper`s
-            do not feature a location in the filesystem, and so cannot be
-            tested with `os` methods, as they require access to a filepath,
-            or a file-like object that supports a path, in order to work.
-
-            This function seeks the end of a file-like object, records
-            the location, and then seeks back to the beginning so that
-            the file behaves as if it was opened for the first time.
-            This way you can get a file's size before reading it.
-
-            (Note how we aren't using a `with` block, which would close
-            the file after use. So this function leaves the file open,
-            as an implicit non-effect. Closing is problematic for
-             TemporaryFileWrappers which wouldn't be operable again)
-
-            :param data_file:
-            :return size:
-            """
-            if not data_file.closed:
-                data_file.seek(0, 2)
-                size = data_file.tell()
-                print(size)
-                data_file.seek(0, 0)
-                return size
-            else:
-                return 0
-
-        def update_session(current_bytes):
-            """
-            Update the upload session tracker byte progress count.
-            :param current_bytes: byte progress count.
-            :return:
-            """
-            tracker['current_position'] = current_bytes
-
-        class ProgressPercentage(object):
-            """
-            Class to track percentage completion of an upload.
-            """
-            def __init__(self, filename, file_size):
-                self._filename = filename
-                self.size = file_size
-                self._seen_so_far = 0
-                self._lock = threading.Lock()
-
-            def get_file_size(self):
-                """
-                :return: file size of the file being uploaded.
-                """
-                return self.size
-
-            def __call__(self, bytes_amount):
-                # To simplify we'll assume this is hooked up
-                # to a single filename.
-                # with self._lock:
-                self._seen_so_far += bytes_amount
-                update_session(self._seen_so_far)
-
         num_threads = 16
         cfg = Config(signature_version='s3v4', max_pool_connections=num_threads)
 
-        filesize = await pathless_file_size(uploaded_file.file)
+        filesize = await _pathless_file_size(uploaded_file.file)
 
         tracker['end_position'] = filesize
 
@@ -858,8 +847,8 @@ async def upload_kge_file(
             client = s3_client(assumed_role=local_role, config=cfg)
 
             progress_monitor = ProgressPercentage(
-                uploaded_file.filename,
-                tracker['end_position']
+                filename=uploaded_file.filename,
+                transfer_tracker=tracker
             )
 
             uploaded_file_object_key = upload_file(
