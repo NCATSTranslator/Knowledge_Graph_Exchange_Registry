@@ -1093,6 +1093,14 @@ Unit Tests
 
 
 def upload_from_link(url, bucket, object_key, callback=None, aws_client=s3_client()):
+    """
+
+    :param url:
+    :param bucket:
+    :param object_key:
+    :param callback:
+    :param aws_client:
+    """
     # errors are ignored here as they usually talk about coding mismatches,
     # which don't matter when transferring bytes directly
     with smart_open.open(url) as fin:

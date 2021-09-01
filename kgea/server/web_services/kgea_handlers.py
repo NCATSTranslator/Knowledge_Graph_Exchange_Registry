@@ -480,18 +480,18 @@ async def _validate_and_set_up_archive_target(
     # """
     if not kg_id:
         # must not be empty string
-        await report_error(request, "setup_kge_upload_context(): empty Knowledge Graph Identifier?")
+        await report_error(request, "_validate_and_set_up_archive_target(): empty Knowledge Graph Identifier?")
     
     if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
         # must not be empty string
         await report_error(
             request,
-            "setup_kge_upload_context(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
+            "_validate_and_set_up_archive_target(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
         )
     
     if not content_name:
         # must not be empty string
-        await report_error(request, "setup_kge_upload_context(): empty Content Name?")
+        await report_error(request, "_validate_and_set_up_archive_target(): empty Content Name?")
     
     # """
     # END Error Handling
@@ -599,12 +599,16 @@ async def _initialize_upload_token(
         return upload_token_object
 
 
-def get_upload_tracker_details(token_object: str) -> Dict:
+def get_upload_tracker_details(upload_token: str) -> Dict:
+    """
 
+    :param upload_token:
+    :return:
+    """
     global _upload_tracker
 
     # get details of file upload from token
-    details = _upload_tracker['upload'][token_object]
+    details = _upload_tracker['upload'][upload_token]
 
     return details
 
@@ -626,7 +630,7 @@ async def setup_kge_upload_context(
     :param content_name:
     :return:
     """
-    logger.debug("Entering upload_kge_file()")
+    logger.debug("Entering setup_kge_upload_context()")
 
     session = await get_session(request)
     if not session.empty:
@@ -676,14 +680,14 @@ async def kge_transfer_from_url(
         upload_token_object: UploadTokenObject = \
             await _initialize_upload_token(request, kg_id, fileset_version, kgx_file_content, content_name)
 
-        details: Dict = get_upload_tracker_details(upload_token_object.upload_token)
+        tracker: Dict = get_upload_tracker_details(upload_token_object.upload_token)
 
         try:
             # TODO: need to run the upload as a background process here...
             upload_from_link(
                 url=content_url,
                 bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                object_key=details['object_key'],
+                object_key=tracker['object_key'],
                 callback=None  # progress_monitor
             )
         except RuntimeError as rte:
@@ -726,13 +730,16 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         In that case, we leave end_position is going to be undefined. The consumer of this endpoint must be willing
         to consistently poll until end_position is given a value.
         """
-        tracker = _upload_tracker['upload'][upload_token]
+        tracker: Dict = get_upload_tracker_details(upload_token)
+        
         progress_token = UploadProgressToken(
             upload_token=upload_token,
             current_position=tracker['current_position'] if 'current_position' in tracker else 0,
             end_position=tracker['end_position'] if 'end_position' in tracker else None,
-        ).to_dict()
-        response = web.json_response(progress_token)
+        )
+        
+        response = web.json_response(progress_token.to_dict())
+        
         return await with_session(request, response)
 
     else:
@@ -761,7 +768,7 @@ async def upload_kge_file(
     session = await get_session(request)
     if not session.empty:
 
-        details = get_upload_tracker_details(upload_token)
+        tracker = get_upload_tracker_details(upload_token)
 
         # TODO: turn into withable
         async def pathless_file_size(data_file):
@@ -859,7 +866,7 @@ async def upload_kge_file(
                 data_file=uploaded_file.file,  # The raw file object (e.g. as a byte stream)
                 file_name=content_name,        # The new name for the file
                 bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                object_location=details['file_set_location'],
+                object_location=tracker['file_set_location'],
                 client=client,
                 callback=progress_monitor
             )
@@ -878,9 +885,9 @@ async def upload_kge_file(
                     # the assembly process for the 'fileset_version' KGE file set.
                     # May raise an Exception if something goes wrong.
                     KgeArchiveCatalog.catalog().add_to_kge_file_set(
-                        kg_id=details["kg_id"],
-                        fileset_version=details["fileset_version"],
-                        file_type=details["file_type"],
+                        kg_id=tracker["kg_id"],
+                        fileset_version=tracker["fileset_version"],
+                        file_type=tracker["file_type"],
                         file_name=content_name,
                         file_size=progress_monitor.get_file_size(),
                         object_key=uploaded_file_object_key,
@@ -889,18 +896,18 @@ async def upload_kge_file(
 
                 except Exception as exc:
                     error_msg: str = "upload_kge_file(" + \
-                        "kg_id: "+details["kg_id"] + ", " \
-                        "fileset_version: "+details["fileset_version"] + ", " \
-                        "file_type: "+str(details["file_type"]) + ", " \
+                        "kg_id: "+tracker["kg_id"] + ", " \
+                        "fileset_version: "+tracker["fileset_version"] + ", " \
+                        "file_type: "+str(tracker["file_type"]) + ", " \
                         "object_key: " + str(uploaded_file_object_key) + \
                         ") threw exception: " + str(exc)
                     logger.error(error_msg)
                     raise RuntimeError(error_msg)
             else:
                 error_msg: str = "upload_kge_file(" + \
-                                 "kg_id: " + details["kg_id"] + ", " \
-                                 "fileset_version: " + details["fileset_version"] + ", " \
-                                 "file_type: " + str(details["file_type"]) + " " \
+                                 "kg_id: " + tracker["kg_id"] + ", " \
+                                 "fileset_version: " + tracker["fileset_version"] + ", " \
+                                 "file_type: " + str(tracker["file_type"]) + " " \
                                  ") - null S3 object key... file upload failed?"
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
