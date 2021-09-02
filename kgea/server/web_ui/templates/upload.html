@@ -373,12 +373,12 @@ async function DoneUploading(source) {
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
-                        If a KGX Archive is given, then the local
-                            uploaded file or a transfer from URL is assumed to be a gzip'd
-                            compressed tar file with the name 'kge.tar.gz' containing one
-                            of each of both a KGX-compliant 'nodes.tsv' and 'edges.tsv'
-                            file for the knowledge graph, with or without an associated
-                            KGX-compliant 'metadata.json' file.
+                        If a KGX Archive is given, then the locally uploaded file,
+                        or a direct URL transfer from URL, is assumed to be a gzip'd
+                        compressed tar file with the name '<root file name>.tar.gz'
+                        containing one of each of both a KGX-compliant 'nodes.tsv'
+                        and 'edges.tsv' file for the knowledge graph, (preferrably!) with
+                        an associated KGX-compliant 'content_metadata.json' file.
                 </span>
             </div>
             -->
@@ -421,8 +421,8 @@ Uploading file, please don't navigate away from the page...</span>
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
                     Note: this operation triggers a background server process for the direct
-                    transfer of a file from an internet URL which is not guaranteed to be
-                    completed during a given user session (especially, for large files)
+                    transfer of a file from an internet URL, which is not guaranteed to be
+                    completed during the given user upload session (especially, for large files)
                 </span>
             </div>
 

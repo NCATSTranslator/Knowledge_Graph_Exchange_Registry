@@ -57,6 +57,7 @@ from .kgea_session import (
 )
 
 from .kgea_file_ops import (
+    get_pathless_file_size,
     upload_file,
     compress_download,
     create_presigned_url,
@@ -67,7 +68,9 @@ from .kgea_file_ops import (
     get_default_date_stamp,
     with_subfolder,
     infix_string,
-    s3_client, upload_from_link
+    s3_client,
+    get_url_file_size,
+    upload_from_link, get_object_key
 )
 
 from kgea.server.web_services.catalog import (
@@ -688,40 +691,6 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         await redirect(request, LANDING_PAGE)
 
 
-async def _pathless_file_size(data_file):
-    """
-    Takes an open file-like object, gets its end location (in bytes),
-    and returns it as a measure of the file size.
-
-    Traditionally, one would use a systems-call to get the size
-    of a file (using the `os` module). But `TemporaryFileWrapper`s
-    do not feature a location in the filesystem, and so cannot be
-    tested with `os` methods, as they require access to a filepath,
-    or a file-like object that supports a path, in order to work.
-
-    This function seeks the end of a file-like object, records
-    the location, and then seeks back to the beginning so that
-    the file behaves as if it was opened for the first time.
-    This way you can get a file's size before reading it.
-
-    (Note how we aren't using a `with` block, which would close
-    the file after use. So this function leaves the file open,
-    as an implicit non-effect. Closing is problematic for
-     TemporaryFileWrappers which wouldn't be operable again)
-
-    :param data_file:
-    :return size:
-    """
-    if not data_file.closed:
-        data_file.seek(0, 2)
-        size = data_file.tell()
-        print(size)
-        data_file.seek(0, 0)
-        return size
-    else:
-        return 0
-
-
 class ProgressPercentage(object):
     """
     Class to track percentage completion of an upload.
@@ -748,8 +717,14 @@ _num_s3_threads = 16
 _s3_transfer_cfg = Config(signature_version='s3v4', max_pool_connections=_num_s3_threads)
 
 
-def threaded_file_transfer(filename, tracker, transfer_function, **kwargs):
-    
+def threaded_file_transfer(filename, tracker, transfer_function, source):
+    """
+
+    :param filename:
+    :param tracker:
+    :param transfer_function:
+    :param source:
+    """
     def threaded_upload():
         """
         Threaded upload process.
@@ -769,14 +744,22 @@ def threaded_file_transfer(filename, tracker, transfer_function, **kwargs):
             transfer_tracker=tracker
         )
 
-        uploaded_file_object_key = transfer_function(
-            filename=content_name,  # The new name for the file
-            client=client,
-            callback=progress_monitor,
-            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            object_location=tracker['file_set_location'],
-            **kwargs
-        )
+        try:
+            object_key = get_object_key(tracker['file_set_location'], content_name)
+            transfer_function(
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                object_key=object_key,
+                source=source,
+                client=client,
+                callback=progress_monitor
+            )
+        except Exception as exc:
+            exc_msg: str = "threaded_file_transfer(" + \
+                            "kg_id: " + tracker["kg_id"] + ", " + \
+                            "fileset_version: " + tracker["fileset_version"] + ", " + \
+                            "file_type: " + str(tracker["file_type"]) + ") threw exception: " + str(exc)
+            logger.error(exc_msg)
+            raise RuntimeError(exc_msg)
         
         # Assuming success, the new file should be
         # added to into the file set in the Catalog.
@@ -842,16 +825,15 @@ async def upload_kge_file(
     session = await get_session(request)
     if not session.empty:
 
-        tracker = get_upload_tracker_details(upload_token)
+        tracker: Dict = get_upload_tracker_details(upload_token)
 
-        filesize = await _pathless_file_size(uploaded_file.file)
-        tracker['end_position'] = filesize
+        tracker['end_position'] = get_pathless_file_size(uploaded_file.file)
 
         threaded_file_transfer(
             filename=uploaded_file.filename,
             tracker=tracker,
             transfer_function=upload_file,
-            data_file=uploaded_file.file  # The raw file object (e.g. as a byte stream)
+            source=uploaded_file.file  # The raw file object (e.g. as a byte stream)
         )
 
         response = web.Response(text=str(tracker['end_position']), status=200)
@@ -899,23 +881,17 @@ async def kge_transfer_from_url(
         
         tracker: Dict = get_upload_tracker_details(upload_token_object.upload_token)
         
-        try:
-            # TODO: need to run the upload as a background process here...
-            upload_from_link(
-                url=content_url,
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                object_key=tracker['object_key'],
-                callback=None  # progress_monitor
-            )
-        except RuntimeError as rte:
-            logger.error('Failed file transfer for content_url ' + content_url + '?: ' + str(rte))
-            await report_error(
-                request,
-                'Failed file transfer for content_url ' + content_url + '?: ' + str(rte)
-            )
+        tracker['end_position'] = get_url_file_size(content_url)
         
+        threaded_file_transfer(
+            filename=content_name,
+            tracker=tracker,
+            transfer_function=upload_from_link,
+            source=content_url
+        )
+
         response = web.json_response(upload_token_object.to_dict())
-        
+
         return await with_session(request, response)
     
     else:

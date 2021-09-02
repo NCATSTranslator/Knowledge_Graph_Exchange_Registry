@@ -107,16 +107,24 @@ TEST_FILESET_VERSION = '4.3'
 TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
 
-# DIRECT_TRANSFER_TEST_LINK = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
-# DIRECT_TRANSFER_TEST_LINK_FILENAME = 'sri-reference-kg_nodes.tsv'
-
-DIRECT_TRANSFER_TEST_LINK = 'https://github.com/NCATSTranslator/semmeddb-biolink-kg/blob/master/R2020-7-9/semmeddb_edges-1_20200709.tsv.gz'
-DIRECT_TRANSFER_TEST_LINK_FILENAME = 'semmeddb_edges.tsv.gz'
+DIRECT_TRANSFER_TEST_LINK = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
+DIRECT_TRANSFER_TEST_LINK_FILENAME = 'sri-reference-kg_nodes.tsv'
+SMALL_TEST_URL="https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
 
 
 def prepare_test(func):
+    """
+
+    :param func:
+    :return:
+    """
     @wraps(func)
     def wrapper(**kwargs):
+        """
+
+        :param kwargs:
+        :return:
+        """
         TEST_BUCKET = 'kgea-test-bucket'
         TEST_KG_NAME = 'test_kg'
         return func(**kwargs)
@@ -125,6 +133,11 @@ def prepare_test(func):
 
 
 def prepare_test_random_object_location(func):
+    """
+
+    :param func:
+    :return:
+    """
     @wraps(func)
     def wrapper(object_key=_random_alpha_string(), **kwargs):
         s3_client().put_object(
@@ -536,40 +549,76 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME, test_fi
     return True
 
 
-def upload_file(data_file, filename, bucket, object_location, client=s3_client(), config=None, callback=None):
-    """Upload a file to an S3 bucket
-
-    :param client:
-    :param data_file: File to upload (can be read in binary mode)
-    :param filename: Filename to use
-    :param bucket: Bucket to upload to
-    :param object_location: root S3 object location name.
-    :param config: a means of configuring the network call
-    :param client: The s3 client to use. Useful if needing to make a new client for the sake of thread safety.
-    :param callback: an object that implements __call__, that runs on each file block uploaded (receiving byte data.)
-
-    :return: object_key
-    :rtype: str
-
-    :raises RuntimeError if the S3 file object upload call fails
+def get_pathless_file_size(data_file):
     """
-    object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
+    Takes an open file-like object, gets its end location (in bytes),
+    and returns it as a measure of the file size.
+
+    Traditionally, one would use a systems-call to get the size
+    of a file (using the `os` module). But `TemporaryFileWrapper`s
+    do not feature a location in the filesystem, and so cannot be
+    tested with `os` methods, as they require access to a filepath,
+    or a file-like object that supports a path, in order to work.
+
+    This function seeks the end of a file-like object, records
+    the location, and then seeks back to the beginning so that
+    the file behaves as if it was opened for the first time.
+    This way you can get a file's size before reading it.
+
+    (Note how we aren't using a `with` block, which would close
+    the file after use. So this function leaves the file open,
+    as an implicit non-effect. Closing is problematic for
+     TemporaryFileWrappers which wouldn't be operable again)
+
+    :param data_file:
+    :return size:
+    """
+    if not data_file.closed:
+        data_file.seek(0, 2)
+        size = data_file.tell()
+        print(size)
+        data_file.seek(0, 0)
+        return size
+    else:
+        return 0
+
+
+def get_object_key(object_location, filename):
+    """
+    :param object_location: S3 location of the persisted object
+    :param filename: filename of the S3 object
+    :return: object key of the S3 object
+    """
+    return Template('$ROOT$FILENAME$EXTENSION').substitute(
         ROOT=object_location,
         FILENAME=Path(filename).stem,
         EXTENSION=splitext(filename)[1]
     )
+
+
+def upload_file(bucket, object_key, source, client=s3_client(), config=None, callback=None):
+    """Upload a file to an S3 bucket
+
+    :param bucket: Bucket to upload to
+    :param object_key: target S3 object key of the file.
+    :param source: file to be uploaded (can be read in binary mode)
+    :param client: The s3 client to use. Useful if needing to make a new client for the sake of thread safety.
+    :param config: a means of configuring the network call
+    :param callback: an object that implements __call__, that runs on each file block uploaded (receiving byte data.)
+
+    :raises RuntimeError if the S3 file object upload call fails
+    """
+    
     # Upload the file
     try:
         # TODO: can these S3 calls measure the size of the file which was uploaded?
         if config is None:
-            client.upload_fileobj(data_file, bucket, object_key, Callback=callback)
+            client.upload_fileobj(source, bucket, object_key, Callback=callback)
         else:
-            client.upload_fileobj(data_file, bucket, object_key, Config=config, Callback=callback)
+            client.upload_fileobj(source, bucket, object_key, Config=config, Callback=callback)
     except Exception as exc:
         logger.error("kgea file ops: upload_file() exception: " + str(exc))
         raise RuntimeError("kgea file ops: upload_file() exception: " + str(exc))
-
-    return object_key
 
 
 def upload_file_multipart(
@@ -619,11 +668,11 @@ def upload_file_multipart(
         max_concurrency=concurrency
     )
     print('upload says hello')
+    object_key = get_object_key(object_location, file_name)
     return upload_file(
-        data_file,
-        file_name,
-        bucket,
-        object_location,
+        bucket=bucket,
+        object_key=object_key,
+        source=data_file,
         client=client,
         config=transfer_config,
         callback=callback
@@ -647,7 +696,12 @@ def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME, logging=Fals
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
             packaged_file = package_file(name=test_file.name, target_file=test_file)
-            object_key = upload_file(packaged_file, test_file.name, test_bucket, content_location)
+            object_key = get_object_key(content_location, test_file.name)
+            upload_file(
+                bucket=test_bucket,
+                object_key=object_key,
+                source=packaged_file
+            )
             assert (object_key in kg_files_in_location(test_bucket, content_location))
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -857,7 +911,12 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME, lo
         test_location, time_created = with_version(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            object_key = upload_file(test_file, test_file.name, test_bucket, test_location)
+            object_key = get_object_key(test_location, test_file.name)
+            upload_file(
+                bucket=test_bucket,
+                object_key=object_key,
+                source=test_file
+            )
             assert (object_key in kg_files_in_location(test_bucket, test_location))
             assert (time_created in object_key)
 
@@ -1091,25 +1150,59 @@ def test_get_archive_contents(test_bucket=TEST_BUCKET, logging=False):
     print(str(contents), file=stderr)
 
 
-"""
-Unit Tests
-* Run each test function as an assertion if we are debugging the project
-"""
-
-
-def upload_from_link(url, bucket, object_key, callback=None, aws_client=s3_client()):
+def get_url_file_size(url: str) -> int:
     """
+    Takes a URL specified resource, and gets its size (in bytes)
 
-    :param url:
-    :param bucket:
-    :param object_key:
-    :param callback:
-    :param aws_client:
+    :param url: resource whose size is being queried
+    :return size:
+    """
+    size: int = 0
+    if url:
+        try:
+            # fetching the header information
+            info = requests.head(url)
+            content_length = info.headers['Content-Length']
+            size: int = int(content_length)
+            return size
+        except Exception as exc:
+            logger.error("get_url_file_size(url:" + str(url) + "): " + str(exc))
+
+    return size
+
+
+def test_get_url_file_size():
+    url_resource_size: int = get_url_file_size(url=SMALL_TEST_URL)
+    assert(url_resource_size > 0)
+    url_resource_size: int = get_url_file_size(url="https://nonexistent.url")
+    assert(url_resource_size == 0)
+    url_resource_size = get_url_file_size(url='')
+    assert(url_resource_size == 0)
+    url_resource_size= get_url_file_size(url='abc')
+    assert(url_resource_size == 0)
+    return True
+
+
+def upload_from_link(
+        bucket,
+        object_key,
+        source,
+        client=s3_client(),
+        callback=None
+):
+    """
+    Transfers a file resource to S3 from a URL location.
+    
+    :param bucket: in S3
+    :param object_key: of target S3 object
+    :param source: url of resource to be uploaded to S3
+    :param callback: e.g. progress monitor
+    :param client: for S3
     """
     # errors are ignored here as they usually talk about coding mismatches,
     # which don't matter when transferring bytes directly
-    with smart_open.open(url) as fin:
-        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': aws_client}) as fout:
+    with smart_open.open(source) as fin:
+        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}) as fout:
             for line in fin:
                 fout.write(line)
                 if callback:
@@ -1191,7 +1284,18 @@ def test_upload_from_link(
     return True
 
 
+"""
+Unit Tests
+* Run each test function as an assertion if we are debugging the project
+"""
+
+
 def run_test(test_func, **kwargs):
+    """
+
+    :param test_func:
+    :param kwargs:
+    """
     try:
         start = time.time()
         assert (test_func(logging=kwargs.pop('logging', False)))
@@ -1221,7 +1325,8 @@ if __name__ == '__main__':
         )
     )
 
-    run_test(test_upload_from_link, logging=True)
+    run_test(test_get_url_file_size, logging=True)
+    # run_test(test_upload_from_link, logging=True)
 
     # run_test(test_kg_files_in_location)
     # run_test(test_is_location_available)
