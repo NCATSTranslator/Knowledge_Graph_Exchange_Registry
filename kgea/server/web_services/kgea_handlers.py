@@ -763,44 +763,35 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
         
         # Assuming success, the new file should be
         # added to into the file set in the Catalog.
-        if uploaded_file_object_key:
-            try:
-                s3_file_url = create_presigned_url(
-                    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    object_key=uploaded_file_object_key
-                )
-                
-                # This action adds a file to the given knowledge graph,
-                # identified by the 'kg_id', initiating or continuing a
-                # the assembly process for the 'fileset_version' KGE file set.
-                # May raise an Exception if something goes wrong.
-                KgeArchiveCatalog.catalog().add_to_kge_file_set(
-                    kg_id=tracker["kg_id"],
-                    fileset_version=tracker["fileset_version"],
-                    file_type=tracker["file_type"],
-                    file_name=content_name,
-                    file_size=progress_monitor.get_file_size(),
-                    object_key=uploaded_file_object_key,
-                    s3_file_url=s3_file_url
-                )
+        try:
+            s3_file_url = create_presigned_url(
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                object_key=object_key
+            )
             
-            except Exception as exc:
-                exc_msg: str = "threaded_file_transfer(" + \
-                                "kg_id: " + tracker["kg_id"] + ", " + \
-                                "fileset_version: " + tracker["fileset_version"] + ", " + \
-                                "file_type: " + str(tracker["file_type"]) + ", " + \
-                                "object_key: " + str(uploaded_file_object_key) + ") threw exception: " + str(exc)
-                logger.error(exc_msg)
-                raise RuntimeError(exc_msg)
-        else:
-            error_msg: str = "threaded_file_transfer(" + \
-                             "kg_id: " + tracker["kg_id"] + ", " + \
-                             "fileset_version: " + tracker["fileset_version"] + ", " + \
-                             "file_type: " + str(tracker["file_type"]) + " " + \
-                             ") - null S3 object key... file upload failed?"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
-    
+            # This action adds a file to the given knowledge graph,
+            # identified by the 'kg_id', initiating or continuing a
+            # the assembly process for the 'fileset_version' KGE file set.
+            # May raise an Exception if something goes wrong.
+            KgeArchiveCatalog.catalog().add_to_kge_file_set(
+                kg_id=tracker["kg_id"],
+                fileset_version=tracker["fileset_version"],
+                file_type=tracker["file_type"],
+                file_name=content_name,
+                file_size=progress_monitor.get_file_size(),
+                object_key=object_key,
+                s3_file_url=s3_file_url
+            )
+        
+        except Exception as exc:
+            exc_msg: str = "threaded_file_transfer(" + \
+                            "kg_id: " + tracker["kg_id"] + ", " + \
+                            "fileset_version: " + tracker["fileset_version"] + ", " + \
+                            "file_type: " + str(tracker["file_type"]) + ", " + \
+                            "object_key: " + str(object_key) + ") threw exception: " + str(exc)
+            logger.error(exc_msg)
+            raise RuntimeError(exc_msg)
+
     loop = asyncio.get_event_loop()
     loop.run_in_executor(None, threaded_upload)
 

@@ -1178,7 +1178,7 @@ def test_get_url_file_size():
     assert(url_resource_size == 0)
     url_resource_size = get_url_file_size(url='')
     assert(url_resource_size == 0)
-    url_resource_size= get_url_file_size(url='abc')
+    url_resource_size = get_url_file_size(url='abc')
     assert(url_resource_size == 0)
     return True
 
