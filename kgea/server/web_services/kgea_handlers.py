@@ -6,6 +6,9 @@ import sys
 from os import getenv
 from pathlib import Path
 from typing import Dict
+from smart_open import compression
+
+from smart_open.smart_open_lib import smart_open
 
 from .models import (
     KgeMetadata,
@@ -220,15 +223,13 @@ async def register_kge_knowledge_graph(request: web.Request):
         # graph name as the KGE File Set identifier.
         kg_id = KgeKnowledgeGraph.normalize_name(kg_name)
 
-        if True:  # location_available(bucket_name, object_key):
-            if True:  # api_specification and url:
+        if True:  # TODO location_available(bucket_name, object_key):
+            if True:  # TODO api_specification and url:
                 # TODO: repair return
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
 
-                # Here we start to start to track a specific
-                # knowledge graph submission within KGE Archive
-                knowledge_graph = KgeArchiveCatalog.catalog().add_knowledge_graph(
+                knowledge_graph = KgeKnowledgeGraph(
                     kg_id=kg_id,
                     kg_name=kg_name,
                     kg_description=kg_description,
@@ -241,8 +242,13 @@ async def register_kge_knowledge_graph(request: web.Request):
                     terms_of_service=terms_of_service,
                 )
 
+                # Here we start to start to track a specific
+                # knowledge graph submission within KGE Archive
+                KgeArchiveCatalog.catalog().add_knowledge_graph(knowledge_graph)
+
                 # Also publish a new 'provider.yaml' metadata file to the KGE Archive
-                knowledge_graph.publish_provider_metadata()
+                provider_metadata_key = knowledge_graph.publish_provider_metadata()
+                assert(provider_metadata_key is not None)
 
                 await redirect(
                     request,
@@ -1002,8 +1008,8 @@ async def kge_meta_knowledge_graph(
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
         
         if not object_key_exists(
-                bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                object_key=content_metadata_file_key
+                object_key=content_metadata_file_key,
+                bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']
         ):
             if downloading:
                 await redirect(

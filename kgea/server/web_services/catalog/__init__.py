@@ -515,7 +515,10 @@ class KgeFileSet:
             raise ex
 
         try:
+            
             post_processed = await self.post_process_file_set(archiver)
+
+
         except Exception as exception:
             logger.error("publish(): post_processed: {} {} {}".format(self.kg_id, self.fileset_version, exception))
             raise exception
@@ -913,6 +916,7 @@ class KgeKnowledgeGraph:
                 " for Knowledge Graph '" + self.kg_id +
                 "' not successfully added to KGE Archive storage?"
             )
+        return self.get_provider_metadata_object_key()
 
     def get_name(self) -> str:
         """
@@ -1966,64 +1970,8 @@ class KgeArchiver:
 
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
-            """
-            ################################################
-            # Collect the KGX data files names and metadata.
-            # Not sure how much of this information
-            # is needed for the archiving operation.
-            ################################################
-            input_files: List[str] = list()
-            file_type: Optional[KgeFileType] = None
-            input_format: Optional[str] = None
-            input_compression: Optional[str] = None
-
-            for entry in file_set.data_files.values():
-                #
-                # ... where each entry is a dictionary contains the following keys:
-                #
-                # "file_name": str
-
-                # "file_type": KgeFileType (from Catalog)
-                # "input_format": str
-                # "input_compression": str
-                # "kgx_compliant": bool
-                #
-                # "object_key": str
-                # "s3_file_url": str
-                #
-
-                # TODO: we just take the first values encountered, but
-                #       we should probably guard against inconsistent
-                #       input format and compression somewhere upstream
-
-                if not file_type:
-                    file_type = entry["file_type"]
-                if not input_format:
-                    input_format = entry["input_format"]
-                if not input_compression:
-                    input_compression = entry["input_compression"]
-
-                file_name = entry["file_name"]
-                object_key = entry["object_key"]
-                s3_file_url = entry["s3_file_url"]
-
-                print(
-                    f"KgxArchiver task {self.task_id} processing file '{file_name}' "
-                    f"\n\twith object key '{object_key}' of type '{file_type}' "
-                    f"\n\tof input format '{input_format}' and with compression '{input_compression}', ",
-                    file=stderr
-                )
-
-                # The file to be processed should currently be
-                # a resource accessible from this S3 authenticated URL?
-                input_files.append(s3_file_url)
-            """
 
             print(f"KgxArchiver task {task_id} starting archiving of {str(file_set)}", file=stderr)
-
-            ########################
-            # Do the Archiving Here
-            ########################
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
 
@@ -2034,7 +1982,7 @@ class KgeArchiver:
                     # spread the entry across the add_data_file function, which will take all its values as arguments
                     file_set.add_data_file(**entry)
 
-            aggregate_files(
+            node_path = aggregate_files(
                 bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
                     KG_ID=file_set.kg_id,
@@ -2045,7 +1993,7 @@ class KgeArchiver:
                 match_function=lambda x: 'nodes.tsv' in x
             )
 
-            aggregate_files(
+            edge_path = aggregate_files(
                 bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
                     KG_ID=file_set.kg_id,
@@ -2056,6 +2004,10 @@ class KgeArchiver:
                 match_function=lambda x: 'edges.tsv' in x
             )
 
+            # add to fileset
+            file_set.add_data_file(KgeFileType.KGX_DATA_FILE, 'nodes.tsv', 0, node_path, '')
+            file_set.add_data_file(KgeFileType.KGX_DATA_FILE, 'edges.tsv', 0, edge_path, '')
+
             # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
             #    containing the aggregated nodes.tsv, edges.tsv,
             #    TODO: copy over the content_metadata.json, provider.yaml metadata and file_set.yaml metadata files.
@@ -2064,15 +2016,14 @@ class KgeArchiver:
             # from compressing the previous compression (so the source of files is distinct from the target written to)
             archive_path = await compress_fileset(
                 bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                file_set_location='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
-                    KG_ID=file_set.kg_id,
-                    VERSION=file_set.fileset_version
-                ),
-                target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(
-                    KG_ID=file_set.kg_id,
-                    VERSION=file_set.fileset_version
-                ),
-                archive_name='{}.{}'.format(file_set.kg_id, file_set.fileset_version)
+                files_and_file_set_locations=[
+                    'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version),
+                    'kge-data/{KG_ID}/{VERSION}/file_set.yaml'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version),
+                    'kge-data/{KG_ID}/{VERSION}/content_metadata.json'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version),
+                    'kge-data/{KG_ID}/provider.yaml'.format(KG_ID=file_set.kg_id),
+                ],
+                target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version),
+                archive_name='{KG_ID}.{VERSION}'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version)
             )
 
             archive_s3_path = 's3://{BUCKET}/{ARCHIVE_KEY}'.format(
@@ -2081,7 +2032,7 @@ class KgeArchiver:
             )
 
             # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format of whatever
-            # is being opened. If we let this happen, then the hash function would run over an decompressed buffer; not
+            # is being opened. If we let this happen, then the hash function would run over a decompressed buffer; not
             # the compressed file/buffer that we expect our users to use when they download and validate the archive.
             with smart_open.open(archive_s3_path, 'rb', compression='disable') as archive:
 
@@ -2161,18 +2112,20 @@ class KgeArchiver:
         """
         # Post the file set to the KGX archiver task Queue for processing
         try:
-            print('putting fileset on queue')
             self._archiver_queue.put_nowait(
                 file_set
             )
         except QueueFull as full:
             await asyncio.sleep(wait)
-            if waits < maxwait:
+            try:
+                assert(waits < maxwait)
                 waits += 1
                 await self.process(file_set, wait, waits, maxwait)
-            else:
+            except:
                 raise TimeoutError
-
+            finally:
+                return False
+        return True
 
 class KgxValidator:
     """

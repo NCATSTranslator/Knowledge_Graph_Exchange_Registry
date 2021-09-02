@@ -251,7 +251,7 @@ def match_objects_from_bucket(bucket_name, object_key):
     return [w.key == key for w in objs]
 
 
-def object_key_exists(bucket_name, object_key) -> bool:
+def object_key_exists(object_key, bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']) -> bool:
     """
     Checks for the existence of the specified object key
 
@@ -273,7 +273,7 @@ def location_available(bucket_name, object_key) -> bool:
     :param object_key: The object in the bucket
     :return: True if the object is not in the bucket, False if it is already in the bucket
     """
-    if object_key_exists(bucket_name, object_key):
+    if object_key_exists(object_key, bucket_name):
         # exists
         # invert because object key location is unavailable
         return False
@@ -718,124 +718,6 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
-
-def upload_file_to_archive(archive_name, data_file, file_name, bucket, object_location):
-    """
-
-    :param archive_name:
-    :param data_file:
-    :param file_name:
-    :param bucket:
-    :param object_location:
-    :return:
-    """
-    # upload the file
-    object_key = upload_file_multipart(
-        data_file=data_file,
-        file_name=file_name,
-        bucket=bucket,
-        object_location=object_location,
-        callback=None  # TODO: do I need a progress monitor callback function here?
-    )
-
-    archive_path = "{}/{}.tar.gz".format(
-        Path(object_key).parent,
-        archive_name,
-    ).replace('\\', '/')
-
-    # setup an S3 job to compress the file
-    job = S3Tar(
-        bucket,
-        archive_path,
-        allow_dups=True
-    )
-
-    # add the file the running archive
-    job.add_file(object_key)
-
-    # execute the job
-    job.tar()
-
-    return archive_path
-
-
-@prepare_test
-def test_upload_file_to_archive(
-        test_bucket=TEST_BUCKET,
-        test_kg=TEST_KG_NAME,
-        test_file_dir=TEST_FILE_DIR,
-        test_file_name=TEST_FILE_NAME,
-        test_archive_name=_random_alpha_string()
-):
-    """
-    The difference between "upload_file_to_archive" and "upload_file_as_archive":
-        * upload_file_to_archive can upload several files into an archive AT ONCE.
-        * TODO: upload_file_to_archive can upload several files into an archive OVER TIME.
-            * Problem: Gzip compression is non-commutative!
-    """
-    try:
-        # Prepare information used between subtests
-        content_location, _ = with_version(get_object_location)(test_kg)
-
-        """
-        Test 1: Writing files into new archive
-        """
-        print('\ttesting 1')
-        with open(Path(test_file_dir+test_file_name), 'rb') as test_file:
-            """
-            Test 1a: Write a file to an archive
-            """
-            archive_key = upload_file_to_archive(
-                test_archive_name,
-                test_file,
-                test_file.name,
-                test_bucket,
-                content_location
-            )
-
-            """
-            Test 1b: override file 
-            """
-            # concatenate random string to the file
-
-        print('\ttesting 1 successful')
-
-        """
-        Test 2: Writing a new file into the same archive
-        """
-        print('\ttesting 2')
-        with tempfile.NamedTemporaryFile() as test_file:
-
-            test_file.write(bytes(_random_alpha_string(), "UTF-8"))
-
-            archive_key = upload_file_to_archive(
-                test_archive_name,
-                test_file,
-                test_file.name,
-                test_bucket,
-                content_location
-            )
-
-            # ASSERT: Archive exists
-            assert (archive_key in kg_files_in_location(test_bucket, content_location))
-
-        print('\ttesting 2 successful')
-
-    except FileNotFoundError as e:
-        logger.error("Test is malformed! File not Found!")
-        logger.error(e)
-        return False
-    except ClientError as e:
-        logger.error('The upload to S3 has failed!')
-        logger.error(e)
-        return False
-    except AssertionError as e:
-        logger.error('The resulting path was not found inside of the knowledge graph folder!')
-        logger.error(e)
-        return False
-    return True
-
-
 @prepare_test
 def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     """
@@ -884,22 +766,23 @@ def infix_string(name, infix, delimiter="."):
 
 async def compress_fileset(
         bucket,
-        file_set_location,
+        files_and_file_set_locations: list,
         target_path,
         archive_name
 ) -> str:
     """
 
     :param bucket:
-    :param file_set_location:
+    :param files_and_file_set_locations:
     :param target_path:
     :param archive_name:
     :return:
     """
+
     archive_path = "{target_path}{archive_name}.tar.gz".format(
         target_path=target_path,
         archive_name=archive_name,
-    ).replace('\\', '/')
+    ).replace('\\', '/')  # normalize to the path separator we use on s3
 
     # setup an S3 job to compress the file
     job = S3Tar(
@@ -910,12 +793,19 @@ async def compress_fileset(
     )
 
     # add the file the running archive
-    # TODO folder key vs list of file keys
-    job.add_files(file_set_location)
-
-    # # Add the Knowledge Graph provider.yaml file as well
-    # provider_metadata_file_object_key = file_set_location + "/provider.yaml"
-    # job.add_file(provider_metadata_file_object_key)
+    for file_or_file_set_location in files_and_file_set_locations:
+        # it's a folder key if it ends with a path separator
+        if file_or_file_set_location[-1] == '/':
+            file_set_location_key = file_or_file_set_location
+            job.add_files(file_set_location_key)
+        # it's a file if it doesn't end with a path separator
+        else:
+            file_key = file_or_file_set_location
+            # TODO - job.add_file doesn't check if the key exists
+            # so for now do it for them
+            if object_key_exists(file_key):
+                job.add_file(file_key)
+                logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
 
     # execute the job
     job.tar()
