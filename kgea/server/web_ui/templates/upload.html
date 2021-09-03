@@ -248,6 +248,7 @@ async function UploadFile(source) {
                 })
 
             document.getElementById("content_from_local_file").disabled = false;
+            document.getElementById("content_file").value = null;
 
             if (kgx_file_content === "metadata") {
                 document.getElementById("uploaded_metadata").innerHTML += "<li>"+filename+"</li>"
