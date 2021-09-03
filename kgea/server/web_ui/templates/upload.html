@@ -66,7 +66,8 @@ async function GetUrl(source) {
         content_name =
             Math.random().toString(16).substr(2, 8).toUpperCase() + ".kgx";
     } else {
-        content_name = pathname.split("/")[1];
+        let file_path_parts = pathname.split("/");
+        content_name = file_path_parts[file_path_parts.length-1]
     }
     document.getElementById("file_name").value = content_name;
     SetFileName(content_name)
@@ -99,6 +100,9 @@ async function UploadFile(source) {
         return;
     }
 
+    // Need to know where I am in the internet space...
+    const url = new URL(window.location.href);
+
     formData.append("upload_mode", source.id);
 
     if (source.id === "content_from_url") {
@@ -109,10 +113,36 @@ async function UploadFile(source) {
         if (content_url) {
             console.log("Content URL: '" + content_url + "')");
             formData.append("content_url", content_url);
+
+            let file_name = document.getElementById("file_name").value;
+
+            // somehow post the direct file URL transfer here?
+            //window.alert("Direct transfer of file from URL: " + content_url);
+            let duta_endpoint = `{{direct_url_transfer_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&content_url=${content_url}&content_name=${file_name}`;
+            //window.alert("Direct URL transfer action endpoint: " + duta_endpoint);
+            await fetch(duta_endpoint,                {
+                    method: "GET",
+                    credentials: "include"
+                }
+            )
+            .then(r => r.json())
+            .then(async result => {
+                let msg = JSON.stringify(result)
+                console.log("Content URL transfer response:" + msg);
+                //window.alert("Content URL transfer response:" + msg);
+            })
+
+            // .. then clear the direct URL fields?
+            document.getElementById("content_url").value = ""
+            document.getElementById("file_name").value = ""
+            SetFileName("unknown")
+
+            // .. then post the file name transferred
+            update_file_list(kgx_file_content, file_name, "Transferring...")
+
         } else {
             console.log("KGX content file URL is undefined?");
             window.alert("KGX content file URL is undefined");
-            return;
         }
 
     } else if (source.id === "content_from_local_file") {
@@ -162,100 +192,93 @@ async function UploadFile(source) {
             // alternate progress monitor while waiting
             // for the 'real' value from S3
             let fake_progress = 0;
-
-            const url = new URL(window.location.href);
-            await fetch(`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`,
-                {
+            let ua_endpoint =`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`;
+            //window.alert("upload_action endpoint: " + ua_endpoint);
+            await fetch(ua_endpoint,                {
                     method: "GET",
                     credentials: "include"
                 }
             )
-                .then(r => r.json())
-                .then(async result => {
-                    formData.append('upload_token', result.upload_token)
-                    fetch(`{{upload_action}}`, {
-                        method: "POST",
-                        body: formData,
-                        credentials: "include"
-                    })
-                    return result.upload_token
+            .then(r => r.json())
+            .then(async result => {
+                formData.append('upload_token', result.upload_token)
+                fetch(`{{upload_action}}`, {
+                    method: "POST",
+                    body: formData,
+                    credentials: "include"
                 })
-                .then(async upload_token => {
+                return result.upload_token
+            })
+            .then(async upload_token => {
 
-                    // use mutual recursion to create a progress element that always updates the exact amount required
-                    document.getElementById('percentage').textContent = `(0.0%)`;
+                // use mutual recursion to create a progress element that always updates the exact amount required
+                document.getElementById('percentage').textContent = `(0.0%)`;
 
-                    let delay = 1000;
+                let delay = 1000;
 
-                    // callback for mutual recursion
-                    async function askForProgress() {
-                        return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
-                            .then(r => r.json())
-                            .then(j => {
-                                let progress_ratio = 0;
-                                if (!!j.end_position) {
-                                    delay = 1000;
-                                    progress_ratio = j.current_position / j.end_position;
-                                } else {
-                                    delay = 5000;
-                                    if(fake_progress < 900) {
-                                        fake_progress++;
-                                    }
-                                    progress_ratio = fake_progress / 1000
+                // callback for mutual recursion
+                async function askForProgress() {
+                    return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
+                        .then(r => r.json())
+                        .then(j => {
+                            let progress_ratio = 0;
+                            if (!!j.end_position) {
+                                delay = 1000;
+                                progress_ratio = j.current_position / j.end_position;
+                            } else {
+                                delay = 5000;
+                                if(fake_progress < 900) {
+                                    fake_progress++;
                                 }
-                                let percentage = Number(progress_ratio * 100).toFixed(1);
-                                document.getElementById('percentage').textContent = `(${percentage}%)`;
-                                let progressbar = $("#ldBar");
-                                progressbar.progressbar({
-                                    // ceil to err on the side of displaying progress
-                                    value: Math.ceil(progress_ratio * 100)
-                                });
-                                return j;
-                            })
-                    }
-
-                    // timer helper for deferring execution of next recursion step
-                    // "value" will be a function here
-                    function later(delay, value) {
-                        return new Promise(resolve => setTimeout(resolve, delay, value));
-                    }
-
-                    // control flow for mutual recursion
-                    async function execute(callback) {
-                        return await callback().then(async received => {
-                            // NOTE: Sometimes it takes awhile for
-                            // received.end_position to initialize, particularly
-                            // if the file size is > ~1GB (works fine at ~300mb).
-                            // In that case, received.end_position is going
-                            // to be undefined. So this will still execute and
-                            // essentially wait until received.end_position is
-                            // defined, and will stop once received.current_position
-                            // is equal to j.end_position (because the file has
-                            // been completely read and uploaded).
-                            if (!(received.current_position === received.end_position)) {
-                                return await later(delay, askForProgress).then(execute)
+                                progress_ratio = fake_progress / 1000
                             }
+                            let percentage = Number(progress_ratio * 100).toFixed(1);
+                            document.getElementById('percentage').textContent = `(${percentage}%)`;
+                            let progressbar = $("#ldBar");
+                            progressbar.progressbar({
+                                // ceil to err on the side of displaying progress
+                                value: Math.ceil(progress_ratio * 100)
+                            });
+                            return j;
                         })
-                    }
+                }
 
-                    // put the pieces together
-                    try {
-                        return await later(delay, askForProgress).then(execute);
-                    } catch (e) {
-                        console.error(e);
-                    }
+                // timer helper for deferring execution of next recursion step
+                // "value" will be a function here
+                function later(delay, value) {
+                    return new Promise(resolve => setTimeout(resolve, delay, value));
+                }
 
-                })
+                // control flow for mutual recursion
+                async function execute(callback) {
+                    return await callback().then(async received => {
+                        // NOTE: Sometimes it takes awhile for
+                        // received.end_position to initialize, particularly
+                        // if the file size is > ~1GB (works fine at ~300mb).
+                        // In that case, received.end_position is going
+                        // to be undefined. So this will still execute and
+                        // essentially wait until received.end_position is
+                        // defined, and will stop once received.current_position
+                        // is equal to j.end_position (because the file has
+                        // been completely read and uploaded).
+                        if (!(received.current_position === received.end_position)) {
+                            return await later(delay, askForProgress).then(execute)
+                        }
+                    })
+                }
+
+                // put the pieces together
+                try {
+                    return await later(delay, askForProgress).then(execute);
+                } catch (e) {
+                    console.error(e);
+                }
+
+            })
 
             document.getElementById("content_from_local_file").disabled = false;
 
-            if (kgx_file_content === "metadata") {
-                document.getElementById("uploaded_metadata").innerHTML += "<li>"+filename+"</li>"
-            } else if (kgx_file_content === "nodes") {
-                document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+"</li>"
-            } else if (kgx_file_content === "edges") {
-                document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+"</li>"
-            }
+            update_file_list(kgx_file_content, filename, "Uploaded!")
 
             // document.getElementById('spinner").style.display = "none";
             document.getElementById("percentage").style.display = "none";
@@ -268,8 +291,19 @@ async function UploadFile(source) {
         } else {
             console.log("KGX " + kgx_file_content + " file is undefined?");
             window.alert("KGX " + kgx_file_content + " file is undefined");
-            return;
         }
+    }
+}
+
+/* the 'status' is simply a client specified status of the file
+   in the list: 'uploaded' (if local upload) or 'processing' (direct url) */
+function update_file_list(kgx_file_content, filename, status) {
+    if (kgx_file_content === "metadata") {
+        document.getElementById("uploaded_metadata").innerHTML += "<li>"+filename+" ("+status+")</li>"
+    } else if (kgx_file_content === "nodes") {
+        document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
+    } else if (kgx_file_content === "edges") {
+        document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
     }
 }
 
@@ -300,11 +334,9 @@ async function DoneUploading(source) {
 {% block subtitle %}Submitted by '{{submitter_name}}'{% endblock %}
 {% block content %}
 <div class="subtitle"></div>
-<p><b>Disclaimer:</b> KGX validation of uploaded node and edges files is not yet in operation at this time,
-    therefore, please ensure that you have validated your files (with KGX tools) prior to uploading.</p>
 <table>
     <tr>
-        <td rowspan="2">
+        <td rowspan="3">
             <div class="header" style="text-align: center;">
                 KGX Content Type
             </div>
@@ -341,24 +373,24 @@ async function DoneUploading(source) {
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
-                        If a KGX Archive is given, then the local
-                            uploaded file or a transfer from URL is assumed to be a gzip'd
-                            compressed tar file with the name 'kge.tar.gz' containing one
-                            of each of both a KGX-compliant 'nodes.tsv' and 'edges.tsv'
-                            file for the knowledge graph, with or without an associated
-                            KGX-compliant 'metadata.json' file.
+                        If a KGX Archive is given, then the locally uploaded file,
+                        or a direct URL transfer from URL, is assumed to be a gzip'd
+                        compressed tar file with the name '<root file name>.tar.gz'
+                        containing one of each of both a KGX-compliant 'nodes.tsv'
+                        and 'edges.tsv' file for the knowledge graph, (preferrably!) with
+                        an associated KGX-compliant 'content_metadata.json' file.
                 </span>
             </div>
             -->
     <p></p>
         </td>
-        <td>
+        <td colspan="2">
             <div class="header">
                 Upload from your computer
             </div>
             <p>Choose a KGX content type for uploading.</p>
             <span>
-                <label for="content_file"><b>Select File</b></label><br>
+                <label for="content_file"><b>Select File:</b></label><br>
                 <input id="content_file"  class="textbox" type="file" style="display: inline-block"/>
                 <button id="content_from_local_file" onclick="UploadFile(this)" style="display: inline-block">
                     Upload
@@ -370,9 +402,32 @@ async function DoneUploading(source) {
                 <span id="spinner-text" style="font-size: smaller; display:none;">
 Uploading file, please don't navigate away from the page...</span>
                <!-- div id="spinner" class="spin"></div -->
-
-
             </span>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div class="header">
+                Transfer from a URL
+            </div>
+            <label for="content_url"><b>URL to the File:</b></label><br>
+            <input id="content_url" type="text" oninput="GetUrl(this)"/>
+            <br><label for="file_name"><b>File Name:</b></label><br>
+            <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
+        </td>
+        <td>
+            <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
+            <div class="tooltip">
+                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
+                <span class="tooltiptext">
+                    Note: this operation triggers a background server process for the direct
+                    transfer of a file from an internet URL, which is not guaranteed to be
+                    completed during the given user upload session (especially, for large files)
+                </span>
+            </div>
+
+            <br>
+            <p><small>
         </td>
     </tr>
     <tr>
@@ -386,17 +441,10 @@ Uploading file, please don't navigate away from the page...</span>
             <ul id="uploaded_edge_files"></ul>
         </td>
     </tr>
-    <!-- <tr>
-        <td>
-            <h4>Transfer from a URL</h4>
-            <label for="content_url"><b>URL to File</b></label><br>
-            <input id="content_url" type="text" oninput="GetUrl(this)"/>
-            <br><label for="file_name"><b>File Name</b></label><br>
-            <input id="file_name" type="text" onchange="SetFileName(this.value)"/><br>
-            <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
-        </td>
-    </tr> -->
 </table>
+<p><b>Disclaimer:</b> KGX validation of uploaded node and edges files is not yet in operation at this time,
+therefore, please ensure that you have validated your files (with KGX tools) prior to uploading. Do also consider using
+the <b>kgx graph-summary -r meta-knowledge-graph</b> tool to generate a (content) metadata file for uploading.</p>
 {% endblock %}
 {% block app_footer %}
 (*) Read more about KGX formatted (meta-)data files

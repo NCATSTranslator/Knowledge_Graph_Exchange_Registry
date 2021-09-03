@@ -13,7 +13,7 @@ from aiohttp_session import get_session
 
 from kgea.config import (
     get_app_config,
-
+    
     LANDING_PAGE,
     HOME_PAGE,
     GET_KNOWLEDGE_GRAPH_CATALOG,
@@ -23,13 +23,14 @@ from kgea.config import (
     FILESET_REGISTRATION_FORM,
     PUBLISH_FILE_SET,
     # SETUP_UPLOAD_CONTEXT,
+    DIRECT_URL_TRANSFER,
     UPLOAD_FILE,
     # GET_UPLOAD_STATUS,
     get_fileset_metadata_url,
     get_meta_knowledge_graph_url,
     BACKEND
 )
-from kgea.server.web_services.catalog import get_default_model_version, get_biolink_model_releases
+from kgea.server.web_services.catalog import get_biolink_model_releases
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     redirect,
@@ -323,6 +324,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             "fileset_version": fileset_version,
             "submitter_name": submitter_name,
             "upload_action": UPLOAD_FILE,
+            "direct_url_transfer_action": DIRECT_URL_TRANSFER,
             "publish_file_set_action": PUBLISH_FILE_SET
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)

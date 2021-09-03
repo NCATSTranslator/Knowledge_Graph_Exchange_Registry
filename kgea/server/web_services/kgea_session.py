@@ -17,7 +17,7 @@ from aiohttp import web, ClientSession
 from aiohttp_session import AbstractStorage, setup, new_session, get_session
 from multidict import MultiDict
 
-from kgea.config import get_app_config
+from kgea.config import get_app_config, HOME_PAGE
 
 import logging
 
@@ -173,7 +173,7 @@ async def _process_redirection(request, response, active_session):
             session = await get_session(request)
             await KgeaSession.save_session(request, response, session)
         except RuntimeError as rte:
-            await report_error(request, "kgea_session._process_redirection() RuntimeError: " + str(rte))
+            logger.error("kgea_session._process_redirection() RuntimeError?!??: " + str(rte))
 
     raise response
 
@@ -208,8 +208,17 @@ async def report_not_found(request, reason: str, active_session: bool = False):
 
 
 async def report_error(request, reason: str, active_session: bool = False):
+    """
+    Triggers display of an error page stating a
+    'reason' for failure of the current operation.
+    
+    :param request:
+    :param reason:
+    :param active_session:
+    :return:
+    """
     await _process_redirection(
         request,
-        web.HTTPBadRequest(reason=reason),
+        web.HTTPBadRequest(reason=reason+f" <a href=\"{HOME_PAGE}\">Go back Home</a>."),
         active_session
     )

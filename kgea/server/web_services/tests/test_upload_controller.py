@@ -24,40 +24,20 @@ async def test_get_upload_status(client):
 async def test_setup_upload_context(client):
     """Test case for setup_upload_context
 
-    Configure form upload context for a specific file of a KGE File Set.
+    Configure upload context for a specific file of a KGE File Set.
     """
     params = [('kg_id', 'kg_id_example'),
                     ('fileset_version', 'fileset_version_example'),
                     ('kgx_file_content', 'kgx_file_content_example'),
-                    ('content_name', 'content_name_example')]
+                    ('upload_mode', 'upload_mode_example'),
+                    ('content_name', 'content_name_example'),
+                    ('content_url', 'content_url_example')]
     headers = { 
         'Accept': 'application/json',
     }
     response = await client.request(
         method='GET',
         path='/archive/upload',
-        headers=headers,
-        params=params,
-        )
-    assert response.status == 200, 'Response body is : ' + (await response.read()).decode('utf-8')
-
-
-async def test_transfer_from_url(client):
-    """Test case for transfer_from_url
-
-    Trigger direct URL file transfer of a specific file of a KGE File Set.
-    """
-    params = [('kg_id', 'kg_id_example'),
-                    ('fileset_version', 'fileset_version_example'),
-                    ('kgx_file_content', 'kgx_file_content_example'),
-                    ('content_url', 'content_url_example'),
-                    ('content_name', 'content_name_example')]
-    headers = { 
-        'Accept': 'application/json',
-    }
-    response = await client.request(
-        method='GET',
-        path='/archive/transfer',
         headers=headers,
         params=params,
         )
