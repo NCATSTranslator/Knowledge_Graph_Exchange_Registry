@@ -805,7 +805,7 @@ async def compress_fileset(
             # so for now do it for them
             if object_key_exists(file_key):
                 job.add_file(file_key)
-                logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
+            logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
 
     # execute the job
     job.tar()
