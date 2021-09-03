@@ -133,17 +133,22 @@
         }
 
         async function DownloadFile(source)
+        /*
+         * We use this function both for downloading
+         * the archive as downloading the associated SHA1 hash.
+         * 'source.target.id' differentiates the two.
+         */
         {
             let kg_id = document.getElementById("select_kg_id").value;
             let fileset_version = document.getElementById("select_fileset_version").value;
 
             if(!kg_id) {
-                window.alert("To download data, first choose a knowledge graph.");
+                window.alert("Please choose target knowledge graph.");
                 return
             }
 
             if(!fileset_version) {
-                window.alert("Please select the file set version to download.");
+                window.alert("Please choose target file set version.");
                 return
             }
 
@@ -216,6 +221,7 @@
             $('#view_metadata').on('click', ViewMetadata);
             //$('#meta_knowledge_graph').on('click', DownloadFile);  # Content Metadata access moved to 'metadata' page
             $('#download').on('click', DownloadFile);
+            $('#sha1hash').on('click', DownloadFile);
             $('#add_new_file_set').on('click', AddNewFileSet);
 
         });
@@ -231,7 +237,8 @@
     <table class="center_align proportioned">
         <tr>
             <td>
-                <p class="center_align"><a href="/register/graph"><button>Register a new Knowledge Graph</button></a></p>
+                <p class="center_align">
+                    <a href="/register/graph"><button>Register a new Knowledge Graph</button></a></p>
                 <!-- Don't need a form here - don't have the session_id anymore.
                      Simple clickable button is better, and is CSS formatted the same.
                      Use it now to avoid the trailing query parameter '?'-->
@@ -271,6 +278,7 @@
                     <!-- button id="meta_knowledge_graph">Download Metadata</button -->
 
                     <button id="download">Download Data Archive</button>
+                    <button id="sha1hash">SHA1 Hash</button>
                     <button id="add_new_file_set">Add New File Set</button>
                 </p>
             </td>
