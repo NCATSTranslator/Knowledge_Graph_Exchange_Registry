@@ -19,7 +19,6 @@ import smart_open
 from datetime import datetime
 
 from os.path import abspath, splitext
-import tempfile
 from pathlib import Path
 import tarfile
 
@@ -669,7 +668,7 @@ def package_file(name: str, target_file):
 
 
 @prepare_test
-def test_upload_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         # NOTE: file must be read in binary mode!
         with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
@@ -717,6 +716,7 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         logger.error(e)
         return False
     return True
+
 
 @prepare_test
 def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):

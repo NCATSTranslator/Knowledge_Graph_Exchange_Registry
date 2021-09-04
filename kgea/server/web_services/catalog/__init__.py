@@ -330,8 +330,6 @@ class KgeFileSet:
 
     def get_nodes(self):
         """
-
-        :param flat:
         :return:
         """
         node_files_keys = list(filter(
@@ -340,12 +338,20 @@ class KgeFileSet:
         return node_files_keys
 
     def get_edges(self):
+        """
+
+        :return:
+        """
         edge_files_keys = list(filter(
             lambda x: 'edges/' or 'edges.tsv' in x and not ('aggregates/' in x), self.get_data_file_object_keys()
         ))
         return edge_files_keys
 
     def get_archives(self):
+        """
+
+        :return:
+        """
         archive_files_keys = list(filter(
             lambda x: '.tar.gz' in x, self.get_data_file_object_keys()
         ))
@@ -1520,10 +1526,10 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         file_set_location
     )
     fs.add_data_file(
-        object_key=file_set_location + file_name,
+        object_key=key,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
-        file_size=666,
+        file_size=size,
         s3_file_url=''
     )
     test_file1.close()
@@ -1540,10 +1546,10 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         file_set_location
     )
     fs.add_data_file(
-        object_key=file_set_location + file_name,
+        object_key=key,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
-        file_size=999,
+        file_size=size,
         s3_file_url=''
     )
     test_file2.close()
@@ -1581,7 +1587,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
             )
 
             fs.add_data_file(
-                object_key=file_set_location + test_name['archive'],
+                object_key=key,
                 file_type=KgeFileType.KGX_DATA_FILE,
                 file_name=test_name['archive'],
                 file_size=999,
@@ -2016,13 +2022,25 @@ class KgeArchiver:
             archive_path = await compress_fileset(
                 bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 files_and_file_set_locations=[
-                    'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version),
-                    'kge-data/{KG_ID}/{VERSION}/file_set.yaml'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version),
-                    'kge-data/{KG_ID}/{VERSION}/content_metadata.json'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version),
-                    'kge-data/{KG_ID}/provider.yaml'.format(KG_ID=file_set.kg_id),
+                    'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
+                        KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                    ),
+                    'kge-data/{KG_ID}/{VERSION}/file_set.yaml'.format(
+                        KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                    ),
+                    'kge-data/{KG_ID}/{VERSION}/content_metadata.json'.format(
+                        KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                    ),
+                    'kge-data/{KG_ID}/provider.yaml'.format(
+                        KG_ID=file_set.kg_id
+                    ),
                 ],
-                target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version),
-                archive_name='{KG_ID}.{VERSION}'.format(KG_ID=file_set.kg_id, VERSION=file_set.fileset_version)
+                target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(
+                    KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                ),
+                archive_name='{KG_ID}.{VERSION}'.format(
+                    KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                )
             )
 
             archive_s3_path = 's3://{BUCKET}/{ARCHIVE_KEY}'.format(
