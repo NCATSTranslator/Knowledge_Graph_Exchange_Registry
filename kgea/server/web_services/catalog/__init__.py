@@ -558,12 +558,11 @@ class KgeFileSet:
 
         :return: True if successful; False otherwise
         """
-        archiver: KgeArchiver = KgeArchiveCatalog.catalog().get_archiver()
-        
-        # TODO: need to managed multiple Biolink Model specific KGX validators
-        # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
+        catalog: KgeArchiveCatalog = KgeArchiveCatalog.catalog()
+
         try:
             # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
+            archiver: KgeArchiver = catalog.get_archiver()
             try:
                 logger.debug("Running archiver.process()...")
                 await archiver.process(self)
@@ -580,6 +579,8 @@ class KgeFileSet:
 
             # Post the KGE File Set to the KGX validation (async) task queue
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
+            # TODO: need to managed multiple Biolink Model specific KGX validators
+            # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
             # KgxValidator.validate(self)
 
             # Tag as "LOADED" for now (not yet validated)

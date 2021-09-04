@@ -1076,6 +1076,9 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
             file_set_object_key,
         )
 
+        # TODO: I don't think that this code snippet is reliable now,
+        #       if the user uploads one or more tar.gz files
+        #       which are meant to be partial input data without metadata?
         maybe_archive = [
             kg_path for kg_path in kg_files_for_version
             if ".tar.gz" in kg_path
