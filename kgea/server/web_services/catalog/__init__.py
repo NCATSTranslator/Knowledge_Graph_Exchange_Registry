@@ -2086,7 +2086,7 @@ class KgeArchiver:
 
             self._archiver_queue.task_done()
 
-    def create_workers(cls, worker_count):
+    def create_workers(self, worker_count):
         """
         Initializes Archiver tasks if not yet running
          and less than Number_of_Archiver_Tasks.
@@ -2094,21 +2094,21 @@ class KgeArchiver:
         assert(worker_count > -1)
 
         worker_additions: int = 0
-        if worker_count + len(cls._archiver_worker) < cls.max_tasks:
+        if worker_count + len(self._archiver_worker) < self.max_tasks:
             worker_additions = worker_count
-        elif worker_count + len(cls._archiver_worker) >= cls.max_tasks:
+        elif worker_count + len(self._archiver_worker) >= self.max_tasks:
             # the sum of WC and len of workers could be greater either because len of workers is greater,
             # or both are lesser but the sum of both is greater
 
             # if the length is already greater then we want to do nothing
-            if len(cls._archiver_worker) >= cls.max_tasks:
+            if len(self._archiver_worker) >= self.max_tasks:
                 raise Warning('Max Workers')
             else:
                 # max out workers up to the limit, which is the number of additions required to make the limit
-                worker_additions = cls.max_tasks - len(cls._archiver_worker)
+                worker_additions = self.max_tasks - len(self._archiver_worker)
 
         for i in range(0, worker_additions):
-            cls._archiver_worker.append(asyncio.create_task(cls.worker()))
+            self._archiver_worker.append(asyncio.create_task(self.worker()))
 
     async def shutdown_workers(self):
         """
@@ -2137,17 +2137,18 @@ class KgeArchiver:
         """
         # Post the file set to the KgeArchiver task Queue for processing
         try:
-            logger.debug("")
+            logger.debug("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
             self._archiver_queue.put_nowait(
                 file_set
             )
-        except QueueFull as full:
+        except QueueFull:
+            logger.debug("KgeArchiver.process(): work queue is full? Will sleep awhile...")
             await asyncio.sleep(wait)
             try:
                 assert(waits < maxwait)
                 waits += 1
                 await self.process(file_set, wait, waits, maxwait)
-            except Exception:
+            except (AssertionError, TimeoutError):
                 raise TimeoutError
             finally:
                 return False
@@ -2235,7 +2236,7 @@ class KgxValidator:
         # ...then, post the file set to the KGX validation task Queue
         try:
             validator._validation_queue.put_nowait(file_set)
-        except QueueFull as exception:
+        except QueueFull:
             # TODO: retry?
             raise QueueFull
 
@@ -2415,7 +2416,7 @@ class KgxValidator:
 # since the data files don't exist in S3!
 def test_stub_archiver() -> bool:
     
-    archiver = KgeArchiver()
+    archiver: KgeArchiver = KgeArchiver()
     
     async def archive_test():
         """
