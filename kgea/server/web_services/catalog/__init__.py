@@ -507,6 +507,7 @@ class KgeFileSet:
                 file_name=FILE_SET_METADATA_FILE,
                 fileset_version=self.fileset_version
             )
+            logger.debug("catalog.publish(): created metadata file:" + fileset_metadata_object_key)
         except Exception as ex:
             logger.error(
                 "publish(): generate_fileset_metadata_file: {} {} {}".format(
@@ -515,10 +516,7 @@ class KgeFileSet:
             raise ex
 
         try:
-            
             post_processed = await self.post_process_file_set(archiver)
-
-
         except Exception as exception:
             logger.error("publish(): post_processed: {} {} {}".format(self.kg_id, self.fileset_version, exception))
             raise exception
@@ -553,13 +551,14 @@ class KgeFileSet:
         :return: True if successful; False otherwise
         """
         try:
-
             # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
             try:
+                logger.debug("Running archiver.process()...")
                 await archiver.process(self)
-            except TimeoutError as error:
+            except TimeoutError:
                 self.status = KgeFileSetStatusCode.ERROR
                 return False
+            
             archiver.create_workers(1)
 
             # KGX validation of KGX-formatted nodes and edges data files
@@ -2387,7 +2386,9 @@ class KgxValidator:
 # It cannot be run with the given test_file_set object
 # since the data files don't exist in S3!
 def test_stub_archiver() -> bool:
-    Archiver = KgeArchiver()
+    
+    archiver = KgeArchiver()
+    
     async def archive_test():
         """
         async archive test wrapper
@@ -2397,8 +2398,8 @@ def test_stub_archiver() -> bool:
         print("\ntest_stub_archiver() startup of tasks\n", file=stderr)
 
         fs = prepare_test_file_set("1.0")
-        await Archiver.process(fs)
-        Archiver.create_workers(2)
+        await archiver.process(fs)
+        archiver.create_workers(2)
 
         # fs = test_file_set("1.1")
         # KgeArchiver.process(fs)
