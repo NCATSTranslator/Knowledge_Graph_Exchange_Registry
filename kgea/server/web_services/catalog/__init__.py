@@ -495,7 +495,7 @@ class KgeFileSet:
     ############################################################################
     # KGE FileSet Publication to the Archive ###################################
     ############################################################################
-    async def publish(self, archiver) -> bool:
+    async def publish(self) -> bool:
         """
         Publish file set in the Archive.
 
@@ -513,7 +513,7 @@ class KgeFileSet:
                 file_name=FILE_SET_METADATA_FILE,
                 fileset_version=self.fileset_version
             )
-            logger.debug("catalog.publish(): created metadata file:" + fileset_metadata_object_key)
+            logger.debug("catalog.publish() - created metadata file:" + fileset_metadata_object_key)
         except Exception as ex:
             logger.error(
                 "publish(): generate_fileset_metadata_file: {} {} {}".format(
@@ -522,7 +522,8 @@ class KgeFileSet:
             raise ex
 
         try:
-            post_processed = await self.post_process_file_set(archiver)
+            post_processed = await self.post_process_file_set()
+            
         except Exception as exception:
             logger.error("publish(): post_processed: {} {} {}".format(self.kg_id, self.fileset_version, exception))
             raise exception
@@ -537,6 +538,7 @@ class KgeFileSet:
             return False
 
         if fileset_metadata_object_key:
+            logger.debug("catalog.publish() - successfully returning object key" + fileset_metadata_object_key)
             return True
         else:
             self.status = KgeFileSetStatusCode.ERROR
@@ -550,12 +552,16 @@ class KgeFileSet:
 
     # TODO: need here to more fully implement required post-processing of
     #       the assembled file set (after files are uploaded by the client)
-    async def post_process_file_set(self, archiver, validator=None) -> bool:
+    async def post_process_file_set(self) -> bool:
         """
         After a file_set is uploaded, post-process the file set including KGX validation.
 
         :return: True if successful; False otherwise
         """
+        archiver: KgeArchiver = KgeArchiveCatalog.catalog().get_archiver()
+        
+        # TODO: need to managed multiple Biolink Model specific KGX validators
+        # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
         try:
             # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
             try:
@@ -1162,33 +1168,16 @@ class KgeArchiveCatalog:
         archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'])
         for kg_id, entry in archive_contents.items():
             self.load_archive_entry(kg_id=kg_id, entry=entry)
-
-    # @classmethod
-    # def initialize(cls):
-    #     """
-    #     This method needs to be called before
-    #     the KgeArchiveCatalog is first used.
-    #
-    #     :return:
-    #     """
-    #     if not cls._the_catalog:
-    #         KgeArchiveCatalog._the_catalog = KgeArchiveCatalog()
-
-    @classmethod
-    async def close(cls):
+            
+        # Service workers for file sets in the catalog
+        self.archiver = KgeArchiver()
+        
+    def get_archiver(self):
         """
-        This method needs to be called after the KgeArchiveCatalog is no longer needed,
-        since it releases some program resources which may be open at the end of processing)
-
-        :return: None
+        :return: KgeArchiver associated with the catalog
         """
-        # Shut down KgxArchiver background processing here
-        await KgeArchiver.shutdown_workers()
-
-        # Shut down KgxValidator background processing here
-        # TODO: uncomment this once the KgxValidator.validate() is used again?
-        # await KgxValidator.shutdown_tasks()
-
+        return self.archiver
+    
     @classmethod
     def catalog(cls):
         """
@@ -1198,6 +1187,20 @@ class KgeArchiveCatalog:
             KgeArchiveCatalog._the_catalog = KgeArchiveCatalog()
 
         return KgeArchiveCatalog._the_catalog
+
+    async def close(self):
+        """
+        This method needs to be called after the KgeArchiveCatalog is no longer needed,
+        since it releases some program resources which may be open at the end of processing)
+
+        :return: None
+        """
+        # Shut down KgeArchiver background processing here
+        await self.get_archiver().shutdown_workers()
+
+        # Shut down KgxValidator background processing here
+        # TODO: uncomment this once the KgxValidator.validate() is used again?
+        # await self.get_validator().shutdown_workers()
 
     def load_archive_entry(
             self,
@@ -1970,13 +1973,17 @@ class KgeArchiver:
         self.max_wait: int = max_wait
 
     async def worker(self, task_id=None):
+        """
+
+        :param task_id:
+        """
         if task_id is None:
             task_id = len(self._archiver_worker)
 
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
-            print(f"KgxArchiver task {task_id} starting archiving of {str(file_set)}", file=stderr)
+            print(f"KgeArchiver task {task_id} starting archiving of {str(file_set)}", file=stderr)
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
 
@@ -2074,7 +2081,7 @@ class KgeArchiver:
                 with smart_open.open(shaS3path, 'w') as sha1file:
                     sha1file.write(sha1sum_value)
 
-            print(f"KgxArchiver task {task_id} finished archiving of {str(file_set)}", file=stderr)
+            print(f"KgeArchiver task {task_id} finished archiving of {str(file_set)}", file=stderr)
 
             self._archiver_queue.task_done()
 
@@ -2117,18 +2124,19 @@ class KgeArchiver:
             await asyncio.gather(*self._archiver_worker, return_exceptions=True)
 
         except Exception as exc:
-            msg = "KgxArchiver() worker shutdown exception: " + str(exc)
+            msg = "KgeArchiver() worker shutdown exception: " + str(exc)
             logger.error(msg)
 
     async def process(self, file_set: KgeFileSet, wait=10, waits=0, maxwait=MAX_WAIT):
         """
-        This method posts a KgeFileSet to the KgxArchiver for processing.
+        This method posts a KgeFileSet to the KgeArchiver for processing.
 
         :param file_set: KgeFileSet.
         :return: None
         """
-        # Post the file set to the KGX archiver task Queue for processing
+        # Post the file set to the KgeArchiver task Queue for processing
         try:
+            logger.debug("")
             self._archiver_queue.put_nowait(
                 file_set
             )
@@ -2138,11 +2146,12 @@ class KgeArchiver:
                 assert(waits < maxwait)
                 waits += 1
                 await self.process(file_set, wait, waits, maxwait)
-            except:
+            except Exception:
                 raise TimeoutError
             finally:
                 return False
         return True
+
 
 class KgxValidator:
     """
@@ -2528,9 +2537,9 @@ if __name__ == '__main__':
         #
         # print("all KGE Archive Catalog tests passed")
         #
-        print("KgxArchiver unit tests")
+        print("KgeArchiver unit tests")
         #
-        # Just a test of the basic KgxArchiver queue/task
+        # Just a test of the basic KgeArchiver queue/task
         run_test(test_stub_archiver)
         #
         # print("KgxValidator unit tests")

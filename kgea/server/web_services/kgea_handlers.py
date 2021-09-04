@@ -6,9 +6,6 @@ import sys
 from os import getenv
 from pathlib import Path
 from typing import Dict
-from smart_open import compression
-
-from smart_open.smart_open_lib import smart_open
 
 from .models import (
     KgeMetadata,
@@ -74,18 +71,10 @@ from .kgea_file_ops import (
 from kgea.server.web_services.catalog import (
     KgeArchiveCatalog,
     KgeKnowledgeGraph,
-    KgeFileSet, KgeFileType,
-    KgeArchiver
+    KgeFileSet, KgeFileType
 )
 
 import logging
-
-
-#############################################################
-# Service Workers
-#############################################################
-
-ARCHIVER = KgeArchiver()
 
 #############################################################
 # Configuration
@@ -454,7 +443,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
         logger.debug("\tPublishing fileset version '" + fileset_version + "' of graph '" + kg_id + "'")
         
         try:
-            published = await file_set.publish(ARCHIVER)
+            published = await file_set.publish()
         except Exception as exception:
             logger.error(str(exception))
             raise exception
@@ -1128,7 +1117,12 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
         await redirect(request, LANDING_PAGE)
 
 
-def fileset_manifest(param, file_set_object_key):
+async def fileset_manifest(param, file_set_object_key):
+    """
+
+    :param param:
+    :param file_set_object_key:
+    """
     pass
 
 
