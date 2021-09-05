@@ -2088,7 +2088,7 @@ class KgeArchiver:
                     target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(
                         KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
                     ),
-                    archive_name='{KG_ID}.{VERSION}'.format(
+                    archive_name='{KG_ID}_{VERSION}'.format(
                         KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
                     )
                 )
@@ -2119,7 +2119,7 @@ class KgeArchiver:
     
                     sha1sum = sha1Manifest(archive_file_key)
                     sha1sum_value = sha1sum[archive_file_key.name]
-                    sha1tsv = '{}.{}.sha1.txt'.format(file_set.kg_id, file_set.fileset_version)
+                    sha1tsv = '{}_{}.sha1.txt'.format(file_set.kg_id, file_set.fileset_version)
     
                     sha1_s3_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
                         BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
