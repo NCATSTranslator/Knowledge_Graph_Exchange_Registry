@@ -14,8 +14,12 @@ VERSION = "1.0.0"
 
 REQUIRES = [
     # TODO: fix temporary Patched version of Connexion for proper 'application/x-www-form-urlencoded' support
-    "connexion @ git+https://github.com/STARInformatics/connexion.git#egg=connexion",
+    "connexion @ git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion",
     # TODO: temporary patched version of KGX for proper streaming of files for validation
+    "kgx @ git+https://github.com/biolink/kgx.git@master#egg=kgx"
+    # TODO: Bug fix and KGE troubleshooting patches in fork of s3-tar. Revert to master repo when main project fixed?
+    "s3-tar @ git+https://github.com/STARInformatics/s3-tar.git@troubleshoot_s3_access#egg=s3-tar"
+    #
     "swagger-web_ui-bundle==0.0.6",
     "aiohttp_jinja2==1.2.0",
     "jsonschema<3.0.0",
@@ -25,13 +29,14 @@ REQUIRES = [
     # KGE specific
     "botocore<1.21.0,>=1.20.12",
     "boto3 >= 1.17.0",
-    "s3-tar",
     "pyyaml",
+    "pytest",
     "aiohttp<3.7",
     "aiohttp-session",
     "aiomcache",
     "jsonschema",
-    "PyGithub"
+    "PyGithub",
+    "smart_open>=5.1.0"
 ]
 
 setup(
