@@ -2003,7 +2003,7 @@ class KgeArchiver:
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
-                print("KgeArchiver task {task_id} unpacking archive:...", file=stderr)
+                print(f"KgeArchiver task {task_id} unpacking archive:...", file=stderr)
                 for file_key in file_set.get_archive_files_keys():
                     print(f"\t{str(file_key)}", file=stderr)
                     # returns entries that follow the KgeFileSetEntry Schema
