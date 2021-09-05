@@ -828,7 +828,8 @@ def decompress_in_place(gzipped_key, location=None):
     )
     file_entries = []
 
-    # one step decompression - use the tarfile library's ability to open gzip files transparently to avoid gzip+tar step
+    # one step decompression - use the tarfile library's ability
+    # to open gzip files transparently to avoid gzip+tar step
     with smart_open.open(tarfile_location, 'rb', compression="disable") as fd:
         with tarfile.open(fileobj=fd, mode='r:gz') as tf:
             for entry in tf:  # list each entry one by one
@@ -876,9 +877,11 @@ def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: Tru
                 KEY=file_path
             )
             with smart_open.open(path, 'r') as subfile:
-                # because smart_open doesn't support an append mode, use writelines and add a newline
+                # because smart_open doesn't support an append mode,
+                # use writelines and add a newline
                 aggregated_file.writelines(subfile.read())
                 aggregated_file.writelines('\n')
+                
     return agg_path
 
 

@@ -256,7 +256,7 @@ async def register_kge_knowledge_graph(request: web.Request):
         #         await redirect(request, HOME_PAGE)
         # else:
         #     # TODO: more graceful front end failure signal
-        #     await report_error(request, "Unknown failure")
+        #     await _report_error(request, "Unknown failure")
 
     else:
         # If session is not active, then just a redirect
@@ -407,7 +407,7 @@ async def register_kge_file_set(request: web.Request):
         #         await redirect(request, HOME_PAGE)
         # else:
         #     # TODO: more graceful front end failure signal
-        #     await report_error(request, "Unknown failure")
+        #     await _report_error(request, "Unknown failure")
 
     else:
         # If session is not active, then just a redirect
@@ -688,7 +688,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 #     )
 #
 # else:
-#     await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+#     await _report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 #
 # """END File Upload Protocol"""
 #

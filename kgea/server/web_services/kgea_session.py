@@ -200,6 +200,12 @@ async def download(request, location: str, active_session: bool = False):
 
 
 async def report_not_found(request, reason: str, active_session: bool = False):
+    """
+
+    :param request:
+    :param reason:
+    :param active_session:
+    """
     await _process_redirection(
         request,
         web.HTTPNotFound(reason=reason),
@@ -208,6 +214,12 @@ async def report_not_found(request, reason: str, active_session: bool = False):
 
 
 async def report_error(request, reason: str, active_session: bool = False):
+    """
+
+    :param request:
+    :param reason:
+    :param active_session:
+    """
     await _process_redirection(
         request,
         web.HTTPBadRequest(reason=reason),

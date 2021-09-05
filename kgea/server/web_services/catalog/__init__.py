@@ -13,7 +13,9 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
-from sys import stderr
+from sys import stderr, exc_info
+import traceback
+
 from os import getenv
 
 from os.path import dirname, abspath
@@ -347,7 +349,7 @@ class KgeFileSet:
         ))
         return edge_files_keys
 
-    def get_archives(self):
+    def get_archive_files_keys(self):
         """
 
         :return:
@@ -1201,7 +1203,7 @@ class KgeArchiveCatalog:
 
         # Shut down KgxValidator background processing here
         # TODO: uncomment this once the KgxValidator.validate() is used again?
-        # await self.get_validator().shutdown_workers()
+        # await KgxValidator.shutdown_tasks()
 
     def load_archive_entry(
             self,
@@ -1249,13 +1251,16 @@ class KgeArchiveCatalog:
         :param metadata_text:
         :return:
         """
+        if not metadata_text:
+            return False
+        
         mf = StringIO(metadata_text)
         try:
             md_raw = yaml.load(mf, Loader=Loader)
-        except ScannerError:
+        except (ScannerError, TypeError):
             logger.warning("Ignoring improperly formed provider metadata YAML file: "+metadata_text)
             return False
-
+        
         md = dict(md_raw)
 
         # id: "disney_small_world_graph" ## == kg_id
@@ -1958,6 +1963,16 @@ class ProgressMonitor:
             logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
 
+def _report_error(err_msg: str):
+    """
+    Print Error Exception stack
+    """
+    print(err_msg, file=stderr)
+    exc_type, exc_value, exc_traceback = exc_info()
+    traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
+    raise RuntimeError
+    
+
 class KgeArchiver:
     """
     KGE Archive building wrapper.
@@ -1984,38 +1999,64 @@ class KgeArchiver:
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
-            print(f"KgeArchiver task {task_id} starting archiving of {str(file_set)}", file=stderr)
+            print(f"KgeArchiver worker {task_id} starting archive of {str(file_set)}", file=stderr)
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
+            try:
+                print("KgeArchiver task {task_id} unpacking archive:...", file=stderr)
+                for file_key in file_set.get_archive_files_keys():
+                    print(f"\t{str(file_key)}", file=stderr)
+                    # returns entries that follow the KgeFileSetEntry Schema
+                    # decompresses the archive and sends files to s3
+                    archive_file_entries = decompress_in_place(file_key)
+                    print(f"...finished! To fileset '{file_set.id()}', adding files:", file=stderr)
+                    for entry in archive_file_entries:
+                        # spread the entry across the add_data_file function,
+                        # which will take all its values as arguments
+                        print(f"\t{entry['file_name']}", file=stderr)
+                        file_set.add_data_file(**entry)
 
-            for archive in file_set.get_archives():
-                # returns entries that follow the KgeFileSetEntry Schema
-                archive_file_entries = decompress_in_place(archive)  # decompresses the archive and sends files to s3
-                for entry in archive_file_entries:
-                    # spread the entry across the add_data_file function, which will take all its values as arguments
-                    file_set.add_data_file(**entry)
+            except Exception:
+                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                _report_error("Error while unpacking archive?")
 
-            node_path = aggregate_files(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
-                    KG_ID=file_set.kg_id,
-                    VERSION=file_set.fileset_version
-                ),
-                name='nodes.tsv',
-                file_paths=file_set.get_nodes(),
-                match_function=lambda x: 'nodes.tsv' in x
-            )
+            print("Aggregating node files:", file=stderr)
+            node_path: str = ''
+            try:
+                node_path = aggregate_files(
+                    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                    path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
+                        KG_ID=file_set.kg_id,
+                        VERSION=file_set.fileset_version
+                    ),
+                    name='nodes.tsv',
+                    file_paths=file_set.get_nodes(),
+                    match_function=lambda x: 'nodes.tsv' in x
+                )
+                print(f"Node path: {node_path}", file=stderr)
 
-            edge_path = aggregate_files(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
-                    KG_ID=file_set.kg_id,
-                    VERSION=file_set.fileset_version
-                ),
-                name='edges.tsv',
-                file_paths=file_set.get_edges(),
-                match_function=lambda x: 'edges.tsv' in x
-            )
+            except Exception:
+                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                _report_error("Node file aggregation failure!")
+            
+            print("Aggregating edge files:", file=stderr)
+            edge_path: str = ''
+            try:
+                edge_path = aggregate_files(
+                    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                    path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
+                        KG_ID=file_set.kg_id,
+                        VERSION=file_set.fileset_version
+                    ),
+                    name='edges.tsv',
+                    file_paths=file_set.get_edges(),
+                    match_function=lambda x: 'edges.tsv' in x
+                )
+                print(f"Edge path: {edge_path}", file=stderr)
+
+            except Exception:
+                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                _report_error("Edge file aggregation failure!")
 
             # add to fileset
             file_set.add_data_file(KgeFileType.KGX_DATA_FILE, 'nodes.tsv', 0, node_path, '')
@@ -2023,66 +2064,79 @@ class KgeArchiver:
 
             # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
             #    containing the aggregated nodes.tsv, edges.tsv,
-            #    TODO: copy over the content_metadata.json, provider.yaml metadata and file_set.yaml metadata files.
-
             # Appending `file_set_root_key` with 'aggregates/' and 'archive/' to prevent multiple compress_fileset runs
             # from compressing the previous compression (so the source of files is distinct from the target written to)
-            archive_path = await compress_fileset(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                files_and_file_set_locations=[
-                    'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
+            print("Compressing file set...", end='', file=stderr)
+            archive_path: str = ''
+            try:
+                archive_path = await compress_fileset(
+                    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                    files_and_file_set_locations=[
+                        'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
+                            KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                        ),
+                        'kge-data/{KG_ID}/{VERSION}/file_set.yaml'.format(
+                            KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                        ),
+                        'kge-data/{KG_ID}/{VERSION}/content_metadata.json'.format(
+                            KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                        ),
+                        'kge-data/{KG_ID}/provider.yaml'.format(
+                            KG_ID=file_set.kg_id
+                        ),
+                    ],
+                    target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(
                         KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
                     ),
-                    'kge-data/{KG_ID}/{VERSION}/file_set.yaml'.format(
+                    archive_name='{KG_ID}.{VERSION}'.format(
                         KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
-                    ),
-                    'kge-data/{KG_ID}/{VERSION}/content_metadata.json'.format(
-                        KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
-                    ),
-                    'kge-data/{KG_ID}/provider.yaml'.format(
-                        KG_ID=file_set.kg_id
-                    ),
-                ],
-                target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(
-                    KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
-                ),
-                archive_name='{KG_ID}.{VERSION}'.format(
-                    KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
+                    )
                 )
-            )
 
+            except Exception:
+                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                _report_error("File set compression failure!")
+                
+            print("...Completed!", file=stderr)
+            
             archive_s3_path = 's3://{BUCKET}/{ARCHIVE_KEY}'.format(
                 BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 ARCHIVE_KEY=archive_path
             )
 
-            # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format of whatever
-            # is being opened. If we let this happen, then the hash function would run over a decompressed buffer; not
-            # the compressed file/buffer that we expect our users to use when they download and validate the archive.
-            with smart_open.open(archive_s3_path, 'rb', compression='disable') as archive:
+            # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
+            #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
+            #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
+            #  the catalog loading, for communication back to the user as part of the catalog metadata
+            #  (once the archiving and hash generation is completed...)
+            print("Computing SHA1 hash sum...", file=stderr)
+            try:
+                # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format
+                # of whatever is being opened. If we let this happen, then the hash function would run over
+                # a decompressed buffer; not the compressed file/buffer that we expect our users to use when
+                # they download and validate the archive.
+                with smart_open.open(archive_s3_path, 'rb', compression='disable') as archive_file_key:
+    
+                    sha1sum = sha1Manifest(archive_file_key)
+                    sha1sum_value = sha1sum[archive_file_key.name]
+                    sha1tsv = '{}.{}.sha1.txt'.format(file_set.kg_id, file_set.fileset_version)
+    
+                    sha1_s3_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
+                        BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                        PATH='kge-data/{KG_ID}/{VERSION}/manifest/'.format(
+                            KG_ID=file_set.kg_id,
+                            VERSION=file_set.fileset_version
+                        ),
+                        FILE_NAME=sha1tsv
+                    )
+                    with smart_open.open(sha1_s3_path, 'w') as sha1file:
+                        sha1file.write(sha1sum_value)
 
-                # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
-                #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
-                #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
-                #  the catalog loading, for communication back to the user as part of the catalog metadata
-                #  (once the archiving and hash generation is completed...)
+            except Exception:
+                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                _report_error("SHA1 hash sum computation failure!")
 
-                sha1sum = sha1Manifest(archive)
-                sha1sum_value = sha1sum[archive.name]
-                sha1tsv = '{}.{}.sha1.txt'.format(file_set.kg_id, file_set.fileset_version)
-
-                shaS3path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
-                    BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    PATH='kge-data/{KG_ID}/{VERSION}/manifest/'.format(
-                        KG_ID=file_set.kg_id,
-                        VERSION=file_set.fileset_version
-                    ),
-                    FILE_NAME=sha1tsv
-                )
-                with smart_open.open(shaS3path, 'w') as sha1file:
-                    sha1file.write(sha1sum_value)
-
-            print(f"KgeArchiver task {task_id} finished archiving of {str(file_set)}", file=stderr)
+            print(f"KgeArchiver worker {task_id} finished archiving of {str(file_set)}", file=stderr)
 
             self._archiver_queue.task_done()
 
@@ -2431,17 +2485,18 @@ def test_stub_archiver() -> bool:
         archiver.create_workers(2)
 
         # fs = test_file_set("1.1")
-        # KgeArchiver.process(fs)
+        # await archiver.process(fs)
         # fs = test_file_set("1.2")
-        # KgeArchiver.process(fs)
+        # await archiver.process(fs)
         # fs = test_file_set("1.3")
-        # KgeArchiver.process(fs)
+        # await archiver.process(fs)
 
         # # Don't want to finish too quickly...
         # await asyncio.sleep(30)
         #
         # print("\ntest_stub_archiver() shutdown now!\n", file=stderr)
-        # await KgeArchiver.shutdown_tasks()
+        # await archiver.shutdown_workers()
+        
     asyncio.run(archive_test())
     return True
 
