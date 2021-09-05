@@ -3,7 +3,8 @@ from aiohttp import web
 from ..kgea_handlers import (
     get_kge_file_set_metadata,
     kge_meta_knowledge_graph,
-    download_kge_file_set
+    download_kge_file_set_archive,
+    download_kge_file_set_archive_sha1hash
 )
 
 
@@ -42,16 +43,30 @@ async def meta_knowledge_graph(
     return await kge_meta_knowledge_graph(request, kg_id, fileset_version, downloading)
 
 
-async def download_file_set(request: web.Request, kg_id: str, fileset_version: str):
+async def download_file_set_archive(request: web.Request, kg_id: str, fileset_version: str):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
     :param request:
     :type request: web.Request
-    :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
+    :param kg_id: Identifier of the knowledge graph of the KGE File Set a file set version for which is being accessed.
     :type kg_id: str
-    :param fileset_version: Version of KGE File Set of the knowledge graph being accessed.
+    :param fileset_version: Version of file set of the knowledge graph being accessed.
     :type fileset_version: str
 
     :return: None - redirection responses triggered
     """
-    await download_kge_file_set(request, kg_id, fileset_version)
+    await download_kge_file_set_archive(request, kg_id, fileset_version)
+
+
+async def download_file_set_archive_sha1hash(request: web.Request, kg_id, fileset_version):
+    """Returns SHA1 hash of the current KGE File Set as a small text file.
+
+    :param request:
+    :type request: web.Request
+    :param kg_id: Identifier of the knowledge graph of the KGE File Set a file set version for which is being accessed.
+    :type kg_id: str
+    :param fileset_version: Version of file set of the knowledge graph being accessed.
+    :type fileset_version: str
+
+    """
+    await download_kge_file_set_archive_sha1hash(request, kg_id, fileset_version)

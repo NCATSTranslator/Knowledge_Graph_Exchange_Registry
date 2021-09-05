@@ -893,7 +893,7 @@ async def upload_kge_file(
 # from ..kgea_handlers import (
 #     get_kge_file_set_metadata,
 #     kge_meta_knowledge_graph,
-#     download_kge_file_set
+#     download_kge_file_set_archive
 # )
 #############################################################
 def _sanitize_metadata(metadata: Dict):
@@ -1045,7 +1045,7 @@ async def kge_meta_knowledge_graph(
         await redirect(request, LANDING_PAGE)
 
 
-async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
+async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_version):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
     :param request:
@@ -1060,11 +1060,11 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
     if not (kg_id and fileset_version):
         await report_not_found(
             request,
-            "download_kge_file_set(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            "download_kge_file_set_archive(): KGE File Set 'kg_id' has value " + str(kg_id) +
             " and 'fileset_version' has value " + str(fileset_version) + "... both must be non-null."
         )
 
-    logger.debug("Entering download_kge_file_set(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
+    logger.debug("Entering download_kge_file_set_archive(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
 
     session = await get_session(request)
     if not session.empty:
@@ -1094,7 +1094,7 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
             # )
             await report_not_found(
                 request,
-                "download_kge_file_set(): archive not (yet) available for {}.{}".format(kg_id, fileset_version)
+                "download_kge_file_set_archive(): archive not (yet) available for {}.{}".format(kg_id, fileset_version)
             )
 
         # archive = get_object_from_bucket(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key)
@@ -1110,7 +1110,7 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
         # )
 
         download_url = create_presigned_url(bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'], object_key=archive_key)
-        print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
+        print("download_kge_file_set_archive() download_url: '" + download_url + "'", file=sys.stderr)
 
         await download(request, download_url)
 
@@ -1129,7 +1129,7 @@ async def fileset_manifest(param, file_set_object_key):
     pass
 
 
-async def kge_fileset_archive_sha(request: web.Request, kg_id, fileset_version):
+async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fileset_version):
     """Returns specified KGE File Set's sha1 codes for the different files
 
     :param request:
