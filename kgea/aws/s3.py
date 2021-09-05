@@ -181,7 +181,13 @@ if __name__ == '__main__':
             if len(sys.argv) >= 3:
                 object_keys = sys.argv[2:]
                 for key in object_keys:
-                    delete_object(s3_client, s3_bucket_name, key)
+                    print("\t" + key)
+                prompt = input("Proceed (Type 'yes')? ")
+                if prompt.upper() == "YES":
+                    for key in object_keys:
+                        delete_object(s3_client, s3_bucket_name, key)
+                else:
+                    print("Cancelling deletion of objects...")
             else:
                 print("\nMissing S3 key(s) of object(s) to delete?")
 
