@@ -68,5 +68,6 @@ async def download_file_set_archive_sha1hash(request: web.Request, kg_id, filese
     :param fileset_version: Version of file set of the knowledge graph being accessed.
     :type fileset_version: str
 
+    :return: None - redirection responses triggered
     """
     await download_kge_file_set_archive_sha1hash(request, kg_id, fileset_version)

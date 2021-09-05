@@ -1130,26 +1130,25 @@ async def fileset_manifest(param, file_set_object_key):
 
 
 async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fileset_version):
-    """Returns specified KGE File Set's sha1 codes for the different files
+    """Returns SHA1 hash of the current KGE File Set as a small text file.
 
     :param request:
     :type request: web.Request
-    :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
+    :param kg_id: Identifier of the knowledge graph of the KGE File Set a file set version for which is being accessed.
     :type kg_id: str
-    :param fileset_version: Version of KGE File Set of the knowledge graph being accessed.
+    :param fileset_version: Version of file set of the knowledge graph being accessed.
     :type fileset_version: str
 
     :return: None - redirection responses triggered
     """
-
     if not (kg_id and fileset_version):
         await report_not_found(
             request,
-            "kge_fileset_archive_sha(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            "download_kge_file_set_archive_sha1hash(): KGE File Set 'kg_id' has value " + str(kg_id) +
             " and 'fileset_version' has value " + str(fileset_version) + "... both must be non-null."
         )
 
-    logger.debug("Entering kge_fileset_archive_sha(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
+    logger.debug("Entering download_kge_file_set_archive_sha1hash(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
 
     session = await get_session(request)
     if not session.empty:
@@ -1161,25 +1160,28 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fi
             file_set_object_key,
         )
 
-        maybe_manifest = [
+        maybe_sha1hash = [
             kg_path for kg_path in kg_files_for_version
-            if "manifest.tsv" in kg_path
+            if "sha1.txt" in kg_path
         ]
 
-        if len(maybe_manifest) == 1:
-            manifest_key = maybe_manifest[0]
+        sha1hash_file_key: str = ''
+        if len(maybe_sha1hash) == 1:
+            sha1hash_file_key = maybe_sha1hash[0]
         else:
-            manifest_key = await fileset_manifest(
-                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                file_set_object_key
+            await report_not_found(
+                request,
+                "download_kge_file_set_archive_sha1hash(): SHA1 Hash file for archive of graph " + str(kg_id) +
+                " file set " + str(fileset_version) + "unavailable?"
             )
 
-        download_url = create_presigned_url(
-            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            object_key=manifest_key
-        )
-
-        await download(request, download_url)
+        if sha1hash_file_key:
+            download_url = create_presigned_url(
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                object_key=sha1hash_file_key
+            )
+    
+            await download(request, download_url)
 
     else:
         # If session is not active, then just a redirect
