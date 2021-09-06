@@ -1153,7 +1153,7 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fi
     session = await get_session(request)
     if not session.empty:
 
-        file_set_object_key = with_version(get_object_location, fileset_version)(kg_id)
+        file_set_object_key, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
 
         kg_files_for_version = kg_files_in_location(
             _KGEA_APP_CONFIG['aws']['s3']['bucket'],

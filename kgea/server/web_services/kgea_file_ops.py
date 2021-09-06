@@ -869,14 +869,14 @@ def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: Tru
         PATH=path,
         FILE_NAME=name
     )
-    with smart_open.open(agg_path, 'w') as aggregated_file:
+    with smart_open.open(agg_path, 'w', encoding="utf-8") as aggregated_file:
         file_paths = filter(match_function, file_paths)
         for file_path in file_paths:
             path = 's3://{BUCKET}/{KEY}'.format(
                 BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 KEY=file_path
             )
-            with smart_open.open(path, 'r') as subfile:
+            with smart_open.open(path, 'r', encoding="utf-8") as subfile:
                 # because smart_open doesn't support an append mode,
                 # use writelines and add a newline
                 aggregated_file.writelines(subfile.read())
