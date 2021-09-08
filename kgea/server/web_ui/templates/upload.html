@@ -34,7 +34,9 @@
         #ldBar .ui-progressbar-value {
             background-color: var(--nc-lk-1);
         }
-
+        #ldBar_link .ui-progressbar-value {
+            background-color: var(--nc-lk-1);
+        }
         .progress-label {
             color: var(--nc-tx-2);
             padding-left: 16px;
@@ -48,6 +50,10 @@ $("#ldBar").progressbar({
     value: 0,
 })
 $("#ldBar").css("display", "none")
+$("#ldBar_link").progressbar({
+    value: 0,
+})
+$("#ldBar_link").css("display", "none")
 let content_name = "unknown";
 
 // TODO: Sanitize content_names as
@@ -116,9 +122,13 @@ async function UploadFile(source) {
 
             let file_name = document.getElementById("file_name").value;
 
+            $("#ldBar_link").css('display', 'block')
+
             // somehow post the direct file URL transfer here?
             //window.alert("Direct transfer of file from URL: " + content_url);
             let duta_endpoint = `{{direct_url_transfer_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&content_url=${content_url}&content_name=${file_name}`;
+            let fake_progress = 0;
+
             //window.alert("Direct URL transfer action endpoint: " + duta_endpoint);
             await fetch(duta_endpoint,                {
                     method: "GET",
@@ -130,6 +140,74 @@ async function UploadFile(source) {
                 let msg = JSON.stringify(result)
                 console.log("Content URL transfer response:" + msg);
                 //window.alert("Content URL transfer response:" + msg);
+                return result.upload_token
+            })
+            // handle progress bar related requests
+            .then(async upload_token => {
+                console.log('attempting to trigger progress monitoring with progress bar')
+                // use mutual recursion to create a progress element that always updates the exact amount required
+                document.getElementById('percentage').textContent = `(0.0%)`;
+
+                let delay = 1000;
+
+                // callback for mutual recursion
+                async function askForProgress() {
+                    return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
+                        .then(r => r.json())
+                        .then(j => {
+                            let progress_ratio = 0;
+                            if (!!j.end_position) {
+                                delay = 1000;
+                                progress_ratio = j.current_position / j.end_position;
+                            } else {
+                                delay = 5000;
+                                if(fake_progress < 900) {
+                                    fake_progress++;
+                                }
+                                progress_ratio = fake_progress / 1000
+                            }
+                            let percentage = Number(progress_ratio * 100).toFixed(1);
+                            document.getElementById('percentage').textContent = `(${percentage}%)`;
+                            let progressbar = $("#ldBar_link");
+                            progressbar.progressbar({
+                                // ceil to err on the side of displaying progress
+                                value: Math.ceil(progress_ratio * 100)
+                            });
+                            return j;
+                        })
+                }
+
+                // timer helper for deferring execution of next recursion step
+                // "value" will be a function here
+                function later(delay, value) {
+                    return new Promise(resolve => setTimeout(resolve, delay, value));
+                }
+
+                // control flow for mutual recursion
+                async function execute(callback) {
+                    return await callback().then(async received => {
+                        // NOTE: Sometimes it takes awhile for
+                        // received.end_position to initialize, particularly
+                        // if the file size is > ~1GB (works fine at ~300mb).
+                        // In that case, received.end_position is going
+                        // to be undefined. So this will still execute and
+                        // essentially wait until received.end_position is
+                        // defined, and will stop once received.current_position
+                        // is equal to j.end_position (because the file has
+                        // been completely read and uploaded).
+                        if (!(received.current_position === received.end_position)) {
+                            return await later(delay, askForProgress).then(execute)
+                        }
+                    })
+                }
+
+                // put the pieces together
+                try {
+                    return await later(delay, askForProgress).then(execute);
+                } catch (e) {
+                    console.error(e);
+                }
+
             })
 
             // .. then clear the direct URL fields?
@@ -139,6 +217,14 @@ async function UploadFile(source) {
 
             // .. then post the file name transferred
             update_file_list(kgx_file_content, file_name, "Transferring...")
+
+            // document.getElementById('spinner").style.display = "none";
+            document.getElementById("percentage").style.display = "none";
+            document.getElementById("spinner-text").style.display = "none";
+            $("#ldBar_link").css('display', 'none')
+            $("#ldBar_link").progressbar({
+                value: 0
+            })
 
         } else {
             console.log("KGX content file URL is undefined?");
@@ -209,6 +295,7 @@ async function UploadFile(source) {
                 })
                 return result.upload_token
             })
+            // handle progress bar related requests
             .then(async upload_token => {
 
                 // use mutual recursion to create a progress element that always updates the exact amount required
@@ -283,10 +370,10 @@ async function UploadFile(source) {
             // document.getElementById('spinner").style.display = "none";
             document.getElementById("percentage").style.display = "none";
             document.getElementById("spinner-text").style.display = "none";
-            $("#ldBar").css('display', 'none')
             $("#ldBar").progressbar({
                 value: 0
             })
+            $("#ldBar").css('display', 'none')
 
         } else {
             console.log("KGX " + kgx_file_content + " file is undefined?");
@@ -367,22 +454,22 @@ async function DoneUploading(source) {
                 </span>
             </div>
             <p></p>
-            <!--
-            <input type="radio" id="archive" name="kgx_file_content" value="archive">
-            <label class="label" for="archive">KGX Archive</label>
-            <div class="tooltip">
-                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
-                <span class="tooltiptext">
-                        If a KGX Archive is given, then the locally uploaded file,
-                        or a direct URL transfer from URL, is assumed to be a gzip'd
-                        compressed tar file with the name '<root file name>.tar.gz'
-                        containing one of each of both a KGX-compliant 'nodes.tsv'
-                        and 'edges.tsv' file for the knowledge graph, (preferrably!) with
-                        an associated KGX-compliant 'content_metadata.json' file.
-                </span>
-            </div>
-            -->
-    <p></p>
+                <!--
+                <input type="radio" id="archive" name="kgx_file_content" value="archive">
+                <label class="label" for="archive">KGX Archive</label>
+                <div class="tooltip">
+                    <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
+                    <span class="tooltiptext">
+                            If a KGX Archive is given, then the locally uploaded file,
+                            or a direct URL transfer from URL, is assumed to be a gzip'd
+                            compressed tar file with the name '<root file name>.tar.gz'
+                            containing one of each of both a KGX-compliant 'nodes.tsv'
+                            and 'edges.tsv' file for the knowledge graph, (preferrably!) with
+                            an associated KGX-compliant 'content_metadata.json' file.
+                    </span>
+                </div>
+                -->
+            <p></p>
         </td>
         <td colspan="2">
             <div class="header">
@@ -414,8 +501,7 @@ Uploading file, please don't navigate away from the page...</span>
             <input id="content_url" type="text" oninput="GetUrl(this)"/>
             <br><label for="file_name"><b>File Name:</b></label><br>
             <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
-        </td>
-        <td>
+
             <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
@@ -425,9 +511,10 @@ Uploading file, please don't navigate away from the page...</span>
                     completed during the given user upload session (especially, for large files)
                 </span>
             </div>
-
             <br>
             <p><small>
+            <span id="ldBar_link" style="background: transparent; height: 1em; display:inline">
+            </span>
         </td>
     </tr>
     <tr>

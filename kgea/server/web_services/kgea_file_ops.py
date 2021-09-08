@@ -1201,8 +1201,8 @@ def upload_from_link(
     """
     # errors are ignored here as they usually talk about coding mismatches,
     # which don't matter when transferring bytes directly
-    with smart_open.open(source) as fin:
-        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}) as fout:
+    with smart_open.open(source, encoding="utf8") as fin:
+        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
             for line in fin:
                 fout.write(line)
                 if callback:
