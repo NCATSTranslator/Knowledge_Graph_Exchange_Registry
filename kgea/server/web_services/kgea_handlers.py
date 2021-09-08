@@ -19,8 +19,6 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-from string import Template
-
 from aiohttp import web
 from aiohttp_session import get_session
 
@@ -39,7 +37,6 @@ from kgea.config import (
     CONTENT_METADATA_FILE,
 
     LANDING_PAGE,
-    HOME_PAGE,
 
     FILESET_REGISTRATION_FORM,
     DATA_UNAVAILABLE,
@@ -383,18 +380,8 @@ async def register_kge_file_set(request: web.Request):
 
                 await redirect(
                         request,
-                        f"{UPLOAD_FORM}?kg_id={kg_id}&kg_name={knowledge_graph.get_name()}&fileset_version={fileset_version}&submitter_name={submitter_name}",
-                        Template(
-                           UPLOAD_FORM +
-                           '?kg_id=$kg_id&kg_name=$kg_name&' +
-                           'fileset_version=$fileset_version&' +
-                           'submitter_name=$submitter_name'
-                        ).substitute(
-                           kg_id=kg_id,
-                           kg_name=knowledge_graph.get_name(),
-                           fileset_version=fileset_version,
-                           submitter_name=submitter_name
-                        ),
+                        f"{UPLOAD_FORM}?kg_id={kg_id}&kg_name={knowledge_graph.get_name()}"
+                        f"&fileset_version={fileset_version}&submitter_name={submitter_name}",
                         active_session=True
                     )
         #     else:
@@ -578,11 +565,7 @@ async def setup_kge_upload_context(
         import uuid
         import os
 
-        object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
-            ROOT=file_set_location,
-            FILENAME=Path(content_name).stem,
-            EXTENSION=os.path.splitext(content_name)[1]
-        )
+        object_key = f"{file_set_location}{Path(content_name).stem}{os.path.splitext(content_name)[1]}"
 
         with threading.Lock():
             token = str(uuid.uuid4())
@@ -1008,14 +991,8 @@ async def kge_meta_knowledge_graph(
             if downloading:
                 await redirect(
                     request,
-                    Template(
-                        DATA_UNAVAILABLE +
-                        '?fileset_version=$fileset_version&kg_name=$kg_name&data_type=$data_type'
-                    ).substitute(
-                        fileset_version=fileset_version,
-                        kg_name=knowledge_graph.get_name(),
-                        data_type='meta knowledge graph'
-                    ),
+                    f"{DATA_UNAVAILABLE}?fileset_version={fileset_version}"
+                    f"&kg_name={knowledge_graph.get_name()}&data_type=meta%20knowledge%20graph",
                     active_session=True
                 )
             else:
