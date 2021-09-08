@@ -2127,6 +2127,10 @@ class KgeArchiver:
             
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
             # TODO: need to managed multiple Biolink Model specific KGX validators
+            print(
+                f"(Future) KgeArchiver worker {task_id} validation of of {str(file_set)} tar.gz archive...",
+                file=stderr
+            )
             # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
             # KgxValidator.validate(self)
             
