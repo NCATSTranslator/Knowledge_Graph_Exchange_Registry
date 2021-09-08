@@ -90,8 +90,7 @@ def _load_app_config() -> dict:
                 from cryptography import fernet
 
                 fernet_key = fernet.Fernet.generate_key()
-                secret_key = base64.urlsafe_b64decode(fernet_key)
-                config['secret_key'] = str(secret_key)
+                config['secret_key'] = fernet_key.decode("utf-8")
 
                 # persist updated updated config back to config.yaml?
                 with open(CONFIG_FILE_PATH, mode='w', encoding='utf-8') as app_config_file:
