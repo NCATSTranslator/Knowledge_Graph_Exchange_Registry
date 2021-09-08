@@ -798,14 +798,15 @@ async def compress_fileset(
         if file_or_file_set_location[-1] == '/':
             file_set_location_key = file_or_file_set_location
             job.add_files(file_set_location_key)
-        # it's a file if it doesn't end with a path separator
+            # it's a file if it doesn't end with a path separator
         else:
             file_key = file_or_file_set_location
             # TODO - job.add_file doesn't check if the key exists
             # so for now do it for them
             if object_key_exists(file_key):
                 job.add_file(file_key)
-            logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
+            else:
+                logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
 
     # execute the job
     job.tar()
