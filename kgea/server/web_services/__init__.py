@@ -6,6 +6,27 @@ from kgea.server.web_services.catalog import KgeArchiveCatalog
 from kgea.server.web_services.controllers.content_controller import download_file_set
 from kgea.server.web_services.kgea_session import KgeaSession
 
+import logging
+from logging.config import dictConfig
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {
+        'tostdout': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+            'formatter': 'default'
+        }
+    },
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['tostdout']
+    }
+})
+connexion.apps.aiohttp_app.logger=logging.getLogger(__name__)
+
 
 def main():
     options = {
@@ -73,6 +94,10 @@ def main():
 
     KgeaSession.initialize(app.app)
 
-    app.run(port=8080)
+    app.run(
+        port=8080,
+        server="aiohttp",
+        use_default_access_log=True
+    )
 
     KgeaSession.close_global_session()
