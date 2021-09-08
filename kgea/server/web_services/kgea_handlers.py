@@ -219,7 +219,9 @@ async def register_kge_knowledge_graph(request: web.Request):
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
 
-                knowledge_graph = KgeKnowledgeGraph(
+                # Here we start to start to track a specific
+                # knowledge graph submission within KGE Archive
+                knowledge_graph = KgeArchiveCatalog.catalog().add_knowledge_graph(
                     kg_id=kg_id,
                     kg_name=kg_name,
                     kg_description=kg_description,
@@ -232,23 +234,14 @@ async def register_kge_knowledge_graph(request: web.Request):
                     terms_of_service=terms_of_service,
                 )
 
-                # Here we start to start to track a specific
-                # knowledge graph submission within KGE Archive
-                KgeArchiveCatalog.catalog().add_knowledge_graph(knowledge_graph)
-
                 # Also publish a new 'provider.yaml' metadata file to the KGE Archive
                 provider_metadata_key = knowledge_graph.publish_provider_metadata()
+                
                 assert(provider_metadata_key is not None)
 
                 await redirect(
                     request,
-                    Template(
-                        FILESET_REGISTRATION_FORM +
-                        '?kg_id=$kg_id&kg_name=$kg_name'
-                    ).substitute(
-                        kg_id=kg_id,
-                        kg_name=knowledge_graph.get_name()
-                    ),
+                    f"{FILESET_REGISTRATION_FORM}?kg_id={kg_id}&kg_name={knowledge_graph.get_name()}",
                     active_session=True
                 )
 
@@ -390,6 +383,7 @@ async def register_kge_file_set(request: web.Request):
 
                 await redirect(
                         request,
+                        f"{UPLOAD_FORM}?kg_id={kg_id}&kg_name={knowledge_graph.get_name()}&fileset_version={fileset_version}&submitter_name={submitter_name}",
                         Template(
                            UPLOAD_FORM +
                            '?kg_id=$kg_id&kg_name=$kg_name&' +

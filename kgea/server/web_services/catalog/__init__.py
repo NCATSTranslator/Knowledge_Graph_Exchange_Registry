@@ -1146,15 +1146,6 @@ class KgeArchiveCatalog:
         archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'])
         for kg_id, entry in archive_contents.items():
             self.load_archive_entry(kg_id=kg_id, entry=entry)
-            
-        # Service workers for file sets in the catalog
-        self.archiver = KgeArchiver()
-        
-    def get_archiver(self):
-        """
-        :return: KgeArchiver associated with the catalog
-        """
-        return self.archiver
     
     @classmethod
     def catalog(cls):
@@ -1174,7 +1165,7 @@ class KgeArchiveCatalog:
         :return: None
         """
         # Shut down KgeArchiver background processing here
-        await self.get_archiver().shutdown_workers()
+        await KgeArchiver.get_archiver().shutdown_workers()
 
         # Shut down KgxValidator background processing here
         # TODO: uncomment this once the KgxValidator.validate() is used again?
