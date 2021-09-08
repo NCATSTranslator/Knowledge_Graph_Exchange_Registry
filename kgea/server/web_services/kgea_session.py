@@ -67,6 +67,10 @@ class KgeaSession:
 
     @classmethod
     def get_storage(cls) -> AbstractStorage:
+        """
+
+        :return:
+        """
         try:
             cls._session_storage
         except AttributeError:
@@ -79,10 +83,20 @@ class KgeaSession:
 
     @classmethod
     def get_event_loop(cls) -> AbstractEventLoop:
+        """
+
+        :return:
+        """
         return cls._event_loop
 
     @classmethod
     async def save_session(cls, request, response, session):
+        """
+
+        :param request:
+        :param response:
+        :param session:
+        """
         storage = cls.get_storage()
         await storage.save_session(request, response, session)
 
@@ -120,6 +134,12 @@ class KgeaSession:
 
 
 async def initialize_user_session(request, uid: str = None, user_attributes: Dict = None):
+    """
+
+    :param request:
+    :param uid:
+    :param user_attributes:
+    """
     try:
         session = await new_session(request)
 
@@ -157,7 +177,8 @@ async def with_session(request, response):
     return response
 
 
-# TODO: session propagation with redirects only work for aiohttp<3.7 (now) or aiohttp>3.8 (later)
+# TODO: session propagation with redirects only work
+#       for aiohttp<3.7 (now) or aiohttp>3.8 (later)
 async def _process_redirection(request, response, active_session):
     """
     Redirects to a web path location, with or without session cookie.
@@ -179,6 +200,12 @@ async def _process_redirection(request, response, active_session):
 
 
 async def redirect(request, location: str, active_session: bool = False):
+    """
+
+    :param request:
+    :param location:
+    :param active_session:
+    """
     # TODO: might need to urlencode query parameter values in the location?
     logger.debug('redirect() to location: ' + str(location))
     await _process_redirection(
@@ -189,6 +216,12 @@ async def redirect(request, location: str, active_session: bool = False):
 
 
 async def download(request, location: str, active_session: bool = False):
+    """
+
+    :param request:
+    :param location:
+    :param active_session:
+    """
     logger.debug('download() file from location: ' + str(location))
     await _process_redirection(
         request,

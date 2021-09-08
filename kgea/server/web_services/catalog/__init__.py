@@ -271,7 +271,24 @@ class KgeFileSet:
         return "File set version " + self.fileset_version + " of graph " + self.kg_id
         # import pprint
         # return pprint.pformat(self.__dict__)
+    
+    def report_error(self, msg: str):
+        """
+        
+        :param msg:
+        :return:
+        """
+        logger.error(msg)
+        self.errors.append(msg)
+        self.status = KgeFileSetStatusCode.ERROR
 
+    def report_processing_status(self):
+        """
+        Report post-processing of file set.
+        """
+        logger.debug("Post-processing KGX File Set")
+        self.status = KgeFileSetStatusCode.PROCESSING
+        
     def get_kg_id(self):
         """
         :return: the knowledge graph identifier string
@@ -494,17 +511,19 @@ class KgeFileSet:
                 # "errors": []
             }
 
-    ############################################################################
-    # KGE FileSet Publication to the Archive ###################################
-    ############################################################################
+    ##########################################
+    # KGE FileSet Publication to the Archive #
+    ##########################################
     async def publish(self) -> bool:
         """
-        Publish file set in the Archive.
+        After a file_set is uploaded, publish file set in the Archive
+        after post-processing the file set including generation of the
+        file set 'tar.gz' archive for for KGX validation then downloading.
+        
+        Also sets the file set KgeFileSetStatusCode.
 
         :return: True if successful; False otherwise
         """
-        self.status = KgeFileSetStatusCode.PROCESSING
-
         try:
             # Publish a 'file_set.yaml' metadata file to the
             # versioned archive subdirectory containing the KGE File Set
@@ -515,84 +534,40 @@ class KgeFileSet:
                 file_name=FILE_SET_METADATA_FILE,
                 fileset_version=self.fileset_version
             )
-            logger.debug("catalog.publish() - created metadata file:" + fileset_metadata_object_key)
-        except Exception as ex:
-            logger.error(
-                "publish(): generate_fileset_metadata_file: {} {} {}".format(
-                    self.kg_id, self.fileset_version, ex)
-            )
-            raise ex
-
-        try:
-            post_processed = await self.post_process_file_set()
-            
-        except Exception as exception:
-            logger.error("publish(): post_processed: {} {} {}".format(self.kg_id, self.fileset_version, exception))
-            raise exception
-
-        if not post_processed:
-            self.status = KgeFileSetStatusCode.ERROR
-            msg = "post_process_file_set(): failed for" + \
-                  "' for KGE File Set version '" + self.fileset_version + \
-                  "' of knowledge graph '" + self.kg_id + "'"
-            logger.warning(msg)
-            self.errors.append(msg)
-            return False
-
-        if fileset_metadata_object_key:
-            logger.debug("catalog.publish() - successfully returning object key" + fileset_metadata_object_key)
-            return True
-        else:
-            self.status = KgeFileSetStatusCode.ERROR
-            msg = "publish_file_set(): metadata '" + FILE_SET_METADATA_FILE + \
-                  "' file for KGE File Set version '" + self.fileset_version + \
-                  "' of knowledge graph '" + self.kg_id + \
-                  "' not successfully posted to the Archive?"
-            logger.warning(msg)
-            self.errors.append(msg)
-            return False
-
-    # TODO: need here to more fully implement required post-processing of
-    #       the assembled file set (after files are uploaded by the client)
-    async def post_process_file_set(self) -> bool:
-        """
-        After a file_set is uploaded, post-process the file set including KGX validation.
-
-        :return: True if successful; False otherwise
-        """
-        catalog: KgeArchiveCatalog = KgeArchiveCatalog.catalog()
-
-        try:
-            # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
-            archiver: KgeArchiver = catalog.get_archiver()
-            try:
-                logger.debug("Running archiver.process()...")
-                await archiver.process(self)
-            except TimeoutError:
-                self.status = KgeFileSetStatusCode.ERROR
+            if fileset_metadata_object_key:
+                logger.debug(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
+            else:
+                msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
+                      f"' file for KGE File Set version '{self.fileset_version}" + \
+                      f"' of knowledge graph '{self.kg_id}" + \
+                      "' not successfully posted to the Archive?"
+                self.report_error(msg)
                 return False
             
-            archiver.create_workers(1)
+        except Exception as exception:
+            msg = f"publish(): {self.kg_id} {self.fileset_version} {str(exception)}"
+            self.report_error(msg)
+            return False
 
-            # KGX validation of KGX-formatted nodes and edges data files
-            # managed here instead of just after the upload of each file.
-            # In this way, the graph node and edge data can be analysed all together?
-            # Perhaps, just run the KgeArchiver tar.gz file through the validator(?)
+        try:
+            self.report_processing_status()
+            
+            archiver: KgeArchiver = KgeArchiver.get_archiver()
+            archiver.create_workers(1)  # add worker capacity
+            
+            # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
+            await archiver.process(self)
 
-            # Post the KGE File Set to the KGX validation (async) task queue
-            # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
-            # TODO: need to managed multiple Biolink Model specific KGX validators
-            # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
-            # KgxValidator.validate(self)
-
-            # Tag as "LOADED" for now (not yet validated)
-            self.status = KgeFileSetStatusCode.LOADED
-
-            # Can't go wrong here (yet...)
             return True
-
+        
+        except TimeoutError:
+            msg = "publish(): archiver.process() signalled TimeoutError"
+            self.report_error(msg)
+            return False
+        
         except Exception as error:
-            logger.error("post_process_file_set(): {}".format(error))
+            msg = f"publish(): {str(error)}"
+            self.report_error(msg)
             return False
 
     # async def publish_file_set(self, kg_id: str, fileset_version: str):
@@ -1963,12 +1938,12 @@ class ProgressMonitor:
             logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
 
-def _report_error(err_msg: str):
+def print_error_trace(err_msg: str, *exc_details):
     """
     Print Error Exception stack
     """
     print(err_msg, file=stderr)
-    exc_type, exc_value, exc_traceback = exc_info()
+    exc_type, exc_value, exc_traceback = exc_details
     traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
     raise RuntimeError
     
@@ -1988,6 +1963,18 @@ class KgeArchiver:
         self.max_tasks: int = max_tasks
         self.max_wait: int = max_wait
 
+    _the_archiver = None
+    
+    @classmethod
+    def get_archiver(cls):
+        """
+
+        :return: singleton KgeArchiver
+        """
+        if not cls._the_archiver:
+            cls._the_archiver = KgeArchiver()
+        return cls._the_archiver
+    
     async def worker(self, task_id=None):
         """
 
@@ -2018,7 +2005,7 @@ class KgeArchiver:
 
             except Exception:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                _report_error("Error while unpacking archive?")
+                print_error_trace("Error while unpacking archive?", exc_info())
 
             print("Aggregating node files:", file=stderr)
             node_path: str = ''
@@ -2037,7 +2024,7 @@ class KgeArchiver:
 
             except Exception:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                _report_error("Node file aggregation failure!")
+                print_error_trace("Node file aggregation failure!", exc_info())
             
             print("Aggregating edge files:", file=stderr)
             edge_path: str = ''
@@ -2056,7 +2043,7 @@ class KgeArchiver:
 
             except Exception:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                _report_error("Edge file aggregation failure!")
+                print_error_trace("Edge file aggregation failure!", exc_info())
 
             # add to fileset
             file_set.add_data_file(KgeFileType.KGX_DATA_FILE, 'nodes.tsv', 0, node_path, '')
@@ -2095,7 +2082,7 @@ class KgeArchiver:
 
             except Exception:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                _report_error("File set compression failure!")
+                print_error_trace("File set compression failure!", exc_info())
                 
             print("...Completed!", file=stderr)
             
@@ -2134,8 +2121,15 @@ class KgeArchiver:
 
             except Exception:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                _report_error("SHA1 hash sum computation failure!")
+                print_error_trace("SHA1 hash sum computation failure!", exc_info())
 
+            # 5. KGX validation of KGE compliant archive.
+            
+            # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
+            # TODO: need to managed multiple Biolink Model specific KGX validators
+            # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
+            # KgxValidator.validate(self)
+            
             print(f"KgeArchiver worker {task_id} finished archiving of {str(file_set)}", file=stderr)
 
             self._archiver_queue.task_done()
@@ -2186,7 +2180,11 @@ class KgeArchiver:
         """
         This method posts a KgeFileSet to the KgeArchiver for processing.
 
+        :param maxwait:
+        :param waits:
+        :param wait:
         :param file_set: KgeFileSet.
+        
         :return: None
         """
         # Post the file set to the KgeArchiver task Queue for processing
@@ -2196,6 +2194,7 @@ class KgeArchiver:
                 file_set
             )
         except QueueFull:
+            
             logger.debug("KgeArchiver.process(): work queue is full? Will sleep awhile...")
             await asyncio.sleep(wait)
             try:
@@ -2204,8 +2203,13 @@ class KgeArchiver:
                 await self.process(file_set, wait, waits, maxwait)
             except (AssertionError, TimeoutError):
                 raise TimeoutError
-            finally:
-                return False
+            #
+            # it's unclear to me why this
+            # try block should finally return 'False'
+            #
+            # finally:
+            #     return False
+       
         return True
 
 

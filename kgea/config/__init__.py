@@ -135,6 +135,7 @@ GRAPH_REGISTRATION_FORM = FRONTEND + "register/graph"
 FILESET_REGISTRATION_FORM = FRONTEND + "register/fileset"
 METADATA_PAGE = FRONTEND + "metadata"
 UPLOAD_FORM = FRONTEND + "upload"
+SUBMISSION_CONFIRMATION = FRONTEND + "submitted"
 DATA_UNAVAILABLE = FRONTEND + "unavailable"
 
 #################################

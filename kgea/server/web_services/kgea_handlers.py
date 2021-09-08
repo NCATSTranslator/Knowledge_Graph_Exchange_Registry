@@ -44,7 +44,8 @@ from kgea.config import (
     FILESET_REGISTRATION_FORM,
     DATA_UNAVAILABLE,
 
-    UPLOAD_FORM
+    UPLOAD_FORM,
+    SUBMISSION_CONFIRMATION
 )
 
 from .kgea_session import (
@@ -256,7 +257,7 @@ async def register_kge_knowledge_graph(request: web.Request):
         #         await redirect(request, HOME_PAGE)
         # else:
         #     # TODO: more graceful front end failure signal
-        #     await _report_error(request, "Unknown failure")
+        #     await print_error_trace(request, "Unknown failure")
 
     else:
         # If session is not active, then just a redirect
@@ -407,7 +408,7 @@ async def register_kge_file_set(request: web.Request):
         #         await redirect(request, HOME_PAGE)
         # else:
         #     # TODO: more graceful front end failure signal
-        #     await _report_error(request, "Unknown failure")
+        #     await print_error_trace(request, "Unknown failure")
 
     else:
         # If session is not active, then just a redirect
@@ -437,28 +438,35 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             )
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
-
         file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
-
-        logger.debug("\tPublishing fileset version '" + fileset_version + "' of graph '" + kg_id + "'")
         
-        try:
-            published = await file_set.publish()
-        except Exception as exception:
-            logger.error(str(exception))
-            raise exception
-
-        if not (file_set and published):
+        published: bool = False
+        
+        if file_set:
+            logger.debug("\tPublishing fileset version '" + fileset_version + "' of graph '" + kg_id + "'")
+            try:
+                published = await file_set.publish()
+            except Exception as exception:
+                logger.error(str(exception))
+    
+        if not published:
             await report_error(
                 request,
-                "publish_kge_file_set() errors: file set version '" +
-                fileset_version + "' for knowledge graph '" + kg_id + "'" +
-                "could not be published?"
+                f"publish_kge_file_set() errors: file set version '{fileset_version}' " +
+                f"for knowledge graph '{kg_id}' could not be published?"
             )
 
-    await redirect(request, HOME_PAGE)
+        await redirect(
+            request,
+            f"{SUBMISSION_CONFIRMATION}?kg_name={knowledge_graph.get_name()}&fileset_version={fileset_version}",
+            active_session=True
+        )
 
-
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING_PAGE)
+    
 #############################################################
 # Upload Controller Handler
 #
@@ -688,7 +696,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 #     )
 #
 # else:
-#     await _report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+#     await print_error_trace(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 #
 # """END File Upload Protocol"""
 #
