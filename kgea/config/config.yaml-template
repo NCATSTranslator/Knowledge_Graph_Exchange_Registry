@@ -32,6 +32,6 @@ github:
 # hardcoded default of 3 KGX validation worker tasks
 # Number_of_Validator_Tasks: 3
 
-# This parameter is automatically set by the system when
-# EncryptedCookieStorage serves for user session management
+# This parameter is automatically created by the system and written back into this file.
+# EncryptedCookieStorage uses this "Fernat" key to configure user session management.
 # secret_key: ''
