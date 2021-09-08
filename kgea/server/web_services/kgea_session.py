@@ -55,9 +55,8 @@ class KgeaSession:
         app_config = get_app_config()
         if DEV_MODE:
             from aiohttp_session.cookie_storage import EncryptedCookieStorage
-            # TODO: this needs to be global across the UI and Archive code bases(?!?)
             import base64
-            secret_key = base64.urlsafe_b64decode(str.encode(app_config['secret_key'],"utf-8"))
+            secret_key = base64.urlsafe_b64decode(str.encode(app_config['secret_key'], "utf-8"))
             cls._session_storage = EncryptedCookieStorage(secret_key)
         else:
             import aiomcache
