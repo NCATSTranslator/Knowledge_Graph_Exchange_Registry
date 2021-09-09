@@ -2,10 +2,6 @@
 # connexion
 -e git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion
 
-# Until the new release has all the latest features, we pull KGX directly from master or better
-#kgx >= 1.4.0
--e git+https://github.com/biolink/kgx.git@master#egg=kgx
-
 # Bug fix and KGE troubleshooting patches to s3-tar
 # We can revert to master on the original project once PR processed (at https://github.com/xtream1101/s3-tar/pull/11)
 -e git+https://github.com/STARInformatics/s3-tar.git@troubleshoot_s3_access#egg=s3-tar
@@ -32,3 +28,5 @@ aiomcache
 jsonschema
 PyGithub
 smart_open>=5.1.0
+
+kgx
