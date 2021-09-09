@@ -7,6 +7,8 @@ import uuid
 from os import getenv, path
 from pathlib import Path
 from typing import Dict, Tuple, Any
+import uuid
+import time
 
 from .models import (
     KgeMetadata,
@@ -28,6 +30,8 @@ import threading
 from botocore.client import Config
 
 import asyncio
+import logging
+logger = logging.getLogger(__name__)
 
 #############################################################
 # Application Configuration
@@ -708,7 +712,10 @@ class ProgressPercentage(object):
         # used to monitor file upload/transfer metadata
         self.transfer_tracker = transfer_tracker
         self._seen_so_far = 0
-    
+        self.dt_log_min = 10
+        self.t0 = time.time()
+        self.t_log_prev = self.t0
+
     def get_file_size(self):
         """
         :return: file size of the file being uploaded.
@@ -718,6 +725,14 @@ class ProgressPercentage(object):
     def __call__(self, bytes_amount):
         self._seen_so_far += bytes_amount
         self.transfer_tracker['current_position'] = self._seen_so_far
+        t_now = time.time()
+        dt = t_now-self.t0+0.001
+        mb = self._seen_so_far / (1024*1024)
+        mbps = mb / dt
+        dt_log = t_now-self.t_log_prev
+        if(dt_log >= self.dt_log_min):
+            logger.info("ProgressPercentage mbps={} mb={}".format(mbps, mb))
+            self.t_log_prev = t_now
 
 
 _num_s3_threads = 16
