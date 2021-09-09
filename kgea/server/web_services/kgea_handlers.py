@@ -1084,48 +1084,23 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
         ]
 
         if len(maybe_archive) == 1:
-            archive_key = maybe_archive[0]
+            download_url = create_presigned_url(
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                object_key=maybe_archive[0]
+            )
+            print("download_kge_file_set_archive() download_url: '" + download_url + "'", file=sys.stderr)
+
+            await download(request, download_url)
         else:
-            # archive_key = await compress_fileset(
-            #     _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            #     file_set_object_key,
-            #     '{}.{}'.format(kg_id, fileset_version)
-            # )
             await report_not_found(
                 request,
                 f"download_kge_file_set_archive(): archive not (yet) available for {kg_id}.{fileset_version}"
             )
 
-        # archive = get_object_from_bucket(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key)
-        #
-        # from io import BytesIO
-        # bstream = BytesIO(archive.get()['Body'].read())
-        # print(
-        #     'archive',
-        #     archive,
-        #     type(archive),
-        #     archive.get(),
-        #     bstream,
-        # )
-
-        download_url = create_presigned_url(bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'], object_key=archive_key)
-        print("download_kge_file_set_archive() download_url: '" + download_url + "'", file=sys.stderr)
-
-        await download(request, download_url)
-
     else:
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
         await redirect(request, LANDING_PAGE)
-
-
-async def fileset_manifest(param, file_set_object_key):
-    """
-
-    :param param:
-    :param file_set_object_key:
-    """
-    pass
 
 
 async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fileset_version):

@@ -1174,11 +1174,11 @@ def test_upload_from_link(
         test_link_filename=DIRECT_TRANSFER_TEST_LINK_FILENAME,
         test_kg=TEST_KG_NAME,
         test_fileset_version=TEST_FILESET_VERSION,
-        logging=False
+        log=False
 ):
     progress_monitor = None
     
-    if logging:
+    if log:
         class ProgressPercentage(object):
             """
             Class to track percentage completion of an upload.
@@ -1249,7 +1249,7 @@ Unit Tests
 
 def run_test(test_func):
     """
-
+    Run a test function (timed)
     :param test_func:
     """
     try:
