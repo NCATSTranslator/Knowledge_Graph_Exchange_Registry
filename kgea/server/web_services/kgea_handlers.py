@@ -55,7 +55,6 @@ from .kgea_session import (
 )
 
 from .kgea_file_ops import (
-    upload_file,
     create_presigned_url,
     kg_files_in_location,
     get_object_location,
@@ -64,7 +63,12 @@ from .kgea_file_ops import (
     get_default_date_stamp,
     with_subfolder,
     infix_string,
-    s3_client, get_pathless_file_size, get_object_key, get_url_file_size, upload_from_link
+    s3_client,
+    get_object_key,
+    get_pathless_file_size,
+    get_url_file_size,
+    upload_file,
+    upload_from_link
 )
 
 from kgea.server.web_services.catalog import (
@@ -235,7 +239,12 @@ async def register_kge_knowledge_graph(request: web.Request):
                 # Also publish a new 'provider.yaml' metadata file to the KGE Archive
                 provider_metadata_key = knowledge_graph.publish_provider_metadata()
                 
-                assert(provider_metadata_key is not None)
+                if not provider_metadata_key:
+                    await report_not_found(
+                        request,
+                        "register_kge_knowledge_graph(): provider metadata could not be published?",
+                        active_session=True
+                    )
 
                 await redirect(
                     request,

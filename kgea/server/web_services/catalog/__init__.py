@@ -873,7 +873,7 @@ class KgeKnowledgeGraph:
 
         return kg_id
 
-    def set_provider_metadata_object_key(self, object_key: str):
+    def set_provider_metadata_object_key(self, object_key: Optional[str] = None):
         """
 
         :param object_key:
@@ -904,6 +904,7 @@ class KgeKnowledgeGraph:
         if object_key:
             self.set_provider_metadata_object_key(object_key)
         else:
+            self.set_provider_metadata_object_key()
             logger.warning(
                 "publish_file_set(): " + PROVIDER_METADATA_FILE +
                 " for Knowledge Graph '" + self.kg_id +
