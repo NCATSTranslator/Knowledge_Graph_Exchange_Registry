@@ -336,6 +336,32 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
         await redirect(request, LANDING_PAGE)
 
 
+async def get_kge_fileset_submitted(request: web.Request) -> web.Response:
+    """File set submission confirmation page
+
+    :param request:
+    :type request: web.Request
+    """
+    session = await get_session(request)
+    if not session.empty:
+        
+        submitter_name = session['name']
+        kg_name = request.query.get('kg_name', default='')
+        fileset_version = request.query.get('fileset_version', default='')
+        
+        context = {
+            "kg_name": kg_name,
+            "fileset_version": fileset_version,
+            "submitter_name": submitter_name
+        }
+        response = aiohttp_jinja2.render_template('submitted.html', request=request, context=context)
+        return await with_session(request, response)
+    else:
+        # If session is not active, then just a await redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING_PAGE)
+
+
 async def get_kge_data_unavailable(request: web.Request) -> web.Response:
     """Data unavailable notification page
 
