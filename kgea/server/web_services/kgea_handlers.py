@@ -546,11 +546,7 @@ async def _validate_and_set_up_archive_target(
                 content_name, f"_{kgx_file_content}"
             )
     
-    object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
-        ROOT=file_set_location,
-        FILENAME=Path(content_name).stem,
-        EXTENSION=path.splitext(content_name)[1]
-    )
+    object_key = f"{file_set_location}{Path(content_name).stem}{path.splitext(content_name)[1]}"
     
     return file_set_location, object_key, file_type
 
