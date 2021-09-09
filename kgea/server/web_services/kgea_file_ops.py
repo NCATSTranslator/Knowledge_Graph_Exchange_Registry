@@ -1228,7 +1228,7 @@ def upload_from_link(
             }
         }
     ) as fin:
-        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}) as fout:
+        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
             read_so_far = 0
             while read_so_far < fin.buffer.content_length:
                 line = fin.read(1)
