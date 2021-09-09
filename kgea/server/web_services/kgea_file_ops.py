@@ -1169,6 +1169,9 @@ def get_url_file_size(url: str) -> int:
         except Exception as exc:
             logger.error("get_url_file_size(url:" + str(url) + "): " + str(exc))
 
+            # TODO: invalidate the size invariant to propagate a call error
+            return -1
+
     return size
 
 
@@ -1217,7 +1220,6 @@ def upload_from_link(
             'Content-Type': 'application/octet-stream'
         }
     }) as fin:
-        #
         with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
             for line in fin:
                 fout.write(line)
