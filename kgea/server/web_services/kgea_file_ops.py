@@ -561,6 +561,52 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+def get_pathless_file_size(data_file):
+    """
+    Takes an open file-like object, gets its end location (in bytes),
+    and returns it as a measure of the file size.
+
+    Traditionally, one would use a systems-call to get the size
+    of a file (using the `os` module). But `TemporaryFileWrapper`s
+    do not feature a location in the filesystem, and so cannot be
+    tested with `os` methods, as they require access to a filepath,
+    or a file-like object that supports a path, in order to work.
+
+    This function seeks the end of a file-like object, records
+    the location, and then seeks back to the beginning so that
+    the file behaves as if it was opened for the first time.
+    This way you can get a file's size before reading it.
+
+    (Note how we aren't using a `with` block, which would close
+    the file after use. So this function leaves the file open,
+    as an implicit non-effect. Closing is problematic for
+     TemporaryFileWrappers which wouldn't be operable again)
+
+    :param data_file:
+    :return size:
+    """
+    if not data_file.closed:
+        data_file.seek(0, 2)
+        size = data_file.tell()
+        print(size)
+        data_file.seek(0, 0)
+        return size
+    else:
+        return 0
+
+
+def get_object_key(object_location, filename):
+    """
+    :param object_location: S3 location of the persisted object
+    :param filename: filename of the S3 object
+    :return: object key of the S3 object
+    """
+    return Template('$ROOT$FILENAME$EXTENSION').substitute(
+        ROOT=object_location,
+        FILENAME=Path(filename).stem,
+        EXTENSION=splitext(filename)[1]
+    )
+
 
 def upload_file(data_file, file_name, bucket, object_location, client=None, config=None, callback=None):
     """Upload a file to an S3 bucket
