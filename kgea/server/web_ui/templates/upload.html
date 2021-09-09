@@ -130,7 +130,7 @@ async function UploadFile(source) {
             let fake_progress = 0;
 
             //window.alert("Direct URL transfer action endpoint: " + duta_endpoint);
-            await fetch(duta_endpoint,                {
+            await fetch(duta_endpoint, {
                     method: "GET",
                     credentials: "include"
                 }
@@ -216,7 +216,7 @@ async function UploadFile(source) {
             SetFileName("unknown")
 
             // .. then post the file name transferred
-            update_file_list(kgx_file_content, file_name, "Transferring...")
+            update_file_list(kgx_file_content, file_name, "Uploaded!")
 
             // document.getElementById('spinner").style.display = "none";
             document.getElementById("percentage").style.display = "none";
@@ -515,6 +515,8 @@ Uploading file, please don't navigate away from the page...</span>
             <p><small>
             <span id="ldBar_link" style="background: transparent; height: 1em; display:inline">
             </span>
+            <span id="percentage_link" class="progress-label" style="display:none;"></span>
+            <span id="spinner-text_link" style="font-size: smaller; display:none;">
         </td>
     </tr>
     <tr>

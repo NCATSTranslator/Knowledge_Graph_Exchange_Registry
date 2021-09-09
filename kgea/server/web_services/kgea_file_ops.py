@@ -16,6 +16,7 @@ import random
 import time
 from datetime import datetime
 import requests
+import validators
 
 from os.path import abspath, splitext
 from io import BytesIO
@@ -1199,9 +1200,24 @@ def upload_from_link(
     :param callback: e.g. progress monitor
     :param client: for S3
     """
-    # errors are ignored here as they usually talk about coding mismatches,
-    # which don't matter when transferring bytes directly
-    with smart_open.open(source, encoding="utf8") as fin:
+
+    # make sure we're getting a valid url
+    assert(validators.url(source))
+
+    """
+    Explaining the arguments for smart_open
+    * encoding - utf-8 to get rid of encoding errors
+    * compression - smart_open opens tar.gz files by default; unnecessary, maybe cause slowdown with big files.
+    * transport_params - modifying the headers will let us pick an optimal mimetype for transfer
+    """
+    # this will use the smart_open http client (given that `source` is a full url)
+    with smart_open.open(source, compression='disable', transport_params={
+        'headers': {
+            'Accept-Encoding': 'identity',
+            'Content-Type': 'application/octet-stream'
+        }
+    }) as fin:
+        #
         with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
             for line in fin:
                 fout.write(line)
