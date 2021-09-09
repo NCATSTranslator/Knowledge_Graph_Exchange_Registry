@@ -1214,18 +1214,28 @@ def upload_from_link(
     * transport_params - modifying the headers will let us pick an optimal mimetype for transfer
     """
     # this will use the smart_open http client (given that `source` is a full url)
-    with smart_open.open(source, compression='disable', transport_params={
-        'headers': {
-            'Accept-Encoding': 'identity',
-            # 'Content-Type': 'application/octet-stream'
+    with smart_open.open(source,
+        'r',
+        compression='disable',
+        encoding="utf8",
+        transport_params={
+            'headers': {
+                'Accept-Encoding': 'identity',
+                'Content-Type': 'application/octet-stream'
+            }
         }
-    }) as fin:
-        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
-            for line in fin:
-                fout.write(line)
+    ) as fin:
+        from pprint import pp
+        import inspect
+        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}) as fout:
+            pp(inspect.getmembers(fout))
+            read_so_far = 0
+            while read_so_far < fin.buffer.content_length:
+                line = fin.read(1)
                 if callback:
                     # pass increment of bytes
                     callback(len(line.encode(fin.encoding)))
+                read_so_far += 1
 
 
 @prepare_test

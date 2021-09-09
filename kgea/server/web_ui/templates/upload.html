@@ -200,6 +200,9 @@ async function UploadFile(source) {
                         if (received.end_position === -1) {
                             // error
                             throw Error('Upload failed! (End position set to -1 - check server logs for information)')
+                        } else if (received.current_position > received.end_position) {
+                            // error
+                            throw Error('Upload failed! (Current position is larger than end position?)')
                         }
                         if (!(received.current_position === received.end_position)) {
                             return await later(delay, askForProgress).then(execute)
@@ -419,6 +422,22 @@ async function DoneUploading(source) {
         }
     }
 }
+
+// Helper
+// Convert bytes into human-readable strings
+function getSize(size) {
+    const sizes = [' Bytes', ' KB', ' MB', ' GB',
+                 ' TB', ' PB', ' EB', ' ZB', ' YB'];
+
+    for (let i = 1; i < sizes.length; i++) {
+        if (size < Math.pow(1024, i))
+          return (Math.round((size / Math.pow(
+            1024, i - 1)) * 100) / 100) + sizes[i - 1];
+    }
+    return size;
+}
+
+
 </script>
 {% endblock %}
 {% block body %}{% endblock %}
