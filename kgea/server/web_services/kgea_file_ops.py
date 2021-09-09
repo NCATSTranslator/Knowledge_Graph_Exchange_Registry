@@ -8,7 +8,6 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 import io
-import itertools
 from sys import stderr
 from typing import Dict, Union, List, Optional
 from functools import wraps
@@ -374,7 +373,6 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
     :param kg_id:
     :return versions_per_kg: dict
     """
-
     kg_files = kg_files_in_location(bucket_name)
 
     def kg_id_to_versions(kg_file):
@@ -383,53 +381,39 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
         :param kg_file:
         :return:
         """
-        # to obtain the version, we need to break apart the path string
-        # the path string looks like <root directory>/<folder for the graph>/<version>/<files>...
-        # we take advantage of the fact that <version> comes right after <folder for the graph>, corresponding to kg_id
-
         root_path = str(list(Path(kg_file).parents)[-2])  # get the root directory (not local/`.`)
-        entry_string = str(Path(kg_file))                 # normalize delimiters to `/` (done automatically with `Path`)
-
-        # exclude the root directory and the final objects, plus their containment folders
-        for i in [root_path, 'node', 'edge', 'provider.yaml']:
+        stem_path = str(Path(kg_file).name)
+    
+        entry_string = str(Path(kg_file))  # normalize delimiters
+        for i in [root_path, stem_path, 'node', 'edge']:
             entry_string = entry_string.replace(i, '')
-
+    
+        import os
         kg_info = list(entry_string.split(os.sep))
         while '' in kg_info:
             kg_info.remove('')
-
-        # the first element should be the kg_id, the second element should be the fileset version
-        if len(kg_info) > 1:
-            return kg_info[0], kg_info[1]
-        else:
-            # NOTE: this shouldn't occur, BUT (at least in tests) we encounter empty buckets
-            #       with no version information. To ensure that this is a total function we support
-            #       the None case for no version `get_fileset_versions_available` should filter these
-            #       out (since `None` will transliterate as a string when passed to the browser, instead
-            #       of 'null' or an empty value, or nop, all of which would have been acceptable)
-            return kg_info[0], None
+    
+        _kg_id = kg_info[0]
+        _fileset_version = kg_info[1]
+    
+        return _kg_id, _fileset_version
 
     versions_per_kg = {}
-    version_kg_pairs = list(kg_id_to_versions(kg_file) for kg_file in kg_files if len(kg_file) > 0)
+    version_kg_pairs = set(
+        kg_id_to_versions(kg_file) for kg_file in kg_files if kg_id and kg_file[0] is kg_id or True)
 
-    for kg_id, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
-        # guarantee uniqueness of `version`
-        versions_per_kg[kg_id] = set()
-
-        # add versions and filter out non-versions (leaving kg_ids with no versions as empty)
-        for kg_id, version in group:
-            if version is not None:
-                versions_per_kg[kg_id].add(version)
-
-        # project back into list (which is more sensible in transport between server and client)
-        versions_per_kg[kg_id] = list(versions_per_kg[kg_id])
-
+    import itertools
+    for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
+        versions_per_kg[key] = []
+        for thing in group:
+            versions_per_kg[key].append(thing[1])
+    
     return versions_per_kg
 
 
 @prepare_test
 @prepare_test_random_object_location
-def test_get_fileset_versions_available(test_object_location, test_bucket=TEST_BUCKET):
+def test_get_fileset_versions_available(test_bucket=TEST_BUCKET):
     try:
         fileset_version_map = get_fileset_versions_available(bucket_name=test_bucket)
         assert (type(fileset_version_map) is dict and len(fileset_version_map) > 0)
@@ -472,7 +456,7 @@ def create_presigned_url(bucket, object_key, expiration=86400) -> Optional[str]:
 
 
 @prepare_test
-def test_create_presigned_url(test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
+def test_create_presigned_url(test_bucket=TEST_BUCKET):
     try:
         # TODO: write tests
         create_presigned_url(bucket=test_bucket, object_key=get_object_location(TEST_KG_NAME))
