@@ -64,7 +64,7 @@ from .kgea_file_ops import (
     get_default_date_stamp,
     with_subfolder,
     infix_string,
-    s3_client
+    s3_client, get_pathless_file_size, get_object_key
 )
 
 from kgea.server.web_services.catalog import (
