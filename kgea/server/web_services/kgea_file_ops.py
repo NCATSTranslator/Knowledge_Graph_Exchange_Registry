@@ -1207,13 +1207,16 @@ def upload_from_link(
     # make sure we're getting a valid url
     assert(validators.url(source))
 
+    # this will use the smart_open http client (given that `source` is a full url)
     """
     Explaining the arguments for smart_open
     * encoding - utf-8 to get rid of encoding errors
     * compression - smart_open opens tar.gz files by default; unnecessary, maybe cause slowdown with big files.
     * transport_params - modifying the headers will let us pick an optimal mimetype for transfer
+    
+    The block is written in a way that tries to minimize blocking access to the requests and files, instead opting
+    to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
     """
-    # this will use the smart_open http client (given that `source` is a full url)
     with smart_open.open(source,
         'r',
         compression='disable',
@@ -1225,10 +1228,7 @@ def upload_from_link(
             }
         }
     ) as fin:
-        from pprint import pp
-        import inspect
         with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}) as fout:
-            pp(inspect.getmembers(fout))
             read_so_far = 0
             while read_so_far < fin.buffer.content_length:
                 line = fin.read(1)
