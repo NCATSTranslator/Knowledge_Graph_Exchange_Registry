@@ -489,7 +489,7 @@ async def _validate_and_set_up_archive_target(
         # must not be empty string
         await report_error(
             request,
-            "_validate_and_set_up_archive_target(): empty or invalid KGX file content type: '" + str(kgx_file_content) + "'?"
+            f"_validate_and_set_up_archive_target(): empty or invalid KGX file content type: '{kgx_file_content}'?"
         )
     
     if not content_name:
