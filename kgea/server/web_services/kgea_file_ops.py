@@ -556,7 +556,7 @@ def package_file_manifest(tar_path):
 
 
 @prepare_test
-def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+def test_package_manifest():
     try:
         with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             tar_path = tardir(Path(test_file.name).parent, Path(test_file.name).stem)
@@ -1104,7 +1104,7 @@ def get_archive_contents(bucket_name: str) -> \
 def test_get_archive_contents(test_bucket=TEST_BUCKET):
     print("\ntest_get_archive_contents() test output:\n", file=stderr)
     contents = get_archive_contents(test_bucket)
-    return True
+    print(str(contents), file=stderr)
 
 
 def get_url_file_size(url: str) -> int:
