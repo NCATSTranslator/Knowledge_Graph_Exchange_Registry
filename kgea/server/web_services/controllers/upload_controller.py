@@ -42,7 +42,7 @@ async def setup_upload_context(
     )
 
 
-async def transfer_from_url(
+async def kge_transfer_from_url(
         request: web.Request,
         kg_id: str,
         fileset_version: str,
