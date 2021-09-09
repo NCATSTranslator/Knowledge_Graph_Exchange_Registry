@@ -363,6 +363,9 @@ async function UploadFile(source) {
                         // defined, and will stop once received.current_position
                         // is equal to j.end_position (because the file has
                         // been completely read and uploaded).
+                        if (received.end_position === -1) {
+                            throw Error('Upload failed (end position returned -1: check server logs)')
+                        }
                         if (!(received.current_position === received.end_position)) {
                             return await later(delay, askForProgress).then(execute)
                         }
