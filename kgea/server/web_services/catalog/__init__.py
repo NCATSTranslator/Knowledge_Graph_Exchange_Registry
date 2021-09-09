@@ -74,6 +74,8 @@ from kgea.config import (
     FILE_SET_METADATA_FILE
 )
 
+from kgea.server.web_services import KgeaSession
+
 from kgea.server.web_services.models import (
     KgeMetadata,
     KgeFileSetStatusCode,
@@ -1955,7 +1957,7 @@ class KgeArchiver:
         Post processing of KgeArchiver (singleton) instances.
         """
         # Shut down KgeArchiver background processing here
-        await self.shutdown_workers()
+        KgeaSession.get_event_loop().run_until_complete(self.shutdown_workers())
     
     async def worker(self, task_id=None):
         """
@@ -2190,7 +2192,7 @@ class KgxValidator:
         Post processing of KgxValidator (singleton) instances.
         """
         # Shut down KgxValidator background processing here
-        await self.shutdown_tasks()
+        KgeaSession.get_event_loop().run_until_complete(self.shutdown_tasks())
 
     def get_validation_queue(self) -> Queue:
         """
