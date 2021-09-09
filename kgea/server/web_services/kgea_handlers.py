@@ -64,7 +64,7 @@ from .kgea_file_ops import (
     get_default_date_stamp,
     with_subfolder,
     infix_string,
-    s3_client, get_pathless_file_size, get_object_key
+    s3_client, get_pathless_file_size, get_object_key, get_url_file_size, upload_from_link
 )
 
 from kgea.server.web_services.catalog import (
@@ -1063,7 +1063,7 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
             " and 'fileset_version' has value " + str(fileset_version) + "... both must be non-null."
         )
 
-    logger.debug("Entering download_kge_file_set_archive(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
+    logger.debug(f"Entering download_kge_file_set_archive(kg_id: '{kg_id}', fileset_version: '{fileset_version}')")
 
     session = await get_session(request)
     if not session.empty:
@@ -1093,7 +1093,7 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
             # )
             await report_not_found(
                 request,
-                "download_kge_file_set_archive(): archive not (yet) available for {}.{}".format(kg_id, fileset_version)
+                f"download_kge_file_set_archive(): archive not (yet) available for {kg_id}.{fileset_version}"
             )
 
         # archive = get_object_from_bucket(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key)
@@ -1148,7 +1148,8 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fi
         )
 
     logger.debug(
-        "Entering download_kge_file_set_archive_sha1hash(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
+        f"Entering download_kge_file_set_archive_sha1hash(kg_id: '{kg_id}', fileset_version: '{fileset_version}')"
+    )
 
     session = await get_session(request)
     if not session.empty:

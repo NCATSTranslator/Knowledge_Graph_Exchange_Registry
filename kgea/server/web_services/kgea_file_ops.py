@@ -126,8 +126,13 @@ Test Parameters + Decorator
 """
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
-TEST_FILE_DIR = './test/data/'
+TEST_FILESET_VERSION = '4.3'
+TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
+
+DIRECT_TRANSFER_TEST_LINK = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
+DIRECT_TRANSFER_TEST_LINK_FILENAME = 'sri-reference-kg_nodes.tsv'
+SMALL_TEST_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
 
 
 def prepare_test(func):
@@ -563,6 +568,7 @@ def test_package_manifest(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         return False
     return True
 
+
 def get_pathless_file_size(data_file):
     """
     Takes an open file-like object, gets its end location (in bytes),
@@ -682,7 +688,7 @@ def upload_file_multipart(
 
     KB = 1024
     MB = KB * KB
-    GB = MB ** 3
+    # GB = MB ** 3
 
     mp_threshold = MP_THRESHOLD * MB
     mp_chunk = MP_CHUNK * MB
@@ -1223,9 +1229,9 @@ def test_upload_from_link(
     
     try:
         upload_from_link(
-            url=test_link,
             bucket=test_bucket,
             object_key=object_key,
+            source=test_link,
             callback=progress_monitor
         )
     except RuntimeError as rte:
