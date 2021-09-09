@@ -1218,7 +1218,7 @@ def upload_from_link(
     to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
     """
     with smart_open.open(source,
-        'r',
+        'rb',
         compression='disable',
         encoding="utf8",
         transport_params={
@@ -1228,13 +1228,15 @@ def upload_from_link(
             }
         }
     ) as fin:
-        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}) as fout:
+        with smart_open.open(f"s3://{bucket}/{object_key}", 'wb', transport_params={'client': client}) as fout:
             read_so_far = 0
             while read_so_far < fin.buffer.content_length:
                 line = fin.read(1)
+                encoded = line.encode(fin.encoding)
+                fout.write(encoded)
                 if callback:
                     # pass increment of bytes
-                    callback(len(line.encode(fin.encoding)))
+                    callback(len(encoded))
                 read_so_far += 1
 
 
