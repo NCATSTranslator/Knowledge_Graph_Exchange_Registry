@@ -275,6 +275,9 @@ async function UploadFile(source) {
                 }
 
             })
+            .then(async foo => {
+                console.log({event:"upload done"})
+            })
 
             document.getElementById("content_from_local_file").disabled = false;
             document.getElementById("content_file").value = null;
