@@ -15,6 +15,8 @@ from functools import wraps
 from string import Template
 import random
 import time
+
+import requests
 import smart_open
 from datetime import datetime
 
@@ -1096,6 +1098,140 @@ def get_archive_contents(bucket_name: str) -> \
 def test_get_archive_contents(test_bucket=TEST_BUCKET):
     print("\ntest_get_archive_contents() test output:\n", file=stderr)
     contents = get_archive_contents(test_bucket)
+    return True
+
+
+def get_url_file_size(url: str) -> int:
+    """
+    Takes a URL specified resource, and gets its size (in bytes)
+
+    :param url: resource whose size is being queried
+    :return size:
+    """
+    size: int = 0
+    if url:
+        try:
+            # fetching the header information
+            info = requests.head(url)
+            content_length = info.headers['Content-Length']
+            size: int = int(content_length)
+            return size
+        except Exception as exc:
+            logger.error("get_url_file_size(url:" + str(url) + "): " + str(exc))
+    
+    return size
+
+
+def test_get_url_file_size():
+    url_resource_size: int = get_url_file_size(url=SMALL_TEST_URL)
+    assert (url_resource_size > 0)
+    url_resource_size: int = get_url_file_size(url="https://nonexistent.url")
+    assert (url_resource_size == 0)
+    url_resource_size = get_url_file_size(url='')
+    assert (url_resource_size == 0)
+    url_resource_size = get_url_file_size(url='abc')
+    assert (url_resource_size == 0)
+    return True
+
+
+def upload_from_link(
+        bucket,
+        object_key,
+        source,
+        client=s3_client(),
+        callback=None
+):
+    """
+    Transfers a file resource to S3 from a URL location.
+
+    :param bucket: in S3
+    :param object_key: of target S3 object
+    :param source: url of resource to be uploaded to S3
+    :param callback: e.g. progress monitor
+    :param client: for S3
+    """
+    # errors are ignored here as they usually talk about coding mismatches,
+    # which don't matter when transferring bytes directly
+    with smart_open.open(source) as fin:
+        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}) as fout:
+            for line in fin:
+                fout.write(line)
+                if callback:
+                    # pass increment of bytes
+                    callback(len(line.encode(fin.encoding)))
+
+
+@prepare_test
+def test_upload_from_link(
+        test_bucket=TEST_BUCKET,
+        test_link=DIRECT_TRANSFER_TEST_LINK,
+        test_link_filename=DIRECT_TRANSFER_TEST_LINK_FILENAME,
+        test_kg=TEST_KG_NAME,
+        test_fileset_version=TEST_FILESET_VERSION,
+        logging=False
+):
+    progress_monitor = None
+    
+    if logging:
+        class ProgressPercentage(object):
+            """
+            Class to track percentage completion of an upload.
+            """
+            
+            REPORTING_INCREMENT: int = 100000
+            
+            def __init__(self, filename, file_size, cont=None):
+                self._filename = filename
+                self.size = file_size
+                self._seen_so_far = 0
+                self._report_threshold = self.REPORTING_INCREMENT
+                self.cont = cont
+            
+            def get_file_size(self):
+                """
+                :return: file size of the file being uploaded.
+                """
+                return self.size
+            
+            def __call__(self, bytes_amount):
+                # To simplify we'll assume this is hooked up
+                # to a single filename.
+                # with self._lock:
+                self._seen_so_far += bytes_amount
+                
+                if self.cont is not None:
+                    # cont lets us inject e.g. logging
+                    if self._seen_so_far > self._report_threshold:
+                        self.cont(self)
+                        self._report_threshold += self.REPORTING_INCREMENT
+        
+        # url = "https://speed.hetzner.de/100MB.bin"
+        # just a dummy file URL
+        info = requests.head(test_link)
+        # fetching the header information
+        print(info.headers['Content-Length'])
+        
+        progress_monitor = ProgressPercentage(
+            test_link_filename,
+            info.headers['Content-Length'],
+            cont=lambda progress: print('upload progress for link {} so far:'.format(test_link), progress._seen_so_far)
+        )
+    
+    print("\ntest_upload_from_link() test output:\n", file=stderr)
+    
+    object_key = f"{test_kg}/{test_fileset_version}/{test_link_filename}"
+    
+    try:
+        upload_from_link(
+            url=test_link,
+            bucket=test_bucket,
+            object_key=object_key,
+            callback=progress_monitor
+        )
+    except RuntimeError as rte:
+        print('Failed?: ' + str(rte))
+        return False
+    print('Success!')
     return True
 
 
