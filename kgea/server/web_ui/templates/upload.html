@@ -121,7 +121,9 @@ async function UploadFile(source) {
             formData.append("content_url", content_url);
 
             let file_name = document.getElementById("file_name").value;
-
+            // document.getElementById('spinner').style.display = "inline-block";
+            document.getElementById('percentage_link').style.display = "inline-block";
+            document.getElementById('spinner-text_link').style.display = "inline-block";
             $("#ldBar_link").css('display', 'block')
 
             // somehow post the direct file URL transfer here?
@@ -146,7 +148,7 @@ async function UploadFile(source) {
             .then(async upload_token => {
                 console.log('attempting to trigger progress monitoring with progress bar')
                 // use mutual recursion to create a progress element that always updates the exact amount required
-                document.getElementById('percentage').textContent = `(0.0%)`;
+                document.getElementById('percentage_link').textContent = `(0.0%)`;
 
                 let delay = 1000;
 
@@ -167,7 +169,7 @@ async function UploadFile(source) {
                                 progress_ratio = fake_progress / 1000
                             }
                             let percentage = Number(progress_ratio * 100).toFixed(1);
-                            document.getElementById('percentage').textContent = `(${percentage}%)`;
+                            document.getElementById('percentage_link').textContent = `(${percentage}%)`;
                             let progressbar = $("#ldBar_link");
                             progressbar.progressbar({
                                 // ceil to err on the side of displaying progress
@@ -202,33 +204,39 @@ async function UploadFile(source) {
                         if (!(received.current_position === received.end_position)) {
                             return await later(delay, askForProgress).then(execute)
                         }
+                        // success
+                        return true;
                     })
                 }
 
                 // put the pieces together
                 try {
-                    return await later(delay, askForProgress).then(execute);
+                    return await later(delay, askForProgress).then(execute).finally(success => {
+                        if (success === true) {
+                            // .. then clear the direct URL fields?
+                            document.getElementById("content_url").value = ""
+                            document.getElementById("file_name").value = ""
+                            SetFileName("unknown")
+
+                            // .. then post the file name transferred
+                            update_file_list(kgx_file_content, file_name, "Uploaded!")
+
+                            // document.getElementById('spinner").style.display = "none";
+                            document.getElementById("percentage_link").style.display = "none";
+                            document.getElementById("spinner-text_link").style.display = "none";
+                            $("#ldBar_link").css('display', 'none')
+                            $("#ldBar_link").progressbar({
+                                value: 0
+                            })
+                        }
+                    });
                 } catch (e) {
                     console.error(e);
                 }
 
             })
 
-            // .. then clear the direct URL fields?
-            document.getElementById("content_url").value = ""
-            document.getElementById("file_name").value = ""
-            SetFileName("unknown")
 
-            // .. then post the file name transferred
-            update_file_list(kgx_file_content, file_name, "Uploaded!")
-
-            // document.getElementById('spinner").style.display = "none";
-            document.getElementById("percentage").style.display = "none";
-            document.getElementById("spinner-text").style.display = "none";
-            $("#ldBar_link").css('display', 'none')
-            $("#ldBar_link").progressbar({
-                value: 0
-            })
 
         } else {
             console.log("KGX content file URL is undefined?");
