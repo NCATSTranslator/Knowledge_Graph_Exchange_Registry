@@ -11,7 +11,9 @@ import io
 from sys import stderr
 from typing import Dict, Union, List, Optional
 from functools import wraps
-from string import Template
+
+import logging
+
 import random
 import time
 
@@ -44,10 +46,7 @@ from kgea.config import (
     FILE_SET_METADATA_FILE
 )
 
-import logging
-
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
@@ -187,10 +186,7 @@ def get_object_location(kg_id):
     NOTE: Must be kept deterministic. No date times or
     randomness in this method; they may be appended afterwards.
     """
-    location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
-        DIRECTORY_NAME=_KGEA_APP_CONFIG['aws']['s3']['archive-directory'],
-        KG_NAME=kg_id
-    )
+    location = f"{_KGEA_APP_CONFIG['aws']['s3']['archive-directory']}/{kg_id}/"
     return location
 
 
@@ -480,13 +476,7 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     :param attachment:
     :return:
     """
-    return Template("$ROOT/$KG_ID/$KG_VERSION$SUB_DIR$ATTACHMENT").substitute(
-        ROOT=root,
-        KG_ID=kg_id,
-        KG_VERSION=fileset_version,
-        SUB_DIR=subdir + '/',
-        ATTACHMENT=attachment
-    )
+    return f"{root}/{kg_id}/{fileset_version}{subdir + '/'}{attachment}"
 
 
 def tardir(directory, name):
@@ -594,50 +584,33 @@ def get_object_key(object_location, filename):
     :param filename: filename of the S3 object
     :return: object key of the S3 object
     """
-    return Template('$ROOT$FILENAME$EXTENSION').substitute(
-        ROOT=object_location,
-        FILENAME=Path(filename).stem,
-        EXTENSION=splitext(filename)[1]
-    )
+    return f"{object_location}{Path(filename).stem}{splitext(filename)[1]}"
 
 
-def upload_file(data_file, file_name, bucket, object_location, client=None, config=None, callback=None):
+def upload_file(bucket, object_key, source, client=s3_client(), config=None, callback=None):
     """Upload a file to an S3 bucket
 
-    :param client:
-    :param data_file: File to upload (can be read in binary mode)
-    :param file_name: Filename to use
     :param bucket: Bucket to upload to
-    :param object_location: root S3 object location name.
-    :param config: a means of configuring the network call
+    :param object_key: target S3 object key of the file.
+    :param source: file to be uploaded (can be read in binary mode)
     :param client: The s3 client to use. Useful if needing to make a new client for the sake of thread safety.
+    :param config: a means of configuring the network call
     :param callback: an object that implements __call__, that runs on each file block uploaded (receiving byte data.)
-
-    :return: object_key
-    :rtype: str
 
     :raises RuntimeError if the S3 file object upload call fails
     """
-    object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
-        ROOT=object_location,
-        FILENAME=Path(file_name).stem,
-        EXTENSION=splitext(file_name)[1]
-    )
-    if client is None:
-        client = s3_client()
+    
     # Upload the file
     try:
         # TODO: can these S3 calls measure the size of the file which was uploaded?
         if config is None:
-            client.upload_fileobj(data_file, bucket, object_key, Callback=callback)
+            client.upload_fileobj(source, bucket, object_key, Callback=callback)
         else:
-            client.upload_fileobj(data_file, bucket, object_key, Config=config, Callback=callback)
+            client.upload_fileobj(source, bucket, object_key, Config=config, Callback=callback)
     except Exception as exc:
         logger.error("kgea file ops: upload_file() exception: " + str(exc))
         raise RuntimeError("kgea file ops: upload_file() exception: " + str(exc))
-
-    return object_key
-
+    
 
 def upload_file_multipart(
         data_file,

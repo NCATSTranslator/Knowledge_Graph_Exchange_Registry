@@ -4,18 +4,17 @@ KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cogn
 import sys
 from os import getenv
 from typing import Dict
+import logging
+
 import json
 
-from base64  import b64encode
+from base64 import b64encode
 from uuid import uuid4
-
-import logging
 
 from kgea.config import get_app_config
 from kgea.server.web_services.kgea_session import KgeaSession
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 # Master flag for simplified local development
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -27,14 +26,17 @@ _state_cache = []
 
 
 def authentication_url(mode: str) -> str:
+    """
 
+    :param mode:
+    :return:
+    """
     state = str(uuid4())
     _state_cache.append(state)
 
     host = _KGEA_APP_CONFIG['aws']['cognito']['host']
     client_id = _KGEA_APP_CONFIG['aws']['cognito']['client_id']
-    redirect_uri = _KGEA_APP_CONFIG['site_hostname'] + \
-                   _KGEA_APP_CONFIG['aws']['cognito']['login_callback']
+    redirect_uri = _KGEA_APP_CONFIG['site_hostname'] + _KGEA_APP_CONFIG['aws']['cognito']['login_callback']
 
     url = host + '/' + mode + '?response_type=code&client_id=' + client_id + \
         '&redirect_uri=' + redirect_uri + '&state=' + state + \

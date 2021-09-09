@@ -19,9 +19,17 @@ dictConfig({
             'formatter': 'default'
         }
     },
-    'root': {
-        'level': 'DEBUG',
-        'handlers': ['tostdout']
+    'loggers': {
+        '': { # root logger
+            'level': 'INFO',
+            'handlers': ['tostdout'],
+            'propagate': False
+        },
+        "kgea": {
+            'level': 'INFO',
+            'handlers': ['tostdout'],
+            'propagate': False
+        }
     }
 })
 connexion.apps.aiohttp_app.logger=logging.getLogger(__name__)

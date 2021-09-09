@@ -2,11 +2,13 @@
 Knowledge Graph Exchange Archive backend web service handlers.
 """
 import sys
-import uuid
-
 from os import getenv, path
 from pathlib import Path
 from typing import Dict, Tuple, Any
+import logging
+
+import uuid
+import time
 
 from .models import (
     KgeMetadata,
@@ -55,7 +57,6 @@ from .kgea_session import (
 )
 
 from .kgea_file_ops import (
-    upload_file,
     create_presigned_url,
     kg_files_in_location,
     get_object_location,
@@ -64,7 +65,12 @@ from .kgea_file_ops import (
     get_default_date_stamp,
     with_subfolder,
     infix_string,
-    s3_client, get_pathless_file_size, get_object_key, get_url_file_size, upload_from_link
+    s3_client,
+    get_object_key,
+    get_pathless_file_size,
+    get_url_file_size,
+    upload_file,
+    upload_from_link
 )
 
 from kgea.server.web_services.catalog import (
@@ -73,7 +79,7 @@ from kgea.server.web_services.catalog import (
     KgeFileSet, KgeFileType
 )
 
-import logging
+logger = logging.getLogger(__name__)
 
 #############################################################
 # Configuration
@@ -81,10 +87,6 @@ import logging
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
-
-logger = logging.getLogger(__name__)
-
-logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
@@ -236,7 +238,12 @@ async def register_kge_knowledge_graph(request: web.Request):
                 # Also publish a new 'provider.yaml' metadata file to the KGE Archive
                 provider_metadata_key = knowledge_graph.publish_provider_metadata()
                 
-                assert(provider_metadata_key is not None)
+                if not provider_metadata_key:
+                    await report_not_found(
+                        request,
+                        "register_kge_knowledge_graph(): provider metadata could not be published?",
+                        active_session=True
+                    )
 
                 await redirect(
                     request,
@@ -704,7 +711,10 @@ class ProgressPercentage(object):
         # used to monitor file upload/transfer metadata
         self.transfer_tracker = transfer_tracker
         self._seen_so_far = 0
-    
+        self.dt_log_min = 10
+        self.t0 = time.time()
+        self.t_log_prev = self.t0
+
     def get_file_size(self):
         """
         :return: file size of the file being uploaded.
@@ -714,6 +724,14 @@ class ProgressPercentage(object):
     def __call__(self, bytes_amount):
         self._seen_so_far += bytes_amount
         self.transfer_tracker['current_position'] = self._seen_so_far
+        t_now = time.time()
+        dt = t_now-self.t0+0.001
+        mb = self._seen_so_far / (1024*1024)
+        mbps = mb / dt
+        dt_log = t_now-self.t_log_prev
+        if(dt_log >= self.dt_log_min):
+            logger.info("ProgressPercentage mbps={} mb={}".format(mbps, mb))
+            self.t_log_prev = t_now
 
 
 _num_s3_threads = 16

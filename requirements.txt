@@ -1,16 +1,11 @@
 # TODO: temporary patched version of Connexion for proper form upload support
 # connexion
 -e git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion
-
-# Until the new release has all the latest features, we pull KGX directly from master or better
-#kgx >= 1.4.0
--e git+https://github.com/biolink/kgx.git@master#egg=kgx
-
-multidict~=4.7.6
-
 # Bug fix and KGE troubleshooting patches to s3-tar
 # We can revert to master on the original project once PR processed (at https://github.com/xtream1101/s3-tar/pull/11)
 -e git+https://github.com/STARInformatics/s3-tar.git@troubleshoot_s3_access#egg=s3-tar
+
+multidict~=4.7.6
 
 swagger-ui-bundle == 0.0.6
 aiohttp_jinja2 == 1.2.0
@@ -69,3 +64,5 @@ docutils~=0.16
 numpy~=1.21.1
 validators~=0.18.2
 smart_open>=5.1.0
+
+kgx
