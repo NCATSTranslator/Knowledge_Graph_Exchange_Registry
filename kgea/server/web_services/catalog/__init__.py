@@ -81,6 +81,7 @@ from kgea.server.web_services.models import (
 from kgea.server.web_services.kgea_file_ops import (
     get_default_date_stamp,
     get_object_location,
+    get_object_key,
     get_archive_contents,
     with_version,
     load_s3_text_file,
@@ -1493,11 +1494,11 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     test_file1.seek(0)
     size = test_file1.tell()
     file_name = 'MickeyMouseFanClub_nodes.tsv'
+    object_key = get_object_key(file_set_location, file_name)
     key = upload_file(
-        test_file1,
-        file_name,
-        _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-        file_set_location
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        object_key=object_key,
+        source=test_file1
     )
     fs.add_data_file(
         object_key=key,
@@ -1513,11 +1514,11 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     test_file2.seek(0)
     size = test_file2.tell()
     file_name = 'MinnieMouseFanClub_edges.tsv'
+    object_key = get_object_key(file_set_location, file_name)
     key = upload_file(
-        test_file2,
-        file_name,
-        _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-        file_set_location
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        object_key=object_key,
+        source=test_file2
     )
     fs.add_data_file(
         object_key=key,
@@ -1552,14 +1553,12 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
             test_tarfile.add(test_file3.name, arcname=test_name['nodes'])
             test_tarfile.add(test_file4.name, arcname=test_name['edges'])
         with open(tempdir+'/'+tar_file_name, 'rb') as test_tarfile1:
-
+            object_key = get_object_key(file_set_location, test_name['archive'])
             key = upload_file(
-                test_tarfile1,
-                test_name['archive'],
-                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                file_set_location
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                object_key=object_key,
+                source=test_tarfile1
             )
-
             fs.add_data_file(
                 object_key=key,
                 file_type=KgeFileType.KGX_DATA_FILE,
@@ -1611,25 +1610,23 @@ def add_to_s3_repository(
     :param fileset_version: version (optional)
     :return: str object key of the uploaded file
     """
-    if fileset_version:
-        file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
-    else:
-        file_set_location = get_object_location(kg_id)
 
-    uploaded_file_object_key: str = ''
     if text:
+        if fileset_version:
+            file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
+        else:
+            file_set_location = get_object_location(kg_id)
         data_bytes = text.encode('utf-8')
-        uploaded_file_object_key = upload_file(
-            data_file=BytesIO(data_bytes),
-            file_name=file_name,
+        object_key = get_object_key(file_set_location, file_name)
+        upload_file(
             bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            object_location=file_set_location
+            object_key=object_key,
+            source=BytesIO(data_bytes)
         )
+        return object_key
     else:
-        logger.warning("add_to_s3_archive(): Empty text string argument? Can't archive a vacuum!")
-
-    # could be an empty object key
-    return uploaded_file_object_key
+        logger.warning("add_to_s3_repository(): Empty text string argument? Can't archive a vacuum!")
+        return ''
 
 
 def get_github_token() -> Optional[str]:

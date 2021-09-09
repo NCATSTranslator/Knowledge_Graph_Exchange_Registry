@@ -657,11 +657,11 @@ def upload_file_multipart(
         use_threads=True,
         max_concurrency=concurrency
     )
-    return upload_file(
-        data_file,
-        file_name,
-        bucket,
-        object_location,
+    object_key = get_object_key(object_location, file_name)
+    upload_file(
+        bucket=bucket,
+        object_key=object_key,
+        source=data_file,
         client=client,
         config=transfer_config,
         callback=callback
@@ -685,7 +685,12 @@ def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
             packaged_file = package_file(name=test_file.name, target_file=test_file)
-            object_key = upload_file(packaged_file, test_file.name, test_bucket, content_location)
+            object_key = get_object_key(content_location, test_file.name)
+            upload_file(
+                bucket=test_bucket,
+                object_key=object_key,
+                source=packaged_file,
+            )
             assert (object_key in kg_files_in_location(test_bucket, content_location))
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -739,7 +744,12 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         test_location, time_created = with_version(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
         with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            object_key = upload_file(test_file, test_file.name, test_bucket, test_location)
+            object_key = get_object_key(test_location, test_file.name)
+            upload_file(
+                bucket=test_bucket,
+                object_key=object_key,
+                source=test_file,
+            )
             assert (object_key in kg_files_in_location(test_bucket, test_location))
             assert (time_created in object_key)
 
