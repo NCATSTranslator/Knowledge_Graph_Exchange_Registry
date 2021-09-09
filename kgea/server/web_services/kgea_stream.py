@@ -1,6 +1,10 @@
-from string import Template
+"""
+KGE Archive data file streaming.
+"""
 from os import getenv
 from typing import List, Dict
+
+import logging
 
 from aiohttp import web
 import smart_open
@@ -25,15 +29,11 @@ from kgea.server.web_services.kgea_file_ops import s3_client
 
 from .kgea_session import KgeaSession
 
-import logging
-
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
 RUN_TESTS = getenv('RUN_TESTS', default=False)
 
 logger = logging.getLogger(__name__)
-if DEV_MODE:
-    logger.setLevel(logging.DEBUG)
 
 
 # Allow for a default maximum of 5 minutes to transfer a relatively large file
@@ -41,6 +41,7 @@ KB = 1024
 MB = KB * KB
 
 S3_CHUNK_SIZE = 8 * MB  # MPU threshold 8 MB at a time for production AWS transfers
+# S3_CHUNK_SIZE = 7 * 1024 ** 2
 
 URL_TRANSFER_TIMEOUT = 300   # default timeout, in seconds
 
@@ -79,32 +80,29 @@ async def stream_from_url(url) -> AsyncIterable:
     #     yield data
 
 
-S3_CHUNK_SIZE = 7 * 1024 ** 2
-
-
 async def stream_from_url2(url):
+    """
+
+    :param url:
+    """
     with smart_open.open(url, 'rb') as file:
         for line in file:
             yield line
 
 
+# https://github.com/RaRe-Technologies/smart_open/blob/a9b127de79063f6df6f20272076fb304db2904ad/smart_open/s3.py#L227
 async def merge_file_from_url2(test_url):
+    """
+
+    :param test_url:
+    """
     # stream content *into* S3 (write mode) using a custom session
-    target_url = Template('s3://$BUCKET/$DIRECTORY/$FILENAME$EXTENSION').substitute(
-        BUCKET=TEST_BUCKET,
-        DIRECTORY=TEST_KG_NAME,
-        FILENAME='LICENSE',
-        EXTENSION=''
-    )
+    target_url = f"s3://{TEST_BUCKET}/{TEST_KG_NAME}/{'LICENSE'}{''}"
     transport_params = {'client': s3_client()}
     i = 0
-    # https://github.com/RaRe-Technologies/smart_open/blob/a9b127de79063f6df6f20272076fb304db2904ad/smart_open/s3.py#L227
     with smart_open.s3.open(
             TEST_BUCKET,
-            Template('$DIRECTORY/$FILENAME').substitute(
-                DIRECTORY=TEST_KG_NAME,
-                FILENAME='LICENSE'
-            ),
+            f"{TEST_KG_NAME}/{'LICENSE'}",
             'wb',
             client=s3_client(),
             min_part_size=S3_CHUNK_SIZE
@@ -200,10 +198,7 @@ def transfer_file_from_url(
     :return: True if file was uploaded, else False
     """
 
-    object_key = Template('$ROOT$FILENAME').substitute(
-        ROOT=object_location,
-        FILENAME=file_name
-    )
+    object_key = f"{object_location}{file_name}"
 
     # Attempt to transfer the file from the URL
     mpu = None

@@ -1,5 +1,9 @@
+"""
+KGE Archive Back End Web Services Handlers
+"""
 from typing import List, Dict
 from os import getenv
+import logging
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -45,13 +49,10 @@ from .kgea_users import (
 )
 from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
 
-import logging
-
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()

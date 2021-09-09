@@ -1,3 +1,6 @@
+"""
+KGE Web User Interface Application Code package.
+"""
 from os import getenv, path
 import logging
 
@@ -6,8 +9,6 @@ from kgea.server.web_services.kgea_session import KgeaSession
 import jinja2
 import aiohttp_jinja2
 from aiohttp import web
-# import aiohttp_cors
-
 
 from .kgea_ui_handlers import (
     kge_landing_page,
@@ -25,7 +26,10 @@ from .kgea_ui_handlers import (
 
 
 async def make_app():
+    """
 
+    :return:
+    """
     app = web.Application()
 
     # Configure Jinja2 template map
@@ -57,7 +61,9 @@ async def make_app():
 
 
 def main():
-    
+    """
+    Main application entry point.
+    """
     # Master flag for local development runs bypassing
     # authentication and other production processes
     DEV_MODE = getenv('DEV_MODE', default=False)

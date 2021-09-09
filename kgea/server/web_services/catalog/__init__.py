@@ -15,16 +15,16 @@ KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 from sys import stderr, exc_info
 import traceback
-
 from os import getenv
-
 from os.path import dirname, abspath
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
 from string import punctuation
 from io import BytesIO, StringIO
+import logging
 from datetime import date
 import time
 import re
+
 import threading
 import asyncio
 from asyncio import (
@@ -91,11 +91,9 @@ from kgea.server.web_services.kgea_file_ops import (
     decompress_in_place
 )
 
-from kgea.server.web_services.sha_utils import sha1Manifest
+from kgea.server.web_services.sha_utils import sha1_manifest
 
-import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 DEV_MODE = getenv('DEV_MODE', default=False)
 OVERRIDE = True
@@ -2100,7 +2098,7 @@ class KgeArchiver:
                 # they download and validate the archive.
                 with smart_open.open(archive_s3_path, 'rb', compression='disable') as archive_file_key:
     
-                    sha1sum = sha1Manifest(archive_file_key)
+                    sha1sum = sha1_manifest(archive_file_key)
                     sha1sum_value = sha1sum[archive_file_key.name]
                     sha1tsv = '{}_{}.sha1.txt'.format(file_set.kg_id, file_set.fileset_version)
     

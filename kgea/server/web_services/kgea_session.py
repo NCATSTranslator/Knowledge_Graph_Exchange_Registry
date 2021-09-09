@@ -1,13 +1,16 @@
-# Design pattern for aiohttp session aware handlers:
-#
-# async def handler(request):
-#     session = await get_session(request)
-#     last_visit = session['last_visit'] if 'last_visit' in session else None
-#     text = 'Last visited: {}'.format(last_visit)
-#     return web.Response(text=text)
+"""
+Design pattern for aiohttp session aware handlers:
 
+async def handler(request):
+    session = await get_session(request)
+    last_visit = session['last_visit'] if 'last_visit' in session else None
+    text = 'Last visited: {}'.format(last_visit)
+    return web.Response(text=text)
+"""
 from os import getenv
 from typing import Dict
+import logging
+
 from uuid import uuid4
 
 import asyncio
@@ -19,18 +22,18 @@ from multidict import MultiDict
 
 from kgea.config import get_app_config, HOME_PAGE
 
-import logging
-
 # Master flag for simplified local development
 from kgea.server.web_services import KgeArchiveCatalog
 
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class KgeaSession:
+    """
+    KGE Archive User Session management
+    """
     _session_storage: AbstractStorage
     _event_loop: AbstractEventLoop
     _client_session: ClientSession

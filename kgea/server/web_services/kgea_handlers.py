@@ -2,11 +2,11 @@
 Knowledge Graph Exchange Archive backend web service handlers.
 """
 import sys
-import uuid
-
 from os import getenv, path
 from pathlib import Path
 from typing import Dict, Tuple, Any
+import logging
+
 import uuid
 import time
 
@@ -30,8 +30,6 @@ import threading
 from botocore.client import Config
 
 import asyncio
-import logging
-logger = logging.getLogger(__name__)
 
 #############################################################
 # Application Configuration
@@ -81,7 +79,7 @@ from kgea.server.web_services.catalog import (
     KgeFileSet, KgeFileType
 )
 
-import logging
+logger = logging.getLogger(__name__)
 
 #############################################################
 # Configuration
@@ -89,10 +87,6 @@ import logging
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
-
-logger = logging.getLogger(__name__)
-
-logger.setLevel(logging.DEBUG)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()

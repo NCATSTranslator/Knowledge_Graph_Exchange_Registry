@@ -11,7 +11,9 @@ import io
 from sys import stderr
 from typing import Dict, Union, List, Optional
 from functools import wraps
-from string import Template
+
+import logging
+
 import random
 import time
 
@@ -43,10 +45,7 @@ from kgea.config import (
     FILE_SET_METADATA_FILE
 )
 
-import logging
-
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
@@ -186,10 +185,7 @@ def get_object_location(kg_id):
     NOTE: Must be kept deterministic. No date times or
     randomness in this method; they may be appended afterwards.
     """
-    location = Template('$DIRECTORY_NAME/$KG_NAME/').substitute(
-        DIRECTORY_NAME=_KGEA_APP_CONFIG['aws']['s3']['archive-directory'],
-        KG_NAME=kg_id
-    )
+    location = f"{_KGEA_APP_CONFIG['aws']['s3']['archive-directory']}/{kg_id}/"
     return location
 
 
@@ -479,13 +475,7 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     :param attachment:
     :return:
     """
-    return Template("$ROOT/$KG_ID/$KG_VERSION$SUB_DIR$ATTACHMENT").substitute(
-        ROOT=root,
-        KG_ID=kg_id,
-        KG_VERSION=fileset_version,
-        SUB_DIR=subdir + '/',
-        ATTACHMENT=attachment
-    )
+    return f"{root}/{kg_id}/{fileset_version}{subdir + '/'}{attachment}"
 
 
 def tardir(directory, name):
@@ -593,11 +583,7 @@ def get_object_key(object_location, filename):
     :param filename: filename of the S3 object
     :return: object key of the S3 object
     """
-    return Template('$ROOT$FILENAME$EXTENSION').substitute(
-        ROOT=object_location,
-        FILENAME=Path(filename).stem,
-        EXTENSION=splitext(filename)[1]
-    )
+    return f"{object_location}{Path(filename).stem}{splitext(filename)[1]}"
 
 
 def upload_file(bucket, object_key, source, client=s3_client(), config=None, callback=None):
