@@ -14,25 +14,28 @@ TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 from sys import stderr, exc_info
-import traceback
 from os import getenv
 from os.path import dirname, abspath
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
 from string import punctuation
 from io import BytesIO, StringIO
+from datetime import date, datetime
 import logging
-from datetime import date
-import time
-import re
 
-import threading
-import asyncio
-from asyncio import (
-    Task, Queue, QueueFull
-)
-import smart_open
 import tempfile
+import traceback
 
+import re
+import threading
+from asyncio import (
+    create_task,
+    gather,
+    sleep,
+    Queue,
+    Task,
+    QueueFull,
+    run
+)
 
 # TODO: maybe convert Catalog components to Python Dataclasses?
 # from dataclasses import dataclass
@@ -42,6 +45,7 @@ from string import Template
 
 import json
 
+import smart_open
 from jsonschema import (
     ValidationError,
     SchemaError,
@@ -81,8 +85,8 @@ from kgea.server.web_services.models import (
 from kgea.server.web_services.kgea_file_ops import (
     get_default_date_stamp,
     get_object_location,
-    get_object_key,
     get_archive_contents,
+    get_object_key,
     with_version,
     load_s3_text_file,
     compress_fileset,
@@ -99,7 +103,7 @@ logger = logging.getLogger(__name__)
 DEV_MODE = getenv('DEV_MODE', default=False)
 OVERRIDE = True
 
-RUN_TESTS = getenv('RUN_TESTS', default=True)
+RUN_TESTS = getenv('RUN_TESTS', default=False)
 CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
 
 
@@ -267,9 +271,7 @@ class KgeFileSet:
             self.status = KgeFileSetStatusCode.CREATED
 
     def __str__(self):
-        return "File set version " + self.fileset_version + " of graph " + self.kg_id
-        # import pprint
-        # return pprint.pformat(self.__dict__)
+        return f"File set version '{self.fileset_version}' of graph '{self.kg_id}'"
     
     def report_error(self, msg: str):
         """
@@ -676,7 +678,7 @@ class KgeFileSet:
             )
         except Exception as exception:
             logger.error(
-                "generate_fileset_metadata_file(): {} {} {}".format(self.kg_id, self.fileset_version, exception)
+                f"generate_fileset_metadata_file(): {self.kg_id} {self.fileset_version} {str(exception)}"
             )
             raise exception
 
@@ -1156,20 +1158,6 @@ class KgeArchiveCatalog:
             KgeArchiveCatalog._the_catalog = KgeArchiveCatalog()
 
         return KgeArchiveCatalog._the_catalog
-
-    async def close(self):
-        """
-        This method needs to be called after the KgeArchiveCatalog is no longer needed,
-        since it releases some program resources which may be open at the end of processing)
-
-        :return: None
-        """
-        # Shut down KgeArchiver background processing here
-        await KgeArchiver.get_archiver().shutdown_workers()
-
-        # Shut down KgxValidator background processing here
-        # TODO: uncomment this once the KgxValidator.validate() is used again?
-        # await KgxValidator.shutdown_tasks()
 
     def load_archive_entry(
             self,
@@ -1962,6 +1950,13 @@ class KgeArchiver:
             cls._the_archiver = KgeArchiver()
         return cls._the_archiver
     
+    def close(self):
+        """
+        Post processing of KgeArchiver (singleton) instances.
+        """
+        # Shut down KgeArchiver background processing here
+        await self.shutdown_workers()
+    
     async def worker(self, task_id=None):
         """
 
@@ -1999,10 +1994,7 @@ class KgeArchiver:
             try:
                 node_path = aggregate_files(
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
-                        KG_ID=file_set.kg_id,
-                        VERSION=file_set.fileset_version
-                    ),
+                    path=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates/",
                     name='nodes.tsv',
                     file_paths=file_set.get_nodes(),
                     match_function=lambda x: 'nodes.tsv' in x
@@ -2018,10 +2010,7 @@ class KgeArchiver:
             try:
                 edge_path = aggregate_files(
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    path='kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
-                        KG_ID=file_set.kg_id,
-                        VERSION=file_set.fileset_version
-                    ),
+                    path=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates/",
                     name='edges.tsv',
                     file_paths=file_set.get_edges(),
                     match_function=lambda x: 'edges.tsv' in x
@@ -2046,25 +2035,13 @@ class KgeArchiver:
                 archive_path = await compress_fileset(
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                     files_and_file_set_locations=[
-                        'kge-data/{KG_ID}/{VERSION}/aggregates/'.format(
-                            KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
-                        ),
-                        'kge-data/{KG_ID}/{VERSION}/file_set.yaml'.format(
-                            KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
-                        ),
-                        'kge-data/{KG_ID}/{VERSION}/content_metadata.json'.format(
-                            KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
-                        ),
-                        'kge-data/{KG_ID}/provider.yaml'.format(
-                            KG_ID=file_set.kg_id
-                        ),
+                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates/",
+                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/file_set.yaml",
+                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/content_metadata.json",
+                        f"kge-data/{file_set.kg_id}/provider.yaml"
                     ],
-                    target_path='kge-data/{KG_ID}/{VERSION}/archive/'.format(
-                        KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
-                    ),
-                    archive_name='{KG_ID}_{VERSION}'.format(
-                        KG_ID=file_set.kg_id, VERSION=file_set.fileset_version
-                    )
+                    target_path=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive/",
+                    archive_name=f"{file_set.kg_id}_{file_set.fileset_version}"
                 )
 
             except Exception:
@@ -2073,10 +2050,7 @@ class KgeArchiver:
                 
             print("...Completed!", file=stderr)
             
-            archive_s3_path = 's3://{BUCKET}/{ARCHIVE_KEY}'.format(
-                BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                ARCHIVE_KEY=archive_path
-            )
+            archive_s3_path = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{archive_path}"
 
             # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
             #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
@@ -2093,16 +2067,9 @@ class KgeArchiver:
     
                     sha1sum = sha1_manifest(archive_file_key)
                     sha1sum_value = sha1sum[archive_file_key.name]
-                    sha1tsv = '{}_{}.sha1.txt'.format(file_set.kg_id, file_set.fileset_version)
-    
-                    sha1_s3_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
-                        BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                        PATH='kge-data/{KG_ID}/{VERSION}/manifest/'.format(
-                            KG_ID=file_set.kg_id,
-                            VERSION=file_set.fileset_version
-                        ),
-                        FILE_NAME=sha1tsv
-                    )
+                    sha1tsv = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
+                    manifest_object_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/manifest/"
+                    sha1_s3_path = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{manifest_object_location}{sha1tsv}"
                     with smart_open.open(sha1_s3_path, 'w') as sha1file:
                         sha1file.write(sha1sum_value)
 
@@ -2147,7 +2114,7 @@ class KgeArchiver:
                 worker_additions = self.max_tasks - len(self._archiver_worker)
 
         for i in range(0, worker_additions):
-            self._archiver_worker.append(asyncio.create_task(self.worker()))
+            self._archiver_worker.append(create_task(self.worker()))
 
     async def shutdown_workers(self):
         """
@@ -2161,7 +2128,7 @@ class KgeArchiver:
                 worker.cancel()
 
             # Wait until all worker tasks are cancelled.
-            await asyncio.gather(*self._archiver_worker, return_exceptions=True)
+            await gather(*self._archiver_worker, return_exceptions=True)
 
         except Exception as exc:
             msg = "KgeArchiver() worker shutdown exception: " + str(exc)
@@ -2187,7 +2154,7 @@ class KgeArchiver:
         except QueueFull:
             
             logger.debug("KgeArchiver.process(): work queue is full? Will sleep awhile...")
-            await asyncio.sleep(wait)
+            await sleep(wait)
             try:
                 assert(waits < maxwait)
                 waits += 1
@@ -2211,14 +2178,21 @@ class KgxValidator:
     def __init__(self, biolink_model_release: str):
         Validator.set_biolink_model(biolink_model_release)
         self.kgx_data_validator = Validator(progress_monitor=ProgressMonitor())
-        self._validation_queue: asyncio.Queue = asyncio.Queue()
+        self._validation_queue: Queue = Queue()
 
         # Do I still need a list of task objects here,
         # to handle multiple validations concurrently?
         self.number_of_tasks = Number_of_Validator_Tasks
         self._validation_tasks: List = list()
 
-    def get_validation_queue(self) -> asyncio.Queue:
+    def close(self):
+        """
+        Post processing of KgxValidator (singleton) instances.
+        """
+        # Shut down KgxValidator background processing here
+        await self.shutdown_tasks()
+
+    def get_validation_queue(self) -> Queue:
         """
         :return:
         """
@@ -2245,7 +2219,7 @@ class KgxValidator:
 
         if validator.number_of_tasks:
             validator.number_of_tasks -= 1
-            validator._validation_tasks.append(asyncio.create_task(validator()))
+            validator._validation_tasks.append(create_task(validator()))
         return validator
 
     # The method should be called by at the end of KgxValidator processing
@@ -2264,7 +2238,7 @@ class KgxValidator:
                     task.cancel()
 
                 # Wait until all worker tasks are cancelled.
-                await asyncio.gather(*validator.get_validation_tasks().values(), return_exceptions=True)
+                await gather(*validator.get_validation_tasks().values(), return_exceptions=True)
 
             except Exception as exc:
                 msg = "KgxValidator() KGX worker task exception: " + str(exc)
@@ -2487,12 +2461,12 @@ def test_stub_archiver() -> bool:
         # await archiver.process(fs)
 
         # # Don't want to finish too quickly...
-        # await asyncio.sleep(30)
+        # await sleep(30)
         #
         # print("\ntest_stub_archiver() shutdown now!\n", file=stderr)
         # await archiver.shutdown_workers()
         
-    asyncio.run(archive_test())
+    run(archive_test())
     return True
 
 
@@ -2550,12 +2524,12 @@ def run_test(test_func):
     :return:
     """
     try:
-        start = time.time()
+        start = datetime.now()
         assert (test_func())
-        end = time.time()
-        print("{} passed: {} seconds".format(test_func.__name__, end - start))
+        end = datetime.now()
+        print(f"{test_func.__name__} passed: {str(end - start)} seconds")
     except Exception as e:
-        logger.error("{} failed!".format(test_func.__name__))
+        logger.error(f"{test_func.__name__} failed!")
         logger.error(e)
 
 
