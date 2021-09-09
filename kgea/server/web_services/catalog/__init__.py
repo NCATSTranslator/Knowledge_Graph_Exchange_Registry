@@ -568,10 +568,6 @@ class KgeFileSet:
             self.report_error(msg)
             return False
 
-        except Exception as error:
-            logger.error("post_process_file_set(): {}".format(error))
-            return False
-
     # async def publish_file_set(self, kg_id: str, fileset_version: str):
     #
     #     logger.debug(
