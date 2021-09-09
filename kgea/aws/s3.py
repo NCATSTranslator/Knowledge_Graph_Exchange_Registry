@@ -136,9 +136,9 @@ if __name__ == '__main__':
     
     # Prompt user for target account ID, ExternalID and name of IAM Role
     # to assume, in order to access an S3 bucket, whose name is given
-    if len(sys.argv) >= 1:
+    if len(sys.argv) > 1:
         # default, for now, is to simply list the bucket contents
-        s3_operation = sys.argv[1] if len(sys.argv) >= 1 else "test"
+        s3_operation = sys.argv[1]
 
         assumed_role = AssumeRole()
         
@@ -151,9 +151,13 @@ if __name__ == '__main__':
                         )
             )
         
-        if s3_operation.upper() == 'TEST':
-            test_assumed_role_s3_access(s3_client, s3_bucket_name)
+        if s3_operation.upper() == 'HELP':
+            print()
 
+        elif s3_operation.upper() == 'TEST':
+    
+            test_assumed_role_s3_access(s3_client, s3_bucket_name)
+    
         elif s3_operation.upper() == 'UPLOAD':
             if len(sys.argv) >= 3:
                 filepath = sys.argv[2]
@@ -177,7 +181,13 @@ if __name__ == '__main__':
             if len(sys.argv) >= 3:
                 object_keys = sys.argv[2:]
                 for key in object_keys:
-                    delete_object(s3_client, s3_bucket_name, key)
+                    print("\t" + key)
+                prompt = input("Proceed (Type 'yes')? ")
+                if prompt.upper() == "YES":
+                    for key in object_keys:
+                        delete_object(s3_client, s3_bucket_name, key)
+                else:
+                    print("Cancelling deletion of objects...")
             else:
                 print("\nMissing S3 key(s) of object(s) to delete?")
 
@@ -202,9 +212,10 @@ if __name__ == '__main__':
     else:
         print("Usage:\n")
         print(
-            "python -m kgea.aws."+Path(sys.argv[0]).stem +
-            " <operation> [<object_key>+|<prefix_filter>]" +
-            "\n\n\tNote: one or more <object_key> strings are only required for 'delete' operation.\n"
-            "\n\n\t\tA <prefix_filter> string is only required for 'delete-batch' operation.\n"
+            "\tpython -m kgea.aws."+Path(sys.argv[0]).stem +
+            " <operation> [<object_key>+|<prefix_filter>]\n\n" +
+            "where <operation> is one of upload, list, download, delete, delete-batch and test.\n\n"
+            "Note:\tone or more <object_key> strings are only required for 'delete' operation.\n" +
+            "\tA <prefix_filter> string is only required for 'delete-batch' operation.\n"
         )
         exit(0)

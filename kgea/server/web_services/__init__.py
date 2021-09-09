@@ -3,8 +3,28 @@ import connexion
 import aiohttp_cors
 
 from kgea.server.web_services.catalog import KgeArchiveCatalog
-from kgea.server.web_services.controllers.content_controller import download_file_set
 from kgea.server.web_services.kgea_session import KgeaSession
+
+import logging
+from logging.config import dictConfig
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {
+        'tostdout': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+            'formatter': 'default'
+        }
+    },
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['tostdout']
+    }
+})
+connexion.apps.aiohttp_app.logger=logging.getLogger(__name__)
 
 
 def main():
@@ -46,33 +66,12 @@ def main():
     for route in list(app.app.router.routes()):
         cors.add(route)
 
-    # Add Amazon bucket CORS permission here?
-    #
-    # Downloading  URL: 'http://localhost:8080/archive/test_graph_for_kgx_validation/2021-04-24/download'
-    # File download error: TypeError: NetworkError when attempting to fetch resource.
-    # Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource
-    # at ‘https://kgea-bucket.s3.amazonaws.com/kge-data/ \
-    # test_graph_for_kgx_validation/2021-04-24/archive/test_graph_for_kgx_validation_2021-04-24.tar.gz? \
-    # response-content-disposition=attachment& \
-    # X-Amz-Algorithm=AWS4-HMAC-SHA256& \
-    # X-Amz-Credential=AKIAI7TYXYCMFQ4BS3VQ/20210427/us-east-1/s3/aws4_request& \
-    # X-Amz-Date=20210427T165619Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host& \
-    # X-Amz-Signature=8ce60f9ab102ca90de7a6f7fff405760da42a3a0d1b142d08db2a21010af6448’
-    # (Reason: Credential is not supported if the CORS header ‘Access-Control-Allow-Origin’ is ‘*’).
-
-    # resource = cors.add(app.app.router.add_resource("/kge-data/test_graph_for_kgx_validation/2021-04-24/archive/"))
-    # cors.add(
-    #     resource.add_route("GET", download_file_set), {
-    #         "https://kgea-bucket.s3.amazonaws.com": aiohttp_cors.ResourceOptions(
-    #             allow_credentials=True,
-    #             # expose_headers=("X-Custom-Server-Header",),
-    #             allow_headers=( "Content-Type"),
-    #             max_age=3600,
-    #         )
-    #     })
-
     KgeaSession.initialize(app.app)
 
-    app.run(port=8080)
+    app.run(
+        port=8080,
+        server="aiohttp",
+        use_default_access_log=True
+    )
 
     KgeaSession.close_global_session()
