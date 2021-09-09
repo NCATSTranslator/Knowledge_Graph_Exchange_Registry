@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.1.1
 info:
   contact:
     email: richard.bruskiewich@delphinai.com
@@ -15,7 +15,7 @@ info:
     this API is SmartAPI compliant, it will not normally be visible in the Translator
     SmartAPI Registry since it is mainly meant to be accessed through Registry indexed
     KGE File Sets, which will have distinct entries in the Registry.
-  version: 1.2.0-dev
+  version: 1.3-dev
   x-translator:
     component: SRI service
     team:
@@ -376,9 +376,10 @@ paths:
       x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
   /{kg_id}/{fileset_version}/download:
     get:
-      operationId: download_file_set
+      operationId: download_file_set_archive
       parameters:
-      - description: KGE File Set identifier for the knowledge graph being accessed.
+      - description: Identifier of the knowledge graph of the KGE File Set a file
+          set version for which is being accessed.
         explode: false
         in: path
         name: kg_id
@@ -386,7 +387,7 @@ paths:
         schema:
           type: string
         style: simple
-      - description: Version of KGE File Set of the knowledge graph being accessed.
+      - description: Version of file set of the knowledge graph being accessed.
         explode: false
         in: path
         name: fileset_version
@@ -523,6 +524,54 @@ paths:
             OR a specific parameter is believed to be invalid somehow (or just not
             recognized).
       summary: Get provider and content metadata for a specified KGE File Set version.
+      tags:
+      - content
+      x-openapi-router-controller: kgea.server.web_services.controllers.content_controller
+  /{kg_id}/{fileset_version}/sha1hash:
+    get:
+      operationId: download_file_set_archive_sha1hash
+      parameters:
+      - description: Identifier of the knowledge graph of the KGE File Set a file
+          set version for which is being accessed.
+        explode: false
+        in: path
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Version of file set of the knowledge graph being accessed.
+        explode: false
+        in: path
+        name: fileset_version
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/gzip:
+              schema:
+                format: binary
+                type: string
+          description: A small text file containing the SHA1 hash of its associated
+            KGE File Set gzip compressed tar archive.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or requested KGE File Set version is unknown.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Returns SHA1 hash of the current KGE File Set as a small text file.
       tags:
       - content
       x-openapi-router-controller: kgea.server.web_services.controllers.content_controller

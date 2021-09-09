@@ -19,8 +19,6 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-from string import Template
-
 from aiohttp import web
 from aiohttp_session import get_session
 
@@ -39,12 +37,12 @@ from kgea.config import (
     CONTENT_METADATA_FILE,
 
     LANDING_PAGE,
-    HOME_PAGE,
 
     FILESET_REGISTRATION_FORM,
     DATA_UNAVAILABLE,
 
-    UPLOAD_FORM
+    UPLOAD_FORM,
+    SUBMISSION_CONFIRMATION
 )
 
 from .kgea_session import (
@@ -71,18 +69,10 @@ from .kgea_file_ops import (
 from kgea.server.web_services.catalog import (
     KgeArchiveCatalog,
     KgeKnowledgeGraph,
-    KgeFileSet, KgeFileType,
-    KgeArchiver
+    KgeFileSet, KgeFileType
 )
 
 import logging
-
-
-#############################################################
-# Service Workers
-#############################################################
-
-ARCHIVER = KgeArchiver()
 
 #############################################################
 # Configuration
@@ -220,8 +210,8 @@ async def register_kge_knowledge_graph(request: web.Request):
         # graph name as the KGE File Set identifier.
         kg_id = KgeKnowledgeGraph.normalize_name(kg_name)
 
-        if True:  # location_available(bucket_name, object_key):
-            if True:  # api_specification and url:
+        if True:  # TODO location_available(bucket_name, object_key):
+            if True:  # TODO api_specification and url:
                 # TODO: repair return
                 #  1. Store url and api_specification (if needed) in the session
                 #  2. replace with /upload form returned
@@ -242,17 +232,13 @@ async def register_kge_knowledge_graph(request: web.Request):
                 )
 
                 # Also publish a new 'provider.yaml' metadata file to the KGE Archive
-                knowledge_graph.publish_provider_metadata()
+                provider_metadata_key = knowledge_graph.publish_provider_metadata()
+                
+                assert(provider_metadata_key is not None)
 
                 await redirect(
                     request,
-                    Template(
-                        FILESET_REGISTRATION_FORM +
-                        '?kg_id=$kg_id&kg_name=$kg_name'
-                    ).substitute(
-                        kg_id=kg_id,
-                        kg_name=knowledge_graph.get_name()
-                    ),
+                    f"{FILESET_REGISTRATION_FORM}?kg_id={kg_id}&kg_name={knowledge_graph.get_name()}",
                     active_session=True
                 )
 
@@ -261,7 +247,7 @@ async def register_kge_knowledge_graph(request: web.Request):
         #         await redirect(request, HOME_PAGE)
         # else:
         #     # TODO: more graceful front end failure signal
-        #     await report_error(request, "Unknown failure")
+        #     await print_error_trace(request, "Unknown failure")
 
     else:
         # If session is not active, then just a redirect
@@ -394,17 +380,8 @@ async def register_kge_file_set(request: web.Request):
 
                 await redirect(
                         request,
-                        Template(
-                           UPLOAD_FORM +
-                           '?kg_id=$kg_id&kg_name=$kg_name&' +
-                           'fileset_version=$fileset_version&' +
-                           'submitter_name=$submitter_name'
-                        ).substitute(
-                           kg_id=kg_id,
-                           kg_name=knowledge_graph.get_name(),
-                           fileset_version=fileset_version,
-                           submitter_name=submitter_name
-                        ),
+                        f"{UPLOAD_FORM}?kg_id={kg_id}&kg_name={knowledge_graph.get_name()}"
+                        f"&fileset_version={fileset_version}&submitter_name={submitter_name}",
                         active_session=True
                     )
         #     else:
@@ -412,7 +389,7 @@ async def register_kge_file_set(request: web.Request):
         #         await redirect(request, HOME_PAGE)
         # else:
         #     # TODO: more graceful front end failure signal
-        #     await report_error(request, "Unknown failure")
+        #     await print_error_trace(request, "Unknown failure")
 
     else:
         # If session is not active, then just a redirect
@@ -442,25 +419,35 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             )
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
-
         file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
-        try:
-            published = await file_set.publish(ARCHIVER)
-        except Exception as exception:
-            logger.error(str(exception))
-            raise exception
-
-        if not (file_set and published):
+        
+        published: bool = False
+        
+        if file_set:
+            logger.debug("\tPublishing fileset version '" + fileset_version + "' of graph '" + kg_id + "'")
+            try:
+                published = await file_set.publish()
+            except Exception as exception:
+                logger.error(str(exception))
+    
+        if not published:
             await report_error(
                 request,
-                "publish_kge_file_set() errors: file set version '" +
-                fileset_version + "' for knowledge graph '" + kg_id + "'" +
-                "could not be published?"
+                f"publish_kge_file_set() errors: file set version '{fileset_version}' " +
+                f"for knowledge graph '{kg_id}' could not be published?"
             )
 
-    await redirect(request, HOME_PAGE)
+        await redirect(
+            request,
+            f"{SUBMISSION_CONFIRMATION}?kg_name={knowledge_graph.get_name()}&fileset_version={fileset_version}",
+            active_session=True
+        )
 
-
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING_PAGE)
+    
 #############################################################
 # Upload Controller Handler
 #
@@ -578,11 +565,7 @@ async def setup_kge_upload_context(
         import uuid
         import os
 
-        object_key = Template('$ROOT$FILENAME$EXTENSION').substitute(
-            ROOT=file_set_location,
-            FILENAME=Path(content_name).stem,
-            EXTENSION=os.path.splitext(content_name)[1]
-        )
+        object_key = f"{file_set_location}{Path(content_name).stem}{os.path.splitext(content_name)[1]}"
 
         with threading.Lock():
             token = str(uuid.uuid4())
@@ -690,7 +673,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
 #     )
 #
 # else:
-#     await report_error(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
+#     await print_error_trace(request, "upload_kge_file(): unknown upload_mode: '" + upload_mode + "'?")
 #
 # """END File Upload Protocol"""
 #
@@ -895,7 +878,7 @@ async def upload_kge_file(
 # from ..kgea_handlers import (
 #     get_kge_file_set_metadata,
 #     kge_meta_knowledge_graph,
-#     download_kge_file_set
+#     download_kge_file_set_archive
 # )
 #############################################################
 def _sanitize_metadata(metadata: Dict):
@@ -1002,20 +985,14 @@ async def kge_meta_knowledge_graph(
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
         
         if not object_key_exists(
-                bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                object_key=content_metadata_file_key
+                object_key=content_metadata_file_key,
+                bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']
         ):
             if downloading:
                 await redirect(
                     request,
-                    Template(
-                        DATA_UNAVAILABLE +
-                        '?fileset_version=$fileset_version&kg_name=$kg_name&data_type=$data_type'
-                    ).substitute(
-                        fileset_version=fileset_version,
-                        kg_name=knowledge_graph.get_name(),
-                        data_type='meta knowledge graph'
-                    ),
+                    f"{DATA_UNAVAILABLE}?fileset_version={fileset_version}"
+                    f"&kg_name={knowledge_graph.get_name()}&data_type=meta%20knowledge%20graph",
                     active_session=True
                 )
             else:
@@ -1047,7 +1024,7 @@ async def kge_meta_knowledge_graph(
         await redirect(request, LANDING_PAGE)
 
 
-async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
+async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_version):
     """Returns specified KGE File Set as a gzip compressed tar archive
 
     :param request:
@@ -1062,11 +1039,11 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
     if not (kg_id and fileset_version):
         await report_not_found(
             request,
-            "download_kge_file_set(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            "download_kge_file_set_archive(): KGE File Set 'kg_id' has value " + str(kg_id) +
             " and 'fileset_version' has value " + str(fileset_version) + "... both must be non-null."
         )
 
-    logger.debug("Entering download_kge_file_set(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
+    logger.debug("Entering download_kge_file_set_archive(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
 
     session = await get_session(request)
     if not session.empty:
@@ -1078,6 +1055,9 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
             file_set_object_key,
         )
 
+        # TODO: I don't think that this code snippet is reliable now,
+        #       if the user uploads one or more tar.gz files
+        #       which are meant to be partial input data without metadata?
         maybe_archive = [
             kg_path for kg_path in kg_files_for_version
             if ".tar.gz" in kg_path
@@ -1093,7 +1073,7 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
             # )
             await report_not_found(
                 request,
-                "download_kge_file_set(): archive not (yet) available for {}.{}".format(kg_id, fileset_version)
+                "download_kge_file_set_archive(): archive not (yet) available for {}.{}".format(kg_id, fileset_version)
             )
 
         # archive = get_object_from_bucket(_KGEA_APP_CONFIG['aws']['s3']['bucket'], archive_key)
@@ -1109,7 +1089,7 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
         # )
 
         download_url = create_presigned_url(bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'], object_key=archive_key)
-        print("download_kge_file_set() download_url: '" + download_url + "'", file=sys.stderr)
+        print("download_kge_file_set_archive() download_url: '" + download_url + "'", file=sys.stderr)
 
         await download(request, download_url)
 
@@ -1119,61 +1099,69 @@ async def download_kge_file_set(request: web.Request, kg_id, fileset_version):
         await redirect(request, LANDING_PAGE)
 
 
-def fileset_manifest(param, file_set_object_key):
+async def fileset_manifest(param, file_set_object_key):
+    """
+
+    :param param:
+    :param file_set_object_key:
+    """
     pass
 
 
-async def kge_fileset_archive_sha(request: web.Request, kg_id, fileset_version):
-    """Returns specified KGE File Set's sha1 codes for the different files
+async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fileset_version):
+    """Returns SHA1 hash of the current KGE File Set as a small text file.
 
     :param request:
     :type request: web.Request
-    :param kg_id: KGE File Set identifier for the knowledge graph being accessed.
+    :param kg_id: Identifier of the knowledge graph of the KGE File Set a file set version for which is being accessed.
     :type kg_id: str
-    :param fileset_version: Version of KGE File Set of the knowledge graph being accessed.
+    :param fileset_version: Version of file set of the knowledge graph being accessed.
     :type fileset_version: str
 
     :return: None - redirection responses triggered
     """
-
     if not (kg_id and fileset_version):
         await report_not_found(
             request,
-            "kge_fileset_archive_sha(): KGE File Set 'kg_id' has value " + str(kg_id) +
+            "download_kge_file_set_archive_sha1hash(): KGE File Set 'kg_id' has value " + str(kg_id) +
             " and 'fileset_version' has value " + str(fileset_version) + "... both must be non-null."
         )
 
-    logger.debug("Entering kge_fileset_archive_sha(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
+    logger.debug(
+        "Entering download_kge_file_set_archive_sha1hash(kg_id: " + kg_id + ", fileset_version: " + fileset_version + ")")
 
     session = await get_session(request)
     if not session.empty:
 
-        file_set_object_key = with_version(get_object_location, fileset_version)(kg_id)
+        file_set_object_key, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
 
         kg_files_for_version = kg_files_in_location(
             _KGEA_APP_CONFIG['aws']['s3']['bucket'],
             file_set_object_key,
         )
 
-        maybe_manifest = [
+        maybe_sha1hash = [
             kg_path for kg_path in kg_files_for_version
-            if "manifest.tsv" in kg_path
+            if "sha1.txt" in kg_path
         ]
 
-        if len(maybe_manifest) == 1:
-            manifest_key = maybe_manifest[0]
+        sha1hash_file_key: str = ''
+        if len(maybe_sha1hash) == 1:
+            sha1hash_file_key = maybe_sha1hash[0]
         else:
-            manifest_key = await fileset_manifest(
-                _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                file_set_object_key
+            await report_not_found(
+                request,
+                "download_kge_file_set_archive_sha1hash(): SHA1 Hash file for archive of graph " + str(kg_id) +
+                " file set " + str(fileset_version) + "unavailable?"
             )
 
-        download_url = create_presigned_url(
-            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            object_key=manifest_key
-        )
-
-        await download(request, download_url)
+        if sha1hash_file_key:
+            download_url = create_presigned_url(
+                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                object_key=sha1hash_file_key
+            )
+    
+            await download(request, download_url)
 
     else:
         # If session is not active, then just a redirect

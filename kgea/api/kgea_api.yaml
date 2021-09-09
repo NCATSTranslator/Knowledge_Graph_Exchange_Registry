@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.1.1
 info:
   version: 1.2.0-dev
   title: >-
@@ -480,26 +480,73 @@ paths:
         - name: kg_id
           in: path
           description: >-
-            KGE File Set identifier for the knowledge graph being accessed.
+            Identifier of the knowledge graph of the KGE File Set a file set version for which is being accessed.
           required: true
           schema:
             type: string
         - name: fileset_version
           in: path
           description: >-
-            Version of KGE File Set of the knowledge graph being accessed.
+            Version of file set of the knowledge graph being accessed.
           required: true
           schema:
             type: string
       tags:
         - content
       summary: Returns specified KGE File Set as a gzip compressed tar archive
-      operationId: download_file_set
+      operationId: download_file_set_archive
       responses:
         '200':
           description: >-
             A KGE File Set as a gzip compressed tar archive of
             KGX compliant files plus an associated metadata json file
+          content:
+            application/gzip:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: >-
+            Knowledge graph or requested KGE File Set version is unknown.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. Request is invalid according to this
+            OpenAPI schema OR a specific parameter is believed
+            to be invalid somehow (or just not recognized).
+          content:
+            application/json:
+              schema:
+                type: string
+  /{kg_id}/{fileset_version}/sha1hash:
+    get:
+      parameters:
+        - name: kg_id
+          in: path
+          description: >-
+            Identifier of the knowledge graph of the KGE File Set a file set version for which is being accessed.
+          required: true
+          schema:
+            type: string
+        - name: fileset_version
+          in: path
+          description: >-
+            Version of file set of the knowledge graph being accessed.
+          required: true
+          schema:
+            type: string
+      tags:
+        - content
+      summary: Returns SHA1 hash of the current KGE File Set as a small text file.
+      operationId: download_file_set_archive_sha1hash
+      responses:
+        '200':
+          description: >-
+            A small text file containing the SHA1 hash of its associated
+            KGE File Set gzip compressed tar archive.
           content:
             application/gzip:
               schema:

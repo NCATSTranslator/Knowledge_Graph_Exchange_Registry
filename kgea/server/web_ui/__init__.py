@@ -19,6 +19,7 @@ from .kgea_ui_handlers import (
     view_kge_metadata,
     get_kge_fileset_registration_form,
     get_kge_file_upload_form,
+    get_kge_fileset_submitted,
     get_kge_data_unavailable
 )
 
@@ -40,6 +41,7 @@ async def make_app():
     app.router.add_get('/metadata', view_kge_metadata)
     app.router.add_get('/register/fileset', get_kge_fileset_registration_form)
     app.router.add_get('/upload', get_kge_file_upload_form)
+    app.router.add_get('/submitted', get_kge_fileset_submitted)
     app.router.add_get('/unavailable', get_kge_data_unavailable)
 
     app.router.add_static('/css/',
