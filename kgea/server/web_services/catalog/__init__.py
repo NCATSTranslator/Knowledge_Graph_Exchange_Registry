@@ -287,7 +287,7 @@ class KgeFileSet:
         """
         Report post-processing of file set.
         """
-        logger.debug("Post-processing KGX File Set")
+        logger.info("Post-processing KGX File Set")
         self.status = KgeFileSetStatusCode.PROCESSING
         
     def get_kg_id(self):
@@ -536,7 +536,7 @@ class KgeFileSet:
                 fileset_version=self.fileset_version
             )
             if fileset_metadata_object_key:
-                logger.debug(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
+                logger.info(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
             else:
                 msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
                       f"' file for KGE File Set version '{self.fileset_version}" + \
@@ -573,7 +573,7 @@ class KgeFileSet:
 
     # async def publish_file_set(self, kg_id: str, fileset_version: str):
     #
-    #     logger.debug(
+    #     logger.info(
     #         "Calling publish_file_set(" +
     #         "fileset_version: '"+fileset_version+"' of graph kg_id: '"+kg_id+"')"
     #     )
@@ -604,7 +604,7 @@ class KgeFileSet:
     #                 logger.warning("publish_file_set(): Translator Registry entry not posted. " +
     #                                "Is a valid 'github token' properly configured in site config.yaml?")
     #         else:
-    #             logger.debug("publish_file_set(): KGX validation errors encountered:\n" + str(errors))
+    #             logger.info("publish_file_set(): KGX validation errors encountered:\n" + str(errors))
     #
     #     else:
     #         logger.error("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
@@ -624,7 +624,7 @@ class KgeFileSet:
     # .. from the KGX graph (nodes and edges) data files, asynchronously checked here.
     # errors.extend(await self.confirm_kgx_data_file_set_validation())
     #
-    # logger.debug("KGX format validation() completed for KGE File Set version '" + self.fileset_version +
+    # logger.info("KGX format validation() completed for KGE File Set version '" + self.fileset_version +
     #              "' of KGE Knowledge Graph '" + self.kg_id + "'")
     #
     # return errors
@@ -890,7 +890,7 @@ class KgeKnowledgeGraph:
 
         :return:
         """
-        logger.debug("Publishing knowledge graph '" + self.kg_id + "' to the Archive")
+        logger.info("Publishing knowledge graph '" + self.kg_id + "' to the Archive")
         provider_metadata_file = self.generate_provider_metadata_file()
         # no fileset_version given since the provider metadata is global to Knowledge Graph
         object_key = add_to_s3_repository(
@@ -1097,7 +1097,7 @@ class KgeKnowledgeGraph:
     #             create_presigned_url(_KGEA_APP_CONFIG['aws']['s3']['bucket'], kg_file)
     #         ],
     #         kg_listing))
-    # # logger.debug('access urls %s, KGs: %s', kg_urls, kg_listing)
+    # # logger.info('access urls %s, KGs: %s', kg_urls, kg_listing)
     def get_metadata(self, fileset_version: str) -> KgeMetadata:
         """
 
@@ -1647,11 +1647,11 @@ def add_to_github(
 
     gh_token = get_github_token()
 
-    logger.debug("Calling add_to_github(gh_token: '"+str(gh_token)+"')")
+    logger.info("Calling add_to_github(gh_token: '"+str(gh_token)+"')")
 
     if gh_token and text:
 
-        logger.debug(
+        logger.info(
             "\n\t### api_specification = '''\n" + text[:60] + "...\n'''\n" +
             "\t### repo_path = '" + str(repo_path) + "'\n" +
             "\t### target_directory = '" + str(target_directory) + "'"
@@ -1661,7 +1661,7 @@ def add_to_github(
 
             entry_path = target_directory+"/"+kg_id + ".yaml"
 
-            logger.debug("\t### gh_url = '" + str(entry_path) + "'")
+            logger.info("\t### gh_url = '" + str(entry_path) + "'")
 
             g = Github(gh_token)
 
@@ -1744,7 +1744,7 @@ def get_github_releases(repo_path: str = ''):
         logger.error("get_github_releases(): need a non-null gh_token to access Github!")
         return []
 
-    logger.debug("Calling get_github_releases(repo_path: '" + str(repo_path) + "')")
+    logger.info("Calling get_github_releases(repo_path: '" + str(repo_path) + "')")
 
     g = Github(gh_token)
 
@@ -1901,11 +1901,11 @@ class ProgressMonitor:
         if entity_type == GraphEntityType.EDGE:
             self._edge_count += 1
             if self._edge_count % 100000 == 0:
-                logger.debug(str(self._edge_count) + " edges processed so far...")
+                logger.info(str(self._edge_count) + " edges processed so far...")
         elif entity_type == GraphEntityType.NODE:
             self._node_count += 1
             if self._node_count % 10000 == 0:
-                logger.debug(str(self._node_count) + " nodes processed so far...")
+                logger.info(str(self._node_count) + " nodes processed so far...")
         else:
             logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
@@ -1914,7 +1914,7 @@ def print_error_trace(err_msg: str, *exc_details):
     """
     Print Error Exception stack
     """
-    print(err_msg, file=stderr)
+    logger.error(err_msg)
     exc_type, exc_value, exc_traceback = exc_details
     traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
     raise RuntimeError
@@ -1958,28 +1958,28 @@ class KgeArchiver:
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
-            print(f"KgeArchiver worker {task_id} starting archive of {str(file_set)}", file=stderr)
+            logger.info(f"KgeArchiver worker {task_id} starting archive of {str(file_set)}")
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
-                print(f"KgeArchiver task {task_id} unpacking archive:...", file=stderr)
+                logger.info(f"KgeArchiver task {task_id} unpacking archive:...")
                 for file_key in file_set.get_archive_files_keys():
-                    print(f"\t{str(file_key)}", file=stderr)
+                    logger.info(f"\t{str(file_key)}")
                     # returns entries that follow the KgeFileSetEntry Schema
                     # decompresses the archive and sends files to s3
                     archive_file_entries = decompress_in_place(file_key)
-                    print(f"...finished! To fileset '{file_set.id()}', adding files:", file=stderr)
+                    logger.info(f"...finished! To fileset '{file_set.id()}', adding files:")
                     for entry in archive_file_entries:
                         # spread the entry across the add_data_file function,
                         # which will take all its values as arguments
-                        print(f"\t{entry['file_name']}", file=stderr)
+                        logger.info(f"\t{entry['file_name']}")
                         file_set.add_data_file(**entry)
 
             except Exception:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
                 print_error_trace("Error while unpacking archive?", exc_info())
 
-            print("Aggregating node files:", file=stderr)
+            logger.info("Aggregating node files:")
             node_path: str = ''
             try:
                 node_path = aggregate_files(
@@ -1989,13 +1989,13 @@ class KgeArchiver:
                     file_paths=file_set.get_nodes(),
                     match_function=lambda x: 'nodes.tsv' in x
                 )
-                print(f"Node path: {node_path}", file=stderr)
+                logger.info(f"Node path: {node_path}")
 
             except Exception:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
                 print_error_trace("Node file aggregation failure!", exc_info())
             
-            print("Aggregating edge files:", file=stderr)
+            logger.info("Aggregating edge files:")
             edge_path: str = ''
             try:
                 edge_path = aggregate_files(
@@ -2005,7 +2005,7 @@ class KgeArchiver:
                     file_paths=file_set.get_edges(),
                     match_function=lambda x: 'edges.tsv' in x
                 )
-                print(f"Edge path: {edge_path}", file=stderr)
+                logger.info(f"Edge path: {edge_path}")
 
             except Exception:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
@@ -2019,7 +2019,7 @@ class KgeArchiver:
             #    containing the aggregated nodes.tsv, edges.tsv,
             # Appending `file_set_root_key` with 'aggregates/' and 'archive/' to prevent multiple compress_fileset runs
             # from compressing the previous compression (so the source of files is distinct from the target written to)
-            print("Compressing file set...", end='', file=stderr)
+            logger.info("Compressing file set...", end='')
             archive_path: str = ''
             try:
                 archive_path = await compress_fileset(
@@ -2038,7 +2038,7 @@ class KgeArchiver:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
                 print_error_trace("File set compression failure!", exc_info())
                 
-            print("...Completed!", file=stderr)
+            logger.info("...Completed!")
             
             archive_s3_path = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{archive_path}"
 
@@ -2047,7 +2047,7 @@ class KgeArchiver:
             #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
             #  the catalog loading, for communication back to the user as part of the catalog metadata
             #  (once the archiving and hash generation is completed...)
-            print("Computing SHA1 hash sum...", file=stderr)
+            logger.info("Computing SHA1 hash sum...")
             try:
                 # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format
                 # of whatever is being opened. If we let this happen, then the hash function would run over
@@ -2071,14 +2071,13 @@ class KgeArchiver:
             
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
             # TODO: need to managed multiple Biolink Model specific KGX validators
-            print(
-                f"(Future) KgeArchiver worker {task_id} validation of of {str(file_set)} tar.gz archive...",
-                file=stderr
+            logger.info(
+                f"(Future) KgeArchiver worker {task_id} validation of of {str(file_set)} tar.gz archive..."
             )
             # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
             # KgxValidator.validate(self)
             
-            print(f"KgeArchiver worker {task_id} finished archiving of {str(file_set)}", file=stderr)
+            logger.info(f"KgeArchiver worker {task_id} finished archiving of {str(file_set)}")
 
             self._archiver_queue.task_done()
 
@@ -2137,13 +2136,13 @@ class KgeArchiver:
         """
         # Post the file set to the KgeArchiver task Queue for processing
         try:
-            logger.debug("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
+            logger.info("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
             self._archiver_queue.put_nowait(
                 file_set
             )
         except QueueFull:
             
-            logger.debug("KgeArchiver.process(): work queue is full? Will sleep awhile...")
+            logger.info("KgeArchiver.process(): work queue is full? Will sleep awhile...")
             await sleep(wait)
             try:
                 assert(waits < maxwait)
@@ -2294,11 +2293,10 @@ class KgxValidator:
                 object_key = entry["object_key"]
                 s3_file_url = entry["s3_file_url"]
 
-                print(
+                logger.info(
                     f"KgxValidator() processing file '{file_name}' '{object_key}' " +
                     f"of type '{file_type}', input format '{input_format}' " +
-                    f"and with compression '{input_compression}', ",
-                    file=stderr
+                    f"and with compression '{input_compression}', "
                 )
 
                 # The file to be processed should currently be
@@ -2338,16 +2336,16 @@ class KgxValidator:
                     file_set.status = KgeFileSetStatusCode.ERROR
             else:
                 err_msg = f"WARNING: Unknown KgeFileType{file_type} ... Ignoring?"
-                print(err_msg, file=stderr)
+                logger.info(err_msg)
                 lock = threading.Lock()
                 with lock:
                     file_set.errors.append(err_msg)
                     file_set.status = KgeFileSetStatusCode.ERROR
 
             compliance: str = ' not ' if file_set.errors else ' '
-            print(
+            logger.info(
                 f"has finished processing. {str(file_set)} is" +
-                compliance + "KGX compliant", file=stderr
+                compliance + "KGX compliant"
             )
 
             self._validation_queue.task_done()
@@ -2369,7 +2367,7 @@ class KgxValidator:
         :return: (possibly empty) List of errors returned
         """
         logger.setLevel(logging.DEBUG)
-        logger.debug(
+        logger.info(
             "Entering KgxValidator.validate_data_file() with arguments:" +
             "\n\tfile set ID:" + str(file_set_id) +
             "\n\tinput files:" + str(input_files) +
@@ -2381,11 +2379,11 @@ class KgxValidator:
             # The putative KGX 'source' input files are currently sitting
             # at the end of S3 signed URLs for streaming into the validation.
 
-            logger.debug("KgxValidator.validate_data_file(): creating the Transformer...")
+            logger.info("KgxValidator.validate_data_file(): creating the Transformer...")
 
             transformer = Transformer(stream=True)
 
-            logger.debug("KgxValidator.validate_data_file(): running the Transformer.transform...")
+            logger.info("KgxValidator.validate_data_file(): running the Transformer.transform...")
 
             transformer.transform(
                 input_args={
@@ -2402,16 +2400,16 @@ class KgxValidator:
                 inspector=self.kgx_data_validator
             )
 
-            logger.debug("KgxValidator.validate_data_file(): transform validate inspection complete: getting errors..")
+            logger.info("KgxValidator.validate_data_file(): transform validate inspection complete: getting errors..")
 
             errors: List[str] = self.kgx_data_validator.get_error_messages()
 
             if errors:
                 n = len(errors)
                 n = 9 if n >= 10 else n
-                logger.debug("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
+                logger.info("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
 
-            logger.debug("KgxValidator.validate_data_file(): Exiting validate_file_set()")
+            logger.info("KgxValidator.validate_data_file(): Exiting validate_file_set()")
 
             return errors
 
@@ -2432,7 +2430,7 @@ def test_stub_archiver() -> bool:
         :return:
         """
 
-        print("\ntest_stub_archiver() startup of tasks\n", file=stderr)
+        logger.info("\ntest_stub_archiver() startup of tasks\n")
 
         fs = prepare_test_file_set("1.0")
         await archiver.process(fs)
@@ -2448,7 +2446,7 @@ def test_stub_archiver() -> bool:
         # # Don't want to finish too quickly...
         # await sleep(30)
         #
-        # print("\ntest_stub_archiver() shutdown now!\n", file=stderr)
+        # logger.info("\ntest_stub_archiver() shutdown now!\n")
         # await archiver.shutdown_workers()
         
     run(archive_test())

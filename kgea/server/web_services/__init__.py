@@ -1,41 +1,22 @@
+"""
+Knowledge Graph Archive back end Web Services component
+"""
 from os import path
 import connexion
+from connexion.apps import aiohttp_app
 import aiohttp_cors
 
 from kgea.server.web_services.catalog import KgeArchiveCatalog
 from kgea.server.web_services.kgea_session import KgeaSession
-
 import logging
-from logging.config import dictConfig
-dictConfig({
-    'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-    }},
-    'handlers': {
-        'tostdout': {
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://sys.stdout',
-            'formatter': 'default'
-        }
-    },
-    'loggers': {
-        '': { # root logger
-            'level': 'INFO',
-            'handlers': ['tostdout'],
-            'propagate': False
-        },
-        "kgea": {
-            'level': 'INFO',
-            'handlers': ['tostdout'],
-            'propagate': False
-        }
-    }
-})
-connexion.apps.aiohttp_app.logger=logging.getLogger(__name__)
+
+aiohttp_app.logger = logging.getLogger(__name__)
 
 
 def main():
+    """
+    KGE Archive Web Services application entry point
+    """
     options = {
         "swagger_ui": True
     }

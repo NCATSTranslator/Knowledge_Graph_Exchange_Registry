@@ -3,6 +3,9 @@
 # of the 'redirect_uri' of the AWS Cognito User Pool app
 site_hostname: 'https://archive.translator.ncats.io'
 
+# For KGEA code only: can be set to any of the usual logging levels: CRITICAL to NOTSET
+log_level: debug
+
 aws:
   # optional 'assume-role' access parameters
   # Note the EC2 instances generally use the

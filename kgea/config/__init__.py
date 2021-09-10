@@ -28,6 +28,10 @@ _app_config: Dict[str, Union[Dict[str, Optional[str]], Union[Optional[str], bool
 
 
 def get_app_config() -> dict:
+    """
+    Gets application parameters
+    :return:
+    """
     if not _app_config:
         _load_app_config()
     return _app_config
@@ -81,7 +85,7 @@ def _load_app_config() -> dict:
                     )
 
             config.setdefault("site_hostname", "https://archive.translator.ncats.io")
-
+        
         if DEV_MODE:
             # For the EncryptedCookieStorage() managed
             # Session management during development
@@ -92,10 +96,15 @@ def _load_app_config() -> dict:
                 fernet_key = fernet.Fernet.generate_key()
                 config['secret_key'] = fernet_key.decode("utf-8")
 
-                # persist updated updated config back to config.yaml?
-                with open(CONFIG_FILE_PATH, mode='w', encoding='utf-8') as app_config_file:
-                    yaml.dump(config, app_config_file, Dumper=Dumper)
-
+        if "log_level" in config:
+            config["log_level"] = config["log_level"].upper()
+        else:
+            config["log_level"] = "INFO"
+            
+        # persist any updates back to config.yaml?
+        with open(CONFIG_FILE_PATH, mode='w', encoding='utf-8') as app_config_file:
+            yaml.dump(config, app_config_file, Dumper=Dumper)
+        
         # cache the config globally
         _app_config = config
 
@@ -108,7 +117,6 @@ def _load_app_config() -> dict:
 #############################################################
 # Here, we centralize the various application web endpoints #
 #############################################################
-
 
 BACKEND_PATH = 'archive/'
 if DEV_MODE:
@@ -160,12 +168,30 @@ def _versioned_backend_target_url(kg_id: str, kg_version: str, target: str):
 
 
 def get_fileset_metadata_url(kg_id: str, kg_version: str):
+    """
+
+    :param kg_id:
+    :param kg_version:
+    :return:
+    """
     return _versioned_backend_target_url(kg_id, kg_version, target="metadata")
 
 
 def get_meta_knowledge_graph_url(kg_id: str, kg_version: str):
+    """
+
+    :param kg_id:
+    :param kg_version:
+    :return:
+    """
     return _versioned_backend_target_url(kg_id, kg_version, target="meta_knowledge_graph")
 
 
 def get_fileset_download_url(kg_id: str, kg_version: str):
+    """
+
+    :param kg_id:
+    :param kg_version:
+    :return:
+    """
     return _versioned_backend_target_url(kg_id, kg_version, target="download")

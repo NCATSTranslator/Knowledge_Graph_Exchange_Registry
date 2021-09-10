@@ -844,10 +844,7 @@ def decompress_in_place(gzipped_key, location=None):
     """
     if location is None:
         location = '/'.join(gzipped_key.split('/')[:-1])+'/'
-    tarfile_location = 's3://{BUCKET}/{KEY}'.format(
-        BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-        KEY=gzipped_key
-    )
+    tarfile_location = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{gzipped_key}"
     file_entries = []
 
     # one step decompression - use the tarfile library's ability
