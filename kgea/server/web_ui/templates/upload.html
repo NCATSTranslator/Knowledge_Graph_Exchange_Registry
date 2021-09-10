@@ -86,6 +86,8 @@ async function GetUrl(source) {
  */
 let monitor_interval = 5000;
 
+let transfer_in_progress = false;
+
 async function UploadFile(source) {
 
     console.log("UploadFile(upload_mode: '" + source.id + "')");
@@ -136,6 +138,9 @@ async function UploadFile(source) {
                 let file_name = document.getElementById("file_name").value;
 
                 document.getElementById("content_from_url").disabled = true;
+                document.getElementById("content_from_local_file").disabled = true;
+                transfer_in_progress = true;
+
                 document.getElementById('percentage_link').style.display = "inline-block";
                 document.getElementById('spinner-text_link').style.display = "inline-block";
                 $("#ldBar_link").css('display', 'block')
@@ -247,10 +252,13 @@ async function UploadFile(source) {
                         }
                     })
                     .then(async foo => {
-                        console.log({event:"upload url done"})
+                        console.log({event:"Transfer of url specified resource done"})
                     })
 
                     document.getElementById("content_from_url").disabled = false;
+                    document.getElementById("content_from_local_file").disabled = false;
+                    transfer_in_progress = false;
+
                     document.getElementById("content_url").value = ""
                     document.getElementById("file_name").value = ""
                     SetFileName("unknown")
@@ -308,7 +316,10 @@ async function UploadFile(source) {
             formData.append("uploaded_file", uploaded_file);
             formData.append("content_name", filename);
 
+            document.getElementById("content_from_url").disabled = true;
             document.getElementById("content_from_local_file").disabled = true;
+            transfer_in_progress = true;
+
             document.getElementById('percentage').style.display = "inline-block";
             document.getElementById('spinner-text').style.display = "inline-block";
             $("#ldBar").css('display', 'block')
@@ -423,10 +434,13 @@ async function UploadFile(source) {
 
             })
             .then(async foo => {
-                console.log({event:"upload done"})
+                console.log({event:"Upload of local file done"})
             })
 
+            document.getElementById("content_from_url").disabled = false;
             document.getElementById("content_from_local_file").disabled = false;
+            transfer_in_progress = false;
+
             document.getElementById("content_file").value = null;
 
             update_file_list(kgx_file_content, filename, "Uploaded!")
@@ -459,6 +473,24 @@ function update_file_list(kgx_file_content, filename, status) {
 }
 
 async function DoneUploading(source) {
+    if(transfer_in_progress) {
+        if (confirm("Warning: file transfer in progress... Abort?")) {
+            if (!confirm("Continue with post-processing of file set?")) {
+              try {
+                    let a = document.createElement("a");
+                    a.href = "/home";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } catch (e) {
+                    console.log("Cancellation error...", e);
+                }
+                return;
+            }
+        } else {
+          return;
+        }
+    }
     if (source.id === 'done_uploading') {
         try {
             let a = document.createElement("a");
