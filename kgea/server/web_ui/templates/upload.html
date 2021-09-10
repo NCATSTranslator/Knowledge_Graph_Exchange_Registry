@@ -193,8 +193,8 @@ async function UploadFile(source) {
 
                         // timer helper for deferring execution of next recursion step
                         // "value" will be a function here
-                        function later(delay, value) {
-                            return new Promise(resolve => setTimeout(resolve, delay, value));
+                        function later(monitor_interval, value) {
+                            return new Promise(resolve => setTimeout(resolve, monitor_interval, value));
                         }
 
                         // control flow for mutual recursion
@@ -227,7 +227,7 @@ async function UploadFile(source) {
 
                         // put the pieces together
                         try {
-                            return await later(delay, askForProgress).then(execute)
+                            return await later(monitor_interval, askForProgress).then(execute)
                         } catch (e) {
                             console.error(e);
                             document.getElementById("content_url").value = ""
@@ -369,8 +369,8 @@ async function UploadFile(source) {
 
                 // timer helper for deferring execution of next recursion step
                 // "value" will be a function here
-                function later(delay, value) {
-                    return new Promise(resolve => setTimeout(resolve, delay, value));
+                function later(monitor_interval, value) {
+                    return new Promise(resolve => setTimeout(resolve, monitor_interval, value));
                 }
 
                 // control flow for mutual recursion
@@ -402,7 +402,7 @@ async function UploadFile(source) {
 
                 // put the pieces together
                 try {
-                    return await later(delay, askForProgress).then(execute)
+                    return await later(monitor_interval, askForProgress).then(execute)
                 } catch (e) {
                     console.error(e);
                     document.getElementById("content_url").value = ""
