@@ -54,6 +54,7 @@ $("#ldBar_link").progressbar({
     value: 0,
 })
 $("#ldBar_link").css("display", "none")
+
 let content_name = "unknown";
 
 // TODO: Sanitize content_names as
@@ -78,6 +79,12 @@ async function GetUrl(source) {
     document.getElementById("file_name").value = content_name;
     SetFileName(content_name)
 }
+
+/*
+ * We set progress monitoring polling
+ * delay to 5 seconds per request
+ */
+let monitor_interval = 5000;
 
 async function UploadFile(source) {
 
@@ -154,8 +161,6 @@ async function UploadFile(source) {
                         // use mutual recursion to create a progress element that always updates the exact amount required
                         document.getElementById('percentage_link').textContent = `(0.0%)`;
 
-                        let delay = 1000;
-
                         // callback for mutual recursion
                         async function askForProgress() {
                             return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
@@ -163,10 +168,8 @@ async function UploadFile(source) {
                                 .then(j => {
                                     let progress_ratio = 0;
                                     if (!!j.end_position) {
-                                        delay = 1000;
                                         progress_ratio = j.current_position / j.end_position;
                                     } else {
-                                        delay = 5000;
                                         if(fake_progress < 900) {
                                             fake_progress++;
                                         }
@@ -209,7 +212,7 @@ async function UploadFile(source) {
                                     throw Error('Upload failed! (Current position is larger than end position?)')
                                 }
                                 if (!(received.current_position === received.end_position)) {
-                                    return await later(delay, askForProgress).then(execute)
+                                    return await later(monitor_interval, askForProgress).then(execute)
                                 }
                                 // success
                                 return true;
@@ -218,7 +221,7 @@ async function UploadFile(source) {
 
                         // put the pieces together
                         try {
-                            return await later(delay, askForProgress).then(execute).finally(success => {
+                            return await later(monitor_interval, askForProgress).then(execute).finally(success => {
                                 if (!!success) {
                                     document.getElementById("content_url").value = ""
                                     document.getElementById("file_name").value = ""
@@ -331,8 +334,6 @@ async function UploadFile(source) {
                 // use mutual recursion to create a progress element that always updates the exact amount required
                 document.getElementById('percentage').textContent = `(0.0%)`;
 
-                let delay = 1000;
-
                 // callback for mutual recursion
                 async function askForProgress() {
                     return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
@@ -340,10 +341,8 @@ async function UploadFile(source) {
                         .then(j => {
                             let progress_ratio = 0;
                             if (!!j.end_position) {
-                                delay = 1000;
                                 progress_ratio = j.current_position / j.end_position;
                             } else {
-                                delay = 5000;
                                 if(fake_progress < 900) {
                                     fake_progress++;
                                 }
@@ -385,14 +384,14 @@ async function UploadFile(source) {
                             throw Error('Upload failed! (Current position is larger than end position?)')
                         }
                         if (!(received.current_position === received.end_position)) {
-                            return await later(delay, askForProgress).then(execute)
+                            return await later(monitor_interval, askForProgress).then(execute)
                         }
                     })
                 }
 
                 // put the pieces together
                 try {
-                    return await later(delay, askForProgress).then(execute).finally(success => {
+                    return await later(monitor_interval, askForProgress).then(execute).finally(success => {
                         if (!!success) {
                             document.getElementById("content_url").value = ""
                             document.getElementById("file_name").value = ""
