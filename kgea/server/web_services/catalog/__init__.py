@@ -74,8 +74,6 @@ from kgea.config import (
     FILE_SET_METADATA_FILE
 )
 
-from kgea.server.web_services import KgeaSession
-
 from kgea.server.web_services.models import (
     KgeMetadata,
     KgeFileSetStatusCode,
@@ -1886,14 +1884,11 @@ def get_default_model_version():
     return semver.split('.')
 
 
-# Catalog of Biolink Model version specific validators
-_biolink_validator = dict()
-
-
 class ProgressMonitor:
     """
     ProgressMonitor
     """
+    
     # TODO: how do we best track the validation here?
     #       We start by simply counting the nodes and edges
     #       and periodically reporting to debug logger.
@@ -1951,13 +1946,6 @@ class KgeArchiver:
         if not cls._the_archiver:
             cls._the_archiver = KgeArchiver()
         return cls._the_archiver
-    
-    def close(self):
-        """
-        Post processing of KgeArchiver (singleton) instances.
-        """
-        # Shut down KgeArchiver background processing here
-        KgeaSession.get_event_loop().run_until_complete(self.shutdown_workers())
     
     async def worker(self, task_id=None):
         """
@@ -2187,13 +2175,9 @@ class KgxValidator:
         self.number_of_tasks = Number_of_Validator_Tasks
         self._validation_tasks: List = list()
 
-    def close(self):
-        """
-        Post processing of KgxValidator (singleton) instances.
-        """
-        # Shut down KgxValidator background processing here
-        KgeaSession.get_event_loop().run_until_complete(self.shutdown_tasks())
-
+    # Catalog of Biolink Model version specific validators
+    _biolink_validator = dict()
+    
     def get_validation_queue(self) -> Queue:
         """
         :return:
@@ -2213,18 +2197,17 @@ class KgxValidator:
         :param biolink_model_release:
         :return:
         """
-        if biolink_model_release in _biolink_validator:
-            validator = _biolink_validator[biolink_model_release]
+        if biolink_model_release in cls._biolink_validator:
+            validator = cls._biolink_validator[biolink_model_release]
         else:
             validator = KgxValidator(biolink_model_release)
-            _biolink_validator[biolink_model_release] = validator
+            cls._biolink_validator[biolink_model_release] = validator
 
         if validator.number_of_tasks:
             validator.number_of_tasks -= 1
             validator._validation_tasks.append(create_task(validator()))
         return validator
-
-    # The method should be called by at the end of KgxValidator processing
+    
     @classmethod
     async def shutdown_tasks(cls):
         """
@@ -2232,7 +2215,7 @@ class KgxValidator:
         
         :return:
         """
-        for validator in _biolink_validator.values():
+        for validator in cls._biolink_validator.values():
             await validator.get_validation_queue().join()
             try:
                 # Cancel the KGX validation worker tasks
