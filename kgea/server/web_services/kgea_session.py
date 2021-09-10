@@ -23,7 +23,7 @@ from multidict import MultiDict
 from kgea.config import get_app_config, HOME_PAGE
 
 # Master flag for simplified local development
-from kgea.server.web_services import KgeArchiveCatalog
+from kgea.server.web_services.catalog import KgeArchiver
 
 DEV_MODE = getenv('DEV_MODE', default=False)
 
@@ -37,22 +37,22 @@ class KgeaSession:
     _session_storage: AbstractStorage
     _event_loop: AbstractEventLoop
     _client_session: ClientSession
-
+    
     @classmethod
     def initialize(cls, app=None):
         """
         Initialize a global KGE Archive Client Session
         """
-
+        
         if app:
             storage = cls.get_storage()
             setup(app, storage)
         else:
             raise RuntimeError("Invalid web application?")
-
+        
         cls._event_loop = asyncio.get_event_loop()
         cls._client_session = ClientSession(loop=cls._event_loop)
-
+    
     @classmethod
     def _initialize_storage(cls):
         app_config = get_app_config()
@@ -67,7 +67,7 @@ class KgeaSession:
             mc = aiomcache.Client("memcached", 11211)
             # we assume an HTTPS SSL secured site, hence 'secure=True'
             cls._session_storage = MemcachedStorage(mc, secure=True)
-
+    
     @classmethod
     def get_storage(cls) -> AbstractStorage:
         """
@@ -81,9 +81,9 @@ class KgeaSession:
             # be called more than twice... some
             # async contexts may call it more often?
             cls._initialize_storage()
-
+        
         return cls._session_storage
-
+    
     @classmethod
     def get_event_loop(cls) -> AbstractEventLoop:
         """
@@ -91,7 +91,7 @@ class KgeaSession:
         :return:
         """
         return cls._event_loop
-
+    
     @classmethod
     async def save_session(cls, request, response, session):
         """
@@ -102,18 +102,18 @@ class KgeaSession:
         """
         storage = cls.get_storage()
         await storage.save_session(request, response, session)
-
+    
     @classmethod
     def get_global_session(cls) -> ClientSession:
         """
         Get the current global KGE Archive Client Session
         """
         return cls._client_session
-
+    
     @classmethod
     async def _close_kgea_global_session(cls):
         await cls._client_session.close()
-
+    
     @classmethod
     def close_global_session(cls):
         """
@@ -122,17 +122,21 @@ class KgeaSession:
         # The main event_loop is already closed in
         # the web.run_app() so I retrieve a new one?
         loop = asyncio.get_event_loop()
-
+        
         # Close the global Client Session
         loop.run_until_complete(cls._close_kgea_global_session())
-
-        # Close the KgeArchiveCatalog
-        loop.run_until_complete(KgeArchiveCatalog.catalog().close())
+        
+        # Close the KgeArchiver worker tasks
+        loop.run_until_complete(KgeArchiver.get_archiver().shutdown_workers())
+        
+        # Close the KgxValidator worker tasks
+        # TODO: This code is commented out until the KgxValidator implementation is revisited
+        # loop.run_until_complete(KgxValidator.shutdown_tasks())
         
         # see https://docs.aiohttp.org/en/v3.7.4.post0/client_advanced.html#graceful-shutdown
         # Zero-sleep to allow underlying connections to close
         loop.run_until_complete(asyncio.sleep(0))
-
+        
         loop.close()
 
 
@@ -145,21 +149,21 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
     """
     try:
         session = await new_session(request)
-
+        
         if not uid:
             uid = uuid4().hex
-
+        
         # TODO: the identifier field value doesn't seem to be propagated (in aiohttp 3.6 - review status in 3.7)
         session.set_new_identity(uid)
-
+        
         session['uid'] = uid
-
+        
         if user_attributes:
             session['username'] = user_attributes.setdefault("preferred_username", 'anonymous')
             session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
                               user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
-
+    
     except RuntimeError as rte:
         await report_error(request, "initialize_user_session() ERROR: " + str(rte))
 
@@ -176,7 +180,7 @@ async def with_session(request, response):
         await KgeaSession.save_session(request, response, session)
     except RuntimeError as rte:
         await report_error(request, "kgea_session.with_session() RuntimeError: " + str(rte))
-
+    
     return response
 
 
@@ -198,7 +202,7 @@ async def _process_redirection(request, response, active_session):
             await KgeaSession.save_session(request, response, session)
         except RuntimeError as rte:
             logger.error("kgea_session._process_redirection() RuntimeError?!??: " + str(rte))
-
+    
     raise response
 
 
@@ -258,6 +262,6 @@ async def report_error(request, reason: str, active_session: bool = False):
     """
     await _process_redirection(
         request,
-        web.HTTPBadRequest(reason=reason+f" <a href=\"{HOME_PAGE}\">Go back Home</a>."),
+        web.HTTPBadRequest(reason=reason + f" <a href=\"{HOME_PAGE}\">Go back Home</a>."),
         active_session
     )
