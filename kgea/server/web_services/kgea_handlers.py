@@ -108,7 +108,7 @@ KGX_FILE_CONTENT_TYPES = ['metadata', 'nodes', 'edges', 'archive']
 # )
 #############################################################
 
-_upload_tracker = {}
+_upload_tracker = {'upload': {}}
 
 
 async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
@@ -146,6 +146,7 @@ async def register_kge_knowledge_graph(request: web.Request):
     :param request:
     :type request: web.Request
     """
+    print("Entering register_kge_knowledge_graph()")
     logger.debug("Entering register_kge_knowledge_graph()")
 
     session = await get_session(request)
@@ -274,6 +275,7 @@ async def register_kge_file_set(request: web.Request):
     :param request:
     :type request: web.Request
     """
+    print("Entering register_kge_file_set()")
     logger.debug("Entering register_kge_file_set()")
 
     session = await get_session(request)
@@ -352,6 +354,7 @@ async def register_kge_file_set(request: web.Request):
                 "register_kge_file_set(): knowledge graph '" + kg_id + "' was not found in the catalog?",
                 active_session=True
             )
+
         if True:  # location_available(bucket_name, object_key):
             if True:  # api_specification and url:
                 # TODO: repair return
@@ -362,7 +365,7 @@ async def register_kge_file_set(request: web.Request):
                 # knowledge graph submission within KGE Archive
                 file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
 
-                if file_set:
+                if file_set is not None:
                     # existing file set for specified version... hmm... what do I do here?
                     if DEV_MODE:
                         # TODO: need to fail more gracefully here
@@ -383,6 +386,7 @@ async def register_kge_file_set(request: web.Request):
                         submitter_email=submitter_email
                     )
 
+                print("knowledge_graph.add_file_set", knowledge_graph, file_set)
                 # Add new versioned KGE File Set to the Catalog Knowledge Graph entry
                 knowledge_graph.add_file_set(fileset_version, file_set)
 
@@ -415,6 +419,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
     :param fileset_version: specific version of KGE File Set published for the specified Knowledge Graph Identifier
     :type fileset_version: str
     """
+    print("Entering publish_kge_file_set()")
     logger.debug("Entering publish_kge_file_set()")
 
     session = await get_session(request)

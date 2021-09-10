@@ -18,6 +18,7 @@ import random
 import time
 
 import requests
+import validators
 import smart_open
 from datetime import datetime
 
@@ -1081,6 +1082,8 @@ def get_url_file_size(url: str) -> int:
     size: int = 0
     if url:
         try:
+            assert (validators.url(url))
+
             # fetching the header information
             info = requests.head(url)
             content_length = info.headers['Content-Length']
@@ -1088,7 +1091,10 @@ def get_url_file_size(url: str) -> int:
             return size
         except Exception as exc:
             logger.error("get_url_file_size(url:" + str(url) + "): " + str(exc))
-    
+            # TODO: invalidate the size invariant to propagate a call error
+            # for now return -1 to encode the error state
+            return -1
+
     return size
 
 
@@ -1120,15 +1126,41 @@ def upload_from_link(
     :param callback: e.g. progress monitor
     :param client: for S3
     """
-    # errors are ignored here as they usually talk about coding mismatches,
-    # which don't matter when transferring bytes directly
-    with smart_open.open(source) as fin:
-        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}) as fout:
-            for line in fin:
+
+    # make sure we're getting a valid url
+    assert(validators.url(source))
+
+    # this will use the smart_open http client (given that `source` is a full url)
+    """
+    Explaining the arguments for smart_open
+    * encoding - utf-8 to get rid of encoding errors
+    * compression - smart_open opens tar.gz files by default; unnecessary, maybe cause slowdown with big files.
+    * transport_params - modifying the headers will let us pick an optimal mimetype for transfer
+    
+    The block is written in a way that tries to minimize blocking access to the requests and files, instead opting
+    to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
+    """
+    with smart_open.open(source,
+        'r',
+        compression='disable',
+        encoding="utf8",
+        transport_params={
+            'headers': {
+                'Accept-Encoding': 'identity',
+                'Content-Type': 'application/octet-stream'
+            }
+        }
+    ) as fin:
+        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
+            read_so_far = 0
+            while read_so_far < fin.buffer.content_length:
+                line = fin.read(1)
+                encoded = line.encode(fin.encoding)
                 fout.write(line)
                 if callback:
                     # pass increment of bytes
-                    callback(len(line.encode(fin.encoding)))
+                    callback(len(encoded))
+                read_so_far += 1
 
 
 @prepare_test

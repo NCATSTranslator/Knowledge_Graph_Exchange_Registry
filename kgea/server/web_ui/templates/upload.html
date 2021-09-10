@@ -34,7 +34,9 @@
         #ldBar .ui-progressbar-value {
             background-color: var(--nc-lk-1);
         }
-
+        #ldBar_link .ui-progressbar-value {
+            background-color: var(--nc-lk-1);
+        }
         .progress-label {
             color: var(--nc-tx-2);
             padding-left: 16px;
@@ -48,6 +50,11 @@ $("#ldBar").progressbar({
     value: 0,
 })
 $("#ldBar").css("display", "none")
+$("#ldBar_link").progressbar({
+    value: 0,
+})
+$("#ldBar_link").css("display", "none")
+
 let content_name = "unknown";
 
 // TODO: Sanitize content_names as
@@ -72,6 +79,12 @@ async function GetUrl(source) {
     document.getElementById("file_name").value = content_name;
     SetFileName(content_name)
 }
+
+/*
+ * We set progress monitoring polling
+ * delay to 5 seconds per request
+ */
+let monitor_interval = 5000;
 
 async function UploadFile(source) {
 
@@ -111,34 +124,148 @@ async function UploadFile(source) {
         let content_url = document.getElementById("content_url").value;
 
         if (content_url) {
-            console.log("Content URL: '" + content_url + "')");
-            formData.append("content_url", content_url);
+            if (content_name.split('.')[1] !== 'json' && kgx_file_content === 'metadata') {
+                console.warn("Non-JSON file attempted to be used with metadata file type.");
+                window.alert("You can't upload a non-JSON file for metadata. This file appears to be '"+ content_name.split('.')[1] +".\n\nUse a different file link.");
+            } else {
 
-            let file_name = document.getElementById("file_name").value;
+                console.log("Content URL being uploaded: '" + content_url + "')");
 
-            // somehow post the direct file URL transfer here?
-            //window.alert("Direct transfer of file from URL: " + content_url);
-            let duta_endpoint = `{{direct_url_transfer_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&content_url=${content_url}&content_name=${file_name}`;
-            //window.alert("Direct URL transfer action endpoint: " + duta_endpoint);
-            await fetch(duta_endpoint,                {
-                    method: "GET",
-                    credentials: "include"
-                }
-            )
-            .then(r => r.json())
-            .then(async result => {
-                let msg = JSON.stringify(result)
-                console.log("Content URL transfer response:" + msg);
-                //window.alert("Content URL transfer response:" + msg);
-            })
+                formData.append("content_url", content_url);
 
-            // .. then clear the direct URL fields?
-            document.getElementById("content_url").value = ""
-            document.getElementById("file_name").value = ""
-            SetFileName("unknown")
+                let file_name = document.getElementById("file_name").value;
 
-            // .. then post the file name transferred
-            update_file_list(kgx_file_content, file_name, "Transferring...")
+                document.getElementById("content_from_url").disabled = true;
+                document.getElementById('percentage_link').style.display = "inline-block";
+                document.getElementById('spinner-text_link').style.display = "inline-block";
+                $("#ldBar_link").css('display', 'block')
+
+                // somehow post the direct file URL transfer here?
+                //window.alert("Direct transfer of file from URL: " + content_url);
+                let duta_endpoint = `{{direct_url_transfer_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&content_url=${content_url}&content_name=${file_name}`;
+                let fake_progress = 0;
+
+                //window.alert("Direct URL transfer action endpoint: " + duta_endpoint);
+                await fetch(duta_endpoint, {
+                        method: "GET",
+                        credentials: "include"
+                    }
+                )
+                    .then(r => r.json())
+                    .then(async result => {
+                        let msg = JSON.stringify(result)
+                        console.log("Content URL transfer response:" + msg);
+                        //window.alert("Content URL transfer response:" + msg);
+                        return result.upload_token
+                    })
+                    // handle progress bar related requests
+                    .then(async upload_token => {
+                        console.log('attempting to trigger progress monitoring with progress bar')
+                        // use mutual recursion to create a progress element that always updates the exact amount required
+                        document.getElementById('percentage_link').textContent = `(0.0%)`;
+
+                        // callback for mutual recursion
+                        async function askForProgress() {
+                            return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
+                                .then(r => r.json())
+                                .then(j => {
+                                    let progress_ratio = 0;
+                                    if (!!j.end_position) {
+                                        progress_ratio = j.current_position / j.end_position;
+                                    } else {
+                                        if(fake_progress < 900) {
+                                            fake_progress++;
+                                        }
+                                        progress_ratio = fake_progress / 1000
+                                    }
+                                    let percentage = Number(progress_ratio * 100).toFixed(1);
+                                    document.getElementById('percentage_link').textContent = `(${percentage}%)`;
+                                    let progressbar = $("#ldBar_link");
+                                    progressbar.progressbar({
+                                        // ceil to err on the side of displaying progress
+                                        // min to set a bound on how large progress can be (greater than 100% is 100%)
+                                            // happens
+                                        value: Math.min(Math.ceil(progress_ratio * 100), 100)
+                                    });
+                                    return j;
+                                })
+                        }
+
+                        // timer helper for deferring execution of next recursion step
+                        // "value" will be a function here
+                        function later(delay, value) {
+                            return new Promise(resolve => setTimeout(resolve, delay, value));
+                        }
+
+                        // control flow for mutual recursion
+                        async function execute(callback) {
+                            return await callback().then(async received => {
+                                // NOTE: Sometimes it takes awhile for
+                                // received.end_position to initialize, particularly
+                                // if the file size is > ~1GB (works fine at ~300mb).
+                                // In that case, received.end_position is going
+                                // to be undefined. So this will still execute and
+                                // essentially wait until received.end_position is
+                                // defined, and will stop once received.current_position
+                                // is equal to j.end_position (because the file has
+                                // been completely read and uploaded).
+                                if (received.end_position === -1) {
+                                    // error
+                                    throw Error('Upload failed! (End position set to -1 - check server logs for information)')
+                                }
+                                if (received.current_position > received.end_position) {
+                                    // error
+                                    throw Error('Upload failed! (Current position is larger than end position?)')
+                                }
+                                if (!(received.current_position === received.end_position)) {
+                                    return await later(monitor_interval, askForProgress).then(execute)
+                                }
+                                // success
+                                return true;
+                            })
+                        }
+
+                        // put the pieces together
+                        try {
+                            return await later(delay, askForProgress).then(execute)
+                        } catch (e) {
+                            console.error(e);
+                            document.getElementById("content_url").value = ""
+                            document.getElementById("file_name").value = ""
+                            SetFileName("unknown")
+
+                            // .. then post the file name transferred
+                            update_file_list(kgx_file_content, file_name, "Error!")
+
+                            // document.getElementById('spinner").style.display = "none";
+                            document.getElementById("percentage_link").style.display = "none";
+                            document.getElementById("spinner-text_link").style.display = "none";
+                            $("#ldBar_link").css('display', 'none')
+                            $("#ldBar_link").progressbar({
+                                value: 0
+                            })
+                        }
+                    })
+                    .then(async foo => {
+                        console.log({event:"upload url done"})
+                    })
+
+                    document.getElementById("content_from_url").disabled = false;
+                    document.getElementById("content_url").value = ""
+                    document.getElementById("file_name").value = ""
+                    SetFileName("unknown")
+
+                    // .. then post the file name transferred
+                    update_file_list(kgx_file_content, file_name, "Uploaded!")
+
+                    // document.getElementById('spinner").style.display = "none";
+                    document.getElementById("percentage_link").style.display = "none";
+                    document.getElementById("spinner-text_link").style.display = "none";
+                    $("#ldBar_link").css('display', 'none')
+                    $("#ldBar_link").progressbar({
+                        value: 0
+                    })
+            }
 
         } else {
             console.log("KGX content file URL is undefined?");
@@ -171,8 +298,8 @@ async function UploadFile(source) {
                 kgx_file_content === "metadata" &&
                 mime_type !== "application/json"
             ) {
-                window.alert("Content metadata files should be content type 'application/json'." +
-                             " This file appears to be '"+ mime_type +"'");
+                window.alert("You can't upload a non-JSON file for metadata." +
+                             " This file appears to be '"+ mime_type +"'.\n\nUse a different file.");
                 return;
             }
 
@@ -182,10 +309,8 @@ async function UploadFile(source) {
             formData.append("content_name", filename);
 
             document.getElementById("content_from_local_file").disabled = true;
-            // document.getElementById('spinner').style.display = "inline-block";
             document.getElementById('percentage').style.display = "inline-block";
             document.getElementById('spinner-text').style.display = "inline-block";
-
             $("#ldBar").css('display', 'block')
 
             // We need to give the user some kind of
@@ -209,12 +334,11 @@ async function UploadFile(source) {
                 })
                 return result.upload_token
             })
+            // handle progress bar related requests
             .then(async upload_token => {
 
                 // use mutual recursion to create a progress element that always updates the exact amount required
                 document.getElementById('percentage').textContent = `(0.0%)`;
-
-                let delay = 1000;
 
                 // callback for mutual recursion
                 async function askForProgress() {
@@ -223,10 +347,8 @@ async function UploadFile(source) {
                         .then(j => {
                             let progress_ratio = 0;
                             if (!!j.end_position) {
-                                delay = 1000;
                                 progress_ratio = j.current_position / j.end_position;
                             } else {
-                                delay = 5000;
                                 if(fake_progress < 900) {
                                     fake_progress++;
                                 }
@@ -237,7 +359,9 @@ async function UploadFile(source) {
                             let progressbar = $("#ldBar");
                             progressbar.progressbar({
                                 // ceil to err on the side of displaying progress
-                                value: Math.ceil(progress_ratio * 100)
+                                // min to set a bound on how large progress can be (greater than 100% is 100%)
+                                    // happens
+                                value: Math.min(Math.ceil(progress_ratio * 100), 100)
                             });
                             return j;
                         })
@@ -250,8 +374,8 @@ async function UploadFile(source) {
                 }
 
                 // control flow for mutual recursion
-                async function execute(callback) {
-                    return await callback().then(async received => {
+                async function execute(callback, ...args) {
+                    return await callback(args).then(async received => {
                         // NOTE: Sometimes it takes awhile for
                         // received.end_position to initialize, particularly
                         // if the file size is > ~1GB (works fine at ~300mb).
@@ -259,19 +383,42 @@ async function UploadFile(source) {
                         // to be undefined. So this will still execute and
                         // essentially wait until received.end_position is
                         // defined, and will stop once received.current_position
-                        // is equal to j.end_position (because the file has
-                        // been completely read and uploaded).
-                        if (!(received.current_position === received.end_position)) {
-                            return await later(delay, askForProgress).then(execute)
+                        // is equal to j.end_position (because the file has been completely read and uploaded).
+                        if (received.end_position === -1) {
+                            // error
+                            throw Error('Upload failed! (End position set to -1 - check server logs for information)')
                         }
+                        if (received.current_position > received.end_position) {
+                            // error
+                            throw Error('Upload failed! (Current position is larger than end position?)')
+                        }
+                        if (!(received.current_position === received.end_position)) {
+                            return await later(monitor_interval, askForProgress).then(execute)
+                        }
+                        // success
+                        return true;
                     })
                 }
 
                 // put the pieces together
                 try {
-                    return await later(delay, askForProgress).then(execute);
+                    return await later(delay, askForProgress).then(execute)
                 } catch (e) {
                     console.error(e);
+                    document.getElementById("content_url").value = ""
+                    document.getElementById("file_name").value = ""
+                    SetFileName("unknown")
+
+                    // .. then post the file name transferred
+                    update_file_list(kgx_file_content, file_name, "Error!")
+
+                    // document.getElementById('spinner").style.display = "none";
+                    document.getElementById("percentage").style.display = "none";
+                    document.getElementById("spinner-text").style.display = "none";
+                    $("#ldBar").css('display', 'none')
+                    $("#ldBar").progressbar({
+                        value: 0
+                    })
                 }
 
             })
@@ -287,10 +434,10 @@ async function UploadFile(source) {
             // document.getElementById('spinner").style.display = "none";
             document.getElementById("percentage").style.display = "none";
             document.getElementById("spinner-text").style.display = "none";
-            $("#ldBar").css('display', 'none')
             $("#ldBar").progressbar({
                 value: 0
             })
+            $("#ldBar").css('display', 'none')
 
         } else {
             console.log("KGX " + kgx_file_content + " file is undefined?");
@@ -324,6 +471,22 @@ async function DoneUploading(source) {
         }
     }
 }
+
+// Helper
+// Convert bytes into human-readable strings
+function getSize(size) {
+    const sizes = [' Bytes', ' KB', ' MB', ' GB',
+                 ' TB', ' PB', ' EB', ' ZB', ' YB'];
+
+    for (let i = 1; i < sizes.length; i++) {
+        if (size < Math.pow(1024, i))
+          return (Math.round((size / Math.pow(
+            1024, i - 1)) * 100) / 100) + sizes[i - 1];
+    }
+    return size;
+}
+
+
 </script>
 {% endblock %}
 {% block menu %}
@@ -372,22 +535,22 @@ async function DoneUploading(source) {
                 </span>
             </div>
             <p></p>
-            <!--
-            <input type="radio" id="archive" name="kgx_file_content" value="archive">
-            <label class="label" for="archive">KGX Archive</label>
-            <div class="tooltip">
-                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
-                <span class="tooltiptext">
-                        If a KGX Archive is given, then the locally uploaded file,
-                        or a direct URL transfer from URL, is assumed to be a gzip'd
-                        compressed tar file with the name '<root file name>.tar.gz'
-                        containing one of each of both a KGX-compliant 'nodes.tsv'
-                        and 'edges.tsv' file for the knowledge graph, (preferrably!) with
-                        an associated KGX-compliant 'content_metadata.json' file.
-                </span>
-            </div>
-            -->
-    <p></p>
+                <!--
+                <input type="radio" id="archive" name="kgx_file_content" value="archive">
+                <label class="label" for="archive">KGX Archive</label>
+                <div class="tooltip">
+                    <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
+                    <span class="tooltiptext">
+                            If a KGX Archive is given, then the locally uploaded file,
+                            or a direct URL transfer from URL, is assumed to be a gzip'd
+                            compressed tar file with the name '<root file name>.tar.gz'
+                            containing one of each of both a KGX-compliant 'nodes.tsv'
+                            and 'edges.tsv' file for the knowledge graph, (preferrably!) with
+                            an associated KGX-compliant 'content_metadata.json' file.
+                    </span>
+                </div>
+                -->
+            <p></p>
         </td>
         <td colspan="2">
             <div class="header">
@@ -410,7 +573,7 @@ Uploading file, please don't navigate away from the page...</span>
             </span>
         </td>
     </tr>
-    <!-- <tr>
+    <tr>
         <td>
             <div class="header">
                 Transfer from a URL
@@ -419,8 +582,7 @@ Uploading file, please don't navigate away from the page...</span>
             <input id="content_url" type="text" oninput="GetUrl(this)"/>
             <br><label for="file_name"><b>File Name:</b></label><br>
             <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
-        </td>
-        <td>
+
             <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
@@ -431,8 +593,12 @@ Uploading file, please don't navigate away from the page...</span>
                 </span>
             </div>
             <br>
+            <p>
+            <span id="ldBar_link" style="background: transparent; height: 1em; display:inline"></span>
+            <span id="percentage_link" class="progress-label" style="display:none;"></span>
+            <span id="spinner-text_link" style="font-size: smaller; display:none;"></span>
         </td>
-    </tr>  -->
+    </tr>
     <tr>
         <td colspan="2">
             <em>Files uploaded:</em><br>
