@@ -119,13 +119,16 @@ async function UploadFile(source) {
         if (content_url) {
             if (content_name.split('.')[1] !== 'json' && kgx_file_content === 'metadata') {
                 console.warn("Non-JSON file attempted to be used with metadata file type.");
-                window.alert("You can't upload a non-JSON file for metadata.\n\nUse a different file link.");
+                window.alert("You can't upload a non-JSON file for metadata. This file appears to be '"+ content_name.split('.')[1] +".\n\nUse a different file link.");
             } else {
-                console.log("Content URL: '" + content_url + "')");
+
+                console.log("Content URL being uploaded: '" + content_url + "')");
+
                 formData.append("content_url", content_url);
 
                 let file_name = document.getElementById("file_name").value;
-                // document.getElementById('spinner').style.display = "inline-block";
+
+                document.getElementById("content_from_url").disabled = true;
                 document.getElementById('percentage_link').style.display = "inline-block";
                 document.getElementById('spinner-text_link').style.display = "inline-block";
                 $("#ldBar_link").css('display', 'block')
@@ -177,7 +180,9 @@ async function UploadFile(source) {
                                     let progressbar = $("#ldBar_link");
                                     progressbar.progressbar({
                                         // ceil to err on the side of displaying progress
-                                        value: Math.ceil(progress_ratio * 100)
+                                        // min to set a bound on how large progress can be (greater than 100% is 100%)
+                                            // happens
+                                        value: Math.min(Math.ceil(progress_ratio * 100), 100)
                                     });
                                     return j;
                                 })
@@ -204,11 +209,12 @@ async function UploadFile(source) {
                                 if (received.end_position === -1) {
                                     // error
                                     throw Error('Upload failed! (End position set to -1 - check server logs for information)')
-                                } else if (received.current_position > received.end_position) {
+                                }
+                                if (received.current_position > received.end_position) {
                                     // error
                                     throw Error('Upload failed! (Current position is larger than end position?)')
                                 }
-                                if (!(received.current_position === received.end_position)) {
+                                if (!(received.current_position >= received.end_position)) {
                                     return await later(delay, askForProgress).then(execute)
                                 }
                                 // success
@@ -218,24 +224,7 @@ async function UploadFile(source) {
 
                         // put the pieces together
                         try {
-                            return await later(delay, askForProgress).then(execute).finally(success => {
-                                if (!!success) {
-                                    document.getElementById("content_url").value = ""
-                                    document.getElementById("file_name").value = ""
-                                    SetFileName("unknown")
-
-                                    // .. then post the file name transferred
-                                    update_file_list(kgx_file_content, file_name, "Uploaded!")
-
-                                    // document.getElementById('spinner").style.display = "none";
-                                    document.getElementById("percentage_link").style.display = "none";
-                                    document.getElementById("spinner-text_link").style.display = "none";
-                                    $("#ldBar_link").css('display', 'none')
-                                    $("#ldBar_link").progressbar({
-                                        value: 0
-                                    })
-                                }
-                            })
+                            return await later(delay, askForProgress).then(execute)
                         } catch (e) {
                             console.error(e);
                             document.getElementById("content_url").value = ""
@@ -253,6 +242,25 @@ async function UploadFile(source) {
                                 value: 0
                             })
                         }
+                    })
+                    .then(async foo => {
+                        console.log({event:"upload url done"})
+                    })
+
+                    document.getElementById("content_from_url").disabled = false;
+                    document.getElementById("content_url").value = ""
+                    document.getElementById("file_name").value = ""
+                    SetFileName("unknown")
+
+                    // .. then post the file name transferred
+                    update_file_list(kgx_file_content, file_name, "Uploaded!")
+
+                    // document.getElementById('spinner").style.display = "none";
+                    document.getElementById("percentage_link").style.display = "none";
+                    document.getElementById("spinner-text_link").style.display = "none";
+                    $("#ldBar_link").css('display', 'none')
+                    $("#ldBar_link").progressbar({
+                        value: 0
                     })
             }
 
@@ -287,8 +295,8 @@ async function UploadFile(source) {
                 kgx_file_content === "metadata" &&
                 mime_type !== "application/json"
             ) {
-                window.alert("Content metadata files should be content type 'application/json'." +
-                             " This file appears to be '"+ mime_type +"'");
+                window.alert("You can't upload a non-JSON file for metadata." +
+                             " This file appears to be '"+ mime_type +"'.\n\nUse a different file.");
                 return;
             }
 
@@ -298,10 +306,8 @@ async function UploadFile(source) {
             formData.append("content_name", filename);
 
             document.getElementById("content_from_local_file").disabled = true;
-            // document.getElementById('spinner').style.display = "inline-block";
             document.getElementById('percentage').style.display = "inline-block";
             document.getElementById('spinner-text').style.display = "inline-block";
-
             $("#ldBar").css('display', 'block')
 
             // We need to give the user some kind of
@@ -354,7 +360,9 @@ async function UploadFile(source) {
                             let progressbar = $("#ldBar");
                             progressbar.progressbar({
                                 // ceil to err on the side of displaying progress
-                                value: Math.ceil(progress_ratio * 100)
+                                // min to set a bound on how large progress can be (greater than 100% is 100%)
+                                    // happens
+                                value: Math.min(Math.ceil(progress_ratio * 100), 100)
                             });
                             return j;
                         })
@@ -380,36 +388,22 @@ async function UploadFile(source) {
                         if (received.end_position === -1) {
                             // error
                             throw Error('Upload failed! (End position set to -1 - check server logs for information)')
-                        } else if (received.current_position > received.end_position) {
+                        }
+                        if (received.current_position > received.end_position) {
                             // error
                             throw Error('Upload failed! (Current position is larger than end position?)')
                         }
-                        if (!(received.current_position === received.end_position)) {
+                        if (!(received.current_position <= received.end_position)) {
                             return await later(delay, askForProgress).then(execute)
                         }
+                        // success
+                        return true;
                     })
                 }
 
                 // put the pieces together
                 try {
-                    return await later(delay, askForProgress).then(execute).finally(success => {
-                        if (!!success) {
-                            document.getElementById("content_url").value = ""
-                            document.getElementById("file_name").value = ""
-                            SetFileName("unknown")
-
-                            // .. then post the file name transferred
-                            update_file_list(kgx_file_content, file_name, "Uploaded!")
-
-                            // document.getElementById('spinner").style.display = "none";
-                            document.getElementById("percentage").style.display = "none";
-                            document.getElementById("spinner-text").style.display = "none";
-                            $("#ldBar").css('display', 'none')
-                            $("#ldBar").progressbar({
-                                value: 0
-                            })
-                        }
-                    })
+                    return await later(delay, askForProgress).then(execute)
                 } catch (e) {
                     console.error(e);
                     document.getElementById("content_url").value = ""
