@@ -1,0 +1,3109 @@
+{
+    "nodes": {
+        "unknown": {
+            "id_prefixes": [
+                "OIO",
+                "NBO",
+                "MFOEM",
+                "rdfs",
+                "foaf",
+                "MOD",
+                "rdf",
+                "PR",
+                "CHEBI",
+                "NCIT",
+                "dct",
+                "ECTO",
+                "MFOMD",
+                "pav",
+                "OBO",
+                null,
+                "NCBITaxon",
+                "IDO",
+                "owl",
+                "OBA",
+                "ZFA",
+                "BTO",
+                "schema"
+            ],
+            "count": 225,
+            "count_by_source": {
+                "unknown": 0,
+                "monarch-ontologies": 225
+            }
+        },
+        "biolink:NamedThing": {
+            "id_prefixes": [
+                "SO",
+                "AspGD_REF",
+                "GeneReviews",
+                "STATO",
+                "HGNC",
+                "RGDRef",
+                "VGNC",
+                "ClinVarVariant",
+                "EcoGene",
+                "DOI",
+                "UBERON",
+                "pigQTL",
+                "APO",
+                "ClinVarSubmitters",
+                "EDAM-DATA",
+                "PR",
+                "MP",
+                "DOID",
+                "dct",
+                "sheepQTL",
+                "FBbt",
+                "SGD",
+                "MPATH",
+                "PW",
+                "dictyBase",
+                "OMIM",
+                "OBO",
+                "EMMA",
+                "PANTHER",
+                "UCSC",
+                "REACT",
+                "MMRRC",
+                "JAX",
+                "ZFA",
+                "ZP",
+                "ZFIN",
+                "UPHENO",
+                "EMAPA",
+                "NBO",
+                "dbSNP",
+                "CoriellFamily",
+                "KEGG-ds",
+                "OMIMPS",
+                "OBI",
+                "TAIR",
+                "foaf",
+                "MONARCH_NODE",
+                "NCIMR",
+                "RBRC",
+                "MPD-assay",
+                "horseQTL",
+                "SGD_REF",
+                "PomBase",
+                "MUGEN",
+                "ECO",
+                "WormBase",
+                "KEGG-ko",
+                "PMID",
+                "NCIT",
+                "MonarchData",
+                "FBdv",
+                "FBcv",
+                "Xenbase",
+                "FlyBase",
+                "MESH",
+                "LPT",
+                "MA",
+                "MONDO",
+                "GENO",
+                "RGD",
+                "GO_REF",
+                "CHR",
+                "MONARCH_BNODE",
+                "OIO",
+                "BIOGRID",
+                "rdfs",
+                "SwissProt",
+                "CLO",
+                "HP",
+                "dbSNPIndividual",
+                "OMIA",
+                "MPD-strain",
+                "IAO",
+                "MGI",
+                "CHEBI",
+                "CoriellCollection",
+                "MONARCH",
+                "Coriell",
+                "J",
+                "EFO",
+                "APB",
+                "VT",
+                "OBA",
+                "biolink",
+                "UniProtKB",
+                "AQTLPub",
+                "KEGG-path",
+                "PATO",
+                "KEGG-hsa",
+                "ORPHA",
+                "SEPIO",
+                "AspGD",
+                "ENSEMBL",
+                "CL",
+                "NCBIGene",
+                "UMLS",
+                "faldo",
+                "RO",
+                "AQTLTrait",
+                "WBbt",
+                "dc",
+                "WBPhenotype",
+                "NCBITaxon",
+                null,
+                "MonarchArchive",
+                "CMO",
+                "owl",
+                "GO",
+                "ZFS",
+                "BFO",
+                "rainbow_troutQTL",
+                "chickenQTL"
+            ],
+            "count": 16277337,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 2651582,
+                "FlyBase (Monarch version 202012)": 261473,
+                "Gene Ontology (Monarch version 202012)": 650261,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 326358,
+                "Monarch Ontologies": 99848,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 5400,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 85538,
+                "Animal QTL db (Monarch version 202012)": 510197,
+                "Mouse Genome Informatics (Monarch version 202012)": 4227780,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 364421,
+                "WormBase (Monarch version 202012)": 2982090,
+                "Zebra Fish Information Network (Monarch version 202012)": 478978,
+                "HGNC (Monarch version 202012)": 161518,
+                "Gene Reviews (Monarch version 202012)": 29377,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 92717,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 51747,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 449946,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 93940,
+                "ENSEMBL (Monarch version 202012)": 569450,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 358039,
+                "MonarchArchive:mgislim (Monarch version 202012)": 60055,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 293410,
+                "Mouse Phenome Database (Monarch version 202012)": 12473,
+                "ClinVar (Monarch version 202012)": 2813388,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1015,
+                "The Monarch Initiative (Monarch version 202012)": 1369,
+                "Saccharomyces Genome Database (Monarch version 202012)": 17755,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 228911,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 395681,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 92225,
+                "Elements of Morphology (Monarch version 202012)": 1962,
+                "Human Phenotype Ontology (Monarch version 202012)": 23961,
+                "Orphanet (Monarch version 202012)": 28193,
+                "Reactome (Monarch version 202012)": 293598,
+                "Rat Genome Database (Monarch version 202012)": 1182,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 78013,
+                "Simplified ZFIN (Monarch version 202012)": 34301,
+                "ChEBI": 2143
+            }
+        },
+        "biolink:GenomicEntity": {
+            "id_prefixes": [
+                "SO",
+                "CHR",
+                "MONARCH_BNODE",
+                "BIOGRID",
+                "HGNC",
+                "dbSNP",
+                "VGNC",
+                "SwissProt",
+                "KEGG-hsa",
+                "ClinVarVariant",
+                "EcoGene",
+                "MONARCH_NODE",
+                "pigQTL",
+                "AspGD",
+                "NCIMR",
+                "RBRC",
+                "ENSEMBL",
+                "horseQTL",
+                "PomBase",
+                "MUGEN",
+                "WormBase",
+                "MGI",
+                "CHEBI",
+                "sheepQTL",
+                "NCBIGene",
+                "SGD",
+                "faldo",
+                "dictyBase",
+                "Xenbase",
+                "FlyBase",
+                "OMIM",
+                "APB",
+                "EMMA",
+                null,
+                "UCSC",
+                "REACT",
+                "MMRRC",
+                "JAX",
+                "GENO",
+                "ZFIN",
+                "rainbow_troutQTL",
+                "chickenQTL",
+                "UniProtKB",
+                "RGD"
+            ],
+            "count": 8087518,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1104441,
+                "FlyBase (Monarch version 202012)": 251455,
+                "Gene Ontology (Monarch version 202012)": 388799,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 318426,
+                "Monarch Ontologies": 352,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 2438,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 30794,
+                "Animal QTL db (Monarch version 202012)": 376848,
+                "Mouse Genome Informatics (Monarch version 202012)": 2431420,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 108224,
+                "WormBase (Monarch version 202012)": 2027295,
+                "Zebra Fish Information Network (Monarch version 202012)": 247929,
+                "HGNC (Monarch version 202012)": 139864,
+                "Rat Genome Database (Monarch version 202012)": 174,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 266703,
+                "ENSEMBL (Monarch version 202012)": 569311,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 302209,
+                "Orphanet (Monarch version 202012)": 22428,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 78008,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1567,
+                "Simplified ZFIN (Monarch version 202012)": 6834,
+                "ClinVar (Monarch version 202012)": 480418,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 44821,
+                "MonarchArchive:mgislim (Monarch version 202012)": 20014,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 180002,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 42858,
+                "Undiagnosed Disease Program (Monarch version 201803)": 279,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 6536,
+                "Human Phenotype Ontology (Monarch version 202012)": 12,
+                "Saccharomyces Genome Database (Monarch version 202012)": 5175,
+                "ChEBI": 24,
+                "Reactome (Monarch version 202012)": 127851,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 224159,
+                "Mouse Phenome Database (Monarch version 202012)": 3933
+            }
+        },
+        "biolink:Gene": {
+            "id_prefixes": [
+                "SO",
+                "BIOGRID",
+                "HGNC",
+                "VGNC",
+                "SwissProt",
+                "KEGG-hsa",
+                "EcoGene",
+                "AspGD",
+                "ENSEMBL",
+                "PomBase",
+                "WormBase",
+                "MGI",
+                "NCBIGene",
+                "SGD",
+                "dictyBase",
+                "Xenbase",
+                "FlyBase",
+                "OMIM",
+                null,
+                "REACT",
+                "ZFIN",
+                "UniProtKB",
+                "RGD"
+            ],
+            "count": 2059798,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 998815,
+                "FlyBase (Monarch version 202012)": 49750,
+                "Gene Ontology (Monarch version 202012)": 370428,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 318426,
+                "Monarch Ontologies": 463,
+                "Rat Genome Database (Monarch version 202012)": 174,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 199384,
+                "ENSEMBL (Monarch version 202012)": 569122,
+                "HGNC (Monarch version 202012)": 105216,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 29567,
+                "Orphanet (Monarch version 202012)": 24278,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 78008,
+                "Zebra Fish Information Network (Monarch version 202012)": 66547,
+                "Mouse Genome Informatics (Monarch version 202012)": 162589,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 837,
+                "WormBase (Monarch version 202012)": 52098,
+                "Simplified ZFIN (Monarch version 202012)": 6834,
+                "ClinVar (Monarch version 202012)": 21823,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 44821,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 32561,
+                "MonarchArchive:mgislim (Monarch version 202012)": 20014,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 23059,
+                "Animal QTL db (Monarch version 202012)": 3668,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 6009,
+                "Undiagnosed Disease Program (Monarch version 201803)": 74,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 176,
+                "Human Phenotype Ontology (Monarch version 202012)": 13,
+                "Saccharomyces Genome Database (Monarch version 202012)": 5175,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 224159,
+                "Reactome (Monarch version 202012)": 127810
+            }
+        },
+        "biolink:SequenceFeature": {
+            "id_prefixes": [
+                "SO"
+            ],
+            "count": 2579,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 13,
+                "Monarch Ontologies": 2579,
+                "Animal QTL db (Monarch version 202012)": 5,
+                "Mouse Genome Informatics (Monarch version 202012)": 53,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 5,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 4,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 7,
+                "WormBase (Monarch version 202012)": 25,
+                "Zebra Fish Information Network (Monarch version 202012)": 29,
+                "ENSEMBL (Monarch version 202012)": 11,
+                "HGNC (Monarch version 202012)": 21,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 2,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 24,
+                "ClinVar (Monarch version 202012)": 14,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 1,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 2,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 2,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 1,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1
+            }
+        },
+        "biolink:OntologyClass": {
+            "id_prefixes": [
+                "FAO",
+                "STATO",
+                "PCO",
+                "MOD",
+                "wgs",
+                "ncit",
+                "MP",
+                "OGMS",
+                "DOID",
+                "dct",
+                "FBbt",
+                "ECTO",
+                "CARO",
+                "umlsst",
+                "ECOCORE",
+                "MPATH",
+                "PW",
+                "PO",
+                "OBO",
+                "WIKIDATA",
+                "ZFA",
+                "SIO",
+                "ZP",
+                "UPHENO",
+                "EMAPA",
+                "NBO",
+                "UO",
+                "OBI",
+                "foaf",
+                "MF",
+                "qud",
+                "ECO",
+                "XCO",
+                "UBERON_CORE",
+                "vmc",
+                "NCIT",
+                "prov",
+                "CHMO",
+                "FBdv",
+                "pav",
+                "FBcv",
+                "BSPO",
+                "umlssc",
+                "wikidata",
+                "MA",
+                "GENO",
+                "OIO",
+                "rdfs",
+                "CLO",
+                "rdf",
+                "HsapDv",
+                "ExO",
+                "IAO",
+                "OAE",
+                "GOREL",
+                "EHDAA2",
+                "oboinowl",
+                "GOP",
+                "VT",
+                "IDO",
+                "OBA",
+                "FOODON",
+                "xsd",
+                "umlssg",
+                "CIO",
+                "ERO",
+                "PATO-PROPERTY",
+                "ENVO",
+                "PATO",
+                "ORPHA",
+                "OPL",
+                "SEPIO",
+                "OBAN",
+                "DDANAT",
+                "FMA",
+                "UMLS",
+                "dctypes",
+                "faldo",
+                "RO",
+                "semmeddb",
+                "GAZ",
+                "WBbt",
+                "dc",
+                "WBPhenotype",
+                null,
+                "owl",
+                "GO",
+                "ZFS",
+                "void",
+                "ro",
+                "BFO"
+            ],
+            "count": 232134,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 11,
+                "Monarch Ontologies": 232133,
+                "Gene Reviews (Monarch version 202012)": 6,
+                "HGNC (Monarch version 202012)": 7,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 10,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 179,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 10572,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 71,
+                "Mouse Genome Informatics (Monarch version 202012)": 12176,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 5,
+                "Animal QTL db (Monarch version 202012)": 488,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 26,
+                "ENSEMBL (Monarch version 202012)": 6,
+                "FlyBase (Monarch version 202012)": 541,
+                "Gene Ontology (Monarch version 202012)": 2964,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 785,
+                "MonarchArchive:mgislim (Monarch version 202012)": 10349,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 18,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 11,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 23,
+                "Undiagnosed Disease Program (Monarch version 201803)": 9,
+                "WormBase (Monarch version 202012)": 4066,
+                "Zebra Fish Information Network (Monarch version 202012)": 28091,
+                "The Monarch Initiative (Monarch version 202012)": 634,
+                "Mouse Phenome Database (Monarch version 202012)": 705,
+                "Saccharomyces Genome Database (Monarch version 202012)": 7,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 1029,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 17,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 7,
+                "Elements of Morphology (Monarch version 202012)": 7,
+                "Human Phenotype Ontology (Monarch version 202012)": 4018,
+                "Orphanet (Monarch version 202012)": 3744,
+                "Reactome (Monarch version 202012)": 5,
+                "Rat Genome Database (Monarch version 202012)": 478,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 2,
+                "Simplified ZFIN (Monarch version 202012)": 21693,
+                "ChEBI": 25,
+                "ClinVar (Monarch version 202012)": 196
+            }
+        },
+        "biolink:OrganismalEntity": {
+            "id_prefixes": [
+                "APB",
+                "EMMA",
+                "NCBITaxon",
+                "NCIMR",
+                null,
+                "RBRC",
+                "MPD-strain",
+                "MONARCH_BNODE",
+                "MMRRC",
+                "JAX",
+                "MUGEN",
+                "MGI"
+            ],
+            "count": 125688,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 23,
+                "Monarch Ontologies": 318,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 23,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 29,
+                "ENSEMBL (Monarch version 202012)": 5,
+                "Gene Ontology (Monarch version 202012)": 30,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 23,
+                "Mouse Genome Informatics (Monarch version 202012)": 117029,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 17404,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 9,
+                "Mouse Phenome Database (Monarch version 202012)": 6510,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 10,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1137,
+                "WormBase (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 92,
+                "Zebra Fish Information Network (Monarch version 202012)": 991,
+                "Animal QTL db (Monarch version 202012)": 6,
+                "ClinVar (Monarch version 202012)": 1,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "HGNC (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1
+            }
+        },
+        "biolink:OrganismTaxon": {
+            "id_prefixes": [
+                "NCBITaxon"
+            ],
+            "count": 14702,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 23,
+                "Monarch Ontologies": 14702,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 23,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 29,
+                "ENSEMBL (Monarch version 202012)": 5,
+                "Gene Ontology (Monarch version 202012)": 25,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "Mouse Genome Informatics (Monarch version 202012)": 19,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 9,
+                "Mouse Phenome Database (Monarch version 202012)": 1,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 10,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 175,
+                "WormBase (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 92,
+                "Zebra Fish Information Network (Monarch version 202012)": 1,
+                "Animal QTL db (Monarch version 202012)": 6,
+                "ClinVar (Monarch version 202012)": 1,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "HGNC (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1
+            }
+        },
+        "biolink:in_taxon": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1,
+                "Monarch Ontologies": 1,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 1,
+                "Animal QTL db (Monarch version 202012)": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "ENSEMBL (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "HGNC (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 1,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1,
+                "WormBase (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1
+            }
+        },
+        "biolink:description": {
+            "id_prefixes": [
+                "dct",
+                "IAO"
+            ],
+            "count": 2,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1,
+                "Monarch Ontologies": 2,
+                "Animal QTL db (Monarch version 202012)": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "ENSEMBL (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "HGNC (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 2,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "The Monarch Initiative (Monarch version 202012)": 1,
+                "Mouse Phenome Database (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Saccharomyces Genome Database (Monarch version 202012)": 1,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 1,
+                "WormBase (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1,
+                "ChEBI": 1,
+                "Elements of Morphology (Monarch version 202012)": 1,
+                "Gene Reviews (Monarch version 202012)": 1
+            }
+        },
+        "biolink:source_web_page": {
+            "id_prefixes": [
+                "dct"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1,
+                "Monarch Ontologies": 1,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 1,
+                "Animal QTL db (Monarch version 202012)": 1,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 1,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 1,
+                "ENSEMBL (Monarch version 202012)": 1,
+                "Elements of Morphology (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 1,
+                "Gene Reviews (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "HGNC (Monarch version 202012)": 1,
+                "Human Phenotype Ontology (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 1,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "The Monarch Initiative (Monarch version 202012)": 1,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 1,
+                "Mouse Phenome Database (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Orphanet (Monarch version 202012)": 1,
+                "Reactome (Monarch version 202012)": 1,
+                "Rat Genome Database (Monarch version 202012)": 1,
+                "Saccharomyces Genome Database (Monarch version 202012)": 1,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 1,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 1,
+                "WormBase (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1,
+                "Simplified ZFIN (Monarch version 202012)": 1
+            }
+        },
+        "biolink:source_data_file": {
+            "id_prefixes": [
+                "dct"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1,
+                "Monarch Ontologies": 1,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 1,
+                "Animal QTL db (Monarch version 202012)": 1,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 1,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 1,
+                "ENSEMBL (Monarch version 202012)": 1,
+                "Elements of Morphology (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 1,
+                "Gene Reviews (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "HGNC (Monarch version 202012)": 1,
+                "Human Phenotype Ontology (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 1,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "The Monarch Initiative (Monarch version 202012)": 1,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 1,
+                "Mouse Phenome Database (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Orphanet (Monarch version 202012)": 1,
+                "Reactome (Monarch version 202012)": 1,
+                "Rat Genome Database (Monarch version 202012)": 1,
+                "Saccharomyces Genome Database (Monarch version 202012)": 1,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 1,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 1,
+                "WormBase (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1,
+                "Simplified ZFIN (Monarch version 202012)": 1
+            }
+        },
+        "biolink:Genome": {
+            "id_prefixes": [
+                "MONARCH_NODE",
+                "SO",
+                null,
+                "UCSC",
+                "ZFIN"
+            ],
+            "count": 97,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 24,
+                "Monarch Ontologies": 2,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 10,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 2,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 48,
+                "Zebra Fish Information Network (Monarch version 202012)": 10,
+                "Animal QTL db (Monarch version 202012)": 12,
+                "Mouse Genome Informatics (Monarch version 202012)": 1
+            }
+        },
+        "biolink:Transcript": {
+            "id_prefixes": [
+                "SO",
+                "NCBIGene",
+                "HGNC",
+                "ZFIN",
+                "MGI",
+                "CHEBI"
+            ],
+            "count": 8649,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 8505,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 2990,
+                "HGNC (Monarch version 202012)": 5054,
+                "Orphanet (Monarch version 202012)": 14,
+                "FlyBase (Monarch version 202012)": 7,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 11,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 76,
+                "ENSEMBL (Monarch version 202012)": 10,
+                "Mouse Genome Informatics (Monarch version 202012)": 307,
+                "Gene Ontology (Monarch version 202012)": 66,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 74,
+                "MonarchArchive:mgislim (Monarch version 202012)": 9,
+                "Monarch Ontologies": 32,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "ChEBI": 24,
+                "Reactome (Monarch version 202012)": 24,
+                "Zebra Fish Information Network (Monarch version 202012)": 55
+            }
+        },
+        "biolink:RNAProduct": {
+            "id_prefixes": [
+                "SO",
+                "NCBIGene",
+                "HGNC",
+                "ZFIN",
+                "MGI",
+                "CHEBI"
+            ],
+            "count": 8814,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 8640,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 3102,
+                "HGNC (Monarch version 202012)": 5190,
+                "Orphanet (Monarch version 202012)": 14,
+                "FlyBase (Monarch version 202012)": 7,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 22,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 76,
+                "ENSEMBL (Monarch version 202012)": 127,
+                "Mouse Genome Informatics (Monarch version 202012)": 307,
+                "Gene Ontology (Monarch version 202012)": 66,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 74,
+                "MonarchArchive:mgislim (Monarch version 202012)": 9,
+                "Monarch Ontologies": 62,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "ChEBI": 53,
+                "Reactome (Monarch version 202012)": 53,
+                "Zebra Fish Information Network (Monarch version 202012)": 55
+            }
+        },
+        "biolink:Disease": {
+            "id_prefixes": [
+                "EFO",
+                "OMIM",
+                "GeneReviews",
+                "MESH",
+                "OMIA",
+                "UMLS",
+                "HGNC",
+                "HP",
+                "MP",
+                "MONDO",
+                "KEGG-ds",
+                "OMIMPS",
+                "ORPHA",
+                "DOID"
+            ],
+            "count": 56709,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 97,
+                "HGNC (Monarch version 202012)": 97,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 20369,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 610,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 2972,
+                "Orphanet (Monarch version 202012)": 3934,
+                "Monarch Ontologies": 39289,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 508,
+                "Human Phenotype Ontology (Monarch version 202012)": 11911,
+                "ClinVar (Monarch version 202012)": 6685,
+                "WormBase (Monarch version 202012)": 1957,
+                "Mouse Genome Informatics (Monarch version 202012)": 1637,
+                "Zebra Fish Information Network (Monarch version 202012)": 441,
+                "FlyBase (Monarch version 202012)": 282,
+                "MonarchArchive:mgislim (Monarch version 202012)": 3,
+                "Gene Reviews (Monarch version 202012)": 743,
+                "The Monarch Initiative (Monarch version 202012)": 1,
+                "Rat Genome Database (Monarch version 202012)": 1,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 3338,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 2081,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 2
+            }
+        },
+        "biolink:PhenotypicFeature": {
+            "id_prefixes": [
+                "UPHENO",
+                "NBO",
+                "ClinVarVariant",
+                "ORPHA",
+                "HP",
+                "UBERON",
+                "pigQTL",
+                "APO",
+                "MONARCH_NODE",
+                "OMIA",
+                "horseQTL",
+                "MP",
+                "CL",
+                "DOID",
+                "sheepQTL",
+                "FBbt",
+                "UMLS",
+                "MPATH",
+                "FBcv",
+                "WBbt",
+                "EFO",
+                "WBPhenotype",
+                "OMIM",
+                null,
+                "MESH",
+                "GO",
+                "GENO",
+                "ZP",
+                "rainbow_troutQTL",
+                "chickenQTL"
+            ],
+            "count": 68156,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1398,
+                "Animal QTL db (Monarch version 202012)": 2112,
+                "Monarch Ontologies": 59226,
+                "Human Phenotype Ontology (Monarch version 202012)": 9548,
+                "Undiagnosed Disease Program (Monarch version 201803)": 683,
+                "Gene Ontology (Monarch version 202012)": 2907,
+                "Zebra Fish Information Network (Monarch version 202012)": 27545,
+                "Simplified ZFIN (Monarch version 202012)": 21684,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 2275,
+                "The Monarch Initiative (Monarch version 202012)": 1330,
+                "Elements of Morphology (Monarch version 202012)": 794,
+                "Mouse Genome Informatics (Monarch version 202012)": 10500,
+                "MonarchArchive:mgislim (Monarch version 202012)": 10343,
+                "Mouse Phenome Database (Monarch version 202012)": 364,
+                "Rat Genome Database (Monarch version 202012)": 470,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 747,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 16,
+                "FlyBase (Monarch version 202012)": 191,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 3524,
+                "WormBase (Monarch version 202012)": 2085,
+                "Saccharomyces Genome Database (Monarch version 202012)": 636,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 10,
+                "ClinVar (Monarch version 202012)": 217,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 3,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "Orphanet (Monarch version 202012)": 4,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 3
+            }
+        },
+        "biolink:SequenceVariant": {
+            "id_prefixes": [
+                "OMIM",
+                "SO",
+                "NCBIGene",
+                null,
+                "MONARCH_BNODE",
+                "WormBase",
+                "dbSNP",
+                "GENO",
+                "ZFIN",
+                "ClinVarVariant",
+                "MGI"
+            ],
+            "count": 3296427,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1134,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 1134,
+                "Mouse Genome Informatics (Monarch version 202012)": 1525144,
+                "MonarchArchive:mgislim (Monarch version 202012)": 2809,
+                "Monarch Ontologies": 46,
+                "WormBase (Monarch version 202012)": 925424,
+                "Zebra Fish Information Network (Monarch version 202012)": 79491,
+                "ClinVar (Monarch version 202012)": 450750,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 138090,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 12474,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 45921,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 56650,
+                "Animal QTL db (Monarch version 202012)": 88893,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 3358,
+                "Undiagnosed Disease Program (Monarch version 201803)": 171,
+                "Gene Ontology (Monarch version 202012)": 7809
+            }
+        },
+        "biolink:InformationContentEntity": {
+            "id_prefixes": [
+                "AspGD_REF",
+                "STATO",
+                "MONARCH_BNODE",
+                "RGDRef",
+                "OBI",
+                "RGD",
+                "DOI",
+                "SEPIO",
+                "dbSNPIndividual",
+                "MONARCH_NODE",
+                "NCIMR",
+                "RBRC",
+                "IAO",
+                "SGD_REF",
+                "MUGEN",
+                "ECO",
+                "MGI",
+                "WormBase",
+                "PMID",
+                "MONARCH",
+                "J",
+                "FlyBase",
+                "APB",
+                "EMMA",
+                null,
+                "REACT",
+                "MMRRC",
+                "JAX",
+                "GENO",
+                "ZFIN",
+                "AQTLPub",
+                "GO_REF"
+            ],
+            "count": 3696504,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1176452,
+                "Mouse Genome Informatics (Monarch version 202012)": 1185188,
+                "MonarchArchive:mgislim (Monarch version 202012)": 29690,
+                "Gene Ontology (Monarch version 202012)": 219560,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 150969,
+                "Zebra Fish Information Network (Monarch version 202012)": 179136,
+                "ClinVar (Monarch version 202012)": 814824,
+                "HGNC (Monarch version 202012)": 20192,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 105176,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 42266,
+                "Saccharomyces Genome Database (Monarch version 202012)": 11896,
+                "Animal QTL db (Monarch version 202012)": 2333,
+                "Gene Reviews (Monarch version 202012)": 28626,
+                "Human Phenotype Ontology (Monarch version 202012)": 2375,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 79047,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 5983,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 11890,
+                "Rat Genome Database (Monarch version 202012)": 447,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 4211,
+                "Monarch Ontologies": 43,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 254563,
+                "Mouse Phenome Database (Monarch version 202012)": 3934,
+                "Undiagnosed Disease Program (Monarch version 201803)": 34,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 12,
+                "FlyBase (Monarch version 202012)": 1613,
+                "WormBase (Monarch version 202012)": 3746,
+                "Simplified ZFIN (Monarch version 202012)": 5773,
+                "Reactome (Monarch version 202012)": 671
+            }
+        },
+        "biolink:Publication": {
+            "id_prefixes": [
+                "MONARCH",
+                "MONARCH_BNODE",
+                "J",
+                "IAO",
+                "RGDRef",
+                "SGD_REF",
+                "ZFIN",
+                "PMID"
+            ],
+            "count": 1785501,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1176452,
+                "Mouse Genome Informatics (Monarch version 202012)": 566070,
+                "MonarchArchive:mgislim (Monarch version 202012)": 29689,
+                "Gene Ontology (Monarch version 202012)": 131645,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 135733,
+                "Zebra Fish Information Network (Monarch version 202012)": 76745,
+                "ClinVar (Monarch version 202012)": 64870,
+                "HGNC (Monarch version 202012)": 20192,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 2268,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 42266,
+                "Saccharomyces Genome Database (Monarch version 202012)": 11896,
+                "Animal QTL db (Monarch version 202012)": 2278,
+                "Gene Reviews (Monarch version 202012)": 28626,
+                "Human Phenotype Ontology (Monarch version 202012)": 2374,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 79047,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 5983,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 5725,
+                "Rat Genome Database (Monarch version 202012)": 445,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 4211,
+                "Monarch Ontologies": 2,
+                "Simplified ZFIN (Monarch version 202012)": 5752
+            }
+        },
+        "biolink:name": {
+            "id_prefixes": [
+                "rdfs"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "National Center for Biotechnology Information (Monarch version 202012)": 1,
+                "Monarch Ontologies": 1,
+                "Animal QTL db (Monarch version 202012)": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 1,
+                "ENSEMBL (Monarch version 202012)": 1,
+                "Elements of Morphology (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 1,
+                "Gene Reviews (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "HGNC (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 1,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 1,
+                "Mouse Phenome Database (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Orphanet (Monarch version 202012)": 1,
+                "Reactome (Monarch version 202012)": 1,
+                "Saccharomyces Genome Database (Monarch version 202012)": 1,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 1,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1,
+                "WormBase (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1
+            }
+        },
+        "biolink:AnatomicalEntity": {
+            "id_prefixes": [
+                "UBERON",
+                "FBbt",
+                "CL",
+                "MMRRC",
+                "ZFA",
+                "CLO",
+                "WBbt"
+            ],
+            "count": 67413,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 24800,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 3926,
+                "The Monarch Initiative (Monarch version 202012)": 14,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 12,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 42614,
+                "Mouse Genome Informatics (Monarch version 202012)": 4
+            }
+        },
+        "biolink:Cell": {
+            "id_prefixes": [
+                "OBO",
+                "FBbt",
+                "CL",
+                "MMRRC",
+                "ZFA",
+                "CLO",
+                "WBbt"
+            ],
+            "count": 46396,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3783,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 566,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 12,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 42614,
+                "The Monarch Initiative (Monarch version 202012)": 3,
+                "Mouse Genome Informatics (Monarch version 202012)": 4
+            }
+        },
+        "biolink:BiologicalProcess": {
+            "id_prefixes": [
+                "MONARCH_BNODE",
+                "REACT",
+                "FBdv",
+                "GO",
+                "KEGG-path"
+            ],
+            "count": 47330,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 30718,
+                "Gene Ontology (Monarch version 202012)": 17401,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 69,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 542,
+                "Reactome (Monarch version 202012)": 15795,
+                "FlyBase (Monarch version 202012)": 4,
+                "Zebra Fish Information Network (Monarch version 202012)": 278
+            }
+        },
+        "biolink:Occurrent": {
+            "id_prefixes": [
+                "SEPIO",
+                "MONARCH_BNODE",
+                "MPD-assay",
+                "REACT",
+                "FBdv",
+                "GO",
+                "KEGG-path",
+                "OBI"
+            ],
+            "count": 821635,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 22192,
+                "Gene Ontology (Monarch version 202012)": 22764,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 69,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 542,
+                "Reactome (Monarch version 202012)": 15795,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 33570,
+                "Mouse Phenome Database (Monarch version 202012)": 2341,
+                "FlyBase (Monarch version 202012)": 60,
+                "ClinVar (Monarch version 202012)": 746931,
+                "Zebra Fish Information Network (Monarch version 202012)": 278
+            }
+        },
+        "biolink:Protein": {
+            "id_prefixes": [
+                "OBO",
+                "PR",
+                "CHEBI",
+                "RO"
+            ],
+            "count": 1332,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1332,
+                "ChEBI": 5,
+                "Reactome (Monarch version 202012)": 5,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 1
+            }
+        },
+        "biolink:MolecularActivity": {
+            "id_prefixes": [
+                "GO"
+            ],
+            "count": 12255,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 12255,
+                "Gene Ontology (Monarch version 202012)": 5593
+            }
+        },
+        "biolink:EnvironmentalProcess": {
+            "id_prefixes": [
+                "GO"
+            ],
+            "count": 5294,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 5294,
+                "Gene Ontology (Monarch version 202012)": 5278,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 25
+            }
+        },
+        "biolink:ChemicalSubstance": {
+            "id_prefixes": [
+                "MESH",
+                "CHEBI"
+            ],
+            "count": 154569,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 23627,
+                "ChEBI": 144649,
+                "Reactome (Monarch version 202012)": 2128,
+                "Gene Ontology (Monarch version 202012)": 10,
+                "monarch-ontologies": 13,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 9916
+            }
+        },
+        "biolink:CellularComponent": {
+            "id_prefixes": [
+                "GO"
+            ],
+            "count": 4467,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 4467,
+                "Gene Ontology (Monarch version 202012)": 2321
+            }
+        },
+        "biolink:Pathway": {
+            "id_prefixes": [
+                "OBO",
+                "REACT",
+                "PW",
+                "GO",
+                "KEGG-path"
+            ],
+            "count": 19471,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3136,
+                "Gene Ontology (Monarch version 202012)": 1172,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 542,
+                "Reactome (Monarch version 202012)": 15795
+            }
+        },
+        "biolink:Onset": {
+            "id_prefixes": [
+                "HP"
+            ],
+            "count": 13,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 13,
+                "Human Phenotype Ontology (Monarch version 202012)": 13
+            }
+        },
+        "biolink:GrossAnatomicalStructure": {
+            "id_prefixes": [
+                "UBERON",
+                "FBbt",
+                "WBbt",
+                "ZFA"
+            ],
+            "count": 2436,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 2436,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 2436
+            }
+        },
+        "biolink:Inheritance": {
+            "id_prefixes": [
+                "GENO",
+                "HP"
+            ],
+            "count": 34,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 34,
+                "Human Phenotype Ontology (Monarch version 202012)": 26,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 8
+            }
+        },
+        "biolink:title": {
+            "id_prefixes": [
+                "dct"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "FlyBase (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1
+            }
+        },
+        "biolink:p_value": {
+            "id_prefixes": [
+                "OBI",
+                "MONARCH_BNODE"
+            ],
+            "count": 58185,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 58185
+            }
+        },
+        "biolink:CellLine": {
+            "id_prefixes": [
+                "CLO",
+                "Coriell"
+            ],
+            "count": 38084,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 38084
+            }
+        },
+        "biolink:EvidenceType": {
+            "id_prefixes": [
+                "MONARCH_BNODE",
+                "ECO"
+            ],
+            "count": 808544,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 54,
+                "Gene Ontology (Monarch version 202012)": 23,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 12,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mouse Phenome Database (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 7,
+                "Simplified ZFIN (Monarch version 202012)": 1,
+                "Animal QTL db (Monarch version 202012)": 1,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 58154,
+                "Mouse Genome Informatics (Monarch version 202012)": 4,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 1,
+                "ClinVar (Monarch version 202012)": 750339,
+                "WormBase (Monarch version 202012)": 3,
+                "Human Phenotype Ontology (Monarch version 202012)": 3,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 3,
+                "Rat Genome Database (Monarch version 202012)": 4,
+                "Reactome (Monarch version 202012)": 2,
+                "Orphanet (Monarch version 202012)": 2
+            }
+        },
+        "biolink:Drug": {
+            "id_prefixes": [
+                "CHEBI"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "ChEBI": 1,
+                "Reactome (Monarch version 202012)": 1
+            }
+        },
+        "biolink:BiologicalSex": {
+            "id_prefixes": [
+                "GENO",
+                "PATO"
+            ],
+            "count": 6,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 6,
+                "Human Phenotype Ontology (Monarch version 202012)": 2,
+                "Mouse Genome Informatics (Monarch version 202012)": 3,
+                "Mouse Phenome Database (Monarch version 202012)": 4,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 4,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1
+            }
+        },
+        "biolink:Snv": {
+            "id_prefixes": [
+                "SO",
+                null,
+                "MONARCH_BNODE",
+                "dbSNP",
+                "MGI",
+                "ZFIN",
+                "ClinVarVariant",
+                "WormBase"
+            ],
+            "count": 1435913,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3,
+                "Mouse Genome Informatics (Monarch version 202012)": 3535,
+                "WormBase (Monarch version 202012)": 889756,
+                "Zebra Fish Information Network (Monarch version 202012)": 38412,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 138068,
+                "ClinVar (Monarch version 202012)": 366144,
+                "Gene Ontology (Monarch version 202012)": 686,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 318
+            }
+        },
+        "biolink:derives_from": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1
+            }
+        },
+        "biolink:part_of": {
+            "id_prefixes": [
+                "BFO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1
+            }
+        },
+        "biolink:has_part": {
+            "id_prefixes": [
+                "BFO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "ChEBI": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 1
+            }
+        },
+        "biolink:expressed_in": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 1
+            }
+        },
+        "biolink:has_gene_product": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "ENSEMBL (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 1
+            }
+        },
+        "biolink:has_phenotype": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "Human Phenotype Ontology (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1,
+                "The Monarch Initiative (Monarch version 202012)": 1,
+                "Mouse Phenome Database (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Rat Genome Database (Monarch version 202012)": 1,
+                "Saccharomyces Genome Database (Monarch version 202012)": 1,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1,
+                "WormBase (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1,
+                "Simplified ZFIN (Monarch version 202012)": 1
+            }
+        },
+        "biolink:actively_involved_in": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 1,
+                "Reactome (Monarch version 202012)": 1
+            }
+        },
+        "biolink:contributes_to": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1
+            }
+        },
+        "biolink:interacts_with": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 1,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 1
+            }
+        },
+        "biolink:genetically_interacts_with": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 1
+            }
+        },
+        "biolink:has_evidence": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 1,
+                "Animal QTL db (Monarch version 202012)": 1,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 1,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 1,
+                "Gene Ontology (Monarch version 202012)": 1,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1,
+                "Human Phenotype Ontology (Monarch version 202012)": 1,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 1,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "MonarchArchive:mgislim (Monarch version 202012)": 1,
+                "Mouse Phenome Database (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Orphanet (Monarch version 202012)": 1,
+                "Reactome (Monarch version 202012)": 1,
+                "Rat Genome Database (Monarch version 202012)": 1,
+                "Saccharomyces Genome Database (Monarch version 202012)": 1,
+                "WormBase (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1,
+                "Simplified ZFIN (Monarch version 202012)": 1
+            }
+        },
+        "biolink:treats": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 1
+            }
+        },
+        "biolink:biomarker_for": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Animal QTL db (Monarch version 202012)": 1,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Orphanet (Monarch version 202012)": 1
+            }
+        },
+        "biolink:Genotype": {
+            "id_prefixes": [
+                "dbSNPIndividual",
+                "MONARCH_NODE",
+                "APB",
+                "EMMA",
+                "NCIMR",
+                "RBRC",
+                "MONARCH_BNODE",
+                "MMRRC",
+                "JAX",
+                "GENO",
+                "MUGEN",
+                "ZFIN",
+                "MGI"
+            ],
+            "count": 360725,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 9,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 6165,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 31073,
+                "Mouse Genome Informatics (Monarch version 202012)": 116678,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 102908,
+                "Zebra Fish Information Network (Monarch version 202012)": 101654,
+                "Mouse Phenome Database (Monarch version 202012)": 3933,
+                "Undiagnosed Disease Program (Monarch version 201803)": 34,
+                "Gene Ontology (Monarch version 202012)": 3135
+            }
+        },
+        "biolink:Zygosity": {
+            "id_prefixes": [
+                "ClinVarVariant",
+                "GENO"
+            ],
+            "count": 222,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 9,
+                "Mouse Genome Informatics (Monarch version 202012)": 7,
+                "ClinVar (Monarch version 202012)": 214,
+                "Zebra Fish Information Network (Monarch version 202012)": 5,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 4,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 1
+            }
+        },
+        "biolink:model_of": {
+            "id_prefixes": [
+                "RO"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 1,
+                "FlyBase (Monarch version 202012)": 1,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1,
+                "WormBase (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 1
+            }
+        },
+        "biolink:ReagentTargetedGene": {
+            "id_prefixes": [
+                "WormBase",
+                "GENO",
+                "MONARCH_BNODE"
+            ],
+            "count": 107846,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "Gene Ontology (Monarch version 202012)": 5479,
+                "WormBase (Monarch version 202012)": 98679,
+                "Zebra Fish Information Network (Monarch version 202012)": 8259
+            }
+        },
+        "biolink:Haplotype": {
+            "id_prefixes": [
+                "ClinVarVariant",
+                "SO",
+                "MONARCH"
+            ],
+            "count": 2276,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1,
+                "ClinVar (Monarch version 202012)": 337,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 1940
+            }
+        },
+        "biolink:LifeStage": {
+            "id_prefixes": [
+                "ZFIN",
+                "ZFS"
+            ],
+            "count": 90,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 45,
+                "Zebra Fish Information Network (Monarch version 202012)": 90
+            }
+        },
+        "biolink:GeneFamily": {
+            "id_prefixes": [
+                "PANTHER"
+            ],
+            "count": 7901,
+            "count_by_source": {
+                "unknown": 0,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 7901
+            }
+        },
+        "biolink:DiseaseOrPhenotypicFeature": {
+            "id_prefixes": [
+                "MESH",
+                "OMIM"
+            ],
+            "count": 3253,
+            "count_by_source": {
+                "unknown": 0,
+                "ClinVar (Monarch version 202012)": 3,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 3253,
+                "Human Phenotype Ontology (Monarch version 202012)": 3,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 8,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 1
+            }
+        },
+        "biolink:GenomeBuild": {
+            "id_prefixes": [
+                "MONARCH_NODE",
+                null,
+                "UCSC",
+                "ZFIN",
+                "WormBase"
+            ],
+            "count": 65,
+            "count_by_source": {
+                "unknown": 0,
+                "Animal QTL db (Monarch version 202012)": 11,
+                "Mouse Genome Informatics (Monarch version 202012)": 1,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 46,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 1,
+                "Zebra Fish Information Network (Monarch version 202012)": 7,
+                "WormBase (Monarch version 202012)": 1
+            }
+        },
+        "biolink:PopulationOfIndividualOrganisms": {
+            "id_prefixes": [
+                "CoriellFamily",
+                null
+            ],
+            "count": 9235,
+            "count_by_source": {
+                "unknown": 0,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 8267,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 968
+            }
+        }
+    },
+    "edges": [
+        {
+            "subject": "unknown",
+            "predicate": "biolink:subclass_of",
+            "object": "unknown",
+            "relations": [
+                "OBO:intersection_of",
+                "rdfs:subClassOf"
+            ],
+            "count": 1994985,
+            "count_by_source": {
+                "unknown": 0,
+                "FlyBase (Monarch version 202012)": 28228,
+                "Monarch Ontologies": 535660,
+                "National Center for Biotechnology Information (Monarch version 202012)": 758612,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 8385,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 2221,
+                "Zebra Fish Information Network (Monarch version 202012)": 61296,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 20492,
+                "HGNC (Monarch version 202012)": 42340,
+                "Mouse Genome Informatics (Monarch version 202012)": 75092,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 22817,
+                "Animal QTL db (Monarch version 202012)": 3667,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 6008,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 9265,
+                "WormBase (Monarch version 202012)": 100106,
+                "ChEBI": 192215,
+                "ENSEMBL (Monarch version 202012)": 110804,
+                "Elements of Morphology (Monarch version 202012)": 400,
+                "Gene Reviews (Monarch version 202012)": 742,
+                "Reactome (Monarch version 202012)": 31588,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 2190,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 47363,
+                "Saccharomyces Genome Database (Monarch version 202012)": 635
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:same_as",
+            "object": "unknown",
+            "relations": [
+                "owl:sameAs",
+                "owl:equivalentClass"
+            ],
+            "count": 2103170,
+            "count_by_source": {
+                "unknown": 0,
+                "FlyBase (Monarch version 202012)": 19843,
+                "HGNC (Monarch version 202012)": 97910,
+                "Orphanet (Monarch version 202012)": 20149,
+                "National Center for Biotechnology Information (Monarch version 202012)": 497293,
+                "Zebra Fish Information Network (Monarch version 202012)": 61639,
+                "Mouse Genome Informatics (Monarch version 202012)": 945315,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 43135,
+                "Saccharomyces Genome Database (Monarch version 202012)": 5940,
+                "Rat Genome Database (Monarch version 202012)": 222,
+                "ENSEMBL (Monarch version 202012)": 106691,
+                "Animal QTL db (Monarch version 202012)": 1429,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 260964,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 7396,
+                "Elements of Morphology (Monarch version 202012)": 400,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 23306,
+                "Mouse Phenome Database (Monarch version 202012)": 2334,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 17320,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 23,
+                "Undiagnosed Disease Program (Monarch version 201803)": 60
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:part_of",
+            "object": "unknown",
+            "relations": [
+                "BSPO:0001113",
+                "RO:0002007",
+                "RO:0002572",
+                "RO:0002576",
+                "UBERON_CORE:trunk_part_of",
+                "RO:0002380",
+                "RO:0002350",
+                "UBERON_CORE:subdivision_of",
+                "BFO:0000050",
+                "RO:0002376",
+                "BSPO:0001115",
+                "BSPO:0001108",
+                "BSPO:0001106"
+            ],
+            "count": 1425339,
+            "count_by_source": {
+                "unknown": 0,
+                "Gene Ontology (Monarch version 202012)": 695285,
+                "Monarch Ontologies": 41329,
+                "ClinVar (Monarch version 202012)": 597529,
+                "Animal QTL db (Monarch version 202012)": 313,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 281,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 23072,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 67301,
+                "Mouse Genome Informatics (Monarch version 202012)": 22,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 24,
+                "WormBase (Monarch version 202012)": 7,
+                "Zebra Fish Information Network (Monarch version 202012)": 176
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:actively_involved_in",
+            "object": "unknown",
+            "relations": [
+                "OBO:nbo#by_means",
+                "RO:0002331"
+            ],
+            "count": 2264737,
+            "count_by_source": {
+                "unknown": 0,
+                "Gene Ontology (Monarch version 202012)": 1164317,
+                "Reactome (Monarch version 202012)": 1016212,
+                "Monarch Ontologies": 8,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 84200
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:enables",
+            "object": "unknown",
+            "relations": [
+                "RO:0002327"
+            ],
+            "count": 766488,
+            "count_by_source": {
+                "unknown": 0,
+                "Gene Ontology (Monarch version 202012)": 766488
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:related_to",
+            "object": "unknown",
+            "relations": [
+                "BFO:0000052",
+                "RO:0002150",
+                "RO:0002322",
+                "SEPIO:0000017",
+                "RO:0002213",
+                "RO:0002372",
+                "OBO:mondo#disease_causes_feature",
+                "OBO:bspo#parallel_to",
+                "PATO-PROPERTY:correlates_with",
+                "OBO:mondo#disease_shares_features_of",
+                "RO:0002002",
+                "OBO:so#guided_by",
+                "OBI:0000312",
+                "IAO:0000219",
+                "SEPIO:0000030",
+                "OBO:so#non_functional_homolog_of",
+                "RO:0002344",
+                "RO:0002114",
+                "biolink:related_to",
+                "PCO:0000055",
+                "GOREL:0012006",
+                "OBO:pw#part_of",
+                "OBO:so#transcribed_from",
+                "RO:0002091",
+                "RO:0002113",
+                "RO:0002105",
+                "SEPIO:0000041",
+                "GENO:0000843",
+                "RO:0000079",
+                "OBO:chebi#is_conjugate_acid_of",
+                "OBO:mondo#disease_has_basis_in_development_of",
+                "OBO:mondo#has_onset",
+                "faldo:begin",
+                "RO:0002006",
+                "SEPIO:0000100",
+                "OBO:pr#has_gene_template",
+                "OBO:cl#has_not_completed",
+                "RO:0002529",
+                "RO:0002254",
+                "OBO:cl#has_high_plasma_membrane_amount",
+                "RO:0002418",
+                "RO:0003303",
+                "OBO:nbo#is_about",
+                "OBO:mpath#part_of",
+                "RO:0002349",
+                "GENO:0000608",
+                ":has_affected_feature",
+                "GOREL:0002005",
+                "RO:0002494",
+                "FBdv:00018001",
+                "GENO:0000443",
+                "GENO:0000650",
+                "RO:0000091",
+                "OBO:ddanat#develops_from",
+                "RO:0004014",
+                "PATO-PROPERTY:has_relative_magnitude",
+                "RO:0002528",
+                "GENO:0000408",
+                "OBO:mondo#disease_has_basis_in_accumulation_of",
+                "OBO:exo.obo#interacts_with_an_exposure_stressor_via",
+                "OBO:cl#lacks_part",
+                "OBI:0000643",
+                ":is_assertion_supported_by",
+                "SEPIO:0000098",
+                "OBO:exo.obo#interacts_with_an_exposure_receptor_via",
+                "RO:0002328",
+                "RO:0002342",
+                "SEPIO:0000101",
+                "OBO:ddanat#part_of",
+                "GENO:0000726",
+                "GENO:0000222",
+                "RO:0002134",
+                "OBO:cl#has_low_plasma_membrane_amount",
+                "RO:0000085",
+                "GENO:0000639",
+                "RO:0002309",
+                "RO:0002110",
+                "IAO:0100001",
+                "OBO:core#innervated_by",
+                "RO:0004020",
+                "OBI:0001938",
+                "OBO:so#adjacent_to",
+                "RO:0004011",
+                "OBO:mondo#part_of_progression_of_disease",
+                "GENO:0000634",
+                "RO:0002101",
+                "OBO:mondo#predisposes_towards",
+                "RO:0002000",
+                "GENO:0000447",
+                "foaf:depiction",
+                "RO:0000081",
+                "RO:0002341",
+                "RO:0002491",
+                "OBO:chebi#is_tautomer_of",
+                "OBO:so#has_origin",
+                "GENO:0000231",
+                "RO:0004013",
+                "RO:0002451",
+                "RO:0002495",
+                "GENO:0000641",
+                "GENO:0000610",
+                "RO:0002371",
+                "GENO:0000251",
+                "RO:0002107",
+                "OBO:so#has_quality",
+                "GENO:0000414",
+                "ECO:9000000",
+                "RO:0004012",
+                "OBO:so#has_part",
+                "OBO:mondo#disease_responds_to",
+                "OIO:consider",
+                "RO:0002325",
+                "MONARCH:has_drug_response",
+                "RO:0002176",
+                "UBERON_CORE:protects",
+                "SEPIO:0000130",
+                "OBO:so#contains",
+                "OBO:chebi#has_functional_parent",
+                "OBO:so#variant_of",
+                "BFO:0000054",
+                "RO:0002374",
+                "foaf:page",
+                "OBO:core#connected_to",
+                "OBO:so#part_of",
+                "GENO:0000239",
+                "RO:0002525",
+                "RO:0002573",
+                "RO:0002179",
+                "RO:0004015",
+                "OBI:0000304",
+                "PATO-PROPERTY:increased_in_magnitude_relative_to",
+                "RO:0004027",
+                "GENO:0000784",
+                "RO:0002005",
+                "SEPIO:0000018",
+                "GENO:0000385",
+                "OBO:so#derives_from",
+                "SEPIO:0000084",
+                "PATO-PROPERTY:reciprocal_of",
+                "RO:0002332",
+                "GENO:0000248",
+                "OBO:envo#has_increased_levels_of",
+                "OBO:chebi#is_substituent_group_from",
+                "CLO:0037210",
+                "RO:HOM0000020",
+                "PATO-PROPERTY:has_cross_section",
+                "OBI:0000417",
+                "IAO:0000136",
+                "OBO:so#overlaps",
+                "OBO:cl#has_completed",
+                "SEPIO:0000006",
+                "RO:0002008",
+                "OBO:mondo#disease_triggers",
+                "RO:0002321",
+                "IAO:0000221",
+                "RO:0002178",
+                "GENO:0000683",
+                "RO:0002106",
+                "RO:0002170",
+                "OBO:so#member_of",
+                "GENO:0000207",
+                "OBO:pr#lacks_part",
+                "OBO:chebi#is_enantiomer_of",
+                "OBO:mondo#disease_has_major_feature",
+                "RO:0002339",
+                "OBO:chebi#has_parent_hydride",
+                "RO:0000059",
+                "RO:0002159",
+                "RO:0002387",
+                "faldo:end",
+                "PATO-PROPERTY:decreased_in_magnitude_relative_to",
+                "RO:0004016",
+                "RO:0002385",
+                "RO:0004026",
+                "RO:0002348",
+                "SEPIO:0000046",
+                "RO:0000053",
+                "SEPIO:0000124",
+                "PATO-PROPERTY:towards",
+                "RO:0004030",
+                "GENO:0000903",
+                "SEPIO:0000114",
+                "RO:0000052",
+                "GENO:0000783",
+                "SEPIO:0000099",
+                "RO:0002373",
+                "RO:0002177",
+                "RO:0002568",
+                "GENO:0000968",
+                "OBO:chebi#is_conjugate_base_of",
+                "RO:0002151",
+                "OBO:so#transcribed_to",
+                "SEPIO:0000085",
+                "RO:0002338",
+                "GENO:0000580",
+                "OBO:exo.obo#interacts_with",
+                "RO:0002003",
+                "GENO:0000844",
+                "OBO:cl#lacks_plasma_membrane_part",
+                "RO:0002356"
+            ],
+            "count": 16049147,
+            "count_by_source": {
+                "unknown": 0,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 1602168,
+                "Monarch Ontologies": 25328,
+                "HGNC (Monarch version 202012)": 74410,
+                "Orphanet (Monarch version 202012)": 6924,
+                "National Center for Biotechnology Information (Monarch version 202012)": 5604842,
+                "Zebra Fish Information Network (Monarch version 202012)": 183009,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 94780,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 164470,
+                "Animal QTL db (Monarch version 202012)": 166294,
+                "Human Phenotype Ontology (Monarch version 202012)": 10731,
+                "Gene Reviews (Monarch version 202012)": 31173,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 10796,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 6949,
+                "ChEBI": 40612,
+                "ClinVar (Monarch version 202012)": 3736061,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 57184,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 5336,
+                "Mouse Genome Informatics (Monarch version 202012)": 1985079,
+                "Elements of Morphology (Monarch version 202012)": 1178,
+                "FlyBase (Monarch version 202012)": 201821,
+                "Gene Ontology (Monarch version 202012)": 10644,
+                "WormBase (Monarch version 202012)": 1120868,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 185162,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 419083,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 330774,
+                "Mouse Phenome Database (Monarch version 202012)": 2915,
+                "Undiagnosed Disease Program (Monarch version 201803)": 136
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:orthologous_to",
+            "object": "unknown",
+            "relations": [
+                "RO:HOM0000017"
+            ],
+            "count": 1957846,
+            "count_by_source": {
+                "unknown": 0,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 1941137,
+                "Zebra Fish Information Network (Monarch version 202012)": 16709
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_gene_product",
+            "object": "unknown",
+            "relations": [
+                "RO:0002205"
+            ],
+            "count": 369441,
+            "count_by_source": {
+                "unknown": 0,
+                "Gene Ontology (Monarch version 202012)": 11398,
+                "ENSEMBL (Monarch version 202012)": 345239,
+                "Kyoto Encyclopedia of Genes and Genomes (Monarch version 202012)": 12847
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:in_taxon",
+            "object": "unknown",
+            "relations": [
+                "RO:0002162",
+                "RO:0002160"
+            ],
+            "count": 3005,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3005
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_phenotype",
+            "object": "unknown",
+            "relations": [
+                "RO:0002200",
+                "RO:0004022"
+            ],
+            "count": 1523217,
+            "count_by_source": {
+                "unknown": 0,
+                "Gene Ontology (Monarch version 202012)": 42695,
+                "Rat Genome Database (Monarch version 202012)": 1083,
+                "Simplified ZFIN (Monarch version 202012)": 69738,
+                "MonarchArchive:mgislim (Monarch version 202012)": 247943,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 965,
+                "Saccharomyces Genome Database (Monarch version 202012)": 68675,
+                "Human Phenotype Ontology (Monarch version 202012)": 201715,
+                "Monarch Ontologies": 150,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 13206,
+                "FlyBase (Monarch version 202012)": 150075,
+                "WormBase (Monarch version 202012)": 196830,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 3755,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 48964,
+                "Mouse Genome Informatics (Monarch version 202012)": 337471,
+                "The Monarch Initiative (Monarch version 202012)": 1913,
+                "Mouse Phenome Database (Monarch version 202012)": 12999,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 1960,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1120,
+                "Zebra Fish Information Network (Monarch version 202012)": 121960
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_part",
+            "object": "unknown",
+            "relations": [
+                "BFO:0000051",
+                "RO:0002551",
+                "RO:0002524",
+                "BFO:0000055",
+                "RO:0001019",
+                "BFO:0000117",
+                "RO:0002180",
+                "RO:0002473",
+                "RO:0002351",
+                "RO:0002104"
+            ],
+            "count": 519166,
+            "count_by_source": {
+                "unknown": 0,
+                "HGNC (Monarch version 202012)": 42099,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 17204,
+                "Monarch Ontologies": 3649,
+                "ChEBI": 3795,
+                "Protein ANalysis THrough Evolutionary Relationships (Monarch version 202012)": 318425,
+                "ClinVar (Monarch version 202012)": 50,
+                "Animal QTL db (Monarch version 202012)": 313,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 30687,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 67138,
+                "Mouse Genome Informatics (Monarch version 202012)": 22,
+                "UCSC Cytogenic Bands (Monarch version 202012)": 26662,
+                "Zebra Fish Information Network (Monarch version 202012)": 9405,
+                "WormBase (Monarch version 202012)": 7
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:subPropertyOf",
+            "object": "unknown",
+            "relations": [
+                "subPropertyOf"
+            ],
+            "count": 878,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 878
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:biomarker_for",
+            "object": "unknown",
+            "relations": [
+                "RO:0002607"
+            ],
+            "count": 651342,
+            "count_by_source": {
+                "unknown": 0,
+                "Orphanet (Monarch version 202012)": 419,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 202,
+                "Animal QTL db (Monarch version 202012)": 586131,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 64590
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:contributes_to",
+            "object": "unknown",
+            "relations": [
+                "RO:0003304",
+                "RO:0002326"
+            ],
+            "count": 199773,
+            "count_by_source": {
+                "unknown": 0,
+                "Orphanet (Monarch version 202012)": 464,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 5135,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 194174
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:interacts_with",
+            "object": "unknown",
+            "relations": [
+                "RO:0002120",
+                "RO:0002103",
+                "RO:0002130",
+                "RO:0002434"
+            ],
+            "count": 2131132,
+            "count_by_source": {
+                "unknown": 0,
+                "Known and predicted protein-protein interactions (Monarch version 202012)": 1571731,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 596975,
+                "Monarch Ontologies": 734
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_attribute",
+            "object": "unknown",
+            "relations": [
+                "RO:0000086",
+                "RO:0000087"
+            ],
+            "count": 39831,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 10354,
+                "ChEBI": 39674
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_sequence_location",
+            "object": "unknown",
+            "relations": [
+                "faldo:location"
+            ],
+            "count": 1869976,
+            "count_by_source": {
+                "unknown": 0,
+                "Zebra Fish Information Network (Monarch version 202012)": 18871,
+                "Mouse Genome Informatics (Monarch version 202012)": 303013,
+                "Online Mendelian Inheritance in Man (Monarch version 202012)": 17180,
+                "Animal QTL db (Monarch version 202012)": 418752,
+                "WormBase (Monarch version 202012)": 974712,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 2825,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 134623
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:genetically_interacts_with",
+            "object": "unknown",
+            "relations": [
+                "RO:0002435"
+            ],
+            "count": 26202,
+            "count_by_source": {
+                "unknown": 0,
+                "Biological General Repository for Interaction Datasets (Monarch version 202012)": 26202
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:model_of",
+            "object": "unknown",
+            "relations": [
+                "FOODON:00001301",
+                "RO:0003301"
+            ],
+            "count": 37566,
+            "count_by_source": {
+                "unknown": 0,
+                "WormBase (Monarch version 202012)": 12100,
+                "Monarch Ontologies": 1,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 13206,
+                "FlyBase (Monarch version 202012)": 1655,
+                "Mouse Genome Informatics (Monarch version 202012)": 8378,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 949,
+                "Zebra Fish Information Network (Monarch version 202012)": 1277
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:affects",
+            "object": "unknown",
+            "relations": [
+                "RO:0002355",
+                "RO:0002592",
+                "RO:0002343",
+                "RO:0002591",
+                "UPHENO:0000001",
+                "RO:0012003"
+            ],
+            "count": 24577,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 24577
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:inverseOf",
+            "object": "unknown",
+            "relations": [
+                "inverseOf"
+            ],
+            "count": 151,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 151,
+                "ChEBI": 1
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:regulates_process_to_process",
+            "object": "unknown",
+            "relations": [
+                "RO:0002211"
+            ],
+            "count": 3765,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3765
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:negatively_regulates_process_to_process",
+            "object": "unknown",
+            "relations": [
+                "RO:0002212"
+            ],
+            "count": 3140,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3140
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:affects_transport_of",
+            "object": "unknown",
+            "relations": [
+                "RO:0002345",
+                "RO:0002340",
+                "RO:0002313"
+            ],
+            "count": 2016,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 2016
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_input",
+            "object": "unknown",
+            "relations": [
+                "RO:0002590",
+                "RO:0004009",
+                "RO:0002352",
+                "RO:0002233"
+            ],
+            "count": 3164,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3164
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:occurs_in",
+            "object": "unknown",
+            "relations": [
+                "UBERON_CORE:site_of",
+                "RO:0002232",
+                "BFO:0000066",
+                "BFO:0000067",
+                "RO:0002231"
+            ],
+            "count": 638,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 638
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:capable_of",
+            "object": "unknown",
+            "relations": [
+                "RO:0002500",
+                "RO:0002215"
+            ],
+            "count": 1436,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1436
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:causes",
+            "object": "unknown",
+            "relations": [
+                "RO:0002507",
+                "RO:0002315",
+                "OBO:nbo#in_response_to",
+                "RO:0002509",
+                "GOREL:0000040",
+                "RO:0002256",
+                "RO:0004001"
+            ],
+            "count": 411,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 411
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_output",
+            "object": "unknown",
+            "relations": [
+                "OBI:0000299",
+                "RO:0002234",
+                "RO:0002354",
+                "RO:0002298",
+                "RO:0002299",
+                "RO:0004008",
+                "RO:0002297",
+                "RO:0002588",
+                "RO:0002353",
+                "RO:0002296"
+            ],
+            "count": 139559,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3412,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 136147
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:overlaps",
+            "object": "unknown",
+            "relations": [
+                "RO:0002102",
+                "RO:0002100",
+                "RO:0002131",
+                "BSPO:0005001",
+                "RO:0002433"
+            ],
+            "count": 2663,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 2663
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:participates_in",
+            "object": "unknown",
+            "relations": [
+                "RO:0002565",
+                "BFO:0000056",
+                "RO:0002505",
+                "RO:0002216",
+                "RO:0000056"
+            ],
+            "count": 663,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 663
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_participant",
+            "object": "unknown",
+            "relations": [
+                "RO:0000057",
+                "RO:0004021",
+                "RO:0004007",
+                "OBI:0000293",
+                "BFO:0000167",
+                "OBO:nbo#has_participant"
+            ],
+            "count": 1883,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1883
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:temporally_related_to",
+            "object": "unknown",
+            "relations": [
+                "RO:0002230",
+                "RO:0002082",
+                "RO:0002496",
+                "RO:0002492",
+                "RO:0002229",
+                "RO:0002488",
+                "RO:0002224",
+                "RO:0002493",
+                "RO:0002092",
+                "RO:0002093",
+                "RO:0002497",
+                "RO:0002223",
+                "RO:0002489"
+            ],
+            "count": 6575,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 6298,
+                "Zebra Fish Information Network (Monarch version 202012)": 277
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:positively_regulates",
+            "object": "unknown",
+            "relations": [
+                "RO:0002629"
+            ],
+            "count": 21,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 21
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:caused_by",
+            "object": "unknown",
+            "relations": [
+                "RO:0002608",
+                "RO:0009501",
+                "RO:0004028"
+            ],
+            "count": 860,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 860
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:develops_from",
+            "object": "unknown",
+            "relations": [
+                "RO:0002207",
+                "RO:0002226",
+                "RO:0002203",
+                "RO:0002225",
+                "RO:0002202"
+            ],
+            "count": 3816,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 3816
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:located_in",
+            "object": "unknown",
+            "relations": [
+                "BSPO:0000123",
+                "BSPO:0000126",
+                "BSPO:0000124",
+                "RO:0001025",
+                "BSPO:0001107",
+                "UBERON_CORE:in_central_side_of",
+                "BSPO:0015202",
+                "BSPO:0000121",
+                "BSPO:0000125",
+                "BSPO:0001101",
+                "BSPO:0015101",
+                "RO:0002303",
+                "BSPO:0000107",
+                "UBERON_CORE:in_outermost_side_of",
+                "BSPO:0000120",
+                "UBERON_CORE:in_innermost_side_of",
+                "BSPO:0000108",
+                "BSPO:0015102",
+                "BSPO:0001100",
+                "BSPO:0000122"
+            ],
+            "count": 560,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 560
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:coexists_with",
+            "object": "unknown",
+            "relations": [
+                "BSPO:0015008",
+                "BSPO:0015012",
+                "BSPO:0015006",
+                "UBERON_CORE:synapsed_by",
+                "BSPO:0015009",
+                "UBERON_CORE:channels_into",
+                "BSPO:0000099",
+                "UBERON_CORE:proximally_connected_to",
+                "UBERON_CORE:channel_for",
+                "BSPO:0000097",
+                "BSPO:0000100",
+                "BSPO:0015007",
+                "UBERON_CORE:filtered_through",
+                "BSPO:0015001",
+                "BSPO:0000110",
+                "UBERON_CORE:posteriorly_connected_to",
+                "BSPO:0015014",
+                "BSPO:0000096",
+                "UBERON_CORE:distally_connected_to",
+                "UBERON_CORE:conduit_for",
+                "OBO:core#distally_connected_to",
+                "RO:0002221",
+                "UBERON_CORE:channels_from",
+                "RO:0002219",
+                "UBERON_CORE:indirectly_supplies",
+                "BSPO:0000098",
+                "UBERON_CORE:anastomoses_with",
+                "BSPO:0015005",
+                "OBO:core#subdivision_of",
+                "BSPO:0000113",
+                "ENVO:01001307",
+                "BSPO:0000102",
+                "UBERON_CORE:extends_fibers_into",
+                "RO:0002220",
+                "UBERON_CORE:anteriorly_connected_to",
+                "BSPO:0000104"
+            ],
+            "count": 1015,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1015
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:produced_by",
+            "object": "unknown",
+            "relations": [
+                "RO:0003001"
+            ],
+            "count": 59,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 59
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:correlated_with",
+            "object": "unknown",
+            "relations": [
+                "RO:0004029"
+            ],
+            "count": 1096,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1096
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:produces",
+            "object": "unknown",
+            "relations": [
+                "RO:0003000"
+            ],
+            "count": 48,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 48
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:disrupts",
+            "object": "unknown",
+            "relations": [
+                "RO:0004024",
+                "RO:0004025"
+            ],
+            "count": 112,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 112
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:preceded_by",
+            "object": "unknown",
+            "relations": [
+                "RO:0002285",
+                "RO:0002087",
+                "BFO:0000062"
+            ],
+            "count": 249,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 249
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:location_of",
+            "object": "unknown",
+            "relations": [
+                "RO:0001015"
+            ],
+            "count": 10,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 10
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:regulates",
+            "object": "unknown",
+            "relations": [
+                "RO:0002578",
+                "RO:0002295",
+                "RO:0002334"
+            ],
+            "count": 37,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 37
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:type",
+            "object": "unknown",
+            "relations": [
+                "type"
+            ],
+            "count": 69,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 69
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:affects_localization_of",
+            "object": "unknown",
+            "relations": [
+                "GOREL:0002003"
+            ],
+            "count": 6,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 6
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:homologous_to",
+            "object": "unknown",
+            "relations": [
+                "UBERON_CORE:sexually_homologous_to"
+            ],
+            "count": 12,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 12
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:increases_degradation_of",
+            "object": "unknown",
+            "relations": [
+                "GOREL:0002004"
+            ],
+            "count": 8,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 8
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:derives_from",
+            "object": "unknown",
+            "relations": [
+                "RO:0001000"
+            ],
+            "count": 61426,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 52,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 61374
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_unit",
+            "object": "unknown",
+            "relations": [
+                "IAO:0000039"
+            ],
+            "count": 5,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 5
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:negatively_regulates",
+            "object": "unknown",
+            "relations": [
+                "RO:0002630"
+            ],
+            "count": 19,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 19
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:precedes",
+            "object": "unknown",
+            "relations": [
+                "RO:0002090",
+                "RO:0002412",
+                "BFO:0000063"
+            ],
+            "count": 30,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 30
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:expresses",
+            "object": "unknown",
+            "relations": [
+                "RO:0002292"
+            ],
+            "count": 198,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 198
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:has_variant_part",
+            "object": "unknown",
+            "relations": [
+                "GENO:0000382"
+            ],
+            "count": 1260450,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 6,
+                "ClinVar (Monarch version 202012)": 1137,
+                "Animal QTL db (Monarch version 202012)": 5701,
+                "Coriell Institute for Medical Research (Monarch version 202012)": 6967,
+                "Mouse Genome Informatics (Monarch version 202012)": 645944,
+                "International Mouse Phenotyping Consortium (Monarch version 202012)": 46566,
+                "Zebra Fish Information Network (Monarch version 202012)": 145830,
+                "NHGRI-EBI Catalog of published genome-wide association studies (Monarch version 202012)": 13177,
+                "Mutant Mouse Regional Resource Centers (Monarch version 202012)": 395010,
+                "Undiagnosed Disease Program (Monarch version 201803)": 112
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:object",
+            "object": "unknown",
+            "relations": [
+                "OBAN:association_has_object"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Ontologies": 1
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:expressed_in",
+            "object": "unknown",
+            "relations": [
+                "RO:0002206"
+            ],
+            "count": 2609765,
+            "count_by_source": {
+                "unknown": 0,
+                "Bgee Gene expression data in animals (Monarch version 202012)": 2609765
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:gene_associated_with_condition",
+            "object": "unknown",
+            "relations": [
+                "GENO:0000841",
+                "GENO:0000840"
+            ],
+            "count": 207105,
+            "count_by_source": {
+                "unknown": 0,
+                "ClinVar (Monarch version 202012)": 207105
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "biolink:treats",
+            "object": "unknown",
+            "relations": [
+                "RO:0002606"
+            ],
+            "count": 36137,
+            "count_by_source": {
+                "unknown": 0,
+                "Comparative Toxicogenomics Database (Monarch version 202012)": 36137
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "owl:onProperty",
+            "object": "unknown",
+            "relations": [
+                "owl:onProperty"
+            ],
+            "count": 3166,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 2933,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 233
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "owl:someValuesFrom",
+            "object": "unknown",
+            "relations": [
+                "owl:someValuesFrom"
+            ],
+            "count": 3157,
+            "count_by_source": {
+                "unknown": 0,
+                "Monarch Chromosome Ontology (Monarch version 202012)": 2924,
+                "Online Mendelian Inheritance in Animals (Monarch version 202012)": 233
+            }
+        },
+        {
+            "subject": "unknown",
+            "predicate": "owl:versionIRI",
+            "object": "unknown",
+            "relations": [
+                "owl:versionIRI"
+            ],
+            "count": 1,
+            "count_by_source": {
+                "unknown": 0,
+                "Undiagnosed Disease Program (Monarch version 201803)": 1
+            }
+        }
+    ],
+    "name": "Graph"
+}
