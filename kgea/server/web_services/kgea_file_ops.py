@@ -602,15 +602,15 @@ def upload_file(bucket, object_key, source, client=s3_client(), config=None, cal
     
     # Upload the file
     try:
-        # TODO: can these S3 calls measure the size of the file which was uploaded?
+        # TODO: how can these upload calls be aborted, especially, if they are multi-part uploads?
+        #       Maybe we need to use lower level multi-part upload functions here? What if the file is small?
         if config is None:
             client.upload_fileobj(source, bucket, object_key, Callback=callback)
         else:
             client.upload_fileobj(source, bucket, object_key, Config=config, Callback=callback)
     except Exception as exc:
-        logger.error("kgea file ops: upload_file() exception: " + str(exc))
-        raise RuntimeError("kgea file ops: upload_file() exception: " + str(exc))
-    
+        logger.error("kgea file ops: upload_file() cancelled by exception: " + str(exc))
+        # TODO: what sort of post-cancellation processing is needed here?
 
 def upload_file_multipart(
         data_file,
@@ -1140,27 +1140,32 @@ def upload_from_link(
     The block is written in a way that tries to minimize blocking access to the requests and files, instead opting
     to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
     """
-    with smart_open.open(source,
-        'r',
-        compression='disable',
-        encoding="utf8",
-        transport_params={
-            'headers': {
-                'Accept-Encoding': 'identity',
-                'Content-Type': 'application/octet-stream'
-            }
-        }
-    ) as fin:
-        with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
-            read_so_far = 0
-            while read_so_far < fin.buffer.content_length:
-                line = fin.read(1)
-                encoded = line.encode(fin.encoding)
-                fout.write(line)
-                if callback:
-                    # pass increment of bytes
-                    callback(len(encoded))
-                read_so_far += 1
+    try:
+        with smart_open.open(
+                source,
+                'r',
+                compression='disable',
+                encoding="utf8",
+                transport_params={
+                    'headers': {
+                        'Accept-Encoding': 'identity',
+                        'Content-Type': 'application/octet-stream'
+                    }
+                }
+        ) as fin:
+            with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
+                read_so_far = 0
+                while read_so_far < fin.buffer.content_length:
+                    line = fin.read(1)
+                    encoded = line.encode(fin.encoding)
+                    fout.write(line)
+                    if callback:
+                        # pass increment of bytes
+                        callback(len(encoded))
+                    read_so_far += 1
+    except RuntimeWarning:
+        logger.warning("URL transfer cancelled by exception?")
+        # TODO: what sort of post-cancellation processing is needed here?
 
 
 @prepare_test

@@ -602,6 +602,7 @@ async def _initialize_upload_token(
                 "kgx_file_content": kgx_file_content,
                 "file_type": file_type,
                 "content_name": content_name,
+                "active": True  # Upload/transfer cancelled when this value becomes 'False'?
             }
         
         print('session upload token', token, _upload_tracker['upload'][token])
@@ -613,7 +614,8 @@ async def _initialize_upload_token(
 
 def get_upload_tracker_details(upload_token: str) -> Dict:
     """
-
+    Get upload tracker details.
+    
     :param upload_token:
     :return:
     """
@@ -704,7 +706,6 @@ class ProgressPercentage(object):
     """
     Class to track percentage completion of an upload.
     """
-    
     def __init__(self, filename, transfer_tracker):
         self._filename = filename
         # transfer_tracker should be a Python dictionary
@@ -722,16 +723,22 @@ class ProgressPercentage(object):
         return self.transfer_tracker['end_position']
     
     def __call__(self, bytes_amount):
-        self._seen_so_far += bytes_amount
-        self.transfer_tracker['current_position'] = self._seen_so_far
-        t_now = time.time()
-        dt = t_now-self.t0+0.001
-        mb = self._seen_so_far / (1024*1024)
-        mbps = mb / dt
-        dt_log = t_now-self.t_log_prev
-        if(dt_log >= self.dt_log_min):
-            logger.info("ProgressPercentage mbps={} mb={}".format(mbps, mb))
-            self.t_log_prev = t_now
+        # Here, we check if the transfer/upload is not cancelled
+        if not self.transfer_tracker['active']:
+            logger.info("Transfer/upload was cancelled?")
+            # Maybe too harsh but throw some kind of exception here?
+            raise RuntimeWarning("Transfer/upload was cancelled?")
+        else:
+            self._seen_so_far += bytes_amount
+            self.transfer_tracker['current_position'] = self._seen_so_far
+            t_now = time.time()
+            dt = t_now-self.t0+0.001
+            mb = self._seen_so_far / (1024*1024)
+            mbps = mb / dt
+            dt_log = t_now-self.t_log_prev
+            if dt_log >= self.dt_log_min:
+                logger.info(f"ProgressPercentage mbps={mbps} mb={mb}")
+                self.t_log_prev = t_now
 
 
 _num_s3_threads = 16
@@ -912,6 +919,53 @@ async def kge_transfer_from_url(
         # directly back to unauthenticated landing page
         await redirect(request, LANDING_PAGE)
 
+
+def abort_upload(upload_token: str):
+    """
+    Signal cancellation of a given upload or transfer.
+
+    :param upload_token:
+    :return:
+    """
+    global _upload_tracker
+
+    _upload_tracker['upload'][upload_token]['active'] = False
+    
+
+async def cancel_kge_upload(request: web.Request, upload_token):
+    """Cancel uploading of a specific file of a KGE File Set.
+
+    Cancel a given upload process identified by upload token.
+
+    :param request:
+    :type request: web.Request
+    :param upload_token: Upload token associated with a given file whose uploading is to be cancelled.
+    :type upload_token: str
+
+    """
+    logger.debug("Entering cancel_kge_upload()")
+
+    session = await get_session(request)
+    if not session.empty:
+        
+        if not upload_token:
+            # must not be empty string
+            await report_error(request, "cancel_kge_upload(): can't cancel an empty upload_token?")
+        
+        # TODO: trigger deletion of the current upload/transfer operation here(?)
+        logger.info(f"cancel_kge_upload() called for upload token '{upload_token}'")
+        
+        abort_upload(upload_token)
+        
+        # Standard success response for upload file
+        # operation deletion, without any returned content
+        response = web.Response(status=204)
+        return await with_session(request, response)
+
+    else:
+        # If session is not active, then just a redirect
+        # directly back to unauthenticated landing page
+        await redirect(request, LANDING_PAGE)
 
 #############################################################
 # Content Metadata Controller Handler

@@ -354,6 +354,12 @@ async function UploadFile(source) {
 
                 // callback for mutual recursion
                 async function askForProgress() {
+                    if(!Boolean(transfer_in_progress)) {
+                        // Sanity check to break the looping of the progress bar?
+                        let j = Object();
+                        j.current_position = j.end_position = 1;
+                        return j;
+                    }
                     return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
                         .then(r => r.json())
                         .then(j => {
@@ -515,7 +521,7 @@ async function DoneUploading(source) {
 }
 
 async function CancelUploading() {
-    if (confirm("Warning: file transfer still in progress... Abort?")) {
+    if (Boolean(transfer_in_progress) && confirm("Warning: file transfer still in progress... Abort?")) {
         console.log("Cancelling active upload/transfer (token: '" + transfer_in_progress + "')");
         let ca_endpoint = `{{cancel_upload_action}}/progress?upload_token=${transfer_in_progress}`;
         await fetch(
