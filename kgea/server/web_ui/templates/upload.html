@@ -161,6 +161,7 @@ async function UploadFile(source) {
                         let msg = JSON.stringify(result)
                         console.log("Content URL transfer response:" + msg);
                         //window.alert("Content URL transfer response:" + msg);
+                        transfer_in_progress = result.upload_token;
                         return result.upload_token
                     })
                     // handle progress bar related requests
@@ -324,9 +325,8 @@ async function UploadFile(source) {
             document.getElementById('spinner-text').style.display = "inline-block";
             $("#ldBar").css('display', 'block')
 
-            // We need to give the user some kind of
-            // alternate progress monitor while waiting
-            // for the 'real' value from S3
+            // We need to give the user some kind of alternate
+            // progress monitor while waiting for the 'real' value from S3
             let fake_progress = 0;
             let ua_endpoint =`{{upload_action}}?kg_id=${url.searchParams.get("kg_id")}&fileset_version=${url.searchParams.get("fileset_version")}&kgx_file_content=${kgx_file_content}&upload_mode=${source.id}&content_name=${uploaded_file.name}`;
             //window.alert("upload_action endpoint: " + ua_endpoint);
@@ -343,6 +343,7 @@ async function UploadFile(source) {
                     body: formData,
                     credentials: "include"
                 })
+                transfer_in_progress = result.upload_token;
                 return result.upload_token
             })
             // handle progress bar related requests
@@ -473,7 +474,7 @@ function update_file_list(kgx_file_content, filename, status) {
 }
 
 async function DoneUploading(source) {
-    if(transfer_in_progress) {
+    if(Boolean(transfer_in_progress)) {
         if (confirm("Warning: file transfer in progress... Abort?")) {
             if (!confirm("Continue with post-processing of file set?")) {
               try {
@@ -504,6 +505,10 @@ async function DoneUploading(source) {
     }
 }
 
+async function CancelUploading() {
+    confirm("Cancelling active upload/transfer (token: '"+transfer_in_progress+"') - Not Yet Implemented?");
+}
+
 // Helper
 // Convert bytes into human-readable strings
 function getSize(size) {
@@ -522,11 +527,14 @@ function getSize(size) {
 </script>
 {% endblock %}
 {% block menu %}
-{% include "logout.button" %}
-{% include "home.button" %}
 <div class="menu_item">
 <button id="done_uploading" onclick="DoneUploading(this)">Done Uploading</button>
 </div>
+<div class="menu_item">
+<button id="cancel_transfer" onclick="CancelUploading()">Cancel</button>
+</div>
+{% include "logout.button" %}
+{% include "home.button" %}
 {% endblock %}
 {% block title %}Upload Knowledge Graph<br>{{kg_name}} {{fileset_version}}{% endblock %}
 {% block subtitle %}Submitted by '{{submitter_name}}'{% endblock %}
@@ -592,7 +600,7 @@ function getSize(size) {
             <span>
                 <label for="content_file"><b>Select File:</b></label><br>
                 <input id="content_file"  class="textbox" type="file" style="display: inline-block"/>
-                <button id="content_from_local_file" onclick="UploadFile(this)" style="display: inline-block">
+                <button id="content_from_local_file"  onclick="UploadFile(this)" style="display: inline-block">
                     Upload
                 </button>
                 <br>
@@ -610,12 +618,13 @@ Uploading file, please don't navigate away from the page...</span>
             <div class="header">
                 Transfer from a URL
             </div>
-            <label for="content_url"><b>URL to the File:</b></label><br>
-            <input id="content_url" type="text" oninput="GetUrl(this)"/>
-            <br><label for="file_name"><b>File Name:</b></label><br>
-            <input id="file_name" type="text" onchange="SetFileName(this.value)"/>
+            <label for="content_url"><b>URL:</b></label>
+            <input id="content_url" type="text" size="50" oninput="GetUrl(this)"/><br>
+            <label for="file_name"><b>File Name:</b></label>
+            <input id="file_name" type="text" size="30" onchange="SetFileName(this.value)"/>
 
-            <button id="content_from_url" onclick="UploadFile(this)">Initiate Transfer</button>
+            <button id="content_from_url" onclick="UploadFile(this)">Transfer</button>
+            <!--
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
@@ -624,12 +633,16 @@ Uploading file, please don't navigate away from the page...</span>
                     completed during the given user upload session (especially, for large files)
                 </span>
             </div>
+            -->
             <br>
             <p>
             <span id="ldBar_link" style="background: transparent; height: 1em; display:inline"></span>
             <span id="percentage_link" class="progress-label" style="display:none;"></span>
             <span id="spinner-text_link" style="font-size: smaller; display:none;"></span>
         </td>
+    </tr>
+    <tr>
+
     </tr>
     <tr>
         <td colspan="2">
