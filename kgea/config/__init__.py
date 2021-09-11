@@ -158,7 +158,9 @@ PUBLISH_FILE_SET = BACKEND + "publish"  # GET
 # upload controller
 SETUP_UPLOAD_CONTEXT = BACKEND + "upload"  # GET
 UPLOAD_FILE = BACKEND + "upload"  # POST
-DIRECT_URL_TRANSFER = BACKEND + "transfer"       # POST
+DIRECT_URL_TRANSFER = BACKEND + "upload/url"  # GET
+CANCEL_UPLOAD = BACKEND + "upload/cancel"  # DELETE
+
 GET_UPLOAD_STATUS = BACKEND + "upload/progress"  # GET
 
 

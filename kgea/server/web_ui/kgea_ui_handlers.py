@@ -27,8 +27,9 @@ from kgea.config import (
     FILESET_REGISTRATION_FORM,
     PUBLISH_FILE_SET,
     # SETUP_UPLOAD_CONTEXT,
-    DIRECT_URL_TRANSFER,
     UPLOAD_FILE,
+    DIRECT_URL_TRANSFER,
+    CANCEL_UPLOAD,
     # GET_UPLOAD_STATUS,
     get_fileset_metadata_url,
     get_meta_knowledge_graph_url,
@@ -326,6 +327,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             "submitter_name": submitter_name,
             "upload_action": UPLOAD_FILE,
             "direct_url_transfer_action": DIRECT_URL_TRANSFER,
+            "cancel_upload_action": CANCEL_UPLOAD,
             "publish_file_set_action": PUBLISH_FILE_SET
         }
         response = aiohttp_jinja2.render_template('upload.html', request=request, context=context)

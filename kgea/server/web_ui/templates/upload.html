@@ -475,9 +475,10 @@ function update_file_list(kgx_file_content, filename, status) {
 
 async function DoneUploading(source) {
     if(Boolean(transfer_in_progress)) {
-        if (confirm("Warning: file transfer in progress... Abort?")) {
-            if (!confirm("Continue with post-processing of file set?")) {
-              try {
+        if (await CancelUploading()) {
+            // ... then, ask what the user wants to do next...
+            if (!confirm("Continue with post-processing of the file set?")) {
+                try {
                     let a = document.createElement("a");
                     a.href = "/home";
                     document.body.appendChild(a);
@@ -486,12 +487,20 @@ async function DoneUploading(source) {
                 } catch (e) {
                     console.log("Cancellation error...", e);
                 }
-                return;
             }
+            /*
+             else, drop through to continue with
+             post-processing of the fileset
+            */
         } else {
-          return;
+            /*
+             Ignore the button - user wants to keep
+             uploading or transferring the file...
+            */
+            return;
         }
     }
+    // Otherwise, go to post-processing
     if (source.id === 'done_uploading') {
         try {
             let a = document.createElement("a");
@@ -506,7 +515,33 @@ async function DoneUploading(source) {
 }
 
 async function CancelUploading() {
-    confirm("Cancelling active upload/transfer (token: '"+transfer_in_progress+"') - Not Yet Implemented?");
+    if (confirm("Warning: file transfer still in progress... Abort?")) {
+        console.log("Cancelling active upload/transfer (token: '" + transfer_in_progress + "')");
+        let ca_endpoint = `{{cancel_upload_action}}/progress?upload_token=${transfer_in_progress}`;
+        await fetch(
+            ca_endpoint,
+            {
+                method: "DELETE",
+                credentials: "include"
+            }
+        )
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Upload cancellation failed with http code ' + str(response.status));
+            }
+        })
+        .catch(err => {
+            console.log(err);
+            alert(err);
+        })
+        .finally(() => {
+            transfer_in_progress = false;
+        });
+        return true;
+    } else {
+        // Cancellation aborted by user?
+        return false;
+    }
 }
 
 // Helper
