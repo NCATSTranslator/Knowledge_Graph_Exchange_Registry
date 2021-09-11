@@ -725,7 +725,7 @@ class ProgressPercentage(object):
     def __call__(self, bytes_amount):
         # Here, we check if the transfer/upload is not cancelled
         if not self.transfer_tracker['active']:
-            logger.info("Transfer/upload was cancelled?")
+            logger.warning("Transfer/upload was cancelled?")
             # Maybe too harsh but throw some kind of exception here?
             raise RuntimeWarning("Transfer/upload was cancelled?")
         else:

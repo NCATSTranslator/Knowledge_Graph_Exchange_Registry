@@ -609,7 +609,7 @@ def upload_file(bucket, object_key, source, client=s3_client(), config=None, cal
         else:
             client.upload_fileobj(source, bucket, object_key, Config=config, Callback=callback)
     except Exception as exc:
-        logger.error("kgea file ops: upload_file() cancelled by exception: " + str(exc))
+        logger.warning("kgea_file_ops.upload_file(): " + str(exc))
         # TODO: what sort of post-cancellation processing is needed here?
 
 def upload_file_multipart(

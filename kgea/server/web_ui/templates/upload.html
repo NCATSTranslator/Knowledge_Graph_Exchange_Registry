@@ -64,6 +64,10 @@ function SetFileName(value) {
     content_name = value;
 }
 
+function GetFileName() {
+    return content_name;
+}
+
 async function GetUrl(source) {
     // TODO: need a sensible heuristic here to guess a
     //       reasonable file name from a given content_url
@@ -172,6 +176,12 @@ async function UploadFile(source) {
 
                         // callback for mutual recursion
                         async function askForProgress() {
+                            if(!Boolean(transfer_in_progress)) {
+                                // Sanity check to break the looping of the progress bar?
+                                let j = Object();
+                                j.current_position = j.end_position = 1;
+                                return j;
+                            }
                             return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
                                 .then(r => r.json())
                                 .then(j => {
@@ -236,12 +246,12 @@ async function UploadFile(source) {
                             return await later(monitor_interval, askForProgress).then(execute)
                         } catch (e) {
                             console.error(e);
-                            document.getElementById("content_url").value = ""
-                            document.getElementById("file_name").value = ""
-                            SetFileName("unknown")
 
-                            // .. then post the file name transferred
-                            update_file_list(kgx_file_content, file_name, "Error!")
+                            document.getElementById("content_url").value = "";
+                            document.getElementById("file_name").value = "";
+
+                            update_file_list(kgx_file_content, GetFileName(), "Error!");
+                            SetFileName("unknown");
 
                             // document.getElementById('spinner").style.display = "none";
                             document.getElementById("percentage_link").style.display = "none";
@@ -258,14 +268,19 @@ async function UploadFile(source) {
 
                     document.getElementById("content_from_url").disabled = false;
                     document.getElementById("content_from_local_file").disabled = false;
-                    transfer_in_progress = false;
 
                     document.getElementById("content_url").value = ""
                     document.getElementById("file_name").value = ""
-                    SetFileName("unknown")
 
-                    // .. then post the file name transferred
-                    update_file_list(kgx_file_content, file_name, "Uploaded!")
+                    if(!Boolean(transfer_in_progress)) {
+                        // transfer was probably cancelled, so signal this as such
+                        update_file_list(kgx_file_content, GetFileName(), "Transfer Cancelled?")
+                    } else {
+                        // .. then post the file name transferred
+                        update_file_list(kgx_file_content, GetFileName(), "Uploaded!")
+                        transfer_in_progress = false;
+                    }
+                    SetFileName("unknown")
 
                     // document.getElementById('spinner").style.display = "none";
                     document.getElementById("percentage_link").style.display = "none";
@@ -289,7 +304,9 @@ async function UploadFile(source) {
         // For some reason, the "tsv" MIME type is
         // not directly detected, so we indirectly do so...
         let mime_type = uploaded_file.type;
+
         const filename = uploaded_file.name;
+        SetFileName(filename);
         const ext = filename.split('.').pop();
         if(ext === "tsv") {
             mime_type = "text/tab-separated-values";
@@ -423,12 +440,10 @@ async function UploadFile(source) {
                     return await later(monitor_interval, askForProgress).then(execute)
                 } catch (e) {
                     console.error(e);
-                    document.getElementById("content_url").value = ""
-                    document.getElementById("file_name").value = ""
-                    SetFileName("unknown")
 
                     // .. then post the file name transferred
-                    update_file_list(kgx_file_content, file_name, "Error!")
+                    update_file_list(kgx_file_content, GetFileName(), "Error!")
+                    SetFileName("unknown");
 
                     // document.getElementById('spinner").style.display = "none";
                     document.getElementById("percentage").style.display = "none";
@@ -446,11 +461,18 @@ async function UploadFile(source) {
 
             document.getElementById("content_from_url").disabled = false;
             document.getElementById("content_from_local_file").disabled = false;
-            transfer_in_progress = false;
 
             document.getElementById("content_file").value = null;
 
-            update_file_list(kgx_file_content, filename, "Uploaded!")
+            if(!Boolean(transfer_in_progress)) {
+                // transfer was probably cancelled, so signal this as such
+                update_file_list(kgx_file_content, GetFileName(), "Transfer Cancelled?")
+            } else {
+                // .. then post the file name transferred
+                update_file_list(kgx_file_content, GetFileName(), "Uploaded!")
+                transfer_in_progress = false;
+            }
+            SetFileName("unknown")
 
             // document.getElementById('spinner").style.display = "none";
             document.getElementById("percentage").style.display = "none";
