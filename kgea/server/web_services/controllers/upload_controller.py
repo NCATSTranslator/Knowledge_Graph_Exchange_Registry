@@ -4,7 +4,8 @@ from ..kgea_handlers import (
     setup_kge_upload_context,
     kge_transfer_from_url,
     get_kge_upload_status,
-    upload_kge_file
+    upload_kge_file,
+    cancel_kge_upload
 )
 
 
@@ -115,3 +116,17 @@ async def upload_file(
         upload_token=upload_token,
         uploaded_file=uploaded_file
     )
+
+
+async def cancel_upload(request: web.Request, upload_token):
+    """Cancel uploading of a specific file of a KGE File Set.
+
+    Cancel a given upload process identified by upload token.
+
+    :param request:
+    :type request: web.Request
+    :param upload_token: Upload token associated with a given file whose uploading is to be cancelled.
+    :type upload_token: str
+
+    """
+    return await cancel_kge_upload(request, upload_token=upload_token)

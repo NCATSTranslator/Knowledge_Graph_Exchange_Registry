@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  version: 1.2.0-dev
+  version: 1.4.0-dev
   title: >-
     OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive.
     Although this API is SmartAPI compliant, it will not normally be visible
@@ -249,7 +249,7 @@ paths:
             application/json:
               schema:
                 type: string
-  /transfer:
+  /upload/url:
     get:
       description: >-
         Direct file from URL transfer of (meta-)data files to a specific
@@ -357,7 +357,42 @@ paths:
                 $ref: '#/components/schemas/UploadProgressToken'
         '404':
           description: >-
-            Specified object key is unknown (not registered).
+            Specified upload token is unknown.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. Request is invalid according to this
+            OpenAPI schema OR a specific parameter is believed
+            to be invalid somehow (or just not recognized).
+          content:
+            application/json:
+              schema:
+                type: string
+  /upload/cancel:
+    delete:
+      description: >-
+        Cancel a given upload process identified by upload token.
+      parameters:
+        - name: upload_token
+          in: query
+          description: >-
+            Upload token associated with a given file whose uploading is to be cancelled.
+          required: true
+          schema:
+            type: string
+      tags:
+        - upload
+      summary: Cancel uploading of a specific file of a KGE File Set.
+      operationId: cancel_upload
+      responses:
+        '204':
+          description: Success of the upload cancellation (nothing returned)
+        '404':
+          description: >-
+            Specified upload token is unknown.
           content:
             application/json:
               schema:

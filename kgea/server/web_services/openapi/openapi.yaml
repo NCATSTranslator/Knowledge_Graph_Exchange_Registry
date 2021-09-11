@@ -15,7 +15,7 @@ info:
     this API is SmartAPI compliant, it will not normally be visible in the Translator
     SmartAPI Registry since it is mainly meant to be accessed through Registry indexed
     KGE File Sets, which will have distinct entries in the Registry.
-  version: 1.3-dev
+  version: 1.4.0-dev
   x-translator:
     component: SRI service
     team:
@@ -148,89 +148,6 @@ paths:
       - catalog
       x-openapi-router-controller: kgea.server.web_services.controllers.catalog_controller
       x-codegen-request-body-name: body
-  /transfer:
-    get:
-      description: Direct file from URL transfer of (meta-)data files to a specific
-        KGE File Set version, belonging to a specific Knowledge Graph. The 'content_url'
-        parameter is taken as a REST endpoint of a file to be transferred into the
-        Archive (http authentication not yet supported, therefore, the URL should
-        provide for unauthenticated access). The 'content_name' is set the file name
-        to be assigned to the file within the KGE Archive. The specific KGX file content
-        of the current upload file is set by the `kgx_file_content' for KGX data files
-        uploaded as set by the selected 'metadata', 'nodes' or 'edges' radio button.
-      operationId: transfer_from_url
-      parameters:
-      - description: KGE File Set identifier for the knowledge graph for which data
-          file metadata are being accessed
-        explode: true
-        in: query
-        name: kg_id
-        required: true
-        schema:
-          type: string
-        style: form
-      - description: Specific version of KGE File Set for the knowledge graph for
-          which data file metadata are being accessed
-        explode: true
-        in: query
-        name: fileset_version
-        required: true
-        schema:
-          type: string
-        style: form
-      - description: Tags the upload as either 'metadata', 'nodes', 'edges' or 'archive'.
-        explode: true
-        in: query
-        name: kgx_file_content
-        required: true
-        schema:
-          type: string
-        style: form
-      - description: (Optional) URL to a web based file resource to be directly uploaded
-          to the KGE Archive from it's server.
-        explode: true
-        in: query
-        name: content_url
-        required: true
-        schema:
-          type: string
-        style: form
-      - description: The file name of the data set to be uploaded.
-        explode: true
-        in: query
-        name: content_name
-        required: true
-        schema:
-          type: string
-        style: form
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UploadTokenObject'
-          description: Transfer initiated successfully, returning associated object
-            key. Note that the transfer itself may not yet be completed (especially
-            if it is a huge file) so the associated archive may not yet be accessible
-            for downloading.
-        "404":
-          content:
-            application/json:
-              schema:
-                type: string
-          description: Knowledge graph or KGE File Set version is unknown (not registered).
-        "400":
-          content:
-            application/json:
-              schema:
-                type: string
-          description: Bad request. Request is invalid according to this OpenAPI schema
-            OR a specific parameter is believed to be invalid somehow (or just not
-            recognized).
-      summary: Trigger direct URL file transfer of a specific file of a KGE File Set.
-      tags:
-      - upload
-      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
   /upload:
     get:
       description: Uploading of (meta-)data files to a specific KGE File Set version,
@@ -335,6 +252,41 @@ paths:
       - upload
       x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
       x-codegen-request-body-name: body
+  /upload/cancel:
+    delete:
+      description: Cancel a given upload process identified by upload token.
+      operationId: cancel_upload
+      parameters:
+      - description: Upload token associated with a given file whose uploading is
+          to be cancelled.
+        explode: true
+        in: query
+        name: upload_token
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        "204":
+          description: Success of the upload cancellation (nothing returned)
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Specified upload token is unknown.
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Cancel uploading of a specific file of a KGE File Set.
+      tags:
+      - upload
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
   /upload/progress:
     get:
       description: Poll the status of a given upload process.
@@ -361,7 +313,7 @@ paths:
             application/json:
               schema:
                 type: string
-          description: Specified object key is unknown (not registered).
+          description: Specified upload token is unknown.
         "400":
           content:
             application/json:
@@ -371,6 +323,89 @@ paths:
             OR a specific parameter is believed to be invalid somehow (or just not
             recognized).
       summary: Get the progress of uploading for a specific file of a KGE File Set.
+      tags:
+      - upload
+      x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
+  /upload/url:
+    get:
+      description: Direct file from URL transfer of (meta-)data files to a specific
+        KGE File Set version, belonging to a specific Knowledge Graph. The 'content_url'
+        parameter is taken as a REST endpoint of a file to be transferred into the
+        Archive (http authentication not yet supported, therefore, the URL should
+        provide for unauthenticated access). The 'content_name' is set the file name
+        to be assigned to the file within the KGE Archive. The specific KGX file content
+        of the current upload file is set by the `kgx_file_content' for KGX data files
+        uploaded as set by the selected 'metadata', 'nodes' or 'edges' radio button.
+      operationId: transfer_from_url
+      parameters:
+      - description: KGE File Set identifier for the knowledge graph for which data
+          file metadata are being accessed
+        explode: true
+        in: query
+        name: kg_id
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Specific version of KGE File Set for the knowledge graph for
+          which data file metadata are being accessed
+        explode: true
+        in: query
+        name: fileset_version
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Tags the upload as either 'metadata', 'nodes', 'edges' or 'archive'.
+        explode: true
+        in: query
+        name: kgx_file_content
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: (Optional) URL to a web based file resource to be directly uploaded
+          to the KGE Archive from it's server.
+        explode: true
+        in: query
+        name: content_url
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: The file name of the data set to be uploaded.
+        explode: true
+        in: query
+        name: content_name
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadTokenObject'
+          description: Transfer initiated successfully, returning associated object
+            key. Note that the transfer itself may not yet be completed (especially
+            if it is a huge file) so the associated archive may not yet be accessible
+            for downloading.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Knowledge graph or KGE File Set version is unknown (not registered).
+        "400":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Bad request. Request is invalid according to this OpenAPI schema
+            OR a specific parameter is believed to be invalid somehow (or just not
+            recognized).
+      summary: Trigger direct URL file transfer of a specific file of a KGE File Set.
       tags:
       - upload
       x-openapi-router-controller: kgea.server.web_services.controllers.upload_controller
