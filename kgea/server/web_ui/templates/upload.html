@@ -523,7 +523,7 @@ async function DoneUploading(source) {
 async function CancelUploading() {
     if (Boolean(transfer_in_progress) && confirm("Warning: file transfer still in progress... Abort?")) {
         console.log("Cancelling active upload/transfer (token: '" + transfer_in_progress + "')");
-        let ca_endpoint = `{{cancel_upload_action}}/progress?upload_token=${transfer_in_progress}`;
+        let ca_endpoint = `{{cancel_upload_action}}?upload_token=${transfer_in_progress}`;
         await fetch(
             ca_endpoint,
             {
