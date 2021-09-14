@@ -12,6 +12,8 @@ import traceback
 from sys import stderr, exc_info
 from typing import Dict, Union, List, Optional
 from functools import wraps
+import subprocess
+import os
 
 import logging
 
@@ -829,6 +831,7 @@ async def compress_fileset(
         archive_name=archive_name,
     ).replace('\\', '/')  # normalize to the path separator we use on s3
 
+    """
     # setup an S3 job to compress the file
     job = S3Tar(
         bucket,
@@ -855,9 +858,21 @@ async def compress_fileset(
 
     # execute the job
     job.tar()
+    """
 
-    return archive_path
-
+async def compress_fileset(
+    kg_id,
+    version,
+    bucket,
+    root='kge-data'
+) -> str:
+    s3_archive_path = f"{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
+    archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.pathsep}'scripts'{os.pathsep}upload_archive.bash"
+    with subprocess.Popen([
+        '/usr/bin/bash', archive_script, kg_id, version
+    ]) as proc:
+        proc.wait()
+        return s3_archive_path
 
 def decompress_in_place(gzipped_key, location=None):
     """
