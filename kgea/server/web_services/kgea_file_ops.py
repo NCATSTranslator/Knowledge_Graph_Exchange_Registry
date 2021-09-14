@@ -921,7 +921,7 @@ def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_
 
 
 def test_aggregate_files():
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/aggregates"
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
             bucket=TEST_BUCKET,
@@ -946,7 +946,7 @@ def test_huge_aggregate_files():
     
     :return:
     """
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/aggregates"
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
             bucket=TEST_BUCKET,
