@@ -3,6 +3,52 @@
 # Shell script for *nix command line driven
 # archiving of a KGE File Set for downloading
 #
+# Mandatory Environment Variables:
+# -------------------------------
+# $KGE_BUCKET - S3 bucket source where the file set is located
+# $KGE_ROOT_DIRECTORY - Root S3 folder in the bucket, containing the knowledge graph -> file set
+#
+usage () {
+    echo
+    echo "Usage:"
+    echo
+    echo "./upload_archiver.bash <Knowledge Graph Identifier> <File Set Version>"
+    exit -1
+}
+
+if [ -z "$KGE_BUCKET" ]
+then
+    echo
+    echo "Please set the \$KGE_BUCKET environment variable"
+    echo "(S3 bucket source where the file set is located)"
+    exit -2
+fi
+
+if [ -z "$KGE_ROOT_DIRECTORY" ]
+then
+    echo
+    echo "Please set the \$KGE_ROOT_DIRECTORY environment variable"
+    echo "(Root S3 folder in the bucket, containing the knowledge graph -> file set)"
+    exit -3
+fi
+
+if [ -z "$1" ]
+then
+    usage
+else
+    # Knowledge Graph Identifier
+    kgid=$1
+fi
+
+if [ -z "$2" ]
+then
+    usage
+else
+    # TODO: validate proper SemVer format of file set version string here?
+    # File Set Version of the Knowledge Graph
+    version=$2
+fi
+
 # AWS command (can be tweaked if problematic, e.g. under Windows?)
 if [[ "$OSTYPE" == "cygwin" ]]; then
         aws=`which aws.cmd`
@@ -10,30 +56,25 @@ else
         aws=`which aws`
 fi
 
-echo "Begin archiving..."
+echo "Beginning archiving of file set version $version of knowledge graph $kgid"
 echo
 
-# Knowledge Graph Identifier
-kgid='semantic-medline-database'
-# File Set Version of the Knowledge Graph
-version=${1:-1.0}
-# S3 bucket source where the file set is located
-bucket='delphinai-kgea-test-bucket-2'
-# Root S3 folder in the bucket, containing the knowledge graph -> file set
-root='kge-data'
 # Knowledge Graph S3 folder
-knowledge_graph=$bucket'/'$root'/'$kgid
+knowledge_graph=$KGE_BUCKET'/'$KGE_ROOT_DIRECTORY'/'$kgid
+
 # Folder of given versioned file set of the Knowledge Graph
 file_set=$knowledge_graph'/'$version
+
 # Full S3 object key to the file set folder
 s3='s3://'$file_set
+
 # File Set tar archive
 tarfile=$kgid"_$version.tar"
 
 echo kgid = $kgid
 echo version = $version
-echo bucket = $bucket
-echo root = $root
+echo bucket = $KGE_BUCKET
+echo root = $KGE_ROOT_DIRECTORY
 echo knowledge_graph = $knowledge_graph
 echo file_set = $file_set
 echo s3 = $s3
