@@ -1975,9 +1975,9 @@ class KgeArchiver:
                         logger.info(f"\t{entry['file_name']}")
                         file_set.add_data_file(**entry)
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Error while unpacking archive?", exc_info())
+                print_error_trace("Error while unpacking archive?: "+str(e), exc_info())
 
             logger.info("Aggregating node files:")
             node_path: str = ''
@@ -1991,9 +1991,9 @@ class KgeArchiver:
                 )
                 logger.info(f"Node path: {node_path}")
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Node file aggregation failure!", exc_info())
+                print_error_trace("Node file aggregation failure! "+str(e), exc_info())
             
             logger.info("Aggregating edge files:")
             edge_path: str = ''
@@ -2007,9 +2007,9 @@ class KgeArchiver:
                 )
                 logger.info(f"Edge path: {edge_path}")
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Edge file aggregation failure!", exc_info())
+                print_error_trace("Edge file aggregation failure! "+str(e), exc_info())
 
             # add to fileset
             file_set.add_data_file(KgeFileType.KGX_DATA_FILE, 'nodes.tsv', 0, node_path, '')
@@ -2034,9 +2034,9 @@ class KgeArchiver:
                     archive_name=f"{file_set.kg_id}_{file_set.fileset_version}"
                 )
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("File set compression failure!", exc_info())
+                print_error_trace("File set compression failure! "+str(e), exc_info())
                 
             logger.info("...Completed!")
             
@@ -2063,9 +2063,9 @@ class KgeArchiver:
                     with smart_open.open(sha1_s3_path, 'w') as sha1file:
                         sha1file.write(sha1sum_value)
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("SHA1 hash sum computation failure!", exc_info())
+                print_error_trace("SHA1 hash sum computation failure! "+str(e), exc_info())
 
             # 5. KGX validation of KGE compliant archive.
             
