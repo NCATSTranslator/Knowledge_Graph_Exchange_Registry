@@ -8,7 +8,8 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 import io
-from sys import stderr
+import traceback
+from sys import stderr, exc_info
 from typing import Dict, Union, List, Optional
 from functools import wraps
 
@@ -50,6 +51,15 @@ logger = logging.getLogger(__name__)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
+
+
+def print_error_trace(err_msg: str):
+    """
+    Print Error Exception stack
+    """
+    logger.error(err_msg)
+    exc_type, exc_value, exc_traceback = exc_info()
+    traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
 
 #
 # Obtain an AWS S3 Client using an Assumed IAM Role
@@ -126,6 +136,12 @@ Test Parameters + Decorator
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
 TEST_FILESET_VERSION = '4.3'
+
+TEST_LARGE_KG = "sri-reference-graph"
+TEST_LARGE_FS_VERSION = "2.0"
+TEST_LARGE_NODES_FILE = "sm_nodes.tsv"
+TEST_LARGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_LARGE_NODES_FILE}"
+
 TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
 
@@ -870,39 +886,52 @@ def decompress_in_place(gzipped_key, location=None):
     return file_entries
 
 
-def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: True) -> str:
+def aggregate_files(bucket, target_key, target_name, file_object_keys, match_function=lambda x: True) -> str:
     """
     Aggregates files matching a match_function.
 
     :param bucket:
-    :param path:
-    :param name:
-    :param file_paths:
+    :param target_key:
+    :param target_name:
+    :param file_object_keys:
     :param match_function:
     :return:
     """
-    if not file_paths:
+    if not file_object_keys:
         return ''
     
     agg_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
         BUCKET=bucket,
-        PATH=path,
-        FILE_NAME=name
+        PATH=target_key,
+        FILE_NAME=target_name
     )
-    with smart_open.open(agg_path, 'w', encoding="utf-8") as aggregated_file:
-        file_paths = filter(match_function, file_paths)
-        for file_path in file_paths:
-            path = 's3://{BUCKET}/{KEY}'.format(
-                BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                KEY=file_path
-            )
-            with smart_open.open(path, 'r', encoding="utf-8") as subfile:
-                # because smart_open doesn't support an append mode,
-                # use writelines and add a newline
-                aggregated_file.writelines(subfile.read())
-                aggregated_file.writelines('\n')
+    with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
+        file_object_keys = filter(match_function, file_object_keys)
+        for file_path in file_object_keys:
+            target_key = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{file_path}"
+            with smart_open.open(target_key, 'r', encoding="utf-8", newline="\n") as subfile:
+                for line in subfile:
+                    aggregated_file.write(line)
+                aggregated_file.write("\n")
                 
     return agg_path
+
+
+def test_aggregate_files():
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/aggregates/"
+    try:
+        agg_path: str = aggregate_files(
+            bucket=TEST_BUCKET,
+            target_key=target_folder,
+            target_name='nodes.tsv',
+            file_object_keys=[TEST_LARGE_NODES_FILE_KEY],
+            match_function=lambda x: True
+        )
+    except Exception as e:
+        print_error_trace("Error while unpacking archive?: " + str(e))
+        return False
+    
+    return True
 
 
 # @prepare_test
