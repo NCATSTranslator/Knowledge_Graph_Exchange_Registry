@@ -61,6 +61,7 @@ def print_error_trace(err_msg: str):
     exc_type, exc_value, exc_traceback = exc_info()
     traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
 
+
 #
 # Obtain an AWS S3 Client using an Assumed IAM Role
 # with default parameters (loaded from config.yaml)
@@ -139,8 +140,14 @@ TEST_FILESET_VERSION = '4.3'
 
 TEST_LARGE_KG = "sri-reference-graph"
 TEST_LARGE_FS_VERSION = "2.0"
+
 TEST_LARGE_NODES_FILE = "sm_nodes.tsv"
 TEST_LARGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_LARGE_NODES_FILE}"
+
+TEST_HUGE_NODES_FILE = "sri-reference-kg_nodes.tsv"
+TEST_HUGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_HUGE_NODES_FILE}"
+TEST_HUGE_EDGES_FILE = "sri-reference-kg_edges.tsv"
+TEST_HUGE_EDGES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/edges/{TEST_HUGE_EDGES_FILE}"
 
 TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
@@ -886,12 +893,12 @@ def decompress_in_place(gzipped_key, location=None):
     return file_entries
 
 
-def aggregate_files(bucket, target_key, target_name, file_object_keys, match_function=lambda x: True) -> str:
+def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_function=lambda x: True) -> str:
     """
     Aggregates files matching a match_function.
 
     :param bucket:
-    :param target_key:
+    :param target_folder:
     :param target_name:
     :param file_object_keys:
     :param match_function:
@@ -900,16 +907,12 @@ def aggregate_files(bucket, target_key, target_name, file_object_keys, match_fun
     if not file_object_keys:
         return ''
     
-    agg_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
-        BUCKET=bucket,
-        PATH=target_key,
-        FILE_NAME=target_name
-    )
+    agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
     with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
         file_object_keys = filter(match_function, file_object_keys)
-        for file_path in file_object_keys:
-            target_key = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{file_path}"
-            with smart_open.open(target_key, 'r', encoding="utf-8", newline="\n") as subfile:
+        for file_object_key in file_object_keys:
+            target_key_uri = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{file_object_key}"
+            with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
                 for line in subfile:
                     aggregated_file.write(line)
                 aggregated_file.write("\n")
@@ -918,11 +921,11 @@ def aggregate_files(bucket, target_key, target_name, file_object_keys, match_fun
 
 
 def test_aggregate_files():
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/aggregates/"
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/aggregates"
     try:
         agg_path: str = aggregate_files(
             bucket=TEST_BUCKET,
-            target_key=target_folder,
+            target_folder=target_folder,
             target_name='nodes.tsv',
             file_object_keys=[TEST_LARGE_NODES_FILE_KEY],
             match_function=lambda x: True
@@ -930,6 +933,36 @@ def test_aggregate_files():
     except Exception as e:
         print_error_trace("Error while unpacking archive?: " + str(e))
         return False
+    
+    assert(agg_path == f"{target_folder}/nodes.tsv")
+    
+    return True
+
+
+def test_huge_aggregate_files():
+    """
+    NOTE: This test attempts transfer of a Huge pair or multi-gigabyte files in S3.
+    It is best to run this test on an EC2 server with the code.
+    
+    :return:
+    """
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/aggregates"
+    try:
+        agg_path: str = aggregate_files(
+            bucket=TEST_BUCKET,
+            target_folder=target_folder,
+            target_name='nodes_plus_edges.tsv',
+            file_object_keys=[
+                TEST_HUGE_NODES_FILE_KEY,
+                TEST_HUGE_EDGES_FILE_KEY
+            ],
+            match_function=lambda x: True
+        )
+    except Exception as e:
+        print_error_trace("Error while unpacking archive?: " + str(e))
+        return False
+
+    assert (agg_path == f"{target_folder}/nodes_plus_edges.tsv")
     
     return True
 
