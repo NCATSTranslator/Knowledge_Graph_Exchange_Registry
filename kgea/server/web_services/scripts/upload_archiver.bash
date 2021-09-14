@@ -92,9 +92,7 @@ do
   # example command:
   # aws s3 cp s3://kgea-test-bucket/kge-data/sri-reference-graph/1.0/content_metadata.json . | tar rf sri-reference-graph.1.0.tar content_metadata.json
   # use `rf` for tar to create if not exists, append files if existing
-  $aws s3 cp $s3"/$file" .
-  tar rf "$tarfile" "$file"
-  rm "$file"
+  $aws s3 cp $s3"/$file" - | tar rf "$tarfile" -
 done
 
 ## after archiving all of the files, compress them
