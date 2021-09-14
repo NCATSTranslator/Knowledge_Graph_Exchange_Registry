@@ -949,7 +949,7 @@ def test_aggregate_files():
         print_error_trace("Error while unpacking archive?: " + str(e))
         return False
     
-    assert(agg_path == f"{target_folder}/nodes.tsv")
+    assert(agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes.tsv")
     
     return True
 
@@ -977,7 +977,7 @@ def test_huge_aggregate_files():
         print_error_trace("Error while unpacking archive?: " + str(e))
         return False
 
-    assert (agg_path == f"{target_folder}/nodes_plus_edges.tsv")
+    assert (agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes_plus_edges.tsv")
     
     return True
 
