@@ -233,9 +233,9 @@ async function UploadFile(source) {
                                     // error
                                     throw Error(
                                         "Upload failed! (Current position '" +
-                                        str(received.current_position) +
+                                        received.current_position.toString() +
                                         "' is larger than end position '" +
-                                        str(received.end_position) +
+                                        received.end_position.toString() +
                                         "'?)"
                                     )
                                 }
@@ -430,9 +430,9 @@ async function UploadFile(source) {
                             // error
                             throw Error(
                                 "Upload failed! (Current position '" +
-                                str(received.current_position) +
+                                received.current_position.toString() +
                                 "' is larger than end position '" +
-                                str(received.end_position) +
+                                received.end_position.toString() +
                                 "'?)"
                             )
                         }
