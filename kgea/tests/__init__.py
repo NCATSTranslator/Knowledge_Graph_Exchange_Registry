@@ -30,4 +30,5 @@ TEST_HUGE_NODES_FILE_KEY = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/nodes/{TE
 TEST_HUGE_EDGES_FILE = "sri-reference-kg_edges.tsv"
 TEST_HUGE_EDGES_FILE_KEY = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/edges/{TEST_HUGE_EDGES_FILE}"
 
+# This is externally hosted Monarch data, the availability for which may change with time
 TEST_HUGE_FILE_RESOURCE_URL = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
