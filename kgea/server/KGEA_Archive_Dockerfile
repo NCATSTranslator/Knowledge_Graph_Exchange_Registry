@@ -13,6 +13,8 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 
 COPY . /usr/src/app
 
+RUN chmod uga+x /usr/src/app/kgea/server/web_services/scripts/kge_archiver.bash
+
 EXPOSE 8080
 
 ENTRYPOINT ["python"]
