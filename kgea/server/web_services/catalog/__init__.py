@@ -2012,7 +2012,7 @@ class KgeArchiver:
             # from compressing the previous compression (so the source of files is distinct from the target written to)
             logger.info("Compressing file set...", end='')
             try:
-                archive_path: str = await compress_fileset(
+                s3_archive_key: str = await compress_fileset(
                     kg_id=file_set.kg_id,
                     version=file_set.fileset_version,
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
@@ -2025,8 +2025,6 @@ class KgeArchiver:
                 raise e
 
             logger.info("...Completed!")
-            
-            archive_s3_path = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{archive_path}"
 
             # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
             #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
@@ -2039,8 +2037,7 @@ class KgeArchiver:
                 # of whatever is being opened. If we let this happen, then the hash function would run over
                 # a decompressed buffer; not the compressed file/buffer that we expect our users to use when
                 # they download and validate the archive.
-                with smart_open.open(archive_s3_path, 'rb', compression='disable') as archive_file_key:
-    
+                with smart_open.open(s3_archive_key, 'rb', compression='disable') as archive_file_key:
                     sha1sum = sha1_manifest(archive_file_key)
                     sha1sum_value = sha1sum[archive_file_key.name]
                     sha1tsv = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"

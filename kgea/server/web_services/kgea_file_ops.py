@@ -867,23 +867,33 @@ async def compress_fileset(
     bucket,
     root='kge-data'
 ) -> str:
-    s3_archive_path = f"{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
+    """
+
+    :param kg_id:
+    :param version:
+    :param bucket:
+    :param root:
+    :return:
+    """
+    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}'scripts'{os.sep}upload_archive.bash"
     with subprocess.Popen([
         archive_script, kg_id, version
     ]) as proc:
         proc.wait()
-        return s3_archive_path
+        return s3_archive_key
 
 
 def test_compress_fileset():
     try:
-        output = compress_fileset(
+        s3_archive_key = compress_fileset(
             kg_id=TEST_KG_NAME,
             version=TEST_FILESET_VERSION,
             bucket=TEST_BUCKET,
             root='kge-data'
         )
+        assert(s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_NAME}/{TEST_FILESET_VERSION}"
+                                 f"/archive/{TEST_KG_NAME+'_'+TEST_FILESET_VERSION}.tar.gz")
     except Exception as e:
         logger.error(e)
         return False
