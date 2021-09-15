@@ -811,54 +811,54 @@ def infix_string(name, infix, delimiter="."):
     return name
 
 
-async def compress_fileset(
-        bucket,
-        files_and_file_set_locations: list,
-        target_path,
-        archive_name
-) -> str:
-    """
-
-    :param bucket:
-    :param files_and_file_set_locations:
-    :param target_path:
-    :param archive_name:
-    :return:
-    """
-
-    archive_path = "{target_path}{archive_name}.tar.gz".format(
-        target_path=target_path,
-        archive_name=archive_name,
-    ).replace('\\', '/')  # normalize to the path separator we use on s3
-
-    """
-    # setup an S3 job to compress the file
-    job = S3Tar(
-        bucket,
-        archive_path,
-        allow_dups=True,
-        s3_max_retries=20,
-    )
-
-    # add the file the running archive
-    for file_or_file_set_location in files_and_file_set_locations:
-        # it's a folder key if it ends with a path separator
-        if file_or_file_set_location[-1] == '/':
-            file_set_location_key = file_or_file_set_location
-            job.add_files(file_set_location_key)
-            # it's a file if it doesn't end with a path separator
-        else:
-            file_key = file_or_file_set_location
-            # TODO - job.add_file doesn't check if the key exists
-            # so for now do it for them
-            if object_key_exists(file_key):
-                job.add_file(file_key)
-            else:
-                logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
-
-    # execute the job
-    job.tar()
-    """
+# async def compress_fileset(
+#         bucket,
+#         files_and_file_set_locations: list,
+#         target_path,
+#         archive_name
+# ) -> str:
+#     """
+#
+#     :param bucket:
+#     :param files_and_file_set_locations:
+#     :param target_path:
+#     :param archive_name:
+#     :return:
+#     """
+#
+#     archive_path = "{target_path}{archive_name}.tar.gz".format(
+#         target_path=target_path,
+#         archive_name=archive_name,
+#     ).replace('\\', '/')  # normalize to the path separator we use on s3
+#
+#     """
+#     # setup an S3 job to compress the file
+#     job = S3Tar(
+#         bucket,
+#         archive_path,
+#         allow_dups=True,
+#         s3_max_retries=20,
+#     )
+#
+#     # add the file the running archive
+#     for file_or_file_set_location in files_and_file_set_locations:
+#         # it's a folder key if it ends with a path separator
+#         if file_or_file_set_location[-1] == '/':
+#             file_set_location_key = file_or_file_set_location
+#             job.add_files(file_set_location_key)
+#             # it's a file if it doesn't end with a path separator
+#         else:
+#             file_key = file_or_file_set_location
+#             # TODO - job.add_file doesn't check if the key exists
+#             # so for now do it for them
+#             if object_key_exists(file_key):
+#                 job.add_file(file_key)
+#             else:
+#                 logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
+#
+#     # execute the job
+#     job.tar()
+#     """
 
 async def compress_fileset(
     kg_id,
@@ -869,10 +869,23 @@ async def compress_fileset(
     s3_archive_path = f"{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.pathsep}'scripts'{os.pathsep}upload_archive.bash"
     with subprocess.Popen([
-        '/usr/bin/bash', archive_script, kg_id, version
+        archive_script, kg_id, version
     ]) as proc:
         proc.wait()
         return s3_archive_path
+
+def test_compress_fileset():
+    try:
+        output = compress_fileset(
+            kg_id=TEST_KG_NAME,
+            version=TEST_FILESET_VERSION,
+            bucket=TEST_BUCKET,
+            root='kge-data'
+        )
+    except Exception as e:
+        logger.error(e)
+        return False
+    return True
 
 def decompress_in_place(gzipped_key, location=None):
     """
@@ -1354,16 +1367,18 @@ if __name__ == '__main__':
         )
     )
 
-    run_test(test_kg_files_in_location)
-    run_test(test_is_location_available)
-    run_test(test_is_not_location_available)
+    run_test(test_compress_fileset)
 
-    run_test(test_get_fileset_versions_available)
-    run_test(test_create_presigned_url)
-
-    run_test(test_upload_file_to_archive)
-    # run_test(test_download_file)
-
-    run_test(test_get_archive_contents)
+    # run_test(test_kg_files_in_location)
+    # run_test(test_is_location_available)
+    # run_test(test_is_not_location_available)
+    #
+    # run_test(test_get_fileset_versions_available)
+    # run_test(test_create_presigned_url)
+    #
+    # run_test(test_upload_file_to_archive)
+    # # run_test(test_download_file)
+    #
+    # run_test(test_get_archive_contents)
 
     print("tests complete")

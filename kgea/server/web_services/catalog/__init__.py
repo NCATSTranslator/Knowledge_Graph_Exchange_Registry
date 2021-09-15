@@ -2013,15 +2013,18 @@ class KgeArchiver:
             logger.info("Compressing file set...", end='')
             try:
                 archive_path: str = await compress_fileset(
+                    kg_id=file_set.kg_id,
+                    version=file_set.fileset_version,
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    files_and_file_set_locations=[
-                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates/",
-                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/file_set.yaml",
-                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/content_metadata.json",
-                        f"kge-data/{file_set.kg_id}/provider.yaml"
-                    ],
-                    target_path=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive/",
-                    archive_name=f"{file_set.kg_id}_{file_set.fileset_version}"
+                    root='kge-data'
+                    # files_and_file_set_locations=[
+                    #     f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates/",
+                    #     f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/file_set.yaml",
+                    #     f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/content_metadata.json",
+                    #     f"kge-data/{file_set.kg_id}/provider.yaml"
+                    # ],
+                    # target_path=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive/",
+                    # archive_name=f"{file_set.kg_id}_{file_set.fileset_version}"
                 )
 
             except Exception as e:
