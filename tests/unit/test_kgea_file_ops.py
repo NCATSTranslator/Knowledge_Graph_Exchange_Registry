@@ -6,26 +6,25 @@ from sys import stderr
 
 import requests
 
+from kgea.server.test import (
+    TEST_BUCKET,
+    TEST_KG_NAME,
+    TEST_FILESET_VERSION,
+    TEST_DIRECT_TRANSFER_LINK,
+    TEST_DIRECT_TRANSFER_LINK_FILENAME
+)
+
 from kgea.server.web_services.kgea_file_ops import upload_from_link
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logging = True
 
-TEST_BUCKET = 'kgea-test-bucket'
-TEST_KG_NAME = 'test_kg'
-TEST_FILESET_VERSION = '4.3'
-TEST_FILE_DIR = 'kgea/server/test/data/'
-TEST_FILE_NAME = 'somedata.csv'
-
-DIRECT_TRANSFER_TEST_LINK = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
-DIRECT_TRANSFER_TEST_LINK_FILENAME = 'sri-reference-kg_nodes.tsv'
-
 
 def test_upload_from_link(
         test_bucket=TEST_BUCKET,
-        test_link=DIRECT_TRANSFER_TEST_LINK,
-        test_link_filename=DIRECT_TRANSFER_TEST_LINK_FILENAME,
+        test_link=TEST_DIRECT_TRANSFER_LINK,
+        test_link_filename=TEST_DIRECT_TRANSFER_LINK_FILENAME,
         test_kg=TEST_KG_NAME,
         test_fileset_version=TEST_FILESET_VERSION
 ):
@@ -75,7 +74,8 @@ def test_upload_from_link(
             test_link_filename,
             info.headers['Content-Length'],
             cont=lambda progress: print(
-                f"upload progress for link {test_link} so far: {progress._seen_so_far}", file=stderr, flush=True
+                f"upload progress for link {test_link} so far: {progress._seen_so_far}",
+                file=stderr, flush=True
             )
         )
 
@@ -85,9 +85,9 @@ def test_upload_from_link(
 
     try:
         upload_from_link(
-            url=test_link,
             bucket=test_bucket,
             object_key=object_key,
+            source=test_link,
             callback=progress_monitor
         )
     except RuntimeError as rte:

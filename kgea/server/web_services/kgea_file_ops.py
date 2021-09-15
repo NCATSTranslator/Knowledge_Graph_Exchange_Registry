@@ -7,6 +7,7 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
+import sys
 from os import sep as os_separator
 from os.path import dirname, getsize, abspath, splitext
 import io
@@ -30,6 +31,22 @@ from datetime import datetime
 
 from pathlib import Path
 import tarfile
+
+from kgea.server.tests import (
+    TEST_BUCKET,
+    TEST_KG_NAME,
+    TEST_FILESET_VERSION,
+    TEST_DATA_DIR,
+    TEST_SMALL_FILE_PATH,
+    TEST_LARGE_KG,
+    TEST_LARGE_FS_VERSION,
+    TEST_LARGE_NODES_FILE_KEY,
+    TEST_HUGE_NODES_FILE_KEY,
+    TEST_HUGE_EDGES_FILE_KEY,
+    TEST_SMALL_FILE_RESOURCE_URL,
+    TEST_DIRECT_TRANSFER_LINK,
+    TEST_DIRECT_TRANSFER_LINK_FILENAME
+)
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -137,32 +154,6 @@ def _random_alpha_string(length=8):
         # Keep appending random characters using chr(x)
         random_string += (chr(random_integer))
     return random_string
-
-
-"""
-Test Parameters + Decorator
-"""
-TEST_BUCKET = 'kgea-test-bucket'
-TEST_KG_NAME = 'test_kg'
-TEST_FILESET_VERSION = '4.3'
-
-TEST_LARGE_KG = "sri-reference-graph"
-TEST_LARGE_FS_VERSION = "2.0"
-
-TEST_LARGE_NODES_FILE = "sm_nodes.tsv"
-TEST_LARGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_LARGE_NODES_FILE}"
-
-TEST_HUGE_NODES_FILE = "sri-reference-kg_nodes.tsv"
-TEST_HUGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_HUGE_NODES_FILE}"
-TEST_HUGE_EDGES_FILE = "sri-reference-kg_edges.tsv"
-TEST_HUGE_EDGES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/edges/{TEST_HUGE_EDGES_FILE}"
-
-TEST_FILE_DIR = 'kgea/server/test/data/'
-TEST_FILE_NAME = 'somedata.csv'
-
-DIRECT_TRANSFER_TEST_LINK = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
-DIRECT_TRANSFER_TEST_LINK_FILENAME = 'sri-reference-kg_nodes.tsv'
-SMALL_TEST_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
 
 
 def prepare_test(func):
@@ -415,8 +406,7 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
         entry_string = str(Path(kg_file))  # normalize delimiters
         for i in [root_path, stem_path, 'node', 'edge']:
             entry_string = entry_string.replace(i, '')
-    
-        import os
+
         kg_info = list(entry_string.split(os_separator))
         while '' in kg_info:
             kg_info.remove('')
@@ -523,7 +513,7 @@ def tardir(directory, name):
 @prepare_test
 def test_tardir():
     try:
-        tar_path = tardir(TEST_FILE_DIR, 'TestData')
+        tar_path = tardir(TEST_DATA_DIR, 'TestData')
         assert (len(tarfile.open(tar_path).getmembers()) > 0)
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -564,7 +554,7 @@ def package_file_manifest(tar_path):
 @prepare_test
 def test_package_manifest():
     try:
-        with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+        with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
             tar_path = tardir(Path(test_file.name).parent, Path(test_file.name).stem)
             manifest = package_file_manifest(tar_path)
             assert (len(manifest) > 0)
@@ -716,14 +706,14 @@ def package_file(name: str, target_file):
 def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
         # NOTE: file must be read in binary mode!
-        with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+        with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
-            packaged_file = package_file(name=test_file.name, target_file=test_file)
+            # packaged_file = package_file(name=test_file.name, target_file=test_file)
             object_key = get_object_key(content_location, test_file.name)
             upload_file(
                 bucket=test_bucket,
                 object_key=object_key,
-                source=packaged_file,
+                source=test_file,  # packaged_file - not really implemented? what was the idea behind it?
             )
             assert (object_key in kg_files_in_location(test_bucket, content_location))
     except FileNotFoundError as e:
@@ -746,7 +736,7 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     try:
 
         # NOTE: file must be read in binary mode!
-        with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+        with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
 
             object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
@@ -777,7 +767,7 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
 
         test_location, time_created = with_version(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
-        with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+        with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
             object_key = get_object_key(test_location, test_file.name)
             upload_file(
                 bucket=test_bucket,
@@ -1037,11 +1027,11 @@ def test_huge_aggregate_files():
 # # @prepare_test_random_object_location
 # def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
 #     try:
-#         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
+#         with open(f"{TEST_FILE_DIR}{TEST_SMALL_FILE_NAME}", 'rb') as test_file:
 #             object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_id))
 #             url = download_file(
 #                 bucket=test_bucket,
-#                 object_key=get_object_location(test_kg_id) + TEST_FILE_NAME,
+#                 object_key=f"{get_object_location(test_kg_id)}{TEST_SMALL_FILE_NAME}",
 #                 open_file=False
 #             )  # open_file=False to affirm we won't trigger a browser action
 #             print(url)
@@ -1227,19 +1217,19 @@ def get_url_file_size(url: str) -> int:
 
 
 def test_get_url_file_size():
-    url_resource_size: int = get_url_file_size(url=SMALL_TEST_URL)
+    url_resource_size: int = get_url_file_size(url=TEST_SMALL_FILE_RESOURCE_URL)
     assert (url_resource_size > 0)
     logging.info(
         f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
-        f" for url resource {SMALL_TEST_URL}"
+        f" for url resource {TEST_SMALL_FILE_RESOURCE_URL}"
     )
-    url_resource_size = get_url_file_size(url=DIRECT_TRANSFER_TEST_LINK)
+    url_resource_size = get_url_file_size(url=TEST_DIRECT_TRANSFER_LINK)
     assert (url_resource_size > 0)
     logging.info(
         f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
-        f" for url resource {DIRECT_TRANSFER_TEST_LINK}"
+        f" for url resource {TEST_DIRECT_TRANSFER_LINK}"
     )
-    url_resource_size= get_url_file_size(url="https://nonexistent.url")
+    url_resource_size = get_url_file_size(url="https://nonexistent.url")
     assert (url_resource_size == 0)
     url_resource_size = get_url_file_size(url='')
     assert (url_resource_size == 0)
@@ -1315,8 +1305,8 @@ def upload_from_link(
 @prepare_test
 def test_upload_from_link(
         test_bucket=TEST_BUCKET,
-        test_link=DIRECT_TRANSFER_TEST_LINK,
-        test_link_filename=DIRECT_TRANSFER_TEST_LINK_FILENAME,
+        test_link=TEST_DIRECT_TRANSFER_LINK,
+        test_link_filename=TEST_DIRECT_TRANSFER_LINK_FILENAME,
         test_kg=TEST_KG_NAME,
         test_fileset_version=TEST_FILESET_VERSION,
         log=False
@@ -1409,22 +1399,20 @@ def run_test(test_func):
 
 if __name__ == '__main__':
 
-    import sys
-    import os
-
     args = sys.argv[1:]
+    
     if len(args) == 2 and args[0] == '--testFile':
         TEST_FILE_NAME = args[1]
-        print(TEST_FILE_NAME, getsize(abspath(TEST_FILE_DIR + TEST_FILE_NAME)), 'bytes')
+        print(TEST_FILE_NAME, getsize(f"{TEST_DATA_DIR}{TEST_FILE_NAME}"), 'bytes')
 
-    print(
-        "Test Preconditions:\n\t{} {}\n\t{} {}\n\t{} {}\n\t{} {}".format(
-            "TEST_BUCKET", TEST_BUCKET,
-            "TEST_KG_NAME", TEST_KG_NAME,
-            "TEST_FILE_DIR", TEST_FILE_DIR,
-            "TEST_FILE_NAME", TEST_FILE_NAME
+        print(
+            "Test Preconditions:\n\t{} {}\n\t{} {}\n\t{} {}\n\t{} {}".format(
+                "TEST_BUCKET", TEST_BUCKET,
+                "TEST_KG_NAME", TEST_KG_NAME,
+                "TEST_FILE_DIR", TEST_DATA_DIR,
+                "TEST_FILE_NAME", TEST_FILE_NAME
+            )
         )
-    )
 
     run_test(test_compress_fileset)
 
