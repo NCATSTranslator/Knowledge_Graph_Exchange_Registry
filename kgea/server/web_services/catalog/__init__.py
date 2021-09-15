@@ -92,7 +92,7 @@ from kgea.server.web_services.kgea_file_ops import (
     compress_fileset,
     aggregate_files,
     upload_file,
-    _random_alpha_string,
+    random_alpha_string,
     decompress_in_place
 )
 
@@ -1478,7 +1478,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
 
     test_file1 = tempfile.NamedTemporaryFile()
-    test_file1.write(bytes(_random_alpha_string(), "UTF-8"))
+    test_file1.write(bytes(random_alpha_string(), "UTF-8"))
     test_file1.seek(0)
     size = test_file1.tell()
     file_name = 'MickeyMouseFanClub_nodes.tsv'
@@ -1498,7 +1498,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     test_file1.close()
 
     test_file2 = tempfile.NamedTemporaryFile()
-    test_file2.write(bytes(_random_alpha_string(), "UTF-8"))
+    test_file2.write(bytes(random_alpha_string(), "UTF-8"))
     test_file2.seek(0)
     size = test_file2.tell()
     file_name = 'MinnieMouseFanClub_edges.tsv'
@@ -1527,15 +1527,15 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         }
 
         test_file3 = tempfile.NamedTemporaryFile(suffix='_nodes.tsv', delete=False)
-        test_file3.write(bytes(_random_alpha_string(), "UTF-8"))
+        test_file3.write(bytes(random_alpha_string(), "UTF-8"))
         test_file3.close()
 
         test_file4 = tempfile.NamedTemporaryFile(suffix='_edges.tsv', delete=False)
-        test_file4.write(bytes(_random_alpha_string(), "UTF-8"))
+        test_file4.write(bytes(random_alpha_string(), "UTF-8"))
         test_file4.close()
 
         import tarfile
-        tar_file_name = _random_alpha_string()+'.tar.gz'
+        tar_file_name = random_alpha_string() + '.tar.gz'
         with tarfile.open(name=tempdir+'/'+tar_file_name, mode='w:gz') as test_tarfile:
             # OR use os.path.basename()
             test_tarfile.add(test_file3.name, arcname=test_name['nodes'])

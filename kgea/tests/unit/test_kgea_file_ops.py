@@ -7,22 +7,38 @@ from functools import wraps
 from pathlib import Path
 from sys import stderr
 
+import pytest
 import requests
 from botocore.exceptions import ClientError
 
 from kgea.tests import (
+    TEST_DATA_DIR,
+    
     TEST_BUCKET,
     TEST_KG_NAME,
     TEST_FILESET_VERSION,
-    TEST_DIRECT_TRANSFER_LINK,
-    TEST_HUGE_NODES_FILE, TEST_SMALL_FILE_RESOURCE_URL, TEST_LARGE_KG, TEST_LARGE_FS_VERSION, TEST_HUGE_NODES_FILE_KEY,
-    TEST_HUGE_EDGES_FILE_KEY, TEST_LARGE_NODES_FILE_KEY, TEST_SMALL_FILE_PATH, TEST_DATA_DIR
+    
+    TEST_SMALL_FILE_PATH,
+    TEST_SMALL_FILE_RESOURCE_URL,
+    
+    TEST_LARGE_KG,
+    TEST_LARGE_FS_VERSION,
+    TEST_LARGE_NODES_FILE_KEY,
+    TEST_LARGE_FILE_RESOURCE_URL,
+    
+    TEST_HUGE_NODES_FILE,
+    TEST_HUGE_NODES_FILE_KEY,
+    TEST_HUGE_EDGES_FILE_KEY,
+    TEST_HUGE_FILE_RESOURCE_URL
+  
 )
 
-from kgea.server.web_services.kgea_file_ops import upload_from_link, get_url_file_size, get_archive_contents, \
-    aggregate_files, print_error_trace, compress_fileset, kg_files_in_location, get_object_key, upload_file, \
-    with_version, get_object_location, upload_file_multipart, tardir, package_file_manifest, create_presigned_url, \
-    get_fileset_versions_available, _random_alpha_string, s3_client, location_available
+from kgea.server.web_services.kgea_file_ops import (
+    upload_from_link, get_url_file_size, get_archive_contents, aggregate_files, print_error_trace,
+    compress_fileset, kg_files_in_location, get_object_key, upload_file, with_version,
+    get_object_location, upload_file_multipart, tardir, package_file_manifest, create_presigned_url,
+    get_fileset_versions_available, random_alpha_string, s3_client, location_available
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -36,7 +52,7 @@ def prepare_test_random_object_location(func):
     :return:
     """
     @wraps(func)
-    def wrapper(object_key=_random_alpha_string()):
+    def wrapper(object_key=random_alpha_string()):
         """
 
         :param object_key:
@@ -68,7 +84,7 @@ def test_get_fileset_versions_available(test_bucket=TEST_BUCKET):
 
 
 def test_is_location_available(
-    test_object_location=get_object_location(_random_alpha_string()),
+    test_object_location=get_object_location(random_alpha_string()),
     test_bucket=TEST_BUCKET
 ):
     try:
@@ -278,6 +294,8 @@ def test_aggregate_files():
     
     return True
 
+
+@pytest.mark.skip(reason="Huge File Test not normally run")
 def test_huge_aggregate_files():
     """
     NOTE: This test attempts transfer of a Huge pair or multi-gigabyte files in S3.
@@ -319,11 +337,11 @@ def test_get_url_file_size():
         f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
         f" for url resource {TEST_SMALL_FILE_RESOURCE_URL}"
     )
-    url_resource_size = get_url_file_size(url=TEST_DIRECT_TRANSFER_LINK)
+    url_resource_size = get_url_file_size(url=TEST_HUGE_FILE_RESOURCE_URL)
     assert (url_resource_size > 0)
     logging.info(
         f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
-        f" for url resource {TEST_DIRECT_TRANSFER_LINK}"
+        f" for url resource {TEST_HUGE_FILE_RESOURCE_URL}"
     )
     url_resource_size = get_url_file_size(url="https://nonexistent.url")
     assert (url_resource_size == 0)
@@ -334,9 +352,11 @@ def test_get_url_file_size():
     
     return True
 
+
+@pytest.mark.skip(reason="Huge File Test not normally run")
 def test_upload_from_link(
         test_bucket=TEST_BUCKET,
-        test_link=TEST_DIRECT_TRANSFER_LINK,
+        test_link=TEST_HUGE_FILE_RESOURCE_URL,
         test_link_filename=TEST_HUGE_NODES_FILE,
         test_kg=TEST_KG_NAME,
         test_fileset_version=TEST_FILESET_VERSION

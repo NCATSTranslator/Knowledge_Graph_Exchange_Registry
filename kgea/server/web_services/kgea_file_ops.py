@@ -121,7 +121,12 @@ def delete_location(bucket, kg_id):
 
 
 # https://www.askpython.com/python/examples/generate-random-strings-in-python
-def _random_alpha_string(length=8):
+def random_alpha_string(length=8):
+    """
+
+    :param length:
+    :return:
+    """
     random_string = ''
     for _ in range(length):
         # Considering only upper and lowercase letters
