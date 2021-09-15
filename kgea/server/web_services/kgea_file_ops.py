@@ -57,6 +57,7 @@ _KGEA_APP_CONFIG = get_app_config()
 # script again, but changed once already...
 _KGEA_ARCHIVER_SCRIPT = "kge_archiver.bash"
 
+
 def print_error_trace(err_msg: str):
     """
     Print Error Exception stack
@@ -881,21 +882,34 @@ async def compress_fileset(
     """
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}'scripts'{os.sep}{_KGEA_ARCHIVER_SCRIPT}"
-    with subprocess.Popen([
-        archive_script, kg_id, version
-    ]) as proc:
+    script_log = io.StringIO()
+    with subprocess.Popen(
+        args=[
+            archive_script,
+            kg_id,
+            version
+        ],
+        stdout=script_log,
+        stderr=script_log
+    ) as proc:
         proc.wait()
+        logger.info(
+            f"Finished running {_KGEA_ARCHIVER_SCRIPT}: " +
+            f"Return Code {proc.returncode}, log: {script_log.getvalue()}"
+        )
+        script_log.close()
         return s3_archive_key
 
 
 def test_compress_fileset():
     try:
-        s3_archive_key = compress_fileset(
+        s3_archive_key: str = await compress_fileset(
             kg_id=TEST_KG_NAME,
             version=TEST_FILESET_VERSION,
             bucket=TEST_BUCKET,
             root='kge-data'
         )
+        logger.info(f"test_compress_fileset(): s3_archive_key == {s3_archive_key}")
         assert(s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_NAME}/{TEST_FILESET_VERSION}"
                                  f"/archive/{TEST_KG_NAME+'_'+TEST_FILESET_VERSION}.tar.gz")
     except Exception as e:
