@@ -866,7 +866,7 @@ async def compress_fileset(
     bucket,
     root='kge-data'
 ) -> str:
-    s3_archive_path = f"{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
+    s3_archive_path = f"{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}'scripts'{os.sep}upload_archive.bash"
     with subprocess.Popen([
         archive_script, kg_id, version
