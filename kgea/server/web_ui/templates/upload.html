@@ -231,7 +231,13 @@ async function UploadFile(source) {
                                 }
                                 if (received.current_position > received.end_position) {
                                     // error
-                                    throw Error('Upload failed! (Current position is larger than end position?)')
+                                    throw Error(
+                                        "Upload failed! (Current position '" +
+                                        str(received.current_position) +
+                                        "' is larger than end position '" +
+                                        str(received.end_position) +
+                                        "'?)"
+                                    )
                                 }
                                 if (!(received.current_position === received.end_position)) {
                                     return await later(monitor_interval, askForProgress).then(execute)
