@@ -411,13 +411,10 @@ async function UploadFile(source) {
                 // control flow for mutual recursion
                 async function execute(callback, ...args) {
                     return await callback(args).then(async received => {
-                        // NOTE: Sometimes it takes awhile for
-                        // received.end_position to initialize, particularly
-                        // if the file size is > ~1GB (works fine at ~300mb).
-                        // In that case, received.end_position is going
-                        // to be undefined. So this will still execute and
-                        // essentially wait until received.end_position is
-                        // defined, and will stop once received.current_position
+                        // NOTE: Sometimes it takes awhile for received.end_position to initialize, particularly
+                        // if the file size is > ~1GB (works fine at ~300mb). In that case, received.end_position
+                        // is going to be undefined. So this will still execute and essentially wait until
+                        // received.end_position is defined, and will stop once received.current_position
                         // is equal to j.end_position (because the file has been completely read and uploaded).
                         if (received.end_position === -1) {
                             // error
@@ -425,7 +422,13 @@ async function UploadFile(source) {
                         }
                         if (received.current_position > received.end_position) {
                             // error
-                            throw Error('Upload failed! (Current position is larger than end position?)')
+                            throw Error(
+                                "Upload failed! (Current position '" +
+                                str(received.current_position) +
+                                "' is larger than end position '" +
+                                str(received.end_position) +
+                                "'?)"
+                            )
                         }
                         if (!(received.current_position === received.end_position)) {
                             return await later(monitor_interval, askForProgress).then(execute)
@@ -439,6 +442,7 @@ async function UploadFile(source) {
                 try {
                     return await later(monitor_interval, askForProgress).then(execute)
                 } catch (e) {
+
                     console.error(e);
 
                     // .. then post the file name transferred
@@ -448,6 +452,7 @@ async function UploadFile(source) {
                     // document.getElementById('spinner").style.display = "none";
                     document.getElementById("percentage").style.display = "none";
                     document.getElementById("spinner-text").style.display = "none";
+
                     $("#ldBar").css('display', 'none')
                     $("#ldBar").progressbar({
                         value: 0
