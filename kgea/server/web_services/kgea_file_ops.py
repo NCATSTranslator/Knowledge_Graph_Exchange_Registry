@@ -7,6 +7,8 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
+from os import sep as os_separator
+from os.path import dirname, getsize, abspath, splitext
 import io
 import traceback
 from sys import stderr, exc_info
@@ -24,7 +26,7 @@ import validators
 import smart_open
 from datetime import datetime
 
-from os.path import abspath, splitext
+
 from pathlib import Path
 import tarfile
 
@@ -414,7 +416,7 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
             entry_string = entry_string.replace(i, '')
     
         import os
-        kg_info = list(entry_string.split(os.sep))
+        kg_info = list(entry_string.split(os_separator))
         while '' in kg_info:
             kg_info.remove('')
     
@@ -881,7 +883,7 @@ async def compress_fileset(
     :return:
     """
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
-    archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}'scripts'{os.sep}{_KGEA_ARCHIVER_SCRIPT}"
+    archive_script = f"{dirname(abspath(__file__))}{os_separator}'scripts'{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
     script_log = io.StringIO()
     with subprocess.Popen(
         args=[
@@ -901,7 +903,7 @@ async def compress_fileset(
         return s3_archive_key
 
 
-def test_compress_fileset():
+async def test_compress_fileset():
     try:
         s3_archive_key: str = await compress_fileset(
             kg_id=TEST_KG_NAME,
@@ -1222,12 +1224,23 @@ def get_url_file_size(url: str) -> int:
 def test_get_url_file_size():
     url_resource_size: int = get_url_file_size(url=SMALL_TEST_URL)
     assert (url_resource_size > 0)
-    url_resource_size: int = get_url_file_size(url="https://nonexistent.url")
+    logging.info(
+        f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
+        f" for url resource {SMALL_TEST_URL}"
+    )
+    url_resource_size = get_url_file_size(url=DIRECT_TRANSFER_TEST_LINK)
+    assert (url_resource_size > 0)
+    logging.info(
+        f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
+        f" for url resource {DIRECT_TRANSFER_TEST_LINK}"
+    )
+    url_resource_size= get_url_file_size(url="https://nonexistent.url")
     assert (url_resource_size == 0)
     url_resource_size = get_url_file_size(url='')
     assert (url_resource_size == 0)
     url_resource_size = get_url_file_size(url='abc')
     assert (url_resource_size == 0)
+    
     return True
 
 
@@ -1397,7 +1410,7 @@ if __name__ == '__main__':
     args = sys.argv[1:]
     if len(args) == 2 and args[0] == '--testFile':
         TEST_FILE_NAME = args[1]
-        print(TEST_FILE_NAME, os.path.getsize(abspath(TEST_FILE_DIR + TEST_FILE_NAME)), 'bytes')
+        print(TEST_FILE_NAME, getsize(abspath(TEST_FILE_DIR + TEST_FILE_NAME)), 'bytes')
 
     print(
         "Test Preconditions:\n\t{} {}\n\t{} {}\n\t{} {}\n\t{} {}".format(
