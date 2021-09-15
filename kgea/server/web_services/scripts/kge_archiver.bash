@@ -8,6 +8,11 @@
 # $KGE_BUCKET - S3 bucket source where the file set is located
 # $KGE_ROOT_DIRECTORY - Root S3 folder in the bucket, containing the knowledge graph -> file set
 #
+gzip=gzip
+# If multicore CPU's are available and compression speed is desired,
+# the 'parallel gz' (pigz; https://zlib.net/pigz/) could be used
+# gzip=pigz
+
 usage () {
     echo
     echo "Usage:"
@@ -96,15 +101,14 @@ done
 ## after archiving all of the files, compress them
 ## note that `z` is incompatible with `r`, so we couldn't compress as we go
 # tar czf "$tarfile.gz" "$tarfile"
-
-gzip $tarfile
+$gzip $tarfile
 
 ## copy the new archive file to s3
 $aws s3 cp $tarfile.gz $s3/$tarfile.gz
 
 ## cleanup the files
 ## both the local copies of the tar file and gz files
-# rm $tarfile.gz
+rm $tarfile.gz
 
 echo
 echo "...done archiving"
