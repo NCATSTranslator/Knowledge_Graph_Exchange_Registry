@@ -146,5 +146,4 @@ dmypy.json
 *config.yaml
 styles.css
 banner.jpg
-kgea/server/test/output/*.yaml
 scratch.py

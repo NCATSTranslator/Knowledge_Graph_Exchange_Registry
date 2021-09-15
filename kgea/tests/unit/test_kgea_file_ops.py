@@ -38,8 +38,8 @@ from kgea.server.web_services.kgea_file_ops import (
 )
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logging = True
+
+progress_tracking_on = True
 
 
 def prepare_test_random_object_location(func):
@@ -330,13 +330,13 @@ def test_get_archive_contents(test_bucket=TEST_BUCKET):
 def test_get_url_file_size():
     url_resource_size: int = get_url_file_size(url=TEST_SMALL_FILE_RESOURCE_URL)
     assert (url_resource_size > 0)
-    logging.info(
+    logger.info(
         f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
         f" for url resource {TEST_SMALL_FILE_RESOURCE_URL}"
     )
     url_resource_size = get_url_file_size(url=TEST_HUGE_FILE_RESOURCE_URL)
     assert (url_resource_size > 0)
-    logging.info(
+    logger.info(
         f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
         f" for url resource {TEST_HUGE_FILE_RESOURCE_URL}"
     )
@@ -383,7 +383,7 @@ def wrap_upload_from_link(test_bucket, test_kg, test_fileset_version, test_link,
     """
     progress_monitor = None
 
-    if logging:
+    if progress_tracking_on:
 
         class ProgressPercentage(object):
             """

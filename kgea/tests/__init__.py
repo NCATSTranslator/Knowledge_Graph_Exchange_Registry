@@ -6,10 +6,8 @@ Test Parameters + Decorator
 from os.path import abspath, dirname
 from pathlib import Path
 
-RESOURCE_DIR = Path(abspath(dirname(__file__))).joinpath("resources")
-TARGET_DIR = Path(abspath(dirname(__file__))).joinpath("target")
-
 TEST_DATA_DIR = Path(abspath(dirname(__file__))).joinpath("data")
+TEST_OUTPUT_DIR = Path(abspath(dirname(__file__))).joinpath("output")
 
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
