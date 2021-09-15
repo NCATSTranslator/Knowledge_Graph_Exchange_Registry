@@ -884,23 +884,26 @@ async def compress_fileset(
     """
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     archive_script = f"{dirname(abspath(__file__))}{os_separator}'scripts'{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
-    script_log = io.StringIO()
-    with subprocess.Popen(
-        args=[
-            archive_script,
-            kg_id,
-            version
-        ],
-        stdout=script_log,
-        stderr=script_log
-    ) as proc:
-        proc.wait()
-        logger.info(
-            f"Finished running {_KGEA_ARCHIVER_SCRIPT}: " +
-            f"Return Code {proc.returncode}, log: {script_log.getvalue()}"
-        )
-        script_log.close()
-        return s3_archive_key
+    try:
+        script_log = io.StringIO() xxxx convert script_log to temp file here!
+        with subprocess.Popen(
+            args=[
+                archive_script,
+                kg_id,
+                version
+            ],
+            stdout=script_log,
+            stderr=script_log
+        ) as proc:
+            proc.wait()
+            logger.info(
+                f"Finished running {_KGEA_ARCHIVER_SCRIPT}: " +
+                f"Return Code {proc.returncode}, log: {script_log.getvalue()}"
+            )
+            script_log.close()
+    except Exception as e:
+        logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
+    return s3_archive_key
 
 
 async def test_compress_fileset():
@@ -916,6 +919,7 @@ async def test_compress_fileset():
                                  f"/archive/{TEST_KG_NAME+'_'+TEST_FILESET_VERSION}.tar.gz")
     except Exception as e:
         logger.error(e)
+        
         return False
     return True
 
