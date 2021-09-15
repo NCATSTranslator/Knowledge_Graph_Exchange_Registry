@@ -860,6 +860,7 @@ def infix_string(name, infix, delimiter="."):
 #     job.tar()
 #     """
 
+
 async def compress_fileset(
     kg_id,
     version,
@@ -874,6 +875,7 @@ async def compress_fileset(
         proc.wait()
         return s3_archive_path
 
+
 def test_compress_fileset():
     try:
         output = compress_fileset(
@@ -886,6 +888,7 @@ def test_compress_fileset():
         logger.error(e)
         return False
     return True
+
 
 def decompress_in_place(gzipped_key, location=None):
     """
