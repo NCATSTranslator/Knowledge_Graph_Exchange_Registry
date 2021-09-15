@@ -8,9 +8,12 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 import io
-from sys import stderr
+import traceback
+from sys import stderr, exc_info
 from typing import Dict, Union, List, Optional
 from functools import wraps
+import subprocess
+import os
 
 import logging
 
@@ -50,6 +53,16 @@ logger = logging.getLogger(__name__)
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
+
+
+def print_error_trace(err_msg: str):
+    """
+    Print Error Exception stack
+    """
+    logger.error(err_msg)
+    exc_type, exc_value, exc_traceback = exc_info()
+    traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
+
 
 #
 # Obtain an AWS S3 Client using an Assumed IAM Role
@@ -126,6 +139,18 @@ Test Parameters + Decorator
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
 TEST_FILESET_VERSION = '4.3'
+
+TEST_LARGE_KG = "sri-reference-graph"
+TEST_LARGE_FS_VERSION = "2.0"
+
+TEST_LARGE_NODES_FILE = "sm_nodes.tsv"
+TEST_LARGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_LARGE_NODES_FILE}"
+
+TEST_HUGE_NODES_FILE = "sri-reference-kg_nodes.tsv"
+TEST_HUGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_HUGE_NODES_FILE}"
+TEST_HUGE_EDGES_FILE = "sri-reference-kg_edges.tsv"
+TEST_HUGE_EDGES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/edges/{TEST_HUGE_EDGES_FILE}"
+
 TEST_FILE_DIR = 'kgea/server/test/data/'
 TEST_FILE_NAME = 'somedata.csv'
 
@@ -786,54 +811,93 @@ def infix_string(name, infix, delimiter="."):
     return name
 
 
+# async def compress_fileset(
+#         bucket,
+#         files_and_file_set_locations: list,
+#         target_path,
+#         archive_name
+# ) -> str:
+#     """
+#
+#     :param bucket:
+#     :param files_and_file_set_locations:
+#     :param target_path:
+#     :param archive_name:
+#     :return:
+#     """
+#
+#     archive_path = "{target_path}{archive_name}.tar.gz".format(
+#         target_path=target_path,
+#         archive_name=archive_name,
+#     ).replace('\\', '/')  # normalize to the path separator we use on s3
+#
+#     """
+#     # setup an S3 job to compress the file
+#     job = S3Tar(
+#         bucket,
+#         archive_path,
+#         allow_dups=True,
+#         s3_max_retries=20,
+#     )
+#
+#     # add the file the running archive
+#     for file_or_file_set_location in files_and_file_set_locations:
+#         # it's a folder key if it ends with a path separator
+#         if file_or_file_set_location[-1] == '/':
+#             file_set_location_key = file_or_file_set_location
+#             job.add_files(file_set_location_key)
+#             # it's a file if it doesn't end with a path separator
+#         else:
+#             file_key = file_or_file_set_location
+#             # TODO - job.add_file doesn't check if the key exists
+#             # so for now do it for them
+#             if object_key_exists(file_key):
+#                 job.add_file(file_key)
+#             else:
+#                 logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
+#
+#     # execute the job
+#     job.tar()
+#     """
+
+
 async def compress_fileset(
-        bucket,
-        files_and_file_set_locations: list,
-        target_path,
-        archive_name
+    kg_id,
+    version,
+    bucket,
+    root='kge-data'
 ) -> str:
     """
 
+    :param kg_id:
+    :param version:
     :param bucket:
-    :param files_and_file_set_locations:
-    :param target_path:
-    :param archive_name:
+    :param root:
     :return:
     """
+    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
+    archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}'scripts'{os.sep}upload_archive.bash"
+    with subprocess.Popen([
+        archive_script, kg_id, version
+    ]) as proc:
+        proc.wait()
+        return s3_archive_key
 
-    archive_path = "{target_path}{archive_name}.tar.gz".format(
-        target_path=target_path,
-        archive_name=archive_name,
-    ).replace('\\', '/')  # normalize to the path separator we use on s3
 
-    # setup an S3 job to compress the file
-    job = S3Tar(
-        bucket,
-        archive_path,
-        allow_dups=True,
-        s3_max_retries=20,
-    )
-
-    # add the file the running archive
-    for file_or_file_set_location in files_and_file_set_locations:
-        # it's a folder key if it ends with a path separator
-        if file_or_file_set_location[-1] == '/':
-            file_set_location_key = file_or_file_set_location
-            job.add_files(file_set_location_key)
-            # it's a file if it doesn't end with a path separator
-        else:
-            file_key = file_or_file_set_location
-            # TODO - job.add_file doesn't check if the key exists
-            # so for now do it for them
-            if object_key_exists(file_key):
-                job.add_file(file_key)
-            else:
-                logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
-
-    # execute the job
-    job.tar()
-
-    return archive_path
+def test_compress_fileset():
+    try:
+        s3_archive_key = compress_fileset(
+            kg_id=TEST_KG_NAME,
+            version=TEST_FILESET_VERSION,
+            bucket=TEST_BUCKET,
+            root='kge-data'
+        )
+        assert(s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_NAME}/{TEST_FILESET_VERSION}"
+                                 f"/archive/{TEST_KG_NAME+'_'+TEST_FILESET_VERSION}.tar.gz")
+    except Exception as e:
+        logger.error(e)
+        return False
+    return True
 
 
 def decompress_in_place(gzipped_key, location=None):
@@ -870,39 +934,78 @@ def decompress_in_place(gzipped_key, location=None):
     return file_entries
 
 
-def aggregate_files(bucket, path, name, file_paths, match_function=lambda x: True) -> str:
+def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_function=lambda x: True) -> str:
     """
     Aggregates files matching a match_function.
 
     :param bucket:
-    :param path:
-    :param name:
-    :param file_paths:
+    :param target_folder:
+    :param target_name:
+    :param file_object_keys:
     :param match_function:
     :return:
     """
-    if not file_paths:
+    if not file_object_keys:
         return ''
     
-    agg_path = 's3://{BUCKET}/{PATH}{FILE_NAME}'.format(
-        BUCKET=bucket,
-        PATH=path,
-        FILE_NAME=name
-    )
-    with smart_open.open(agg_path, 'w', encoding="utf-8") as aggregated_file:
-        file_paths = filter(match_function, file_paths)
-        for file_path in file_paths:
-            path = 's3://{BUCKET}/{KEY}'.format(
-                BUCKET=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                KEY=file_path
-            )
-            with smart_open.open(path, 'r', encoding="utf-8") as subfile:
-                # because smart_open doesn't support an append mode,
-                # use writelines and add a newline
-                aggregated_file.writelines(subfile.read())
-                aggregated_file.writelines('\n')
+    agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
+    with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
+        file_object_keys = filter(match_function, file_object_keys)
+        for file_object_key in file_object_keys:
+            target_key_uri = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{file_object_key}"
+            with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
+                for line in subfile:
+                    aggregated_file.write(line)
+                aggregated_file.write("\n")
                 
     return agg_path
+
+
+def test_aggregate_files():
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
+    try:
+        agg_path: str = aggregate_files(
+            bucket=TEST_BUCKET,
+            target_folder=target_folder,
+            target_name='nodes.tsv',
+            file_object_keys=[TEST_LARGE_NODES_FILE_KEY],
+            match_function=lambda x: True
+        )
+    except Exception as e:
+        print_error_trace("Error while unpacking archive?: " + str(e))
+        return False
+    
+    assert(agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes.tsv")
+    
+    return True
+
+
+def test_huge_aggregate_files():
+    """
+    NOTE: This test attempts transfer of a Huge pair or multi-gigabyte files in S3.
+    It is best to run this test on an EC2 server with the code.
+    
+    :return:
+    """
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
+    try:
+        agg_path: str = aggregate_files(
+            bucket=TEST_BUCKET,
+            target_folder=target_folder,
+            target_name='nodes_plus_edges.tsv',
+            file_object_keys=[
+                TEST_HUGE_NODES_FILE_KEY,
+                TEST_HUGE_EDGES_FILE_KEY
+            ],
+            match_function=lambda x: True
+        )
+    except Exception as e:
+        print_error_trace("Error while unpacking archive?: " + str(e))
+        return False
+
+    assert (agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes_plus_edges.tsv")
+    
+    return True
 
 
 # @prepare_test
@@ -1282,16 +1385,18 @@ if __name__ == '__main__':
         )
     )
 
-    run_test(test_kg_files_in_location)
-    run_test(test_is_location_available)
-    run_test(test_is_not_location_available)
+    run_test(test_compress_fileset)
 
-    run_test(test_get_fileset_versions_available)
-    run_test(test_create_presigned_url)
-
-    run_test(test_upload_file_to_archive)
-    # run_test(test_download_file)
-
-    run_test(test_get_archive_contents)
+    # run_test(test_kg_files_in_location)
+    # run_test(test_is_location_available)
+    # run_test(test_is_not_location_available)
+    #
+    # run_test(test_get_fileset_versions_available)
+    # run_test(test_create_presigned_url)
+    #
+    # run_test(test_upload_file_to_archive)
+    # # run_test(test_download_file)
+    #
+    # run_test(test_get_archive_contents)
 
     print("tests complete")

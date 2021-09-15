@@ -13,7 +13,7 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
-from sys import stderr, exc_info
+from sys import stderr
 from os import getenv
 from os.path import dirname, abspath
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
@@ -23,7 +23,6 @@ from datetime import date, datetime
 import logging
 
 import tempfile
-import traceback
 
 import re
 import threading
@@ -83,6 +82,7 @@ from kgea.server.web_services.models import (
 )
 
 from kgea.server.web_services.kgea_file_ops import (
+    print_error_trace,
     get_default_date_stamp,
     get_object_location,
     get_archive_contents,
@@ -1910,16 +1910,6 @@ class ProgressMonitor:
             logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
 
-def print_error_trace(err_msg: str, *exc_details):
-    """
-    Print Error Exception stack
-    """
-    logger.error(err_msg)
-    exc_type, exc_value, exc_traceback = exc_details
-    traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
-    raise RuntimeError
-    
-
 class KgeArchiver:
     """
     KGE Archive building wrapper.
@@ -1975,41 +1965,42 @@ class KgeArchiver:
                         logger.info(f"\t{entry['file_name']}")
                         file_set.add_data_file(**entry)
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Error while unpacking archive?", exc_info())
+                print_error_trace("Error while unpacking archive?: "+str(e))
+                raise e
 
             logger.info("Aggregating node files:")
-            node_path: str = ''
             try:
-                node_path = aggregate_files(
+                node_path: str = aggregate_files(
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    path=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates/",
-                    name='nodes.tsv',
-                    file_paths=file_set.get_nodes(),
+                    target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
+                    target_name='nodes.tsv',
+                    file_object_keys=file_set.get_nodes(),
                     match_function=lambda x: 'nodes.tsv' in x
                 )
                 logger.info(f"Node path: {node_path}")
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Node file aggregation failure!", exc_info())
+                print_error_trace("Node file aggregation failure! "+str(e))
+                raise e
             
             logger.info("Aggregating edge files:")
-            edge_path: str = ''
             try:
-                edge_path = aggregate_files(
+                edge_path: str = aggregate_files(
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    path=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates/",
-                    name='edges.tsv',
-                    file_paths=file_set.get_edges(),
+                    target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
+                    target_name='edges.tsv',
+                    file_object_keys=file_set.get_edges(),
                     match_function=lambda x: 'edges.tsv' in x
                 )
                 logger.info(f"Edge path: {edge_path}")
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Edge file aggregation failure!", exc_info())
+                print_error_trace("Edge file aggregation failure! "+str(e))
+                raise e
 
             # add to fileset
             file_set.add_data_file(KgeFileType.KGX_DATA_FILE, 'nodes.tsv', 0, node_path, '')
@@ -2020,27 +2011,20 @@ class KgeArchiver:
             # Appending `file_set_root_key` with 'aggregates/' and 'archive/' to prevent multiple compress_fileset runs
             # from compressing the previous compression (so the source of files is distinct from the target written to)
             logger.info("Compressing file set...", end='')
-            archive_path: str = ''
             try:
-                archive_path = await compress_fileset(
+                s3_archive_key: str = await compress_fileset(
+                    kg_id=file_set.kg_id,
+                    version=file_set.fileset_version,
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    files_and_file_set_locations=[
-                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates/",
-                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/file_set.yaml",
-                        f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/content_metadata.json",
-                        f"kge-data/{file_set.kg_id}/provider.yaml"
-                    ],
-                    target_path=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive/",
-                    archive_name=f"{file_set.kg_id}_{file_set.fileset_version}"
+                    root='kge-data'
                 )
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("File set compression failure!", exc_info())
-                
+                print_error_trace("File set compression failure! "+str(e))
+                raise e
+
             logger.info("...Completed!")
-            
-            archive_s3_path = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{archive_path}"
 
             # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
             #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
@@ -2053,8 +2037,7 @@ class KgeArchiver:
                 # of whatever is being opened. If we let this happen, then the hash function would run over
                 # a decompressed buffer; not the compressed file/buffer that we expect our users to use when
                 # they download and validate the archive.
-                with smart_open.open(archive_s3_path, 'rb', compression='disable') as archive_file_key:
-    
+                with smart_open.open(s3_archive_key, 'rb', compression='disable') as archive_file_key:
                     sha1sum = sha1_manifest(archive_file_key)
                     sha1sum_value = sha1sum[archive_file_key.name]
                     sha1tsv = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
@@ -2063,9 +2046,10 @@ class KgeArchiver:
                     with smart_open.open(sha1_s3_path, 'w') as sha1file:
                         sha1file.write(sha1sum_value)
 
-            except Exception:
+            except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("SHA1 hash sum computation failure!", exc_info())
+                print_error_trace("SHA1 hash sum computation failure! "+str(e))
+                raise e
 
             # 5. KGX validation of KGE compliant archive.
             
