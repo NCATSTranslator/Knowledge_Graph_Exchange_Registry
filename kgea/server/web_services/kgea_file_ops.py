@@ -867,7 +867,7 @@ async def compress_fileset(
     root='kge-data'
 ) -> str:
     s3_archive_path = f"{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
-    archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.pathsep}'scripts'{os.pathsep}upload_archive.bash"
+    archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}'scripts'{os.sep}upload_archive.bash"
     with subprocess.Popen([
         archive_script, kg_id, version
     ]) as proc:
@@ -949,7 +949,7 @@ def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_
 
 
 def test_aggregate_files():
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/aggregates"
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
             bucket=TEST_BUCKET,
@@ -974,7 +974,7 @@ def test_huge_aggregate_files():
     
     :return:
     """
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/aggregates"
+    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
             bucket=TEST_BUCKET,

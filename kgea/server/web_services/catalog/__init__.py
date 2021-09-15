@@ -1974,7 +1974,7 @@ class KgeArchiver:
             try:
                 node_path: str = aggregate_files(
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates",
+                    target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
                     target_name='nodes.tsv',
                     file_object_keys=file_set.get_nodes(),
                     match_function=lambda x: 'nodes.tsv' in x
@@ -1990,7 +1990,7 @@ class KgeArchiver:
             try:
                 edge_path: str = aggregate_files(
                     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/aggregates",
+                    target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
                     target_name='edges.tsv',
                     file_object_keys=file_set.get_edges(),
                     match_function=lambda x: 'edges.tsv' in x

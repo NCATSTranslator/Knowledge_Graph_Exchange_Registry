@@ -147,3 +147,4 @@ dmypy.json
 styles.css
 banner.jpg
 kgea/server/test/output/*.yaml
+scratch.py
