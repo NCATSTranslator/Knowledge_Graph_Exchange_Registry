@@ -13,7 +13,6 @@ from sys import stderr, exc_info
 from typing import Dict, Union, List, Optional
 from functools import wraps
 import subprocess
-import os
 
 import logging
 
@@ -37,7 +36,7 @@ except ImportError:
 # import webbrowser
 
 from botocore.config import Config
-from s3_tar import S3Tar
+# from s3_tar import S3Tar
 from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
 
@@ -637,6 +636,7 @@ def upload_file(bucket, object_key, source, client=s3_client(), config=None, cal
         logger.warning("kgea_file_ops.upload_file(): " + str(exc))
         # TODO: what sort of post-cancellation processing is needed here?
 
+
 def upload_file_multipart(
         data_file,
         file_name,
@@ -692,6 +692,7 @@ def upload_file_multipart(
         config=transfer_config,
         callback=callback
     )
+    return object_key
 
 
 def package_file(name: str, target_file):
@@ -1256,7 +1257,11 @@ def upload_from_link(
                     }
                 }
         ) as fin:
-            with smart_open.open(f"s3://{bucket}/{object_key}", 'w', transport_params={'client': client}, encoding="utf8") as fout:
+            with smart_open.open(
+                    f"s3://{bucket}/{object_key}", 'w',
+                    transport_params={'client': client},
+                    encoding="utf8"
+            ) as fout:
                 read_so_far = 0
                 while read_so_far < fin.buffer.content_length:
                     line = fin.read(1)
@@ -1266,6 +1271,7 @@ def upload_from_link(
                         # pass increment of bytes
                         callback(len(encoded))
                     read_so_far += 1
+
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
         # TODO: what sort of post-cancellation processing is needed here?
