@@ -12,6 +12,7 @@ from os.path import dirname, getsize, abspath, splitext
 import io
 import traceback
 from sys import stderr, exc_info
+from tempfile import TemporaryFile
 from typing import Dict, Union, List, Optional
 from functools import wraps
 import subprocess
@@ -885,7 +886,7 @@ async def compress_fileset(
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     archive_script = f"{dirname(abspath(__file__))}{os_separator}'scripts'{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
     try:
-        script_log = io.StringIO() xxxx convert script_log to temp file here!
+        script_log = TemporaryFile()
         with subprocess.Popen(
             args=[
                 archive_script,
