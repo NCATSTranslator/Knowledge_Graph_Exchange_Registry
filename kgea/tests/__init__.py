@@ -13,16 +13,16 @@ TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
 TEST_FS_VERSION = "1.0"
 
-TEST_SMALL_FILE = 'somedata.csv'
+TEST_SMALL_FILE = 'small_edges.tsv'
 TEST_SMALL_FILE_PATH = TEST_DATA_DIR.joinpath(TEST_SMALL_FILE)
 TEST_SMALL_FILE_RESOURCE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-                               "Knowledge_Graph_Exchange_Registry/master/LICENSE"
+                               "Knowledge_Graph_Exchange_Registry/master/tests/data/" + \
+                               f"{TEST_SMALL_FILE}"
 
-TEST_LARGE_KG = "sri-reference-graph"
-TEST_LARGE_NODES_FILE = "sm_nodes.tsv"
+TEST_LARGE_NODES_FILE = "large_nodes.tsv"
 TEST_LARGE_NODES_FILE_KEY = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/nodes/{TEST_LARGE_NODES_FILE}"
 TEST_LARGE_FILE_RESOURCE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-                               "Knowledge_Graph_Exchange_Registry/direct_url_with_test_data/tests/data/" + \
+                               "Knowledge_Graph_Exchange_Registry/master/tests/data/" + \
                                f"{TEST_LARGE_NODES_FILE}"
 
 TEST_HUGE_NODES_FILE = "sri-reference-kg_nodes.tsv"

@@ -1,2 +1,2 @@
 # Test Data Directory
-Files hosted here will be testing data, generally Git ignored
+Files hosted here will be KG testing data
