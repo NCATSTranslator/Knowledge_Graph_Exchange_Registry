@@ -882,7 +882,6 @@ def test_compress_fileset():
             bucket=TEST_BUCKET,
             root='kge-data'
         )
-        return True if output is '0' else False
     except Exception as e:
         logger.error(e)
         return False
