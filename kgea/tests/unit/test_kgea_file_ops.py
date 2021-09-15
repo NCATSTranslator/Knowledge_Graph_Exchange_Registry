@@ -16,21 +16,18 @@ from kgea.tests import (
     
     TEST_BUCKET,
     TEST_KG_NAME,
-    TEST_FILESET_VERSION,
+    TEST_FS_VERSION,
     
     TEST_SMALL_FILE_PATH,
     TEST_SMALL_FILE_RESOURCE_URL,
     
-    TEST_LARGE_KG,
-    TEST_LARGE_FS_VERSION,
     TEST_LARGE_NODES_FILE_KEY,
     TEST_LARGE_FILE_RESOURCE_URL,
     
     TEST_HUGE_NODES_FILE,
     TEST_HUGE_NODES_FILE_KEY,
     TEST_HUGE_EDGES_FILE_KEY,
-    TEST_HUGE_FILE_RESOURCE_URL
-  
+    TEST_HUGE_FILE_RESOURCE_URL, TEST_LARGE_NODES_FILE
 )
 
 from kgea.server.web_services.kgea_file_ops import (
@@ -262,13 +259,13 @@ async def test_compress_fileset():
     try:
         s3_archive_key: str = await compress_fileset(
             kg_id=TEST_KG_NAME,
-            version=TEST_FILESET_VERSION,
+            version=TEST_FS_VERSION,
             bucket=TEST_BUCKET,
             root='kge-data'
         )
         logger.info(f"test_compress_fileset(): s3_archive_key == {s3_archive_key}")
-        assert (s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_NAME}/{TEST_FILESET_VERSION}"
-                                  f"/archive/{TEST_KG_NAME + '_' + TEST_FILESET_VERSION}.tar.gz")
+        assert (s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}"
+                                  f"/archive/{TEST_KG_NAME + '_' + TEST_FS_VERSION}.tar.gz")
     except Exception as e:
         logger.error(e)
         
@@ -276,8 +273,8 @@ async def test_compress_fileset():
     return True
 
 
-def test_aggregate_files():
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
+def test_large_aggregate_files():
+    target_folder = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
             bucket=TEST_BUCKET,
@@ -303,7 +300,7 @@ def test_huge_aggregate_files():
 
     :return:
     """
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
+    target_folder = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
             bucket=TEST_BUCKET,
@@ -353,14 +350,37 @@ def test_get_url_file_size():
     return True
 
 
-@pytest.mark.skip(reason="Huge File Test not normally run")
-def test_upload_from_link(
+def test_large_file_upload_from_link():
+    wrap_upload_from_link(
         test_bucket=TEST_BUCKET,
+        test_kg=TEST_KG_NAME,
+        test_fileset_version=TEST_FS_VERSION,
+        test_link=TEST_LARGE_FILE_RESOURCE_URL,
+        test_link_filename=TEST_LARGE_NODES_FILE
+    )
+
+
+@pytest.mark.skip(reason="Huge File Test not normally run")
+def test_huge_file_upload_from_link():
+    wrap_upload_from_link(
+        test_bucket=TEST_BUCKET,
+        test_kg=TEST_KG_NAME,
+        test_fileset_version=TEST_FS_VERSION,
         test_link=TEST_HUGE_FILE_RESOURCE_URL,
         test_link_filename=TEST_HUGE_NODES_FILE,
-        test_kg=TEST_KG_NAME,
-        test_fileset_version=TEST_FILESET_VERSION
-):
+    )
+
+
+def wrap_upload_from_link(test_bucket, test_kg, test_fileset_version, test_link, test_link_filename):
+    """
+
+    :param test_bucket: 
+    :param test_kg: 
+    :param test_fileset_version: 
+    :param test_link: 
+    :param test_link_filename: 
+    :return: 
+    """
     progress_monitor = None
 
     if logging:
@@ -426,5 +446,5 @@ def test_upload_from_link(
     except RuntimeError as rte:
         logger.error('Failed?: '+str(rte))
         assert False
-    logger.debug('Success!')
 
+    logger.debug('Success!')
