@@ -53,6 +53,9 @@ logger = logging.getLogger(__name__)
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
+# Probably won't change the name of the
+# script again, but changed once already...
+_KGEA_ARCHIVER_SCRIPT = "kge_archiver.bash"
 
 def print_error_trace(err_msg: str):
     """
@@ -877,7 +880,7 @@ async def compress_fileset(
     :return:
     """
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
-    archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}'scripts'{os.sep}upload_archive.bash"
+    archive_script = f"{os.path.dirname(os.path.abspath(__file__))}{os.sep}'scripts'{os.sep}{_KGEA_ARCHIVER_SCRIPT}"
     with subprocess.Popen([
         archive_script, kg_id, version
     ]) as proc:
