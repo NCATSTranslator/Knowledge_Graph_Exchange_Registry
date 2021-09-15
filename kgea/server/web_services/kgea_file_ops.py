@@ -7,15 +7,14 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
-import sys
+
 from os import sep as os_separator
-from os.path import dirname, getsize, abspath, splitext
+from os.path import dirname, abspath, splitext
 import io
 import traceback
 from sys import stderr, exc_info
 from tempfile import TemporaryFile
 from typing import Dict, Union, List, Optional
-from functools import wraps
 import subprocess
 
 import logging
@@ -28,25 +27,8 @@ import validators
 import smart_open
 from datetime import datetime
 
-
 from pathlib import Path
 import tarfile
-
-from kgea.tests import (
-    TEST_BUCKET,
-    TEST_KG_NAME,
-    TEST_FILESET_VERSION,
-    TEST_DATA_DIR,
-    TEST_SMALL_FILE_PATH,
-    TEST_LARGE_KG,
-    TEST_LARGE_FS_VERSION,
-    TEST_LARGE_NODES_FILE_KEY,
-    TEST_HUGE_NODES_FILE_KEY,
-    TEST_HUGE_EDGES_FILE_KEY,
-    TEST_SMALL_FILE_RESOURCE_URL,
-    TEST_DIRECT_TRANSFER_LINK,
-    TEST_HUGE_NODES_FILE
-)
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
