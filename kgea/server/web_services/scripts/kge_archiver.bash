@@ -22,8 +22,7 @@ usage () {
     exit 1
 }
 
-if [ -z "$KGE_BUCKET" ]
-then
+if [[ -z $KGE_BUCKET ]]; then
     echo
     echo "Please set the \$KGE_BUCKET environment variable"
     echo "(S3 bucket source where the file set is located)"
@@ -31,8 +30,7 @@ then
     exit 2
 fi
 
-if [ -z "$KGE_ROOT_DIRECTORY" ]
-then
+if [[ -z "$KGE_ROOT_DIRECTORY" ]]; then
     echo
     echo "Please set the \$KGE_ROOT_DIRECTORY environment variable"
     echo "(Root S3 folder in the bucket, containing the knowledge graph -> file set)"
@@ -40,16 +38,14 @@ then
     exit 3
 fi
 
-if [ -z "$1" ]
-then
+if [[ -z "$1" ]]; then
     usage
 else
     # Knowledge Graph Identifier
     knowledge_graph=$1
 fi
 
-if [ -z "$2" ]
-then
+if [[ -z "$2" ]]; then
     usage
 else
     # TODO: validate proper SemVer format of file set version string here?
@@ -62,6 +58,11 @@ if [[ "$OSTYPE" == "cygwin" ]]; then
         aws=`which aws.cmd`
 else
         aws=`which aws`
+fi
+
+if [[ ! -f $aws ]]; then
+  echo "Please install Amazon Web Service ('aws') CLI tools before running this script."
+  exit -1
 fi
 
 echo
@@ -88,12 +89,15 @@ output=("provider.yaml" "file_set.yaml" "content_metadata.json" "nodes.tsv" "edg
 # iterate over files
 echo
 echo Retrieve and tar files:
-for file in $"{output[@]}";  # "double quote an array to prevent resplitting elements"  https://github.com/koalaman/shellcheck/wiki/SC2068
+# "double quote an array to prevent resplitting elements"
+# https://github.com/koalaman/shellcheck/wiki/SC2068
+for file in $"{output[@]}";
 do
   $aws s3 cp $s3/$file .
   if [ $? -eq 0 ] && [ -f $file ]; then
      echo "- $file: archived!"
-     # use `rf` for tar to create if not exists, append files if existing
+     # use `rf` for tar to create if not exists,
+     # append files if existing
      tar rf $tarfile $file
      rm $file
   else
@@ -102,15 +106,12 @@ do
 done
 
 ## after archiving all of the files, compress them
-## note that `z` is incompatible with `r`, so we couldn't compress as we go
-# tar czf "$tarfile.gz" "$tarfile"
 $gzip $tarfile
 
 ## copy the new archive file to s3
 $aws s3 cp $tarfile.gz $s3/$tarfile.gz
 
-## cleanup the files
-## both the local copies of the tar file and gz files
+## cleanup the local copy of the tar.gz file
 rm $tarfile.gz
 
 echo
