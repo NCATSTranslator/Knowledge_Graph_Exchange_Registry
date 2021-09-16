@@ -1,6 +1,7 @@
 # coding: utf-8
 
 from kgea.server.web_services.models.base_model_ import Model
+from kgea.server.web_services.models.kge_upload_progress_status_code import KgeUploadProgressStatusCode
 from kgea.server.web_services import util
 
 
@@ -10,26 +11,30 @@ class UploadProgressToken(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, upload_token: str = None, current_position: int = 0, end_position: int = 0):
+    def __init__(self, upload_token: str=None, status: KgeUploadProgressStatusCode=None, current_position: int=None, end_position: int=None):
         """UploadProgressToken - a model defined in OpenAPI
 
         :param upload_token: The upload_token of this UploadProgressToken.
+        :param status: The status of this UploadProgressToken.
         :param current_position: The current_position of this UploadProgressToken.
         :param end_position: The end_position of this UploadProgressToken.
         """
         self.openapi_types = {
             'upload_token': str,
+            'status': KgeUploadProgressStatusCode,
             'current_position': int,
             'end_position': int
         }
 
         self.attribute_map = {
             'upload_token': 'upload_token',
+            'status': 'status',
             'current_position': 'current_position',
             'end_position': 'end_position'
         }
 
         self._upload_token = upload_token
+        self._status = status
         self._current_position = current_position
         self._end_position = end_position
 
@@ -66,6 +71,29 @@ class UploadProgressToken(Model):
             raise ValueError("Invalid value for `upload_token`, must not be `None`")
 
         self._upload_token = upload_token
+
+    @property
+    def status(self):
+        """Gets the status of this UploadProgressToken.
+
+
+        :return: The status of this UploadProgressToken.
+        :rtype: KgeUploadProgressStatusCode
+        """
+        return self._status
+
+    @status.setter
+    def status(self, status):
+        """Sets the status of this UploadProgressToken.
+
+
+        :param status: The status of this UploadProgressToken.
+        :type status: KgeUploadProgressStatusCode
+        """
+        if status is None:
+            raise ValueError("Invalid value for `status`, must not be `None`")
+
+        self._status = status
 
     @property
     def current_position(self):
