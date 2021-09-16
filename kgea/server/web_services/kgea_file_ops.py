@@ -23,12 +23,13 @@ import random
 import time
 
 import requests
-import validators
 import smart_open
 from datetime import datetime
 
 from pathlib import Path
 import tarfile
+
+from validators import ValidationFailure, url as valid_url
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -774,15 +775,21 @@ def get_url_file_size(url: str) -> int:
     size: int = 0
     if url:
         try:
-            assert (validators.url(url))
+            assert (valid_url(url))
 
             # fetching the header information
             info = requests.head(url)
             content_length = info.headers['Content-Length']
             size: int = int(content_length)
             return size
+        except ValidationFailure:
+            logger.error(f"get_url_file_size(url: '{str(url)}') is invalid?")
+            return -2
+        except KeyError:
+            logger.error(f"get_url_file_size(url: '{str(url)}') doesnt have a 'Content-Length' value in its header?")
+            return -3
         except Exception as exc:
-            logger.error("get_url_file_size(url:" + str(url) + "): " + str(exc))
+            logger.error(f"get_url_file_size(url:'{str(url)}'): {str(exc)}")
             # TODO: invalidate the size invariant to propagate a call error
             # for now return -1 to encode the error state
             return -1
@@ -808,7 +815,7 @@ def upload_from_link(
     """
 
     # make sure we're getting a valid url
-    assert(validators.url(source))
+    assert(valid_url(source))
 
     # this will use the smart_open http client (given that `source` is a full url)
     """
