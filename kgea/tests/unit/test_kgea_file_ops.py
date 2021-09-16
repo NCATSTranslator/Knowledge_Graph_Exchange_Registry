@@ -341,11 +341,11 @@ def test_get_url_file_size():
         f" for url resource {TEST_HUGE_FILE_RESOURCE_URL}"
     )
     url_resource_size = get_url_file_size(url="https://nonexistent.url")
-    assert (url_resource_size == 0)
+    assert (url_resource_size == -1)
     url_resource_size = get_url_file_size(url='')
     assert (url_resource_size == 0)
     url_resource_size = get_url_file_size(url='abc')
-    assert (url_resource_size == 0)
+    assert (url_resource_size == -1)
     
     return True
 

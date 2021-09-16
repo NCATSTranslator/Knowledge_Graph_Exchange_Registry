@@ -40,7 +40,7 @@ async def test_register_file_set(client):
 
     Register core metadata for a distinctly versioned file set of a KGE Knowledge Graph
     """
-    body = web_services.RegisterFileSetRequestBody()
+    body = "web_services.RegisterFileSetRequestBody()"
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -60,7 +60,7 @@ async def test_register_knowledge_graph(client):
 
     Register core metadata for a distinct KGE Knowledge Graph
     """
-    body = web_services.RegisterGraphRequestBody()
+    body = "web_services.RegisterGraphRequestBody()"
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',

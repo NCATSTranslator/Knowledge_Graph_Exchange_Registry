@@ -70,7 +70,7 @@ async def test_upload_file(client):
 
     Uploading of a specified file from a local computer.
     """
-    body = web_services.UploadRequestBody()
+    body = "web_services.UploadRequestBody()"
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'multipart/form-data',
