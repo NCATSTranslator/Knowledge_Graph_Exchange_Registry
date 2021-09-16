@@ -1227,8 +1227,8 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fi
         else:
             await report_not_found(
                 request,
-                "download_kge_file_set_archive_sha1hash(): SHA1 Hash file for archive of graph " + str(kg_id) +
-                " file set " + str(fileset_version) + "unavailable?"
+                f"download_kge_file_set_archive_sha1hash(): SHA1 Hash file for archive of graph {str(kg_id)}" +
+                f" file set '{str(fileset_version)}' is unavailable?"
             )
 
         if sha1hash_file_key:
