@@ -86,10 +86,10 @@ async function GetUrl(source) {
 
 /*
  * We set progress monitoring polling
- * delay to 5 seconds per request
+ * delay to 2.5 seconds per request
  */
-let monitor_interval = 5000;
-
+const TIMEOUT_THRESHOLD = 1;
+const monitor_interval = 2500;
 let transfer_in_progress = false;
 
 async function UploadFile(source) {
@@ -194,14 +194,15 @@ async function UploadFile(source) {
                                         }
                                         progress_ratio = fake_progress / 1000
                                     }
-                                    let percentage = Number(progress_ratio * 100).toFixed(1);
+                                    let percentage = Math.min(progress_ratio * 100, 100).toFixed(1);
+
                                     document.getElementById('percentage_link').textContent = `(${percentage}%)`;
                                     let progressbar = $("#ldBar_link");
                                     progressbar.progressbar({
                                         // ceil to err on the side of displaying progress
                                         // min to set a bound on how large progress can be (greater than 100% is 100%)
-                                            // happens
-                                        value: Math.min(Math.ceil(progress_ratio * 100), 100)
+                                            // happens when direct_url link reports an inaccurate Content-Length header
+                                        value: Math.min(progress_ratio * 100, 100)
                                     });
                                     return j;
                                 })
@@ -214,8 +215,12 @@ async function UploadFile(source) {
                         }
 
                         // control flow for mutual recursion
-                        async function execute(callback) {
+                        async function execute(callback, prev_position=0, timeout_count=0) {
+                            let _prev_position = prev_position;
+                            let _timeout_count = timeout_count;
                             return await callback().then(async received => {
+                                console.log(_timeout_count, _prev_position, received.current_position, received.end_position)
+
                                 // NOTE: Sometimes it takes awhile for
                                 // received.end_position to initialize, particularly
                                 // if the file size is > ~1GB (works fine at ~300mb).
@@ -229,18 +234,42 @@ async function UploadFile(source) {
                                     // error
                                     throw Error('Upload failed! (End position set to -1 - check server logs for information)')
                                 }
-                                if (received.current_position > received.end_position) {
-                                    // error
-                                    throw Error(
-                                        "Upload failed! (Current position '" +
-                                        received.current_position.toString() +
-                                        "' is larger than end position '" +
-                                        received.end_position.toString() +
-                                        "'?)"
-                                    )
+
+                                // TODO: replace with status codes
+                                if (_prev_position === received.current_position) {
+                                    // if the previous position is equal to the current position, it means no packet has been changed
+                                        // is this a timeout?
+                                        // is the upload completed, but the end position is unknown?
+                                    if (received.current_position < received.end_position) {
+                                        // error
+                                        console.warn(
+                                            "Upload timing out? (Current position '" +
+                                            received.current_position.toString() +
+                                            "' is smaller than end position '" +
+                                            received.end_position.toString() +
+                                            "'?) and previous position equal to end position"
+                                        )
+                                        if (_timeout_count > TIMEOUT_THRESHOLD) {
+                                            throw Error('Upload timed out! (End position set to -1 - check server logs for information)')
+                                        }
+                                    } else if (received.current_position > received.end_position) {
+                                        console.warn(
+                                            "Upload completed? (Current position '" +
+                                            received.current_position.toString() +
+                                            "' is greater than end position '" +
+                                            received.end_position.toString() +
+                                            "'?) and previous position equal to end position"
+                                        )
+                                        if (_timeout_count > TIMEOUT_THRESHOLD) {
+                                            // throw Error('Upload timed out! (End position set to -1 - check server logs for information)')
+                                            return true;
+                                        }
+                                    }
+                                    _timeout_count += 1
                                 }
                                 if (!(received.current_position === received.end_position)) {
-                                    return await later(monitor_interval, askForProgress).then(execute)
+                                    _prev_position = received.current_position;
+                                    return await later(monitor_interval, askForProgress).then(callback => execute(callback, _prev_position, _timeout_count))
                                 }
                                 // success
                                 return true;
@@ -395,14 +424,13 @@ async function UploadFile(source) {
                                 }
                                 progress_ratio = fake_progress / 1000
                             }
-                            let percentage = Number(progress_ratio * 100).toFixed(1);
+                            let percentage = Math.min(progress_ratio * 100, 1).toFixed(1);
                             document.getElementById('percentage').textContent = `(${percentage}%)`;
                             let progressbar = $("#ldBar");
                             progressbar.progressbar({
                                 // ceil to err on the side of displaying progress
                                 // min to set a bound on how large progress can be (greater than 100% is 100%)
-                                    // happens
-                                value: Math.min(Math.ceil(progress_ratio * 100), 100)
+                                value: Math.min(progress_ratio * 100, 1)
                             });
                             return j;
                         })
