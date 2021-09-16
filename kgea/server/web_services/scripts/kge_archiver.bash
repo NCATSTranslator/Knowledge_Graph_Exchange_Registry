@@ -66,7 +66,7 @@ if [[ ! -f $aws ]]; then
 fi
 
 echo
-echo "Beginning archiving of file set version '$version' of knowledge graph '$kgid'"
+echo "Beginning archiving of file set version '$version' of knowledge graph '$knowledge_graph'"
 echo
 
 # Folder of given versioned file set of the Knowledge Graph
@@ -89,9 +89,7 @@ output=("provider.yaml" "file_set.yaml" "content_metadata.json" "nodes.tsv" "edg
 # iterate over files
 echo
 echo Retrieve and tar files:
-# "double quote an array to prevent resplitting elements"
-# https://github.com/koalaman/shellcheck/wiki/SC2068
-for file in $"{output[@]}";
+for file in ${output[@]};
 do
   $aws s3 cp $s3/$file .
   if [ $? -eq 0 ] && [ -f $file ]; then
