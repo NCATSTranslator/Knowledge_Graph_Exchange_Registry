@@ -15,7 +15,7 @@ info:
     this API is SmartAPI compliant, it will not normally be visible in the Translator
     SmartAPI Registry since it is mainly meant to be accessed through Registry indexed
     KGE File Sets, which will have distinct entries in the Registry.
-  version: 1.4.0-dev
+  version: 1.5.0
   x-translator:
     component: SRI service
     team:

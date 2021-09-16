@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  version: 1.4.0-dev
+  version: 1.5.0
   title: >-
     OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archive.
     Although this API is SmartAPI compliant, it will not normally be visible

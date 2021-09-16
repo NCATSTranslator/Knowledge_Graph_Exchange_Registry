@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 NAME = "web_services"
-VERSION = "1.0.0"
+VERSION = "1.5.0"
 
 # To install the library, run the following
 #
