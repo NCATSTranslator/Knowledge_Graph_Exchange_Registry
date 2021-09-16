@@ -547,7 +547,10 @@ async def compress_fileset(
     :return:
     """
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
+    logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
+    
     archive_script = f"{dirname(abspath(__file__))}{os_separator}'scripts'{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
+    logger.debug(f"Archive Script: ({archive_script})")
     try:
         script_log = TemporaryFile()
         with subprocess.Popen(
@@ -560,13 +563,17 @@ async def compress_fileset(
             stderr=script_log
         ) as proc:
             proc.wait()
+            script_log.flush()
+            log_text = script_log.read()
             logger.info(
-                f"Finished running {_KGEA_ARCHIVER_SCRIPT}: " +
-                f"Return Code {proc.returncode}, log: {script_log.getvalue()}"
+                f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}: " +
+                f"\n\tReturn Code {proc.returncode}, log:\n\t{log_text}"
             )
             script_log.close()
     except Exception as e:
         logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
+    
+    logger.info(f"Exiting compress_fileset({s3_archive_key})")
     return s3_archive_key
 
 
