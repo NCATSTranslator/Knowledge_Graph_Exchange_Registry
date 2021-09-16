@@ -89,7 +89,7 @@ async function GetUrl(source) {
  * delay to 5 seconds per request
  */
 let monitor_interval = 5000;
-
+let progress_ratio = 0;
 let transfer_in_progress = false;
 
 async function UploadFile(source) {
@@ -185,7 +185,6 @@ async function UploadFile(source) {
                             return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
                                 .then(r => r.json())
                                 .then(j => {
-                                    let progress_ratio = 0;
                                     if (!!j.end_position) {
                                         progress_ratio = j.current_position / j.end_position;
                                     } else {
@@ -386,7 +385,6 @@ async function UploadFile(source) {
                     return await fetch(`{{upload_action}}/progress?upload_token=${upload_token}`, {credentials: "include"})
                         .then(r => r.json())
                         .then(j => {
-                            let progress_ratio = 0;
                             if (!!j.end_position) {
                                 progress_ratio = j.current_position / j.end_position;
                             } else {

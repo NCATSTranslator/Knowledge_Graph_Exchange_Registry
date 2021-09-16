@@ -752,6 +752,15 @@ components:
           format: float
         contents:
           $ref: '#/components/schemas/MetaKnowledgeGraph'
+    KgeUploadProgressStatusCode:
+      description: >-
+        Code for status of upload or direct URL
+        transfer progress for a given file.
+      type: string
+      enum:
+        - Ongoing
+        - Completed
+        - Error
     KgeFileSetStatusCode:
       description: >-
         Code for status of processing for a KGE File Set.
@@ -826,6 +835,11 @@ components:
           description: >-
             Upload token associated with a given uploading file.
           type: string
+        status:
+          description: >-
+            Code for status of upload or direct URL
+            transfer progress for a given file.
+          $ref: '#/components/schemas/KgeUploadProgressStatusCode'
         current_position:
           description: >-
             Number of bytes uploaded so far.
@@ -836,6 +850,7 @@ components:
           type: integer
       required:
         - upload_token
+        - status
         - current_position
         - end_position
       additionalProperties: false
