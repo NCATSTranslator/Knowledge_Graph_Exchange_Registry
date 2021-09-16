@@ -143,7 +143,7 @@ async function UploadFile(source) {
 
                 let file_name = document.getElementById("file_name").value;
 
-                document.getElementById("cancel_transfer").disabled = false;
+                document.getElementById("cancel_upload").disabled = false;
                 document.getElementById("content_from_url").disabled = true;
                 document.getElementById("content_from_local_file").disabled = true;
                 transfer_in_progress = true;
@@ -303,7 +303,7 @@ async function UploadFile(source) {
                         console.log({event:"Transfer of url specified resource done"})
                     })
 
-                    document.getElementById("cancel_transfer").disabled = true;
+                    document.getElementById("cancel_upload").disabled = true;
                     document.getElementById("content_from_url").disabled = false;
                     document.getElementById("content_from_local_file").disabled = false;
 
@@ -372,7 +372,7 @@ async function UploadFile(source) {
             formData.append("uploaded_file", uploaded_file);
             formData.append("content_name", filename);
 
-            document.getElementById("cancel_transfer").disabled = false;
+            document.getElementById("cancel_upload").disabled = false;
             document.getElementById("content_from_url").disabled = true;
             document.getElementById("content_from_local_file").disabled = true;
             transfer_in_progress = true;
@@ -501,7 +501,7 @@ async function UploadFile(source) {
                 console.log({event:"Upload of local file done"})
             })
 
-            document.getElementById("cancel_transfer").disabled = true;
+            document.getElementById("cancel_upload").disabled = true;
             document.getElementById("content_from_url").disabled = false;
             document.getElementById("content_from_local_file").disabled = false;
 
@@ -608,6 +608,7 @@ async function CancelUploading() {
         .finally(() => {
             transfer_in_progress = false;
         });
+
         return true;
     } else {
         // Cancellation aborted by user?
@@ -637,7 +638,7 @@ function getSize(size) {
 <button id="done_uploading" onclick="DoneUploading(this)">Done Uploading</button>
 </div>
 <div class="menu_item">
-<button id="cancel_transfer" onclick="CancelUploading()" disabled>Cancel Uploading</button>
+<button id="cancel_upload" onclick="CancelUploading()" disabled>Cancel Uploading</button>
 </div>
 {% include "logout.button" %}
 {% include "home.button" %}
