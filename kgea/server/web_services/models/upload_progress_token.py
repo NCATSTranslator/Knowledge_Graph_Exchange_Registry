@@ -11,7 +11,13 @@ class UploadProgressToken(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, upload_token: str=None, status: KgeUploadProgressStatusCode=None, current_position: int=None, end_position: int=None):
+    def __init__(
+            self,
+            upload_token: str = None,
+            status: KgeUploadProgressStatusCode = None,
+            current_position: int = None,
+            end_position: int = None
+    ):
         """UploadProgressToken - a model defined in OpenAPI
 
         :param upload_token: The upload_token of this UploadProgressToken.

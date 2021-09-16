@@ -15,6 +15,7 @@ from .models import (
     UploadTokenObject,
     UploadProgressToken
 )
+from .models.kge_upload_progress_status_code import KgeUploadProgressStatusCode
 from ...aws.assume_role import AssumeRole
 
 try:
@@ -681,8 +682,9 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
         NOTE: Sometimes it takes awhile for end_position to be calculated initialize, particularly if the
         file size is > ~1GB (works fine at ~300mb).
 
-        In that case, we leave end_position is going to be undefined. The consumer of this endpoint must be willing
-        to consistently poll until end_position is given a value.
+        In that case, we leave end_position to be undefined.
+        The consumer of this endpoint must be willing to consistently
+        poll until end_position is given a value.
         """
         tracker: Dict = get_upload_tracker_details(upload_token)
         
@@ -690,6 +692,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
             upload_token=upload_token,
             current_position=tracker['current_position'] if 'current_position' in tracker else 0,
             end_position=tracker['end_position'] if 'end_position' in tracker else None,
+            status=tracker['status'] if 'status' in tracker else KgeUploadProgressStatusCode.ONGOING
         )
         
         response = web.json_response(progress_token.to_dict())
@@ -848,6 +851,8 @@ async def upload_kge_file(
         tracker: Dict = get_upload_tracker_details(upload_token)
         
         tracker['end_position'] = get_pathless_file_size(uploaded_file.file)
+
+        tracker['status'] = KgeUploadProgressStatusCode.ONGOING
         
         threaded_file_transfer(
             filename=uploaded_file.filename,
@@ -905,6 +910,8 @@ async def kge_transfer_from_url(
         
         if tracker['end_position'] <= 0:
             await report_error(request, f"kge_transfer_from_url({content_url}): unknown URL resource size?")
+            
+        tracker['status'] = KgeUploadProgressStatusCode.ONGOING
         
         threaded_file_transfer(
             filename=content_name,
