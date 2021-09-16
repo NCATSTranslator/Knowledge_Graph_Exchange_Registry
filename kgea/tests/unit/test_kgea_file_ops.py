@@ -1,11 +1,10 @@
 """
 Test Parameters + Decorator
 """
-import logging
-import tarfile
-from functools import wraps
-from pathlib import Path
 from sys import stderr
+
+import logging
+from functools import wraps
 
 import pytest
 import requests
@@ -33,7 +32,7 @@ from kgea.tests import (
 from kgea.server.web_services.kgea_file_ops import (
     upload_from_link, get_url_file_size, get_archive_contents, aggregate_files, print_error_trace,
     compress_fileset, kg_files_in_location, get_object_key, upload_file, with_version,
-    get_object_location, upload_file_multipart, tardir, package_file_manifest, create_presigned_url,
+    get_object_location, upload_file_multipart, create_presigned_url,
     get_fileset_versions_available, random_alpha_string, s3_client, location_available
 )
 
@@ -70,7 +69,6 @@ def prepare_test_random_object_location(func):
     return wrapper
 
 
-@prepare_test_random_object_location
 def test_get_fileset_versions_available(test_bucket=TEST_BUCKET):
     try:
         fileset_version_map = get_fileset_versions_available(bucket_name=test_bucket)
@@ -94,8 +92,7 @@ def test_is_location_available(
 
 
 # note: use this decorator only if the child function satisfies `test_object_location` in its arguments
-@prepare_test_random_object_location
-def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET):
+def test_is_not_location_available(test_object_location=TEST_LARGE_NODES_FILE_KEY, test_bucket=TEST_BUCKET):
     """
     Test in the positive:
     * make dir
@@ -114,8 +111,7 @@ def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET
 
 
 # note: use this decorator only if the child function satisfies `test_object_location` in its arguments
-@prepare_test_random_object_location
-def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
+def test_kg_files_in_location(test_object_location=TEST_LARGE_NODES_FILE_KEY, test_bucket=TEST_BUCKET):
     try:
         kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=test_object_location)
         # print(kg_file_list)
@@ -133,34 +129,6 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET):
         logger.error(e)
         return False
     except ClientError as e:
-        logger.error(e)
-        return False
-    return True
-
-
-def test_tardir():
-    try:
-        tar_path = tardir(TEST_DATA_DIR, 'TestData')
-        assert (len(tarfile.open(tar_path).getmembers()) > 0)
-    except FileNotFoundError as e:
-        logger.error("Test is malformed!")
-        logger.error(e)
-        return False
-    except AssertionError as e:
-        logger.error('The packaging function failed to create a valid tarfile!')
-        logger.error(e)
-        return False
-    return True
-
-
-def test_package_manifest():
-    try:
-        with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
-            tar_path = tardir(Path(test_file.name).parent, Path(test_file.name).stem)
-            manifest = package_file_manifest(tar_path)
-            assert (len(manifest) > 0)
-    except AssertionError as e:
-        logger.error('The manifest failed to be created properly (since we have files in the testfiles directory)')
         logger.error(e)
         return False
     return True

@@ -8,6 +8,7 @@ from pathlib import Path
 
 # A temporary convenience to point to testing data in a specific branch.
 # Should default to 'master' or 'develop' later?
+# https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pre-release_15-Sept-2021/kgea/tests/data/README.md
 KGE_CODE_BRANCH = "pre-release_15-Sept-2021"
 
 TEST_DATA_DIR = Path(abspath(dirname(__file__))).joinpath("data")
@@ -20,12 +21,14 @@ TEST_FS_VERSION = "1.0"
 TEST_SMALL_FILE = 'small_edges.tsv'
 TEST_SMALL_FILE_PATH = TEST_DATA_DIR.joinpath(TEST_SMALL_FILE)
 TEST_SMALL_FILE_RESOURCE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-                               f"Knowledge_Graph_Exchange_Registry/{KGE_CODE_BRANCH}/tests/data/{TEST_SMALL_FILE}"
+                               f"Knowledge_Graph_Exchange_Registry/" + \
+                               f"{KGE_CODE_BRANCH}/kgea/tests/data/{TEST_SMALL_FILE}"
 
 TEST_LARGE_NODES_FILE = "large_nodes.tsv"
 TEST_LARGE_NODES_FILE_KEY = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/nodes/{TEST_LARGE_NODES_FILE}"
 TEST_LARGE_FILE_RESOURCE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
-                               f"Knowledge_Graph_Exchange_Registry/{KGE_CODE_BRANCH}/tests/data/{TEST_LARGE_NODES_FILE}"
+                               f"Knowledge_Graph_Exchange_Registry/" + \
+                               f"{KGE_CODE_BRANCH}/kgea/tests/data/{TEST_LARGE_NODES_FILE}"
 
 TEST_HUGE_NODES_FILE = "sri-reference-kg_nodes.tsv"
 TEST_HUGE_NODES_FILE_KEY = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/nodes/{TEST_HUGE_NODES_FILE}"

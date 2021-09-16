@@ -365,39 +365,29 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     return f"{root}/{kg_id}/{fileset_version}{subdir + '/'}{attachment}"
 
 
-def tardir(directory, name):
-    """
-
-    :param directory:
-    :param name:
-    """
-    logger.error("Calling tardir(directory='" + directory + "', name='" + name + "')")
-    raise RuntimeError("Not yet implemented!")
-
-
-def package_file_manifest(tar_path):
-    """
-
-    :param tar_path:
-    :return:
-    """
-    with tarfile.open(tar_path, 'r|gz') as tar:
-        manifest = dict()
-        for tarinfo in tar:
-            print("\t", tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
-            if tarinfo.isreg():
-                print("a regular file.")
-            elif tarinfo.isdir():
-                print("a directory.")
-            else:
-                print("something else.")
-            manifest[tarinfo.name] = {
-                "raw": tarinfo,
-                "name": tarinfo.name,
-                "type": tarinfo.type,
-                "size": tarinfo.size
-            }
-        return manifest
+# def package_file_manifest(tar_path):
+#     """
+#
+#     :param tar_path:
+#     :return:
+#     """
+#     with tarfile.open(tar_path, 'r|gz') as tar:
+#         manifest = dict()
+#         for tarinfo in tar:
+#             print("\t", tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
+#             if tarinfo.isreg():
+#                 print("a regular file.")
+#             elif tarinfo.isdir():
+#                 print("a directory.")
+#             else:
+#                 print("something else.")
+#             manifest[tarinfo.name] = {
+#                 "raw": tarinfo,
+#                 "name": tarinfo.name,
+#                 "type": tarinfo.type,
+#                 "size": tarinfo.size
+#             }
+#         return manifest
 
 
 def get_pathless_file_size(data_file):
