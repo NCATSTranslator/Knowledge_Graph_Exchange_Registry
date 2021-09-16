@@ -903,6 +903,9 @@ async def kge_transfer_from_url(
         
         tracker['end_position'] = get_url_file_size(content_url)
         
+        if tracker['end_position'] <= 0:
+            await report_error(request, f"kge_transfer_from_url({content_url}): unknown URL resource size?")
+        
         threaded_file_transfer(
             filename=content_name,
             tracker=tracker,

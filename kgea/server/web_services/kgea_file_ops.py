@@ -7,13 +7,14 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
+
 from os import sep as os_separator
-from os.path import dirname, getsize, abspath, splitext
+from os.path import dirname, abspath, splitext
 import io
 import traceback
 from sys import stderr, exc_info
+from tempfile import TemporaryFile
 from typing import Dict, Union, List, Optional
-from functools import wraps
 import subprocess
 
 import logging
@@ -22,25 +23,21 @@ import random
 import time
 
 import requests
-import validators
 import smart_open
 from datetime import datetime
 
-
 from pathlib import Path
 import tarfile
+
+from validators import ValidationFailure, url as valid_url
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
 
-# import webbrowser
-
 from botocore.config import Config
-# from s3_tar import S3Tar
 from boto3.s3.transfer import TransferConfig
-from botocore.exceptions import ClientError
 
 from kgea.aws.assume_role import AssumeRole
 
@@ -125,7 +122,12 @@ def delete_location(bucket, kg_id):
 
 
 # https://www.askpython.com/python/examples/generate-random-strings-in-python
-def _random_alpha_string(length=8):
+def random_alpha_string(length=8):
+    """
+
+    :param length:
+    :return:
+    """
     random_string = ''
     for _ in range(length):
         # Considering only upper and lowercase letters
@@ -136,79 +138,6 @@ def _random_alpha_string(length=8):
         # Keep appending random characters using chr(x)
         random_string += (chr(random_integer))
     return random_string
-
-
-"""
-Test Parameters + Decorator
-"""
-TEST_BUCKET = 'kgea-test-bucket'
-TEST_KG_NAME = 'test_kg'
-TEST_FILESET_VERSION = '4.3'
-
-TEST_LARGE_KG = "sri-reference-graph"
-TEST_LARGE_FS_VERSION = "2.0"
-
-TEST_LARGE_NODES_FILE = "sm_nodes.tsv"
-TEST_LARGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_LARGE_NODES_FILE}"
-
-TEST_HUGE_NODES_FILE = "sri-reference-kg_nodes.tsv"
-TEST_HUGE_NODES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/nodes/{TEST_HUGE_NODES_FILE}"
-TEST_HUGE_EDGES_FILE = "sri-reference-kg_edges.tsv"
-TEST_HUGE_EDGES_FILE_KEY = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/edges/{TEST_HUGE_EDGES_FILE}"
-
-TEST_FILE_DIR = 'kgea/server/test/data/'
-TEST_FILE_NAME = 'somedata.csv'
-
-DIRECT_TRANSFER_TEST_LINK = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
-DIRECT_TRANSFER_TEST_LINK_FILENAME = 'sri-reference-kg_nodes.tsv'
-SMALL_TEST_URL = "https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/master/LICENSE"
-
-
-def prepare_test(func):
-    """
-
-    :param func:
-    :return:
-    """
-    @wraps(func)
-    def wrapper():
-        """
-
-        :return:
-        """
-        TEST_BUCKET = 'kgea-test-bucket'
-        TEST_KG_NAME = 'test_kg'
-        return func()
-
-    return wrapper
-
-
-def prepare_test_random_object_location(func):
-    """
-
-    :param func:
-    :return:
-    """
-    @wraps(func)
-    def wrapper(object_key=_random_alpha_string()):
-        """
-
-        :param object_key:
-        :return:
-        """
-        s3_client().put_object(
-            Bucket='kgea-test-bucket',
-            Key=get_object_location(object_key)
-        )
-        result = func(test_object_location=get_object_location(object_key))
-        # TODO: prevent deletion for a certain period of time
-        s3_client().delete_object(
-            Bucket='kgea-test-bucket',
-            Key=get_object_location(object_key)
-        )
-        return result
-
-    return wrapper
 
 
 def get_object_location(kg_id):
@@ -315,39 +244,6 @@ def location_available(bucket_name, object_key) -> bool:
         return True
 
 
-@prepare_test
-def test_is_location_available(test_object_location=get_object_location(_random_alpha_string()),
-                               test_bucket=TEST_BUCKET):
-    try:
-        isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=test_object_location)
-        return isRandomLocationAvailable
-    except AssertionError as e:
-        logger.error("location_available(): found a location that should not exist")
-        logger.error(e)
-        return False
-
-
-# note: use this decorator only if the child function satisfies `test_object_location` in its arguments
-@prepare_test
-@prepare_test_random_object_location
-def test_is_not_location_available(test_object_location, test_bucket=TEST_BUCKET):
-    """
-    Test in the positive:
-    * make dir
-    * test for existence
-    * assert not True (because it already exists)
-    * close/delete dir
-    """
-    try:
-        is_random_location_available = location_available(bucket_name=test_bucket, object_key=test_object_location)
-        assert (is_random_location_available is not True)
-    except AssertionError as e:
-        logger.error("ERROR: created location was not found")
-        logger.error(e)
-        return False
-    return True
-
-
 def kg_files_in_location(bucket_name, object_location='') -> List[str]:
     """
 
@@ -368,19 +264,6 @@ def kg_files_in_location(bucket_name, object_location='') -> List[str]:
     # listed passes (since the empty string is part of every string)
     object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
     return object_matches
-
-
-# note: use this decorator only if the child function satisfies `test_object_location` in its arguments
-@prepare_test
-@prepare_test_random_object_location
-def test_kg_files_in_location(test_object_location, test_bucket=TEST_BUCKET):
-    try:
-        kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=test_object_location)
-        # print(kg_file_list)
-        assert (len(kg_file_list) > 0)
-    except AssertionError as e:
-        raise AssertionError(e)
-    return True
 
 
 def get_fileset_versions_available(bucket_name, kg_id=None):
@@ -414,8 +297,7 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
         entry_string = str(Path(kg_file))  # normalize delimiters
         for i in [root_path, stem_path, 'node', 'edge']:
             entry_string = entry_string.replace(i, '')
-    
-        import os
+
         kg_info = list(entry_string.split(os_separator))
         while '' in kg_info:
             kg_info.remove('')
@@ -436,17 +318,6 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
             versions_per_kg[key].append(thing[1])
     
     return versions_per_kg
-
-
-@prepare_test
-@prepare_test_random_object_location
-def test_get_fileset_versions_available(test_bucket=TEST_BUCKET):
-    try:
-        fileset_version_map = get_fileset_versions_available(bucket_name=test_bucket)
-        assert (type(fileset_version_map) is dict and len(fileset_version_map) > 0)
-    except AssertionError as e:
-        raise AssertionError(e)
-    return True
 
 
 # TODO: clarify expiration time - default to 1 day (in seconds)
@@ -482,20 +353,6 @@ def create_presigned_url(bucket, object_key, expiration=86400) -> Optional[str]:
     return endpoint
 
 
-@prepare_test
-def test_create_presigned_url(test_bucket=TEST_BUCKET):
-    try:
-        # TODO: write tests
-        create_presigned_url(bucket=test_bucket, object_key=get_object_location(TEST_KG_NAME))
-    except AssertionError as e:
-        logger.error(e)
-        return False
-    except ClientError as e:
-        logger.error(e)
-        return False
-    return True
-
-
 def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     """
 
@@ -509,69 +366,29 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     return f"{root}/{kg_id}/{fileset_version}{subdir + '/'}{attachment}"
 
 
-def tardir(directory, name):
-    """
-
-    :param directory:
-    :param name:
-    """
-    logger.error("Calling tardir(directory='" + directory + "', name='" + name + "')")
-    raise RuntimeError("Not yet implemented!")
-
-
-@prepare_test
-def test_tardir():
-    try:
-        tar_path = tardir(TEST_FILE_DIR, 'TestData')
-        assert (len(tarfile.open(tar_path).getmembers()) > 0)
-    except FileNotFoundError as e:
-        logger.error("Test is malformed!")
-        logger.error(e)
-        return False
-    except AssertionError as e:
-        logger.error('The packaging function failed to create a valid tarfile!')
-        logger.error(e)
-        return False
-    return True
-
-
-def package_file_manifest(tar_path):
-    """
-
-    :param tar_path:
-    :return:
-    """
-    with tarfile.open(tar_path, 'r|gz') as tar:
-        manifest = dict()
-        for tarinfo in tar:
-            print("\t", tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
-            if tarinfo.isreg():
-                print("a regular file.")
-            elif tarinfo.isdir():
-                print("a directory.")
-            else:
-                print("something else.")
-            manifest[tarinfo.name] = {
-                "raw": tarinfo,
-                "name": tarinfo.name,
-                "type": tarinfo.type,
-                "size": tarinfo.size
-            }
-        return manifest
-
-
-@prepare_test
-def test_package_manifest():
-    try:
-        with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            tar_path = tardir(Path(test_file.name).parent, Path(test_file.name).stem)
-            manifest = package_file_manifest(tar_path)
-            assert (len(manifest) > 0)
-    except AssertionError as e:
-        logger.error('The manifest failed to be created properly (since we have files in the testfiles directory)')
-        logger.error(e)
-        return False
-    return True
+# def package_file_manifest(tar_path):
+#     """
+#
+#     :param tar_path:
+#     :return:
+#     """
+#     with tarfile.open(tar_path, 'r|gz') as tar:
+#         manifest = dict()
+#         for tarinfo in tar:
+#             print("\t", tarinfo.name, "is", tarinfo.size, "bytes in size and is ", end="")
+#             if tarinfo.isreg():
+#                 print("a regular file.")
+#             elif tarinfo.isdir():
+#                 print("a directory.")
+#             else:
+#                 print("something else.")
+#             manifest[tarinfo.name] = {
+#                 "raw": tarinfo,
+#                 "name": tarinfo.name,
+#                 "type": tarinfo.type,
+#                 "size": tarinfo.size
+#             }
+#         return manifest
 
 
 def get_pathless_file_size(data_file):
@@ -701,109 +518,6 @@ def upload_file_multipart(
     return object_key
 
 
-def package_file(name: str, target_file):
-    """
-
-    :param name:
-    :param target_file:
-    """
-    logger.error("Calling package_file(name='" + name + "', name='" + target_file + "')")
-    raise RuntimeError("Not yet implemented!")
-
-
-@prepare_test
-def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
-    try:
-        # NOTE: file must be read in binary mode!
-        with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            content_location, _ = with_version(get_object_location)(test_kg)
-            packaged_file = package_file(name=test_file.name, target_file=test_file)
-            object_key = get_object_key(content_location, test_file.name)
-            upload_file(
-                bucket=test_bucket,
-                object_key=object_key,
-                source=packaged_file,
-            )
-            assert (object_key in kg_files_in_location(test_bucket, content_location))
-    except FileNotFoundError as e:
-        logger.error("Test is malformed!")
-        logger.error(e)
-        return False
-    except ClientError as e:
-        logger.error('The upload to S3 has failed!')
-        logger.error(e)
-        return False
-    except AssertionError as e:
-        logger.error('The resulting path was not found inside of the knowledge graph folder!')
-        logger.error(e)
-        return False
-    return True
-
-
-@prepare_test
-def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
-    try:
-
-        # NOTE: file must be read in binary mode!
-        with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            content_location, _ = with_version(get_object_location)(test_kg)
-
-            object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
-
-            assert (object_key in kg_files_in_location(test_bucket, content_location))
-
-    except FileNotFoundError as e:
-        logger.error("Test is malformed!")
-        logger.error(e)
-        return False
-    except ClientError as e:
-        logger.error('The upload to S3 has failed!')
-        logger.error(e)
-        return False
-    except AssertionError as e:
-        logger.error('The resulting path was not found inside of the knowledge graph folder!')
-        logger.error(e)
-        return False
-    return True
-
-
-@prepare_test
-def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
-    """
-    Use the "with_version" wrapper to modify the object location
-    """
-    try:
-
-        test_location, time_created = with_version(get_object_location)(test_kg)
-        # NOTE: file must be read in binary mode!
-        with open(Path(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-            object_key = get_object_key(test_location, test_file.name)
-            upload_file(
-                bucket=test_bucket,
-                object_key=object_key,
-                source=test_file,
-            )
-            assert (object_key in kg_files_in_location(test_bucket, test_location))
-            assert (time_created in object_key)
-
-    except FileNotFoundError as e:
-        logger.error("Test is malformed!")
-        logger.error(e)
-        return False
-    except ClientError as e:
-        logger.error('ERROR: The upload to S3 has failed!')
-        logger.error(e)
-        return False
-    except AssertionError as e:
-        logger.error(
-            'The resulting path was not found inside of the ' +
-            'knowledge graph folder, OR the timestamp isn\'t in the path!'
-        )
-        logger.error(e)
-        return False
-    return True
-
-
 def infix_string(name, infix, delimiter="."):
     """
 
@@ -816,56 +530,6 @@ def infix_string(name, infix, delimiter="."):
     *pre_name, end_name = tokens
     name = ''.join([delimiter.join(pre_name), infix, delimiter, end_name])
     return name
-
-
-# async def compress_fileset(
-#         bucket,
-#         files_and_file_set_locations: list,
-#         target_path,
-#         archive_name
-# ) -> str:
-#     """
-#
-#     :param bucket:
-#     :param files_and_file_set_locations:
-#     :param target_path:
-#     :param archive_name:
-#     :return:
-#     """
-#
-#     archive_path = "{target_path}{archive_name}.tar.gz".format(
-#         target_path=target_path,
-#         archive_name=archive_name,
-#     ).replace('\\', '/')  # normalize to the path separator we use on s3
-#
-#     """
-#     # setup an S3 job to compress the file
-#     job = S3Tar(
-#         bucket,
-#         archive_path,
-#         allow_dups=True,
-#         s3_max_retries=20,
-#     )
-#
-#     # add the file the running archive
-#     for file_or_file_set_location in files_and_file_set_locations:
-#         # it's a folder key if it ends with a path separator
-#         if file_or_file_set_location[-1] == '/':
-#             file_set_location_key = file_or_file_set_location
-#             job.add_files(file_set_location_key)
-#             # it's a file if it doesn't end with a path separator
-#         else:
-#             file_key = file_or_file_set_location
-#             # TODO - job.add_file doesn't check if the key exists
-#             # so for now do it for them
-#             if object_key_exists(file_key):
-#                 job.add_file(file_key)
-#             else:
-#                 logger.warning("compress_fileset(): skipping `"+file_key+"` because it doesn't exist")
-#
-#     # execute the job
-#     job.tar()
-#     """
 
 
 async def compress_fileset(
@@ -884,40 +548,26 @@ async def compress_fileset(
     """
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     archive_script = f"{dirname(abspath(__file__))}{os_separator}'scripts'{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
-    script_log = io.StringIO()
-    with subprocess.Popen(
-        args=[
-            archive_script,
-            kg_id,
-            version
-        ],
-        stdout=script_log,
-        stderr=script_log
-    ) as proc:
-        proc.wait()
-        logger.info(
-            f"Finished running {_KGEA_ARCHIVER_SCRIPT}: " +
-            f"Return Code {proc.returncode}, log: {script_log.getvalue()}"
-        )
-        script_log.close()
-        return s3_archive_key
-
-
-async def test_compress_fileset():
     try:
-        s3_archive_key: str = await compress_fileset(
-            kg_id=TEST_KG_NAME,
-            version=TEST_FILESET_VERSION,
-            bucket=TEST_BUCKET,
-            root='kge-data'
-        )
-        logger.info(f"test_compress_fileset(): s3_archive_key == {s3_archive_key}")
-        assert(s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_NAME}/{TEST_FILESET_VERSION}"
-                                 f"/archive/{TEST_KG_NAME+'_'+TEST_FILESET_VERSION}.tar.gz")
+        script_log = TemporaryFile()
+        with subprocess.Popen(
+            args=[
+                archive_script,
+                kg_id,
+                version
+            ],
+            stdout=script_log,
+            stderr=script_log
+        ) as proc:
+            proc.wait()
+            logger.info(
+                f"Finished running {_KGEA_ARCHIVER_SCRIPT}: " +
+                f"Return Code {proc.returncode}, log: {script_log.getvalue()}"
+            )
+            script_log.close()
     except Exception as e:
-        logger.error(e)
-        return False
-    return True
+        logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
+    return s3_archive_key
 
 
 def decompress_in_place(gzipped_key, location=None):
@@ -979,79 +629,6 @@ def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_
                 aggregated_file.write("\n")
                 
     return agg_path
-
-
-def test_aggregate_files():
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
-    try:
-        agg_path: str = aggregate_files(
-            bucket=TEST_BUCKET,
-            target_folder=target_folder,
-            target_name='nodes.tsv',
-            file_object_keys=[TEST_LARGE_NODES_FILE_KEY],
-            match_function=lambda x: True
-        )
-    except Exception as e:
-        print_error_trace("Error while unpacking archive?: " + str(e))
-        return False
-    
-    assert(agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes.tsv")
-    
-    return True
-
-
-def test_huge_aggregate_files():
-    """
-    NOTE: This test attempts transfer of a Huge pair or multi-gigabyte files in S3.
-    It is best to run this test on an EC2 server with the code.
-    
-    :return:
-    """
-    target_folder = f"kge-data/{TEST_LARGE_KG}/{TEST_LARGE_FS_VERSION}/archive"
-    try:
-        agg_path: str = aggregate_files(
-            bucket=TEST_BUCKET,
-            target_folder=target_folder,
-            target_name='nodes_plus_edges.tsv',
-            file_object_keys=[
-                TEST_HUGE_NODES_FILE_KEY,
-                TEST_HUGE_EDGES_FILE_KEY
-            ],
-            match_function=lambda x: True
-        )
-    except Exception as e:
-        print_error_trace("Error while unpacking archive?: " + str(e))
-        return False
-
-    assert (agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes_plus_edges.tsv")
-    
-    return True
-
-
-# @prepare_test
-# # @prepare_test_random_object_location
-# def test_download_file(test_object_location=None, test_bucket=TEST_BUCKET, test_kg_id=TEST_KG_NAME):
-#     try:
-#         with open(abspath(TEST_FILE_DIR + TEST_FILE_NAME), 'rb') as test_file:
-#             object_key = upload_file(test_file, test_file.name, test_bucket, get_object_location(test_kg_id))
-#             url = download_file(
-#                 bucket=test_bucket,
-#                 object_key=get_object_location(test_kg_id) + TEST_FILE_NAME,
-#                 open_file=False
-#             )  # open_file=False to affirm we won't trigger a browser action
-#             print(url)
-#             response = requests.get(url)
-#             assert (response.status_code == 200)
-#             # TODO: test for equal content from download response
-#     except FileNotFoundError as e:
-#         logger.error("Test is malformed!")
-#         logger.error(e)
-#         return False
-#     except AssertionError as e:
-#         logger.error('URL is not returning a downloadable resource (response code is not 200)')
-#         logger.error(e)
-#         return False
-#     return True
 
 
 def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -> Union[None, bytes, str]:
@@ -1188,13 +765,6 @@ def get_archive_contents(bucket_name: str) -> \
     return contents
 
 
-@prepare_test
-def test_get_archive_contents(test_bucket=TEST_BUCKET):
-    print("\ntest_get_archive_contents() test output:\n", file=stderr)
-    contents = get_archive_contents(test_bucket)
-    print(str(contents), file=stderr)
-
-
 def get_url_file_size(url: str) -> int:
     """
     Takes a URL specified resource, and gets its size (in bytes)
@@ -1205,43 +775,26 @@ def get_url_file_size(url: str) -> int:
     size: int = 0
     if url:
         try:
-            assert (validators.url(url))
+            assert (valid_url(url))
 
             # fetching the header information
             info = requests.head(url)
             content_length = info.headers['Content-Length']
             size: int = int(content_length)
             return size
+        except ValidationFailure:
+            logger.error(f"get_url_file_size(url: '{str(url)}') is invalid?")
+            return -2
+        except KeyError:
+            logger.error(f"get_url_file_size(url: '{str(url)}') doesnt have a 'Content-Length' value in its header?")
+            return -3
         except Exception as exc:
-            logger.error("get_url_file_size(url:" + str(url) + "): " + str(exc))
+            logger.error(f"get_url_file_size(url:'{str(url)}'): {str(exc)}")
             # TODO: invalidate the size invariant to propagate a call error
             # for now return -1 to encode the error state
             return -1
 
     return size
-
-
-def test_get_url_file_size():
-    url_resource_size: int = get_url_file_size(url=SMALL_TEST_URL)
-    assert (url_resource_size > 0)
-    logging.info(
-        f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
-        f" for url resource {SMALL_TEST_URL}"
-    )
-    url_resource_size = get_url_file_size(url=DIRECT_TRANSFER_TEST_LINK)
-    assert (url_resource_size > 0)
-    logging.info(
-        f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
-        f" for url resource {DIRECT_TRANSFER_TEST_LINK}"
-    )
-    url_resource_size= get_url_file_size(url="https://nonexistent.url")
-    assert (url_resource_size == 0)
-    url_resource_size = get_url_file_size(url='')
-    assert (url_resource_size == 0)
-    url_resource_size = get_url_file_size(url='abc')
-    assert (url_resource_size == 0)
-    
-    return True
 
 
 def upload_from_link(
@@ -1262,7 +815,7 @@ def upload_from_link(
     """
 
     # make sure we're getting a valid url
-    assert(validators.url(source))
+    assert(valid_url(source))
 
     # this will use the smart_open http client (given that `source` is a full url)
     """
@@ -1307,80 +860,6 @@ def upload_from_link(
         # TODO: what sort of post-cancellation processing is needed here?
 
 
-@prepare_test
-def test_upload_from_link(
-        test_bucket=TEST_BUCKET,
-        test_link=DIRECT_TRANSFER_TEST_LINK,
-        test_link_filename=DIRECT_TRANSFER_TEST_LINK_FILENAME,
-        test_kg=TEST_KG_NAME,
-        test_fileset_version=TEST_FILESET_VERSION,
-        log=False
-):
-    progress_monitor = None
-    
-    if log:
-        class ProgressPercentage(object):
-            """
-            Class to track percentage completion of an upload.
-            """
-            
-            REPORTING_INCREMENT: int = 100000
-            
-            def __init__(self, filename, file_size, cont=None):
-                self._filename = filename
-                self.size = file_size
-                self._seen_so_far = 0
-                self._report_threshold = self.REPORTING_INCREMENT
-                self.cont = cont
-            
-            def get_file_size(self):
-                """
-                :return: file size of the file being uploaded.
-                """
-                return self.size
-            
-            def __call__(self, bytes_amount):
-                # To simplify we'll assume this is hooked up
-                # to a single filename.
-                # with self._lock:
-                self._seen_so_far += bytes_amount
-                
-                if self.cont is not None:
-                    # cont lets us inject e.g. logging
-                    if self._seen_so_far > self._report_threshold:
-                        self.cont(self)
-                        self._report_threshold += self.REPORTING_INCREMENT
-        
-        # url = "https://speed.hetzner.de/100MB.bin"
-        # just a dummy file URL
-        info = requests.head(test_link)
-        # fetching the header information
-        print(info.headers['Content-Length'])
-        
-        progress_monitor = ProgressPercentage(
-            test_link_filename,
-            info.headers['Content-Length'],
-            cont=lambda progress: print('upload progress for link {} so far:'.format(test_link), progress._seen_so_far)
-        )
-    
-    print("\ntest_upload_from_link() test output:\n", file=stderr)
-    
-    object_key = f"{test_kg}/{test_fileset_version}/{test_link_filename}"
-    
-    try:
-        upload_from_link(
-            bucket=test_bucket,
-            object_key=object_key,
-            source=test_link,
-            callback=progress_monitor
-        )
-    except RuntimeError as rte:
-        print('Failed?: ' + str(rte))
-        return False
-    print('Success!')
-    return True
-
-
 """
 Unit Tests
 * Run each test function as an assertion if we are debugging the project
@@ -1400,39 +879,3 @@ def run_test(test_func):
     except Exception as e:
         logger.error("{} failed!".format(test_func.__name__))
         logger.error(e)
-
-
-if __name__ == '__main__':
-
-    import sys
-    import os
-
-    args = sys.argv[1:]
-    if len(args) == 2 and args[0] == '--testFile':
-        TEST_FILE_NAME = args[1]
-        print(TEST_FILE_NAME, getsize(abspath(TEST_FILE_DIR + TEST_FILE_NAME)), 'bytes')
-
-    print(
-        "Test Preconditions:\n\t{} {}\n\t{} {}\n\t{} {}\n\t{} {}".format(
-            "TEST_BUCKET", TEST_BUCKET,
-            "TEST_KG_NAME", TEST_KG_NAME,
-            "TEST_FILE_DIR", TEST_FILE_DIR,
-            "TEST_FILE_NAME", TEST_FILE_NAME
-        )
-    )
-
-    run_test(test_compress_fileset)
-
-    # run_test(test_kg_files_in_location)
-    # run_test(test_is_location_available)
-    # run_test(test_is_not_location_available)
-    #
-    # run_test(test_get_fileset_versions_available)
-    # run_test(test_create_presigned_url)
-    #
-    # run_test(test_upload_file_to_archive)
-    # # run_test(test_download_file)
-    #
-    # run_test(test_get_archive_contents)
-
-    print("tests complete")
