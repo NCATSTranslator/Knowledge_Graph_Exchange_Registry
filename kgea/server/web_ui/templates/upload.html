@@ -144,6 +144,7 @@ async function UploadFile(source) {
                 let file_name = document.getElementById("file_name").value;
 
                 document.getElementById("cancel_upload").disabled = false;
+                document.getElementById("done_uploading").disabled = true;
                 document.getElementById("content_from_url").disabled = true;
                 document.getElementById("content_from_local_file").disabled = true;
                 transfer_in_progress = true;
@@ -281,6 +282,7 @@ async function UploadFile(source) {
                     })
 
                     document.getElementById("cancel_upload").disabled = true;
+                    document.getElementById("done_uploading").disabled = false;
                     document.getElementById("content_from_url").disabled = false;
                     document.getElementById("content_from_local_file").disabled = false;
 
@@ -350,6 +352,7 @@ async function UploadFile(source) {
             formData.append("content_name", filename);
 
             document.getElementById("cancel_upload").disabled = false;
+            document.getElementById("done_uploading").disabled = true;
             document.getElementById("content_from_url").disabled = true;
             document.getElementById("content_from_local_file").disabled = true;
             transfer_in_progress = true;
@@ -485,6 +488,7 @@ async function UploadFile(source) {
             })
 
             document.getElementById("cancel_upload").disabled = true;
+            document.getElementById("done_uploading").disabled = false;
             document.getElementById("content_from_url").disabled = false;
             document.getElementById("content_from_local_file").disabled = false;
 
