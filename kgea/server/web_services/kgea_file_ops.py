@@ -555,25 +555,26 @@ def compress_fileset(
         script_env = environ.copy()
         script_env["KGE_BUCKET"] = bucket
         script_env["KGE_ROOT_DIRECTORY"] = root
-        script_log = TemporaryFile()
-        with subprocess.Popen(
-            args=[
-                archive_script,
-                kg_id,
-                version
-            ],
-            env=script_env,
-            stdout=script_log,
-            stderr=script_log
-        ) as proc:
-            proc.wait()
-            script_log.flush()
-            log_text = script_log.read()
-            logger.info(
-                f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}: " +
-                f"\n\tReturn Code {proc.returncode}, log:\n\t{log_text}"
-            )
-            script_log.close()
+        with TemporaryFile() as script_log:
+            with subprocess.Popen(
+                args=[
+                    archive_script,
+                    kg_id,
+                    version
+                ],
+                env=script_env,
+                stdout=script_log,
+                stderr=script_log
+            ) as proc:
+                proc.wait()
+                script_log.flush()
+                script_log.seek(0)
+                log_text = script_log.read()
+                logger.info(
+                    f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}: " +
+                    f"\n\tReturn Code {proc.returncode}, log:\n\t{log_text}"
+                )
+
     except Exception as e:
         logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
     
