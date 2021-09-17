@@ -854,7 +854,7 @@ async def upload_kge_file(
 
         tracker['status'] = KgeUploadProgressStatusCode.ONGOING
 
-        # create a wrapper of the upload_file function to modify status codes on success or failure
+        # TODO: create a wrapper of the upload_file function to modify status codes on success or failure
         def _upload_file(*args, **kwargs):
             try:
                 upload_file(*args, **kwargs)

@@ -404,13 +404,13 @@ async function UploadFile(source) {
                                 }
                                 progress_ratio = fake_progress / 1000
                             }
-                            let percentage = Math.min(progress_ratio * 100, 1).toFixed(1);
+                            let percentage = Math.min(progress_ratio * 100, 100).toFixed(1);
                             document.getElementById('percentage').textContent = `(${percentage}%)`;
                             let progressbar = $("#ldBar");
                             progressbar.progressbar({
                                 // ceil to err on the side of displaying progress
                                 // min to set a bound on how large progress can be (greater than 100% is 100%)
-                                value: Math.min(progress_ratio * 100, 1)
+                                value: Math.min(progress_ratio * 100, 100)
                             });
                             return j;
                         })
