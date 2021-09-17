@@ -8,7 +8,7 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 
-from os import sep as os_separator
+from os import sep as os_separator, environ
 from os.path import dirname, abspath, splitext
 import io
 import traceback
@@ -552,6 +552,9 @@ def compress_fileset(
     archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
     logger.debug(f"Archive Script: ({archive_script})")
     try:
+        script_env = environ.copy()
+        script_env["KGE_BUCKET"] = bucket
+        script_env["KGE_ROOT_DIRECTORY"] = root
         script_log = TemporaryFile()
         with subprocess.Popen(
             args=[
@@ -559,6 +562,7 @@ def compress_fileset(
                 kg_id,
                 version
             ],
+            env=script_env,
             stdout=script_log,
             stderr=script_log
         ) as proc:
