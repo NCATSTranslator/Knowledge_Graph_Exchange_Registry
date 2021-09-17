@@ -17,6 +17,7 @@ TEST_OUTPUT_DIR = Path(abspath(dirname(__file__))).joinpath("output")
 TEST_BUCKET = 'kgea-test-bucket'
 TEST_KG_NAME = 'test_kg'
 TEST_FS_VERSION = "1.0"
+TEST_OBJECT = "test_object.txt"
 
 TEST_SMALL_FILE = 'small_edges.tsv'
 TEST_SMALL_FILE_PATH = TEST_DATA_DIR.joinpath(TEST_SMALL_FILE)

@@ -532,10 +532,10 @@ def infix_string(name, infix, delimiter="."):
     return name
 
 
-async def compress_fileset(
+def compress_fileset(
     kg_id,
     version,
-    bucket,
+    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
     root='kge-data'
 ) -> str:
     """
@@ -549,7 +549,7 @@ async def compress_fileset(
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
     
-    archive_script = f"{dirname(abspath(__file__))}{os_separator}'scripts'{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
+    archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
     logger.debug(f"Archive Script: ({archive_script})")
     try:
         script_log = TemporaryFile()
@@ -611,7 +611,13 @@ def decompress_in_place(gzipped_key, location=None):
     return file_entries
 
 
-def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_function=lambda x: True) -> str:
+def aggregate_files(
+        target_folder,
+        target_name,
+        file_object_keys,
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        match_function=lambda x: True
+) -> str:
     """
     Aggregates files matching a match_function.
 
@@ -629,13 +635,43 @@ def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_
     with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
         file_object_keys = filter(match_function, file_object_keys)
         for file_object_key in file_object_keys:
-            target_key_uri = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{file_object_key}"
+            target_key_uri = f"s3://{bucket}/{file_object_key}"
             with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
                 for line in subfile:
                     aggregated_file.write(line)
                 aggregated_file.write("\n")
                 
     return agg_path
+
+
+def copy_file(
+        source_key,
+        target_dir,
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+):
+    """
+    Copies source_key text file into target_dir
+
+    :param bucket:
+    :param source_key:
+    :param target_dir:
+    :return:
+    """
+    if not (source_key and target_dir):
+        raise RuntimeError("copy_file_to_archive(): missing source_key or target_dir?")
+    
+    source_file_name = source_key.split("/")[-1]
+    target_key = f"{target_dir}/{source_file_name}"
+    
+    logger.debug(f"Copying {source_key} to {target_key}")
+    
+    copy_source = {
+        'Bucket': bucket,
+        'Key': source_key
+    }
+    s3_client().copy(copy_source, bucket, target_key)
+    
+    logger.debug(f"...copy completed!")
 
 
 def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -> Union[None, bytes, str]:

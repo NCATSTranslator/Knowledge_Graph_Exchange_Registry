@@ -91,9 +91,11 @@ from kgea.server.web_services.kgea_file_ops import (
     load_s3_text_file,
     compress_fileset,
     aggregate_files,
+    copy_file,
     upload_file,
     random_alpha_string,
-    decompress_in_place
+    decompress_in_place,
+    object_key_exists
 )
 
 from kgea.server.web_services.sha_utils import sha1_manifest
@@ -1937,6 +1939,62 @@ class KgeArchiver:
             cls._the_archiver = KgeArchiver()
         return cls._the_archiver
     
+    @staticmethod
+    def aggregate_to_archive(file_set: KgeFileSet, file_type: str, file_object_keys):
+        """
+        Wraps file aggregator for a given file type.
+        
+        :param file_set:
+        :param file_type:
+        :param file_object_keys:
+        """
+        file_type += ".tsv"
+        logger.info(f"Aggregating {file_type} files:")
+        try:
+            agg_path: str = aggregate_files(
+                target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
+                target_name=file_type,
+                file_object_keys=file_object_keys,
+                match_function=lambda x: file_type in x
+            )
+            logger.info(f"{file_type} path: {agg_path}")
+    
+        except Exception as e:
+            # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+            print_error_trace(f"{file_type} file aggregation failure! " + str(e))
+            raise e
+
+        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, file_type, 0, agg_path, '')
+    
+    @staticmethod
+    def copy_to_kge_archive(file_set: KgeFileSet, file_name: str):
+        """
+        Copy (meta)-data files to appropriate archive directory.
+        
+        :param file_set:
+        :param file_name:
+        """
+        logger.info(f"Copying over '{file_name}' file, if available:")
+        try:
+            # Simple exceptional source key case...
+            if file_name == "provider.yaml":
+                source_key = f"kge-data/{file_set.kg_id}/provider.yaml"
+            else:
+                source_key = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/{file_name}"
+            
+            if object_key_exists(object_key=source_key):
+                copy_file(
+                    source_key=source_key,
+                    target_dir=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive"
+                )
+            else:
+                logger.warning(f"{source_key} not found?")
+    
+        except Exception as e:
+            # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+            print_error_trace(f"Failure to copy '{file_name}' file?" + str(e))
+            raise e
+    
     async def worker(self, task_id=None):
         """
 
@@ -1970,63 +2028,33 @@ class KgeArchiver:
                 print_error_trace("Error while unpacking archive?: "+str(e))
                 raise e
 
-            logger.info("Aggregating node files:")
-            try:
-                node_path: str = aggregate_files(
-                    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
-                    target_name='nodes.tsv',
-                    file_object_keys=file_set.get_nodes(),
-                    match_function=lambda x: 'nodes.tsv' in x
-                )
-                logger.info(f"Node path: {node_path}")
+            # 2. Aggregate each of all nodes and edges each into their respective files in the archive folder
+            self.aggregate_to_archive(file_set, "nodes", file_set.get_nodes())
+            self.aggregate_to_archive(file_set, "edges", file_set.get_edges())
 
-            except Exception as e:
-                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Node file aggregation failure! "+str(e))
-                raise e
-            
-            logger.info("Aggregating edge files:")
-            try:
-                edge_path: str = aggregate_files(
-                    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
-                    target_name='edges.tsv',
-                    file_object_keys=file_set.get_edges(),
-                    match_function=lambda x: 'edges.tsv' in x
-                )
-                logger.info(f"Edge path: {edge_path}")
+            # 3. Copy over metadata files into the archive folder
+            self.copy_to_kge_archive(file_set, "provider.yaml")
+            self.copy_to_kge_archive(file_set, "file_set.yaml")
+            self.copy_to_kge_archive(file_set, "content_metadata.json")
 
-            except Exception as e:
-                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Edge file aggregation failure! "+str(e))
-                raise e
-
-            # add to fileset
-            file_set.add_data_file(KgeFileType.KGX_DATA_FILE, 'nodes.tsv', 0, node_path, '')
-            file_set.add_data_file(KgeFileType.KGX_DATA_FILE, 'edges.tsv', 0, edge_path, '')
-
-            # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
+            # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
             #    containing the aggregated nodes.tsv, edges.tsv,
             # Appending `file_set_root_key` with 'aggregates/' and 'archive/' to prevent multiple compress_fileset runs
             # from compressing the previous compression (so the source of files is distinct from the target written to)
-            logger.info("Compressing file set...", end='')
+            logger.info("Compressing total KGE file set...")
             try:
-                s3_archive_key: str = await compress_fileset(
+                s3_archive_key: str = compress_fileset(
                     kg_id=file_set.kg_id,
-                    version=file_set.fileset_version,
-                    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-                    root='kge-data'
+                    version=file_set.fileset_version
                 )
-
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
                 print_error_trace("File set compression failure! "+str(e))
                 raise e
 
-            logger.info("...Completed!")
+            logger.info("...File compression completed!")
 
-            # 4. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
+            # 5. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
             #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
             #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
             #  the catalog loading, for communication back to the user as part of the catalog metadata
@@ -2051,7 +2079,7 @@ class KgeArchiver:
                 print_error_trace("SHA1 hash sum computation failure! "+str(e))
                 raise e
 
-            # 5. KGX validation of KGE compliant archive.
+            # 6. KGX validation of KGE compliant archive.
             
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
             # TODO: need to managed multiple Biolink Model specific KGX validators
