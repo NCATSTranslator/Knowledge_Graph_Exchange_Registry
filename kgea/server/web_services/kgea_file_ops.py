@@ -549,7 +549,7 @@ def compress_fileset(
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
     
-    archive_script = f"{dirname(abspath(__file__))}{os_separator}'scripts'{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
+    archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
     logger.debug(f"Archive Script: ({archive_script})")
     try:
         script_log = TemporaryFile()
