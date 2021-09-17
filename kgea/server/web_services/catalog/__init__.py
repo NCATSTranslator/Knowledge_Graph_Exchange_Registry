@@ -1967,7 +1967,7 @@ class KgeArchiver:
         file_set.add_data_file(KgeFileType.KGX_DATA_FILE, file_type, 0, agg_path, '')
     
     @staticmethod
-    def copy_to_archive(file_set: KgeFileSet, file_name: str):
+    def copy_to_kge_archive(file_set: KgeFileSet, file_name: str):
         """
         Copy (meta)-data files to appropriate archive directory.
         
@@ -2033,9 +2033,9 @@ class KgeArchiver:
             self.aggregate_to_archive(file_set, "edges", file_set.get_edges())
 
             # 3. Copy over metadata files into the archive folder
-            self.copy_to_archive(file_set, "provider.yaml")
-            self.copy_to_archive(file_set, "file_set.yaml")
-            self.copy_to_archive(file_set, "content_metadata.json")
+            self.copy_to_kge_archive(file_set, "provider.yaml")
+            self.copy_to_kge_archive(file_set, "file_set.yaml")
+            self.copy_to_kge_archive(file_set, "content_metadata.json")
 
             # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
             #    containing the aggregated nodes.tsv, edges.tsv,
@@ -2043,7 +2043,7 @@ class KgeArchiver:
             # from compressing the previous compression (so the source of files is distinct from the target written to)
             logger.info("Compressing total KGE file set...")
             try:
-                s3_archive_key: str = await compress_fileset(
+                s3_archive_key: str = compress_fileset(
                     kg_id=file_set.kg_id,
                     version=file_set.fileset_version
                 )

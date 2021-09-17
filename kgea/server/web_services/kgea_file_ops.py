@@ -532,7 +532,7 @@ def infix_string(name, infix, delimiter="."):
     return name
 
 
-async def compress_fileset(
+def compress_fileset(
     kg_id,
     version,
     bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
@@ -659,17 +659,6 @@ def copy_file(
     """
     if not (source_key and target_dir):
         raise RuntimeError("copy_file_to_archive(): missing source_key or target_dir?")
-    
-    # source_key_uri = f"s3://{bucket}/{source_key}"
-    # source_file_name = source_key.split("/")[-1]
-    # target_key_uri = f"s3://{bucket}/{target_dir}/{source_file_name}"
-    # logger.debug(f"Copying {source_key_uri} to {target_key_uri}")
-    #
-    # TODO: just perform a simply Boto3 S3 copy here, right? Use of smart_open works but is not necessary...
-    # with smart_open.open(source_key_uri, 'w', encoding="utf-8", newline="\n") as source:
-    #     with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as target:
-    #         for line in source:
-    #             target.write(line)
     
     source_file_name = source_key.split("/")[-1]
     target_key = f"{target_dir}/{source_file_name}"
