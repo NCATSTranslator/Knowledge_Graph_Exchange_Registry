@@ -823,7 +823,7 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
                            "object_key: " + str(object_key) + ") threw exception: " + str(exc)
             logger.error(exc_msg)
             raise RuntimeError(exc_msg)
-    
+
     loop = asyncio.get_event_loop()
     loop.run_in_executor(None, threaded_upload)
 
@@ -853,11 +853,20 @@ async def upload_kge_file(
         tracker['end_position'] = get_pathless_file_size(uploaded_file.file)
 
         tracker['status'] = KgeUploadProgressStatusCode.ONGOING
-        
+
+        # create a wrapper of the upload_file function to modify status codes on success or failure
+        def _upload_file(*args, **kwargs):
+            try:
+                upload_file(*args, **kwargs)
+                tracker['status'] = KgeUploadProgressStatusCode.COMPLETED
+            except Exception as e:
+                tracker['status'] = KgeUploadProgressStatusCode.ERROR
+                raise e
+
         threaded_file_transfer(
             filename=uploaded_file.filename,
             tracker=tracker,
-            transfer_function=upload_file,
+            transfer_function=_upload_file,
             source=uploaded_file.file  # The raw file object (e.g. as a byte stream)
         )
         
@@ -891,7 +900,9 @@ async def kge_transfer_from_url(
     :return:
     """
     logger.debug("Entering kge_transfer_from_url()")
-    
+
+
+
     session = await get_session(request)
     if not session.empty:
         
@@ -912,11 +923,20 @@ async def kge_transfer_from_url(
             await report_error(request, f"kge_transfer_from_url({content_url}): unknown URL resource size?")
             
         tracker['status'] = KgeUploadProgressStatusCode.ONGOING
-        
+
+        # create a wrapper of the upload_from_link function to modify status codes
+        def _upload_from_link(*args, **kwargs):
+            try:
+                upload_from_link(*args, **kwargs)
+                tracker['status'] = KgeUploadProgressStatusCode.COMPLETED
+            except Exception as e:
+                tracker['status'] = KgeUploadProgressStatusCode.ERROR
+                raise e
+
         threaded_file_transfer(
             filename=content_name,
             tracker=tracker,
-            transfer_function=upload_from_link,
+            transfer_function=_upload_from_link,
             source=content_url
         )
         
