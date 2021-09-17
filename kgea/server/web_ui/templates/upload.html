@@ -435,19 +435,24 @@ async function UploadFile(source) {
                             throw Error('Upload failed! (End position set to -1 - check server logs for information)')
                         }
 
-                        if (received.status === "Ongoing") {
-                            if (_prev_position === received.current_position) {
-                                if (TIMEOUT_THRESHOLD > -1 && _timeout_count > TIMEOUT_THRESHOLD) {
-                                    throw Error('Upload timed out! Exceeded timeout threshold of '+(TIMEOUT_THRESHOLD*monitor_interval / 1000)+' seconds')
-                                }
-                                _timeout_count += 1
-                            }
+                        // if (received.status === "Ongoing") {
+                        //     if (_prev_position === received.current_position) {
+                        //         if (TIMEOUT_THRESHOLD > -1 && _timeout_count > TIMEOUT_THRESHOLD) {
+                        //             throw Error('Upload timed out! Exceeded timeout threshold of '+(TIMEOUT_THRESHOLD*monitor_interval / 1000)+' seconds')
+                        //         }
+                        //         _timeout_count += 1
+                        //     }
+                        //     _prev_position = received.current_position;
+                        //     return await later(monitor_interval, askForProgress).then(callback => execute(callback, _prev_position, _timeout_count))
+                        // } else if (received.status === "Completed") {
+                        //     return true;
+                        // } else if (received.status === "Error") {
+                        //     throw Error('Upload failed! (uploader exception - check server logs for information)')
+                        // }
+
+                        if (!(received.current_position === received.end_position)) {
                             _prev_position = received.current_position;
                             return await later(monitor_interval, askForProgress).then(callback => execute(callback, _prev_position, _timeout_count))
-                        } else if (received.status === "Completed") {
-                            return true;
-                        } else if (received.status === "Error") {
-                            throw Error('Upload failed! (uploader exception - check server logs for information)')
                         }
 
                     })
