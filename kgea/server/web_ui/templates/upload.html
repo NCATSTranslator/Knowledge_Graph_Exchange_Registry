@@ -532,32 +532,32 @@ function update_file_list(kgx_file_content, filename, status) {
 }
 
 async function DoneUploading(source) {
-    if(Boolean(transfer_in_progress)) {
-        if (await CancelUploading()) {
-            // ... then, ask what the user wants to do next...
-            if (!confirm("Continue with post-processing of the file set?")) {
-                try {
-                    let a = document.createElement("a");
-                    a.href = "/home";
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                } catch (e) {
-                    console.log("Cancellation error...", e);
-                }
-            }
-            /*
-             else, drop through to continue with
-             post-processing of the fileset
-            */
-        } else {
-            /*
-             Ignore the button - user wants to keep
-             uploading or transferring the file...
-            */
-            return;
-        }
-    }
+    // if(Boolean(transfer_in_progress)) {
+    //     if (await CancelUploading()) {
+    //         // ... then, ask what the user wants to do next...
+    //         if (!confirm("Continue with post-processing of the file set?")) {
+    //             try {
+    //                 let a = document.createElement("a");
+    //                 a.href = "/home";
+    //                 document.body.appendChild(a);
+    //                 a.click();
+    //                 a.remove();
+    //             } catch (e) {
+    //                 console.log("Cancellation error...", e);
+    //             }
+    //         }
+    //         /*
+    //          else, drop through to continue with
+    //          post-processing of the fileset
+    //         */
+    //     } else {
+    //         /*
+    //          Ignore the button - user wants to keep
+    //          uploading or transferring the file...
+    //         */
+    //         return;
+    //     }
+    // }
     // Otherwise, go to post-processing
     if (source.id === 'done_uploading') {
         try {
