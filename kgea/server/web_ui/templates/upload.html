@@ -423,7 +423,7 @@ async function UploadFile(source) {
                 }
 
                 // control flow for mutual recursion
-                async function execute(callback, _prev_position=0, _timeout_count=0) {
+                async function execute(callback, _prev_position=0, _timeout_count=0, ...args) {
                     return await callback(args).then(async received => {
                         // NOTE: Sometimes it takes awhile for received.end_position to initialize, particularly
                         // if the file size is > ~1GB (works fine at ~300mb). In that case, received.end_position
