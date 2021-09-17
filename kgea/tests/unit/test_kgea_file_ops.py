@@ -11,29 +11,30 @@ import requests
 from botocore.exceptions import ClientError
 
 from kgea.tests import (
-    TEST_DATA_DIR,
-    
     TEST_BUCKET,
+    
     TEST_KG_NAME,
     TEST_FS_VERSION,
     
     TEST_SMALL_FILE_PATH,
     TEST_SMALL_FILE_RESOURCE_URL,
     
+    TEST_LARGE_NODES_FILE,
     TEST_LARGE_NODES_FILE_KEY,
     TEST_LARGE_FILE_RESOURCE_URL,
     
     TEST_HUGE_NODES_FILE,
     TEST_HUGE_NODES_FILE_KEY,
     TEST_HUGE_EDGES_FILE_KEY,
-    TEST_HUGE_FILE_RESOURCE_URL, TEST_LARGE_NODES_FILE
+    TEST_HUGE_FILE_RESOURCE_URL, TEST_OBJECT
 )
 
 from kgea.server.web_services.kgea_file_ops import (
-    upload_from_link, get_url_file_size, get_archive_contents, aggregate_files, print_error_trace,
-    compress_fileset, kg_files_in_location, get_object_key, upload_file, with_version,
-    get_object_location, upload_file_multipart, create_presigned_url,
-    get_fileset_versions_available, random_alpha_string, s3_client, location_available
+    upload_from_link, get_url_file_size, get_archive_contents, aggregate_files,
+    print_error_trace, compress_fileset, kg_files_in_location, get_object_key,
+    upload_file, with_version, get_object_location, upload_file_multipart,
+    create_presigned_url, get_fileset_versions_available, random_alpha_string,
+    s3_client, location_available, copy_file, object_key_exists
 )
 
 logger = logging.getLogger(__name__)
@@ -55,13 +56,13 @@ def prepare_test_random_object_location(func):
         :return:
         """
         s3_client().put_object(
-            Bucket='kgea-test-bucket',
+            Bucket=TEST_BUCKET,
             Key=get_object_location(object_key)
         )
         result = func(test_object_location=get_object_location(object_key))
         # TODO: prevent deletion for a certain period of time
         s3_client().delete_object(
-            Bucket='kgea-test-bucket',
+            Bucket=TEST_BUCKET,
             Key=get_object_location(object_key)
         )
         return result
@@ -223,6 +224,41 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     return True
 
 
+def test_copy_file():
+    try:
+        testdir = "test-copy"
+        # TODO: how do I bootstrap this test?
+        source_key = f"{testdir}/{TEST_OBJECT}"
+        s3_client().put_object(
+            Bucket=TEST_BUCKET,
+            Key=source_key,
+            Body=b'Test Object'
+        )
+        
+        target_dir = f"{testdir}/target_dir"
+        
+        copy_file(
+            source_key=source_key,
+            target_dir=target_dir,
+            bucket=TEST_BUCKET
+        )
+        target_key = f"{target_dir}/{TEST_OBJECT}"
+        
+        assert(object_key_exists(object_key=target_key))
+
+        response = s3_client().list_objects_v2(Bucket=TEST_BUCKET, Prefix=testdir)
+
+        for obj in response['Contents']:
+            logger.debug(f"Deleting {obj['Key']}")
+            s3_client().delete_object(Bucket=TEST_BUCKET, Key=obj['Key'])
+        
+        assert (not object_key_exists(object_key=testdir))
+        
+    except Exception as e:
+        logger.error(e)
+        assert False
+
+
 async def test_compress_fileset():
     try:
         s3_archive_key: str = await compress_fileset(
@@ -245,10 +281,10 @@ def test_large_aggregate_files():
     target_folder = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
-            bucket=TEST_BUCKET,
             target_folder=target_folder,
             target_name='nodes.tsv',
             file_object_keys=[TEST_LARGE_NODES_FILE_KEY],
+            bucket=TEST_BUCKET,
             match_function=lambda x: True
         )
     except Exception as e:

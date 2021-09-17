@@ -535,7 +535,7 @@ def infix_string(name, infix, delimiter="."):
 async def compress_fileset(
     kg_id,
     version,
-    bucket,
+    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
     root='kge-data'
 ) -> str:
     """
@@ -611,7 +611,13 @@ def decompress_in_place(gzipped_key, location=None):
     return file_entries
 
 
-def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_function=lambda x: True) -> str:
+def aggregate_files(
+        target_folder,
+        target_name,
+        file_object_keys,
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        match_function=lambda x: True
+) -> str:
     """
     Aggregates files matching a match_function.
 
@@ -629,13 +635,54 @@ def aggregate_files(bucket, target_folder, target_name, file_object_keys, match_
     with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
         file_object_keys = filter(match_function, file_object_keys)
         for file_object_key in file_object_keys:
-            target_key_uri = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{file_object_key}"
+            target_key_uri = f"s3://{bucket}/{file_object_key}"
             with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
                 for line in subfile:
                     aggregated_file.write(line)
                 aggregated_file.write("\n")
                 
     return agg_path
+
+
+def copy_file(
+        source_key,
+        target_dir,
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+):
+    """
+    Copies source_key text file into target_dir
+
+    :param bucket:
+    :param source_key:
+    :param target_dir:
+    :return:
+    """
+    if not (source_key and target_dir):
+        raise RuntimeError("copy_file_to_archive(): missing source_key or target_dir?")
+    
+    # source_key_uri = f"s3://{bucket}/{source_key}"
+    # source_file_name = source_key.split("/")[-1]
+    # target_key_uri = f"s3://{bucket}/{target_dir}/{source_file_name}"
+    # logger.debug(f"Copying {source_key_uri} to {target_key_uri}")
+    #
+    # TODO: just perform a simply Boto3 S3 copy here, right? Use of smart_open works but is not necessary...
+    # with smart_open.open(source_key_uri, 'w', encoding="utf-8", newline="\n") as source:
+    #     with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as target:
+    #         for line in source:
+    #             target.write(line)
+    
+    source_file_name = source_key.split("/")[-1]
+    target_key = f"{target_dir}/{source_file_name}"
+    
+    logger.debug(f"Copying {source_key} to {target_key}")
+    
+    copy_source = {
+        'Bucket': bucket,
+        'Key': source_key
+    }
+    s3_client().copy(copy_source, bucket, target_key)
+    
+    logger.debug(f"...copy completed!")
 
 
 def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') -> Union[None, bytes, str]:
