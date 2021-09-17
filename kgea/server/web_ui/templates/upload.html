@@ -89,8 +89,8 @@ async function GetUrl(source) {
  * delay to 2.5 seconds per request
  */
 
-const TIMEOUT_THRESHOLD = 1;
-const monitor_interval = 2500;
+const TIMEOUT_THRESHOLD = -1;  // -1 means no timeout threshold
+const monitor_interval = 1500;
 let progress_ratio = 0;
 let transfer_in_progress = false;
 
@@ -237,44 +237,21 @@ async function UploadFile(source) {
                                     throw Error('Upload failed! (End position set to -1 - check server logs for information)')
                                 }
 
-                                // TODO: replace with status codes
-                                if (_prev_position === received.current_position) {
-                                    // if the previous position is equal to the current position, it means no packet has been changed
-                                        // is this a timeout?
-                                        // is the upload completed, but the end position is unknown?
-                                    if (received.current_position < received.end_position) {
-                                        // error
-                                        console.warn(
-                                            "Upload timing out? (Current position '" +
-                                            received.current_position.toString() +
-                                            "' is smaller than end position '" +
-                                            received.end_position.toString() +
-                                            "'?) and previous position equal to end position"
-                                        )
-                                        if (_timeout_count > TIMEOUT_THRESHOLD) {
-                                            throw Error('Upload timed out! (End position set to -1 - check server logs for information)')
+                                if (received.status === "Ongoing") {
+                                    if (_prev_position === received.current_position) {
+                                        if (TIMEOUT_THRESHOLD > -1 && _timeout_count > TIMEOUT_THRESHOLD) {
+                                            throw Error('Upload timed out! Exceeded timeout threshold of '+(TIMEOUT_THRESHOLD*monitor_interval / 1000)+' seconds')
                                         }
-                                    } else if (received.current_position > received.end_position) {
-                                        console.warn(
-                                            "Upload completed? (Current position '" +
-                                            received.current_position.toString() +
-                                            "' is greater than end position '" +
-                                            received.end_position.toString() +
-                                            "'?) and previous position equal to end position"
-                                        )
-                                        if (_timeout_count > TIMEOUT_THRESHOLD) {
-                                            // throw Error('Upload timed out! (End position set to -1 - check server logs for information)')
-                                            return true;
-                                        }
+                                        _timeout_count += 1
                                     }
-                                    _timeout_count += 1
-                                }
-                                if (!(received.current_position === received.end_position)) {
                                     _prev_position = received.current_position;
                                     return await later(monitor_interval, askForProgress).then(callback => execute(callback, _prev_position, _timeout_count))
+                                } else if (received.status === "Completed") {
+                                    return true;
+                                } else if (received.status === "Error") {
+                                    throw Error('Upload failed! (uploader exception - check server logs for information)')
                                 }
-                                // success
-                                return true;
+
                             })
                         }
 
@@ -446,7 +423,7 @@ async function UploadFile(source) {
                 }
 
                 // control flow for mutual recursion
-                async function execute(callback, ...args) {
+                async function execute(callback, _prev_position=0, _timeout_count=0, ...args) {
                     return await callback(args).then(async received => {
                         // NOTE: Sometimes it takes awhile for received.end_position to initialize, particularly
                         // if the file size is > ~1GB (works fine at ~300mb). In that case, received.end_position
@@ -457,21 +434,27 @@ async function UploadFile(source) {
                             // error
                             throw Error('Upload failed! (End position set to -1 - check server logs for information)')
                         }
-                        if (received.current_position > received.end_position) {
-                            // error
-                            throw Error(
-                                "Upload failed! (Current position '" +
-                                received.current_position.toString() +
-                                "' is larger than end position '" +
-                                received.end_position.toString() +
-                                "'?)"
-                            )
-                        }
+
+                        // if (received.status === "Ongoing") {
+                        //     if (_prev_position === received.current_position) {
+                        //         if (TIMEOUT_THRESHOLD > -1 && _timeout_count > TIMEOUT_THRESHOLD) {
+                        //             throw Error('Upload timed out! Exceeded timeout threshold of '+(TIMEOUT_THRESHOLD*monitor_interval / 1000)+' seconds')
+                        //         }
+                        //         _timeout_count += 1
+                        //     }
+                        //     _prev_position = received.current_position;
+                        //     return await later(monitor_interval, askForProgress).then(callback => execute(callback, _prev_position, _timeout_count))
+                        // } else if (received.status === "Completed") {
+                        //     return true;
+                        // } else if (received.status === "Error") {
+                        //     throw Error('Upload failed! (uploader exception - check server logs for information)')
+                        // }
+
                         if (!(received.current_position === received.end_position)) {
-                            return await later(monitor_interval, askForProgress).then(execute)
+                            _prev_position = received.current_position;
+                            return await later(monitor_interval, askForProgress).then(callback => execute(callback, _prev_position, _timeout_count))
                         }
-                        // success
-                        return true;
+
                     })
                 }
 
