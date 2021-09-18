@@ -572,7 +572,7 @@ def compress_fileset(
                 log_text = script_log.read()
                 logger.info(
                     f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}: " +
-                    f"\n\tReturn Code {proc.returncode}, log:\n\t{log_text}"
+                    f"\n\tReturn Code {proc.returncode}, log:\n\t{str(log_text)}"
                 )
 
     except Exception as e:
