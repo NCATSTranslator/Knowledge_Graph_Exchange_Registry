@@ -267,31 +267,34 @@ class KgeFileSet:
 
         if archive_record:
             # File Set read in from the Archive
-            # TODO: do we need to verify that the file set is indeed KGX compliant?
-            self.status = KgeFileSetStatusCode.LOADED
+            # TODO: how need verify that an archived KGE File Set is truly KGX compliant?
+            # self.status = KgeFileSetStatusCode.LOADED
+            self.status = KgeFileSetStatusCode.VALIDATED
         else:
             self.status = KgeFileSetStatusCode.CREATED
 
     def __str__(self):
         return f"File set version '{self.fileset_version}' of graph '{self.kg_id}'"
     
-    def report_error(self, msg: str):
+    def report_error(self, msg):
         """
-        
-        :param msg:
+        :param msg: single string message or list of string messages
         :return:
         """
-        logger.error(msg)
-        self.errors.append(msg)
-        self.status = KgeFileSetStatusCode.ERROR
+        if isinstance(msg, str):
+            msg = [msg]
+        logger.error("\n".join(msg))
+        lock = threading.Lock()
+        with lock:
+            self.errors.extend(msg)
+            self.status = KgeFileSetStatusCode.ERROR
 
-    def report_processing_status(self):
+    def get_file_set_status(self):
         """
-        Report post-processing of file set.
+        :return: KgeFileSetStatusCode of the KGE File Set
         """
-        logger.info("Post-processing KGX File Set")
-        self.status = KgeFileSetStatusCode.PROCESSING
-        
+        return self.status
+
     def get_kg_id(self):
         """
         :return: the knowledge graph identifier string
@@ -517,7 +520,7 @@ class KgeFileSet:
     ##########################################
     # KGE FileSet Publication to the Archive #
     ##########################################
-    async def publish(self) -> bool:
+    async def publish(self):
         """
         After a file_set is uploaded, publish file set in the Archive
         after post-processing the file set including generation of the
@@ -527,6 +530,9 @@ class KgeFileSet:
 
         :return: True if successful; False otherwise
         """
+        # Signal that the KGE File Set is in a post-processing state
+        self.status = KgeFileSetStatusCode.PROCESSING
+        
         try:
             # Publish a 'file_set.yaml' metadata file to the
             # versioned archive subdirectory containing the KGE File Set
@@ -545,92 +551,28 @@ class KgeFileSet:
                       f"' of knowledge graph '{self.kg_id}" + \
                       "' not successfully posted to the Archive?"
                 self.report_error(msg)
-                return False
+                return
             
         except Exception as exception:
             msg = f"publish(): {self.kg_id} {self.fileset_version} {str(exception)}"
             self.report_error(msg)
-            return False
+            return
 
         try:
-            self.report_processing_status()
-            
             archiver: KgeArchiver = KgeArchiver.get_archiver()
             archiver.create_workers(1)  # add worker capacity
             
             # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
             await archiver.process(self)
-
-            return True
         
         except TimeoutError:
             msg = "publish(): archiver.process() signalled TimeoutError"
             self.report_error(msg)
-            return False
         
         except Exception as error:
             msg = f"publish(): {str(error)}"
             self.report_error(msg)
-            return False
-
-    # async def publish_file_set(self, kg_id: str, fileset_version: str):
-    #
-    #     logger.info(
-    #         "Calling publish_file_set(" +
-    #         "fileset_version: '"+fileset_version+"' of graph kg_id: '"+kg_id+"')"
-    #     )
-    #
-    #     errors: List[str] = list()
-    #
-    #     if kg_id in self._kge_knowledge_graph_catalog:
-    #
-    #         knowledge_graph = self._kge_knowledge_graph_catalog[kg_id]
-    #
-    #         file_set = knowledge_graph.get_file_set(fileset_version)
-    #
-    #         if file_set:
-    #             errors = await file_set.publish_file_set()
-    #         else:
-    #             logger.warning(
-    #                 "publish_file_set(): KGE File Set version '" + str(fileset_version) +
-    #                 "' of knowledge graph '" + kg_id + "' is unrecognized?"
-    #             )
-    #
-    #         if not errors:
-    #             # After KGX validation and related post-processing is successfully validated,
-    #             # also publish provider metadata externally, to the Translator SmartAPI Registry
-    #             translator_registry_entry = knowledge_graph.generate_translator_registry_entry()
-    #
-    #             successful = add_to_github(kg_id, translator_registry_entry)
-    #             if not successful:
-    #                 logger.warning("publish_file_set(): Translator Registry entry not posted. " +
-    #                                "Is a valid 'github token' properly configured in site config.yaml?")
-    #         else:
-    #             logger.info("publish_file_set(): KGX validation errors encountered:\n" + str(errors))
-    #
-    #     else:
-    #         logger.error("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
-    #         errors.append("publish_file_set(): Unknown file set '" + kg_id + "' ... ignoring publication request")
-    #
-    #     return errors
-
-    #
-    # Delegating this error checking function to another part of the application.
-    #
-    # Next, ensure that the set of files for the current version are KGX validated.
-    # The content metadata file was checked separately when it was uploaded...
-    # (sanity check: self.content_metadata may not be initialized if no metadata file was uploaded?)
-    # if self.content_metadata and "errors" in self.content_metadata:
-    #     errors.extend(self.content_metadata["errors"])
-
-    # .. from the KGX graph (nodes and edges) data files, asynchronously checked here.
-    # errors.extend(await self.confirm_kgx_data_file_set_validation())
-    #
-    # logger.info("KGX format validation() completed for KGE File Set version '" + self.fileset_version +
-    #              "' of KGE Knowledge Graph '" + self.kg_id + "'")
-    #
-    # return errors
-
+            
     async def confirm_kgx_data_file_set_validation(self):
         """
         Confirms KGX validation of a file set.
@@ -642,15 +584,16 @@ class KgeFileSet:
             lock = threading.Lock()
             with lock:
                 if not data_file["kgx_compliant"]:
-                    errors.append(data_file["errors"])
+                    msg = data_file["errors"]
+                    if isinstance(msg, str):
+                        msg = [msg]
+                    errors.extend(msg)
 
         if not self.content_metadata["kgx_compliant"]:
             errors.append(self.content_metadata["errors"])
 
-        if not errors:
-            self.status = KgeFileSetStatusCode.VALIDATED
-        else:
-            self.status = KgeFileSetStatusCode.ERROR
+        if errors:
+            self.report_error(errors)
 
         return errors
 
@@ -2089,6 +2032,10 @@ class KgeArchiver:
             # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
             # KgxValidator.validate(self)
             
+            # Assume that the TAR.GZ archive of the
+            # KGE File Set is validated by this point
+            file_set.status = KgeFileSetStatusCode.VALIDATED
+            
             logger.info(f"KgeArchiver worker {task_id} finished archiving of {str(file_set)}")
 
             self._archiver_queue.task_done()
@@ -2329,30 +2276,17 @@ class KgxValidator:
                         input_format=input_format,
                         input_compression=input_compression
                     )
-                lock = threading.Lock()
-                with lock:
-                    if not validation_errors:
-                        file_set.status = KgeFileSetStatusCode.VALIDATED
-                    else:
-                        file_set.errors.extend(validation_errors)
-                        file_set.status = KgeFileSetStatusCode.ERROR
+                if validation_errors:
+                    file_set.report_error(validation_errors)
 
             elif file_type == KgeFileType.KGE_ARCHIVE:
                 # TODO: perhaps need more work to properly dissect and
                 #       validate a KGX Data archive? Maybe need to extract it
                 #       then get the distinct files for processing? Or perhaps,
                 #       more direct processing is feasible (with the KGX Transformer?)
-                lock = threading.Lock()
-                with lock:
-                    file_set.errors.append("KGE Archive validation is not yet implemented?")
-                    file_set.status = KgeFileSetStatusCode.ERROR
+                file_set.report_error("KGE Archive validation is not yet implemented?")
             else:
-                err_msg = f"WARNING: Unknown KgeFileType{file_type} ... Ignoring?"
-                logger.info(err_msg)
-                lock = threading.Lock()
-                with lock:
-                    file_set.errors.append(err_msg)
-                    file_set.status = KgeFileSetStatusCode.ERROR
+                file_set.report_error(f"WARNING: Unknown KgeFileType{file_type} ... Ignoring?")
 
             compliance: str = ' not ' if file_set.errors else ' '
             logger.info(
