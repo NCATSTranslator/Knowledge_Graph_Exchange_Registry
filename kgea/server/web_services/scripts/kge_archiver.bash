@@ -76,8 +76,7 @@ if [[ ! -f $aws ]]; then
 fi
 
 echo
-echo "Beginning archiving of file set version '$version' of knowledge graph '$knowledge_graph'"
-echo
+echo "Beginning creation of tar.gz archive for file set version '$version' of '$knowledge_graph'"
 
 # Folder of given versioned file set of the Knowledge Graph
 file_set=$knowledge_graph/$version
@@ -114,16 +113,19 @@ do
 done
 
 ## after archiving all of the files, compress them
+echo Running $gzip
 $gzip $tarfile
 
 ## copy the new archive file to s3
+echo Uploading $s3/$tarfile.gz archive
 $aws s3 cp  $aws_flags $tarfile.gz $s3/$tarfile.gz
 
 ## cleanup the local copy of the tar.gz file
+echo Deleting $tarfile.gz
 rm $tarfile.gz
 
 echo
-echo "...done archiving"
+echo "Done creating tar.gz archive for file set version '$version' of '$knowledge_graph'"
 
 # signal of success to other processes
 exit 0;
