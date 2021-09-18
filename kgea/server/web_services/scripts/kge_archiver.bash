@@ -102,13 +102,14 @@ for file in ${output[@]};
 do
   $aws s3 cp $aws_flags $s3/$file .
   if [ $? -eq 0 ] && [ -f $file ]; then
-     echo "- $file: archived!"
+     echo -n "- $file..."
      # use `rf` for tar to create if not exists,
      # append files if existing
      tar rf $tarfile $file
+     echo "archived!"
      rm $file
   else
-     echo "- $file: unavailable for archiving?"
+     echo "unavailable for archiving?"
   fi
 done
 
