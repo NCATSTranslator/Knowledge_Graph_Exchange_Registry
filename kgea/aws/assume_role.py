@@ -26,7 +26,9 @@ AWS_CONFIG_ROOT = home + "/.aws/"
 
 
 class AssumeRole:
-
+    """
+    AWS IAM 'AssumeRole' wrapper
+    """
     def __init__(
             self,
             host_account=aws_config['host_account'],
@@ -167,6 +169,12 @@ class AssumeRole:
             return dumps(credentials)
 
     def get_client(self, service: str, config: Optional[Config] = None):
+        """
+
+        :param service:
+        :param config:
+        :return:
+        """
         #
         # Get the temporary credentials, in a Python dictionary
         # with temporary AWS credentials of the form:
