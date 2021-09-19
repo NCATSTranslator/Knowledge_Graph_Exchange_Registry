@@ -398,12 +398,13 @@ def kg_files_for_version(
     """
     Returns a list of all the files associated with a
     given knowledge graph, for a given file set version.
-    
+
     :param kg_id: knowledge graph identifier
     :param fileset_version: semantic version ('major.minor') of the file set
-    :param bucket: S3 bucket
+    :param bucket: target S3 bucket (default: current config.yaml bucket)
+    :param match_function: (optional) lambda filter for list of file object keys returned
 
-    :return: Tuple [ list of file object keys, file set version found ]
+    :return: Tuple [ matched list of file object keys, file set version ] found
     """
     file_set_object_key, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
     
@@ -411,7 +412,7 @@ def kg_files_for_version(
         bucket_name=bucket,
         object_location=file_set_object_key,
     )
-    filtered_file_key_list = [ key for key in file_key_list if match_function(key)]
+    filtered_file_key_list = [key for key in file_key_list if match_function(key)]
     
     return filtered_file_key_list, fileset_version
 
