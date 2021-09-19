@@ -14,7 +14,7 @@ import io
 import traceback
 from sys import stderr, exc_info
 from tempfile import TemporaryFile
-from typing import Dict, Union, List, Optional
+from typing import Dict, Union, List, Optional, Tuple
 import subprocess
 
 import logging
@@ -370,7 +370,6 @@ def location_available(bucket_name, object_key) -> bool:
 
 def kg_files_in_location(bucket_name, object_location='') -> List[str]:
     """
-
     :param bucket_name:
     :param object_location:
     :return:
@@ -390,6 +389,33 @@ def kg_files_in_location(bucket_name, object_location='') -> List[str]:
     return object_matches
 
 
+def kg_files_for_version(
+        kg_id: str,
+        fileset_version: str,
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        match_function=lambda x: True
+) -> Tuple[List: str, str]:
+    """
+    Returns a list of all the files associated with a
+    given knowledge graph, for a given file set version.
+    
+    :param kg_id: knowledge graph identifier
+    :param fileset_version: semantic version ('major.minor') of the file set
+    :param bucket: S3 bucket
+
+    :return: Tuple [ list of file object keys, file set version found ]
+    """
+    file_set_object_key, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
+    
+    file_key_list = kg_files_in_location(
+        bucket_name=bucket,
+        object_location=file_set_object_key,
+    )
+    filtered_file_key_list = [ key for key in file_key_list if match_function(key)]
+    
+    return filtered_file_key_list, fileset_version
+
+
 def get_fileset_versions_available(bucket_name, kg_id=None):
     """
     A roster of all the versions that all knowledge graphs have been updated to.
@@ -407,7 +433,7 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
     :param kg_id:
     :return versions_per_kg: dict
     """
-    kg_files = kg_files_in_location(bucket_name)
+    kg_files = kg_files_in_location(bucket_name=bucket_name)
 
     def kg_id_to_versions(kg_file):
         """

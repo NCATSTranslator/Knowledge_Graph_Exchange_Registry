@@ -76,7 +76,6 @@ def test_get_fileset_versions_available(test_bucket=TEST_BUCKET):
         assert (type(fileset_version_map) is dict and len(fileset_version_map) > 0)
     except AssertionError as e:
         raise AssertionError(e)
-    return True
 
 
 def test_is_location_available(
@@ -84,12 +83,12 @@ def test_is_location_available(
     test_bucket=TEST_BUCKET
 ):
     try:
-        isRandomLocationAvailable = location_available(bucket_name=test_bucket, object_key=test_object_location)
-        return isRandomLocationAvailable
+        is_random_location_available = location_available(bucket_name=test_bucket, object_key=test_object_location)
+        return is_random_location_available
     except AssertionError as e:
         logger.error("location_available(): found a location that should not exist")
         logger.error(e)
-        return False
+        assert False
 
 
 # note: use this decorator only if the child function satisfies `test_object_location` in its arguments
@@ -107,8 +106,7 @@ def test_is_not_location_available(test_object_location=TEST_LARGE_NODES_FILE_KE
     except AssertionError as e:
         logger.error("ERROR: created location was not found")
         logger.error(e)
-        return False
-    return True
+        assert False
 
 
 # note: use this decorator only if the child function satisfies `test_object_location` in its arguments
@@ -119,7 +117,6 @@ def test_kg_files_in_location(test_object_location=TEST_LARGE_NODES_FILE_KEY, te
         assert (len(kg_file_list) > 0)
     except AssertionError as e:
         raise AssertionError(e)
-    return True
 
 
 def test_create_presigned_url(test_bucket=TEST_BUCKET):
@@ -128,11 +125,10 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET):
         create_presigned_url(bucket=test_bucket, object_key=get_object_location(TEST_KG_NAME))
     except AssertionError as e:
         logger.error(e)
-        return False
+        assert False
     except ClientError as e:
         logger.error(e)
-        return False
-    return True
+        assert False
 
 
 def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
@@ -150,16 +146,15 @@ def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
-        return False
+        assert False
     except ClientError as e:
         logger.error('The upload to S3 has failed!')
         logger.error(e)
-        return False
+        assert False
     except AssertionError as e:
         logger.error('The resulting path was not found inside of the knowledge graph folder!')
         logger.error(e)
-        return False
-    return True
+        assert False
 
 
 def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
@@ -176,16 +171,15 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
-        return False
+        assert False
     except ClientError as e:
         logger.error('The upload to S3 has failed!')
         logger.error(e)
-        return False
+        assert False
     except AssertionError as e:
         logger.error('The resulting path was not found inside of the knowledge graph folder!')
         logger.error(e)
-        return False
-    return True
+        assert False
 
 
 def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
@@ -209,19 +203,18 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
-        return False
+        assert False
     except ClientError as e:
         logger.error('ERROR: The upload to S3 has failed!')
         logger.error(e)
-        return False
+        assert False
     except AssertionError as e:
         logger.error(
             'The resulting path was not found inside of the ' +
             'knowledge graph folder, OR the timestamp isn\'t in the path!'
         )
         logger.error(e)
-        return False
-    return True
+        assert False
 
 
 def test_copy_file():
@@ -261,7 +254,7 @@ def test_copy_file():
 
 async def test_compress_fileset():
     try:
-        s3_archive_key: str = await compress_fileset(
+        s3_archive_key: str = compress_fileset(
             kg_id=TEST_KG_NAME,
             version=TEST_FS_VERSION,
             bucket=TEST_BUCKET,
@@ -272,9 +265,7 @@ async def test_compress_fileset():
                                   f"/archive/{TEST_KG_NAME + '_' + TEST_FS_VERSION}.tar.gz")
     except Exception as e:
         logger.error(e)
-        
-        return False
-    return True
+        assert False
 
 
 def test_large_aggregate_files():
@@ -289,11 +280,9 @@ def test_large_aggregate_files():
         )
     except Exception as e:
         print_error_trace("Error while unpacking archive?: " + str(e))
-        return False
+        assert False
     
     assert (agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes.tsv")
-    
-    return True
 
 
 @pytest.mark.skip(reason="Huge File Test not normally run")
@@ -318,11 +307,9 @@ def test_huge_aggregate_files():
         )
     except Exception as e:
         print_error_trace("Error while unpacking archive?: " + str(e))
-        return False
+        assert False
     
     assert (agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes_plus_edges.tsv")
-    
-    return True
 
 
 def test_get_archive_contents(test_bucket=TEST_BUCKET):
@@ -350,8 +337,6 @@ def test_get_url_file_size():
     assert (url_resource_size == 0)
     url_resource_size = get_url_file_size(url='abc')
     assert (url_resource_size < 0)
-    
-    return True
 
 
 def test_large_file_upload_from_link():
@@ -409,6 +394,12 @@ def wrap_upload_from_link(test_bucket, test_kg, test_fileset_version, test_link,
                 """
                 return self.size
 
+            def seen_so_far(self):
+                """
+                :return: bytes of file size seen so far, for the file being uploaded.
+                """
+                return self._seen_so_far
+            
             def __call__(self, bytes_amount):
                 # To simplify we'll assume this is hooked up
                 # to a single filename.
@@ -431,7 +422,7 @@ def wrap_upload_from_link(test_bucket, test_kg, test_fileset_version, test_link,
             test_link_filename,
             info.headers['Content-Length'],
             cont=lambda progress: print(
-                f"upload progress for link {test_link} so far: {progress._seen_so_far}",
+                f"upload progress for link {test_link} so far: {progress.seen_so_far()}",
                 file=stderr, flush=True
             )
         )
