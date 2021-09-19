@@ -8,7 +8,7 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 
-from os import sep as os_separator, environ
+from os import sep as os_separator, environ, getenv
 from os.path import dirname, abspath, splitext
 import io
 import traceback
@@ -20,7 +20,6 @@ import subprocess
 import logging
 
 import random
-import time
 
 import requests
 import smart_open
@@ -49,6 +48,9 @@ from kgea.config import (
 
 logger = logging.getLogger(__name__)
 
+# Master flag for local development runs bypassing authentication and other production processes
+DEV_MODE = getenv('DEV_MODE', default=False)
+
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
@@ -66,12 +68,163 @@ def print_error_trace(err_msg: str):
     traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
 
 
-#
-# Obtain an AWS S3 Client using an Assumed IAM Role
+#############################################
+# General Utility Functions for this Module #
+#############################################
+
+def run_script(
+        script,
+        args: List = (),
+        env: Optional = None
+):
+    """
+    Run a given script in the background, with
+     specified arguments and environment variables.
+
+    :param script: full OS path to the executable script.
+    :param args: command line arguments for the script
+    :param env: OS environment within which script should run (i.e. with any required environment variables set)
+    :return:
+    """
+    cmd: List = list()
+    cmd.append(script)
+    cmd.extend(args)
+    with TemporaryFile() as script_log:
+        with subprocess.Popen(
+                args=cmd,
+                env=env,
+                stdout=script_log,
+                stderr=script_log
+        ) as proc:
+            proc.wait()
+            script_log.flush()
+            script_log.seek(0)
+            log_text = script_log.read()
+            logger.info(
+                f"run_script({script}) Return Code {proc.returncode}, log:\n\t{str(log_text)}"
+            )
+
+
+# https://www.askpython.com/python/examples/generate-random-strings-in-python
+def random_alpha_string(length=8):
+    """
+
+    :param length:
+    :return:
+    """
+    random_string = ''
+    for _ in range(length):
+        # Considering only upper and lowercase letters
+        random_integer = random.randint(97, 97 + 26 - 1)
+        flip_bit = random.randint(0, 1)
+        # Convert to lowercase if the flip bit is on
+        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
+        # Keep appending random characters using chr(x)
+        random_string += (chr(random_integer))
+    return random_string
+
+
+def get_default_date_stamp():
+    """
+    Returns the default date stamp as 'now', as an ISO Format string 'YYYY-MM-DD'
+    :return:
+    """
+    return datetime.now().strftime('%Y-%m-%d')
+
+
+def infix_string(name, infix, delimiter="."):
+    """
+
+    :param name:
+    :param infix:
+    :param delimiter:
+    :return:
+    """
+    tokens = name.split(delimiter)
+    *pre_name, end_name = tokens
+    name = ''.join([delimiter.join(pre_name), infix, delimiter, end_name])
+    return name
+
+
+def get_pathless_file_size(data_file):
+    """
+    Takes an open file-like object, gets its end location (in bytes),
+    and returns it as a measure of the file size.
+
+    Traditionally, one would use a systems-call to get the size
+    of a file (using the `os` module). But `TemporaryFileWrapper`s
+    do not feature a location in the filesystem, and so cannot be
+    tested with `os` methods, as they require access to a filepath,
+    or a file-like object that supports a path, in order to work.
+
+    This function seeks the end of a file-like object, records
+    the location, and then seeks back to the beginning so that
+    the file behaves as if it was opened for the first time.
+    This way you can get a file's size before reading it.
+
+    (Note how we aren't using a `with` block, which would close
+    the file after use. So this function leaves the file open,
+    as an implicit non-effect. Closing is problematic for
+     TemporaryFileWrappers which wouldn't be operable again)
+
+    :param data_file:
+    :return size:
+    """
+    if not data_file.closed:
+        data_file.seek(0, 2)
+        size = data_file.tell()
+        print(size)
+        data_file.seek(0, 0)
+        return size
+    else:
+        return 0
+
+
+def get_url_file_size(url: str) -> int:
+    """
+    Takes a URL specified resource, and gets its size (in bytes)
+
+    :param url: resource whose size is being queried
+    :return size:
+    """
+    size: int = 0
+    if url:
+        try:
+            assert (valid_url(url))
+
+            # fetching the header information
+            info = requests.head(url)
+            content_length = info.headers['Content-Length']
+            size: int = int(content_length)
+            return size
+        except ValidationFailure:
+            logger.error(f"get_url_file_size(url: '{str(url)}') is invalid?")
+            return -2
+        except KeyError:
+            logger.error(f"get_url_file_size(url: '{str(url)}') doesn't have a 'Content-Length' value in its header?")
+            return -3
+        except Exception as exc:
+            logger.error(f"get_url_file_size(url:'{str(url)}'): {str(exc)}")
+            # TODO: invalidate the size invariant to propagate a call error
+            # for now return -1 to encode the error state
+            return -1
+
+    return size
+
+
+################################################
+# Wrapper for AWS IAM Role for the Application #
+################################################
+
+# Obtain an AWS Clients using an Assumed IAM Role
 # with default parameters (loaded from config.yaml)
 #
 the_role = AssumeRole()
 
+
+############################
+# AWS S3 client operations #
+############################
 
 def s3_client(
         assumed_role=the_role,
@@ -81,19 +234,17 @@ def s3_client(
         )
 ):
     """
-
     :param assumed_role:
     :param config:
-    :return:
+    :return: S3 client
     """
     return assumed_role.get_client('s3', config=config)
 
 
 def s3_resource(assumed_role=the_role):
     """
-
     :param assumed_role:
-    :return:
+    :return: S3 resource
     """
     return assumed_role.get_resource(
         's3',
@@ -121,25 +272,6 @@ def delete_location(bucket, kg_id):
     return s3_client().delete(Bucket=bucket, Key=get_object_location(kg_id))
 
 
-# https://www.askpython.com/python/examples/generate-random-strings-in-python
-def random_alpha_string(length=8):
-    """
-
-    :param length:
-    :return:
-    """
-    random_string = ''
-    for _ in range(length):
-        # Considering only upper and lowercase letters
-        random_integer = random.randint(97, 97 + 26 - 1)
-        flip_bit = random.randint(0, 1)
-        # Convert to lowercase if the flip bit is on
-        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
-        # Keep appending random characters using chr(x)
-        random_string += (chr(random_integer))
-    return random_string
-
-
 def get_object_location(kg_id):
     """
     NOTE: Must be kept deterministic. No date times or
@@ -147,14 +279,6 @@ def get_object_location(kg_id):
     """
     location = f"{_KGEA_APP_CONFIG['aws']['s3']['archive-directory']}/{kg_id}/"
     return location
-
-
-def get_default_date_stamp():
-    """
-    Returns the default date stamp as 'now', as an ISO Format string 'YYYY-MM-DD'
-    :return:
-    """
-    return datetime.now().strftime('%Y-%m-%d')
 
 
 # Don't use date stamp for versioning anymore
@@ -363,7 +487,7 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     :param attachment:
     :return:
     """
-    return f"{root}/{kg_id}/{fileset_version}{subdir + '/'}{attachment}"
+    return f"{root}/{kg_id}/{fileset_version}{subdir}/{attachment}"
 
 
 # def package_file_manifest(tar_path):
@@ -389,40 +513,6 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
 #                 "size": tarinfo.size
 #             }
 #         return manifest
-
-
-def get_pathless_file_size(data_file):
-    """
-    Takes an open file-like object, gets its end location (in bytes),
-    and returns it as a measure of the file size.
-
-    Traditionally, one would use a systems-call to get the size
-    of a file (using the `os` module). But `TemporaryFileWrapper`s
-    do not feature a location in the filesystem, and so cannot be
-    tested with `os` methods, as they require access to a filepath,
-    or a file-like object that supports a path, in order to work.
-
-    This function seeks the end of a file-like object, records
-    the location, and then seeks back to the beginning so that
-    the file behaves as if it was opened for the first time.
-    This way you can get a file's size before reading it.
-
-    (Note how we aren't using a `with` block, which would close
-    the file after use. So this function leaves the file open,
-    as an implicit non-effect. Closing is problematic for
-     TemporaryFileWrappers which wouldn't be operable again)
-
-    :param data_file:
-    :return size:
-    """
-    if not data_file.closed:
-        data_file.seek(0, 2)
-        size = data_file.tell()
-        print(size)
-        data_file.seek(0, 0)
-        return size
-    else:
-        return 0
 
 
 def get_object_key(object_location, filename):
@@ -518,20 +608,6 @@ def upload_file_multipart(
     return object_key
 
 
-def infix_string(name, infix, delimiter="."):
-    """
-
-    :param name:
-    :param infix:
-    :param delimiter:
-    :return:
-    """
-    tokens = name.split(delimiter)
-    *pre_name, end_name = tokens
-    name = ''.join([delimiter.join(pre_name), infix, delimiter, end_name])
-    return name
-
-
 def compress_fileset(
     kg_id,
     version,
@@ -539,52 +615,40 @@ def compress_fileset(
     root='kge-data'
 ) -> str:
     """
-
     :param kg_id:
     :param version:
     :param bucket:
     :param root:
     :return:
     """
-    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
+    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
-    
+
     archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
     logger.debug(f"Archive Script: ({archive_script})")
+    
+    script_env = environ.copy()
+    script_env["KGE_BUCKET"] = bucket
+    script_env["KGE_ROOT_DIRECTORY"] = root
+    
     try:
-        script_env = environ.copy()
-        script_env["KGE_BUCKET"] = bucket
-        script_env["KGE_ROOT_DIRECTORY"] = root
-        with TemporaryFile() as script_log:
-            with subprocess.Popen(
-                args=[
-                    archive_script,
-                    kg_id,
-                    version
-                ],
-                env=script_env,
-                stdout=script_log,
-                stderr=script_log
-            ) as proc:
-                proc.wait()
-                script_log.flush()
-                script_log.seek(0)
-                log_text = script_log.read()
-                logger.info(
-                    f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}: " +
-                    f"\n\tReturn Code {proc.returncode}, log:\n\t{str(log_text)}"
-                )
-
+        run_script(
+            script=archive_script,
+            args=[kg_id, version],
+            env=script_env
+        )
+        logger.info(f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}")
+        
     except Exception as e:
         logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
-    
+
     logger.info(f"Exiting compress_fileset({s3_archive_key})")
+    
     return s3_archive_key
 
 
 def decompress_in_place(gzipped_key, location=None):
     """
-
     :param gzipped_key:
     :param location:
     :return:
@@ -813,38 +877,6 @@ def get_archive_contents(bucket_name: str) -> \
     return contents
 
 
-def get_url_file_size(url: str) -> int:
-    """
-    Takes a URL specified resource, and gets its size (in bytes)
-
-    :param url: resource whose size is being queried
-    :return size:
-    """
-    size: int = 0
-    if url:
-        try:
-            assert (valid_url(url))
-
-            # fetching the header information
-            info = requests.head(url)
-            content_length = info.headers['Content-Length']
-            size: int = int(content_length)
-            return size
-        except ValidationFailure:
-            logger.error(f"get_url_file_size(url: '{str(url)}') is invalid?")
-            return -2
-        except KeyError:
-            logger.error(f"get_url_file_size(url: '{str(url)}') doesnt have a 'Content-Length' value in its header?")
-            return -3
-        except Exception as exc:
-            logger.error(f"get_url_file_size(url:'{str(url)}'): {str(exc)}")
-            # TODO: invalidate the size invariant to propagate a call error
-            # for now return -1 to encode the error state
-            return -1
-
-    return size
-
-
 def upload_from_link(
         bucket,
         object_key,
@@ -908,22 +940,60 @@ def upload_from_link(
         # TODO: what sort of post-cancellation processing is needed here?
 
 
-"""
-Unit Tests
-* Run each test function as an assertion if we are debugging the project
-"""
+###################################
+# AWS EC2 & EBS client operations #
+###################################
+
+def ec2_client(assumed_role=the_role):
+    """
+    :param assumed_role:
+    :return: EC2 client
+    """
+    return assumed_role.get_client('ec2')
 
 
-def run_test(test_func):
+def create_ebs_volume(size: int) -> str:
     """
-    Run a test function (timed)
-    :param test_func:
+    Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
+    The EBS volume is mounted by default on the (Linux) directory '/data' and formatted as a simple
+    
+    Note: is a 'no operation' in application 'DEV_MODE' thus  returns an empty string identifier.
+    
+    :param size: specified size (in gigabytes)
+    :return: EBS volume instance identifier
     """
-    try:
-        start = time.time()
-        assert (test_func())
-        end = time.time()
-        print("{} passed: {} seconds".format(test_func.__name__, end - start))
-    except Exception as e:
-        logger.error("{} failed!".format(test_func.__name__))
-        logger.error(e)
+    if DEV_MODE:
+        return ''
+    else:
+        raise RuntimeError("create_ebs_volume(): Not yet implemented!")
+
+
+def delete_ebs_volume(identifier: str):
+    """
+    Discards a given volume.
+    
+    :param identifier: EBS volume instance identifier
+    """
+    raise RuntimeError("create_ebs_volume(): Not yet implemented!")
+
+
+# DEPRECATED - Unit tests moved over to kgea 'tests' folder
+# """
+# Unit Tests
+# * Run each test function as an assertion if we are debugging the project
+# """
+#
+#
+# def run_test(test_func):
+#     """
+#     Run a test function (timed)
+#     :param test_func:
+#     """
+#     try:
+#         start = time.time()
+#         assert (test_func())
+#         end = time.time()
+#         print("{} passed: {} seconds".format(test_func.__name__, end - start))
+#     except Exception as e:
+#         logger.error("{} failed!".format(test_func.__name__))
+#         logger.error(e)
