@@ -6,7 +6,6 @@ credentials to execute an AWS Secure Token Service-mediated access
 to a Simple Storage Service (S3) bucket given as an argument.
 """
 import sys
-from json import dumps
 from os.path import abspath, dirname
 from pathlib import Path
 
@@ -15,6 +14,24 @@ from typing import List
 from botocore.config import Config
 
 from kgea.aws.assume_role import AssumeRole, aws_config
+
+
+def usage(err_msg: str = ''):
+    """
+
+    :param err_msg:
+    """
+    if err_msg:
+        print(err_msg)
+    print("Usage:\n")
+    print(
+        "\tpython -m kgea.aws."+Path(sys.argv[0]).stem +
+        " <operation> [<object_key>+|<prefix_filter>]\n\n" +
+        "where <operation> is one of upload, list, download, delete, delete-batch and test.\n\n"
+        "Note:\tone or more <object_key> strings are only required for 'delete' operation.\n" +
+        "\tA <prefix_filter> string is only required for 'delete-batch' operation.\n"
+    )
+    exit(0)
 
 
 def upload_file(client, bucket_name: str, filepath: str, object_key: str):
@@ -34,8 +51,9 @@ def upload_file(client, bucket_name: str, filepath: str, object_key: str):
     
     try:
         client.upload_file(filepath, bucket_name, object_key)
+        
     except Exception as exc:
-        raise RuntimeError("upload_file() exception: " + str(exc))
+        usage("upload_file() exception: " + str(exc))
 
 
 def get_object_keys(client, bucket_name: str, filter_prefix='') -> List[str]:
@@ -134,10 +152,7 @@ if __name__ == '__main__':
     s3_region_name: str = aws_config["s3"]["region"]
     s3_operation: str = ''
     
-    # Prompt user for target account ID, ExternalID and name of IAM Role
-    # to assume, in order to access an S3 bucket, whose name is given
     if len(sys.argv) > 1:
-        # default, for now, is to simply list the bucket contents
         s3_operation = sys.argv[1]
 
         assumed_role = AssumeRole()
@@ -164,7 +179,7 @@ if __name__ == '__main__':
                 object_key = sys.argv[3] if len(sys.argv) >= 4 else filepath
                 upload_file(s3_client, s3_bucket_name, filepath, object_key)
             else:
-                print("\nMissing path to file to upload?")
+                usage("\nMissing path to file to upload?")
 
         elif s3_operation.upper() == 'LIST':
             list_files(s3_client, s3_bucket_name)
@@ -175,7 +190,7 @@ if __name__ == '__main__':
                 filename = sys.argv[3] if len(sys.argv) >= 4 else object_key.split("/")[-1]
                 download_file(s3_client, s3_bucket_name, object_key, filename)
             else:
-                print("\nMissing S3 object key for file to download?")
+                usage("\nMissing S3 object key for file to download?")
         
         elif s3_operation.upper() == 'DELETE':
             if len(sys.argv) >= 3:
@@ -189,7 +204,7 @@ if __name__ == '__main__':
                 else:
                     print("Cancelling deletion of objects...")
             else:
-                print("\nMissing S3 key(s) of object(s) to delete?")
+                usage("\nMissing S3 key(s) of object(s) to delete?")
 
         elif s3_operation.upper() == 'DELETE-BATCH':
             if len(sys.argv) >= 3:
@@ -205,17 +220,9 @@ if __name__ == '__main__':
                 else:
                     print("Cancelling deletion of objects...")
             else:
-                print("\nMissing prefix filter for keys of S3 object(s) to delete?")
+                usage("\nMissing prefix filter for keys of S3 object(s) to delete?")
 
         else:
-            print("\nUnknown s3_operation: '" + s3_operation + "'")
+            usage("\nUnknown s3_operation: '" + s3_operation + "'")
     else:
-        print("Usage:\n")
-        print(
-            "\tpython -m kgea.aws."+Path(sys.argv[0]).stem +
-            " <operation> [<object_key>+|<prefix_filter>]\n\n" +
-            "where <operation> is one of upload, list, download, delete, delete-batch and test.\n\n"
-            "Note:\tone or more <object_key> strings are only required for 'delete' operation.\n" +
-            "\tA <prefix_filter> string is only required for 'delete-batch' operation.\n"
-        )
-        exit(0)
+        usage()

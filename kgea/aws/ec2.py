@@ -17,6 +17,10 @@ from kgea.aws.assume_role import AssumeRole
 
 
 def usage(err_msg: str = ''):
+    """
+
+    :param err_msg:
+    """
     if err_msg:
         print(err_msg)
     print("Usage: ")
@@ -49,9 +53,9 @@ if __name__ == '__main__':
         context = sys.argv[1].upper()
         action = sys.argv[2].upper()
         
-        if context == 'instance':
+        if context == 'INSTANCE':
             instance_ids = sys.argv[3:] if len(sys.argv) > 3 else None
-        elif context == 'keypair':
+        elif context == 'KEYPAIR':
             keypair_name = sys.argv[3] if len(sys.argv) > 3 else None
         else:
             usage("Unrecognized context argument: '" + context + "'")
@@ -114,14 +118,13 @@ if __name__ == '__main__':
                         response = ec2_client.delete_key_pair(KeyName=keypair_name, DryRun=False)
                     except ClientError as e:
                         usage(str(e))
-        
+    
                 else:
                     usage("Unrecognized 'Keypair' Action: " + action)
                     
                 exit(0)
             else:
                 usage("Missing key pair name for key pair action?")
-        
         
         if context == 'INSTANCE':
             if action == 'DESCRIBE':
@@ -168,7 +171,7 @@ if __name__ == '__main__':
                         print(dumps(response))
                     except ClientError as e:
                         usage(str(e))
-                        
+
                 elif action == 'REBOOT':
                     try:
                         ec2_client.reboot_instances(InstanceIds=instance_ids, DryRun=True)
@@ -176,13 +179,58 @@ if __name__ == '__main__':
                         if 'DryRunOperation' not in str(e):
                             print("You don't have permission to reboot instances.")
                             usage(str(e))
-                    
+
                     try:
                         response = ec2_client.reboot_instances(InstanceIds=instance_ids, DryRun=False)
                         print('Success', response)
                     except ClientError as e:
                         usage(str(e))
-                
+
+                elif action == 'CREATE_VOLUME':
+                    try:
+                        ec2_client.create_volume(
+                            AvailabilityZone='string',
+                            # Encrypted=True | False,
+                            # Iops=123,
+                            # KmsKeyId='string',
+                            # OutpostArn='string',
+                            # Size=123,
+                            # SnapshotId='string',
+                            
+                            
+                            VolumeType= 'st1', # 'standard' | 'io1' | 'io2' | 'gp2' | 'sc1' | 'st1' | 'gp3',
+                            # DryRun=True | False,
+                            # TagSpecifications=[
+                            #     {
+                            #         'ResourceType': 'capacity-reservation' | 'client-vpn-endpoint' | 'customer-gateway' | 'carrier-gateway' | 'dedicated-host' | 'dhcp-options' | 'egress-only-internet-gateway' | 'elastic-ip' | 'elastic-gpu' | 'export-image-task' | 'export-instance-task' | 'fleet' | 'fpga-image' | 'host-reservation' | 'image' | 'import-image-task' | 'import-snapshot-task' | 'instance' | 'instance-event-window' | 'internet-gateway' | 'ipv4pool-ec2' | 'ipv6pool-ec2' | 'key-pair' | 'launch-template' | 'local-gateway' | 'local-gateway-route-table' | 'local-gateway-virtual-interface' | 'local-gateway-virtual-interface-group' | 'local-gateway-route-table-vpc-association' | 'local-gateway-route-table-virtual-interface-group-association' | 'natgateway' | 'network-acl' | 'network-interface' | 'network-insights-analysis' | 'network-insights-path' | 'placement-group' | 'prefix-list' | 'replace-root-volume-task' | 'reserved-instances' | 'route-table' | 'security-group' | 'security-group-rule' | 'snapshot' | 'spot-fleet-request' | 'spot-instances-request' | 'subnet' | 'traffic-mirror-filter' | 'traffic-mirror-session' | 'traffic-mirror-target' | 'transit-gateway' | 'transit-gateway-attachment' | 'transit-gateway-connect-peer' | 'transit-gateway-multicast-domain' | 'transit-gateway-route-table' | 'volume' | 'vpc' | 'vpc-endpoint' | 'vpc-endpoint-service' | 'vpc-peering-connection' | 'vpn-connection' | 'vpn-gateway' | 'vpc-flow-log',
+                            #         'Tags': [
+                            #             {
+                            #                 'Key': 'string',
+                            #                 'Value': 'string'
+                            #             },
+                            #         ]
+                            #     },
+                            # ],
+                            # MultiAttachEnabled=True | False,
+                            # Throughput=123,
+                            # ClientToken='string'
+                            DryRun=True
+                        )
+                    except ClientError as e:
+                        if 'DryRunOperation' not in str(e):
+                            print("You don't have permission to create volumes.")
+                            usage(str(e))
+
+                    try:
+                        response = ec2_client.create_volume(
+                            AvailabilityZone='string',
+                            InstanceIds=instance_ids,
+                            DryRun=False
+                        )
+                        print('Success', response)
+                    except ClientError as e:
+                        usage(str(e))
+        
                 else:
                     print("Unrecognized EC2 'Instance' Action: " + action)
     else:
