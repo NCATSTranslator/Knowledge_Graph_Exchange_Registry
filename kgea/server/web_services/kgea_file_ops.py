@@ -1026,6 +1026,30 @@ def ec2_client(assumed_role=the_role):
     """
     return assumed_role.get_client('ec2')
 
+###################################################################################################
+# Dynamic EBS provisioning - steps
+#
+# KgeArchiver.worker():
+# 0.1 Calculate EBS storage needs for target activity
+# (step 2.0 - archiving.. see below), then proceed to step 1.1
+#
+# create_ebs_volume():
+# 1.1 (EC2 client) - Create a suitably sized EBS volume, via the EC2 client
+# 1.2 (EC2 client) - Associate the EBS volume with the EC2 instance running the application
+# 1.3 (Popen() run bash script) - Mount the EBS volume inside the EC2 instance
+# 1.4 (Popen() run bash script) - Format the EBS volume (might use a persistent EBS Snapshot in step 1 to avoid this?)
+#
+# compress_fileset():
+# 2.0 (Popen() run bash script) - Use the instance as the volume working space for target
+#     application activities (i.e. archiving). Likely need to set or change to the
+#     current working directory to one hosted on the target EBS volume.
+#
+# delete_ebs_volume():
+# 3.1 (Popen() run bash script) - Cleanly unmount EBS volume after it is no longer needed.
+# 3.2 (EC2 client) - Disassociate the EBS volume from the EC2 instance.
+# 3.3 (EC2 client) - Delete the instance (to avoid economic cost).
+###################################################################################################
+
 
 def create_ebs_volume(size: int) -> str:
     """
@@ -1040,6 +1064,7 @@ def create_ebs_volume(size: int) -> str:
     if DEV_MODE:
         return ''
     else:
+
         raise RuntimeError("create_ebs_volume(): Not yet implemented!")
 
 
