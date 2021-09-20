@@ -20,7 +20,7 @@ from botocore.exceptions import ClientError
 
 from .kgea_file_ops import (
     get_object_location,
-    kg_files_in_location,
+    object_keys_in_location,
     with_version
 )
 
@@ -247,7 +247,7 @@ def test_transfer_file_from_url(test_url, test_file_name, test_bucket, test_kg):
     try:
         test_object_location, _ = with_version(get_object_location)(test_kg)
         object_key = transfer_file_from_url(test_url, test_file_name, test_bucket, test_object_location)
-        assert(object_key in kg_files_in_location(test_bucket, test_object_location))
+        assert(object_key in object_keys_in_location(test_bucket, test_object_location))
     except ClientError as e:
         logger.error('The upload to S3 has failed!')
         logger.error(e)

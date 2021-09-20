@@ -59,7 +59,7 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     create_presigned_url,
-    kg_files_for_version,
+    object_keys_for_fileset_version,
     get_object_location,
     with_version,
     object_key_exists,
@@ -1195,7 +1195,7 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
         #       if the user uploads one or more tar.gz files
         #       which are meant to be partial input data without metadata?
         maybe_archive, _ = fileset_version = \
-            kg_files_for_version(
+            object_keys_for_fileset_version(
                 kg_id=kg_id,
                 fileset_version=fileset_version,
                 match_function=lambda x: ".tar.gz" in x
@@ -1248,7 +1248,7 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id: st
     if not session.empty:
 
         maybe_sha1hash, fileset_version = \
-            kg_files_for_version(
+            object_keys_for_fileset_version(
                 kg_id=kg_id,
                 fileset_version=fileset_version,
                 match_function=lambda x: "sha1.txt" in x

@@ -2,9 +2,10 @@
 Test Parameters + Decorator
 """
 from sys import stderr
+from os import getenv
+from functools import wraps
 
 import logging
-from functools import wraps
 
 import pytest
 import requests
@@ -13,8 +14,10 @@ from botocore.exceptions import ClientError
 from kgea.tests import (
     TEST_BUCKET,
     
-    TEST_KG_NAME,
+    TEST_KG_ID,
     TEST_FS_VERSION,
+
+    TEST_OBJECT,
     
     TEST_SMALL_FILE_PATH,
     TEST_SMALL_FILE_RESOURCE_URL,
@@ -22,24 +25,31 @@ from kgea.tests import (
     TEST_LARGE_NODES_FILE,
     TEST_LARGE_NODES_FILE_KEY,
     TEST_LARGE_FILE_RESOURCE_URL,
-    
+    TEST_LARGE_FILE_PATH,
+
     TEST_HUGE_NODES_FILE,
     TEST_HUGE_NODES_FILE_KEY,
     TEST_HUGE_EDGES_FILE_KEY,
-    TEST_HUGE_FILE_RESOURCE_URL, TEST_OBJECT
+    TEST_HUGE_FILE_RESOURCE_URL,
 )
 
 from kgea.server.web_services.kgea_file_ops import (
     upload_from_link, get_url_file_size, get_archive_contents, aggregate_files,
-    print_error_trace, compress_fileset, kg_files_in_location, get_object_key,
+    print_error_trace, compress_fileset, object_keys_in_location, get_object_key,
     upload_file, with_version, get_object_location, upload_file_multipart,
     create_presigned_url, get_fileset_versions_available, random_alpha_string,
-    s3_client, location_available, copy_file, object_key_exists
+    s3_client, location_available, copy_file, object_key_exists,
+    object_keys_for_fileset_version, object_folder_contents_size
 )
 
 logger = logging.getLogger(__name__)
+logger.setLevel("DEBUG")
 
 progress_tracking_on = True
+
+# Running the PyTests in DEV_MODE suppresses deletion of files in S3
+# Useful for debugging the tests
+DEV_MODE = getenv('DEV_MODE', default=False)
 
 
 def prepare_test_random_object_location(func):
@@ -91,7 +101,6 @@ def test_is_location_available(
         assert False
 
 
-# note: use this decorator only if the child function satisfies `test_object_location` in its arguments
 def test_is_not_location_available(test_object_location=TEST_LARGE_NODES_FILE_KEY, test_bucket=TEST_BUCKET):
     """
     Test in the positive:
@@ -109,20 +118,40 @@ def test_is_not_location_available(test_object_location=TEST_LARGE_NODES_FILE_KE
         assert False
 
 
-# note: use this decorator only if the child function satisfies `test_object_location` in its arguments
-def test_kg_files_in_location(test_object_location=TEST_LARGE_NODES_FILE_KEY, test_bucket=TEST_BUCKET):
+def test_object_keys_in_location(test_object_location=TEST_LARGE_NODES_FILE_KEY, test_bucket=TEST_BUCKET):
     try:
-        kg_file_list = kg_files_in_location(bucket_name=test_bucket, object_location=test_object_location)
+        kg_file_list = object_keys_in_location(bucket=test_bucket, object_location=test_object_location)
         # print(kg_file_list)
         assert (len(kg_file_list) > 0)
     except AssertionError as e:
         raise AssertionError(e)
 
 
+def test_object_folder_contents_size(
+        test_kg_id=TEST_KG_ID,
+        test_fileset_version=TEST_FS_VERSION,
+        test_bucket=TEST_BUCKET
+):
+    fk1 = _upload_test_file(test_subfolder='archive/')
+    fk2 = _upload_test_file(test_file_path=TEST_LARGE_FILE_PATH, test_subfolder='archive/')
+    
+    size = object_folder_contents_size(
+        kg_id=test_kg_id,
+        fileset_version=test_fileset_version,
+        bucket=test_bucket
+    )
+    logger.info(f"{test_kg_id}/{test_fileset_version} S3 bucket folder is {size} bytes in size")
+    
+    assert(size > 0)
+    
+    _delete_test_file(test_object_key=fk1)
+    _delete_test_file(test_object_key=fk2)
+
+
 def test_create_presigned_url(test_bucket=TEST_BUCKET):
     try:
         # TODO: write tests
-        create_presigned_url(bucket=test_bucket, object_key=get_object_location(TEST_KG_NAME))
+        create_presigned_url(bucket=test_bucket, object_key=get_object_location(TEST_KG_ID))
     except AssertionError as e:
         logger.error(e)
         assert False
@@ -131,18 +160,43 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET):
         assert False
 
 
-def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+def _upload_test_file(
+        test_bucket=TEST_BUCKET,
+        test_kg=TEST_KG_ID,
+        test_file_path=TEST_SMALL_FILE_PATH,
+        test_subfolder=''
+):
+    # NOTE: file must be read in binary mode!
+    logger.debug(f"_upload_test_file(): '{test_file_path}' in '{test_kg}' of '{test_bucket}'")
+    with open(test_file_path, 'rb') as test_file:
+        content_location, _ = with_version(get_object_location)(test_kg)
+        content_location = f"{content_location}{test_subfolder}"
+        object_key = get_object_key(content_location, test_file.name)
+        upload_file(
+            bucket=test_bucket,
+            object_key=object_key,
+            source=test_file,  # packaged_file - not really implemented? what was the idea behind it?
+        )
+        assert (object_key in object_keys_in_location(test_bucket, content_location))
+
+    return object_key
+
+
+def _delete_test_file(test_object_key, test_bucket=TEST_BUCKET):
+    # Suppress object deletion in DEV_MODE for test troubleshooting
+    # With DEV_MODE on, one needs to manually go into S3 and clean things up.
+    if not DEV_MODE:
+        logger.debug(f"_delete_test_file(): {test_object_key} in {test_bucket}")
+        s3_client().delete_object(Bucket=test_bucket, Key=test_object_key)
+
+
+def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
     try:
-        # NOTE: file must be read in binary mode!
-        with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
-            content_location, _ = with_version(get_object_location)(test_kg)
-            object_key = get_object_key(content_location, test_file.name)
-            upload_file(
-                bucket=test_bucket,
-                object_key=object_key,
-                source=test_file,  # packaged_file - not really implemented? what was the idea behind it?
-            )
-            assert (object_key in kg_files_in_location(test_bucket, content_location))
+        test_object_key = _upload_test_file(
+            test_bucket=test_bucket,
+            test_kg=test_kg,
+            test_subfolder='archive/'
+        )
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
         logger.error(e)
@@ -156,8 +210,24 @@ def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         logger.error(e)
         assert False
 
+    _delete_test_file(test_object_key=test_object_key, test_bucket=test_bucket)
 
-def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+
+def test_kg_files_for_version(
+        test_kg=TEST_KG_ID,
+        test_version=TEST_FS_VERSION,
+        test_bucket=TEST_BUCKET,
+):
+    file_list, _ = \
+        object_keys_for_fileset_version(
+            kg_id=test_kg,
+            fileset_version=test_version,
+            bucket=test_bucket
+        )
+    print(file_list)
+
+
+def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
     try:
 
         # NOTE: file must be read in binary mode!
@@ -166,7 +236,7 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
 
             object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
 
-            assert (object_key in kg_files_in_location(test_bucket, content_location))
+            assert (object_key in object_keys_in_location(test_bucket, content_location))
 
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -182,12 +252,11 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
         assert False
 
 
-def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
+def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
     """
     Use the "with_version" wrapper to modify the object location
     """
     try:
-
         test_location, time_created = with_version(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
         with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
@@ -197,7 +266,7 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_NAME):
                 object_key=object_key,
                 source=test_file,
             )
-            assert (object_key in kg_files_in_location(test_bucket, test_location))
+            assert (object_key in object_keys_in_location(test_bucket, test_location))
             assert (time_created in object_key)
 
     except FileNotFoundError as e:
@@ -255,21 +324,21 @@ def test_copy_file():
 async def test_compress_fileset():
     try:
         s3_archive_key: str = compress_fileset(
-            kg_id=TEST_KG_NAME,
+            kg_id=TEST_KG_ID,
             version=TEST_FS_VERSION,
             bucket=TEST_BUCKET,
             root='kge-data'
         )
         logger.info(f"test_compress_fileset(): s3_archive_key == {s3_archive_key}")
-        assert (s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}"
-                                  f"/archive/{TEST_KG_NAME + '_' + TEST_FS_VERSION}.tar.gz")
+        assert (s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_ID}/{TEST_FS_VERSION}"
+                                  f"/archive/{TEST_KG_ID + '_' + TEST_FS_VERSION}.tar.gz")
     except Exception as e:
         logger.error(e)
         assert False
 
 
 def test_large_aggregate_files():
-    target_folder = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/archive"
+    target_folder = f"kge-data/{TEST_KG_ID}/{TEST_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
             target_folder=target_folder,
@@ -293,7 +362,7 @@ def test_huge_aggregate_files():
 
     :return:
     """
-    target_folder = f"kge-data/{TEST_KG_NAME}/{TEST_FS_VERSION}/archive"
+    target_folder = f"kge-data/{TEST_KG_ID}/{TEST_FS_VERSION}/archive"
     try:
         agg_path: str = aggregate_files(
             bucket=TEST_BUCKET,
@@ -342,7 +411,7 @@ def test_get_url_file_size():
 def test_large_file_upload_from_link():
     wrap_upload_from_link(
         test_bucket=TEST_BUCKET,
-        test_kg=TEST_KG_NAME,
+        test_kg=TEST_KG_ID,
         test_fileset_version=TEST_FS_VERSION,
         test_link=TEST_LARGE_FILE_RESOURCE_URL,
         test_link_filename=TEST_LARGE_NODES_FILE
@@ -353,7 +422,7 @@ def test_large_file_upload_from_link():
 def test_huge_file_upload_from_link():
     wrap_upload_from_link(
         test_bucket=TEST_BUCKET,
-        test_kg=TEST_KG_NAME,
+        test_kg=TEST_KG_ID,
         test_fileset_version=TEST_FS_VERSION,
         test_link=TEST_HUGE_FILE_RESOURCE_URL,
         test_link_filename=TEST_HUGE_NODES_FILE,

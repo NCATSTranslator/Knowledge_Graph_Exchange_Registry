@@ -48,7 +48,7 @@ from kgea.config import (
 
 logger = logging.getLogger(__name__)
 
-# Master flag for local development runs bypassing authentication and other production processes
+# Master flag for local development, usually when code is not run inside an EC2 server
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 # Opaquely access the configuration dictionary
@@ -368,33 +368,48 @@ def location_available(bucket_name, object_key) -> bool:
         return True
 
 
-def kg_files_in_location(bucket_name, object_location='') -> List[str]:
+def object_entries_in_location(bucket, object_location='') -> Dict[str, int]:
     """
-    :param bucket_name:
+    :param bucket:
     :param object_location:
-    :return:
+    :return: dictionary of object entries with their size in specified
+             object location in a bucket (all bucket entries if object_location is empty)
     """
-    bucket_listings: List = list()
+    bucket_listings: Dict = dict()
     # print(s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket_name))
-    for p in s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket_name):
+    for p in s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket):
         if 'Contents' in p:
-            for e in p['Contents']:
-                bucket_listings.append(e['Key'])
+            for entry in p['Contents']:
+                bucket_listings[entry['Key']] = entry['Size']
         else:
-            return []  # empty bucket?
+            return {}  # empty bucket?
 
     # If object_location is the empty string, then each object
     # listed passes (since the empty string is part of every string)
-    object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
+    object_matches = {key: bucket_listings[key] for key in bucket_listings if object_location in key}
+    
     return object_matches
 
 
-def kg_files_for_version(
+def object_keys_in_location(bucket, object_location='') -> List[str]:
+    """
+    :param bucket:
+    :param object_location:
+    
+    :return: all object keys in specified object location of a
+             specified bucket (all bucket keys if object_location is empty)
+    """
+    key_catalog = object_entries_in_location(bucket, object_location=object_location)
+    
+    return list(key_catalog.keys())
+
+
+def object_keys_for_fileset_version(
         kg_id: str,
         fileset_version: str,
         bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
         match_function=lambda x: True
-) -> Tuple[List: str, str]:
+) -> Tuple[List[str], str]:
     """
     Returns a list of all the files associated with a
     given knowledge graph, for a given file set version.
@@ -406,15 +421,48 @@ def kg_files_for_version(
 
     :return: Tuple [ matched list of file object keys, file set version ] found
     """
-    file_set_object_key, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
+    target_fileset, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
     
-    file_key_list = kg_files_in_location(
-        bucket_name=bucket,
-        object_location=file_set_object_key,
-    )
-    filtered_file_key_list = [key for key in file_key_list if match_function(key)]
+    object_key_list: List[str] = \
+        object_keys_in_location(
+            bucket=bucket,
+            object_location=target_fileset,
+        )
+    filtered_file_key_list = list(filter(match_function, object_key_list))
     
     return filtered_file_key_list, fileset_version
+
+
+def object_folder_contents_size(
+        kg_id: str,
+        fileset_version: str,
+        object_subfolder='',
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+) -> int:
+    """
+    :param kg_id: knowledge graph identifier
+    :param fileset_version: semantic version ('major.minor') of the file set
+    :param bucket: target S3 bucket (default: current config.yaml bucket)
+    :param object_subfolder: subfolder path from root fileset path (default: empty - use fileset root path)
+
+    :return: total size of archived files (in bytes)
+    """
+    target_fileset, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
+    target_folder = f"{target_fileset}{object_subfolder}"
+    
+    logger.debug(f"object_folder_contents_size({target_folder})")
+    
+    object_key_catalog: Dict[str, int] = \
+        object_entries_in_location(
+            bucket=bucket,
+            object_location=target_folder,
+        )
+
+    total_size = 0
+    for size in object_key_catalog.values():
+        total_size += size
+    
+    return total_size
 
 
 def get_fileset_versions_available(bucket_name, kg_id=None):
@@ -434,7 +482,7 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
     :param kg_id:
     :return versions_per_kg: dict
     """
-    kg_files = kg_files_in_location(bucket_name=bucket_name)
+    all_object_keys = object_keys_in_location(bucket=bucket_name)
 
     def kg_id_to_versions(kg_file):
         """
@@ -460,7 +508,7 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
 
     versions_per_kg = {}
     version_kg_pairs = set(
-        kg_id_to_versions(kg_file) for kg_file in kg_files if kg_id and kg_file[0] is kg_id or True)
+        kg_id_to_versions(kg_file) for kg_file in all_object_keys if kg_id and kg_file[0] is kg_id or True)
 
     import itertools
     for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
@@ -822,7 +870,7 @@ def get_archive_contents(bucket_name: str) -> \
     :param bucket_name: The bucket
     :return: multi-level catalog of KGE knowledge graphs and associated versioned file sets from S3 storage
     """
-    all_files = kg_files_in_location(bucket_name=bucket_name)
+    all_object_keys = object_keys_in_location(bucket=bucket_name)
 
     contents: Dict[
         str,  # kg_id's of every KGE archived knowledge graph
@@ -844,7 +892,7 @@ def get_archive_contents(bucket_name: str) -> \
         ]
     ] = dict()
 
-    for file_path in all_files:
+    for file_path in all_object_keys:
 
         file_part = file_path.split('/')
         if len(file_part) > 0:
