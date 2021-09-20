@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 #
 # Shell script for *nix command line driven
-# archiving of a KGE File Set for downloading
+# archiving of a KGE File Set for downloading.
+#
+# Script performance constraints:
+# ------------------------------
+# NOTE: This script temporarily caches files from S3 onto the local hard drive, before tar'ing them.
+# Thus, the local drive must be large enough to accommodate the largest file downloaded, plus
+# space for the resulting tar file (which could be somewhat significant in size before gzip compression?)
 #
 # Mandatory Environment Variables:
 # -------------------------------
@@ -12,6 +18,10 @@ gzip=gzip
 # If multicore CPU's are available and compression speed is desired,
 # the 'parallel gz' (pigz; https://zlib.net/pigz/) could be used
 # gzip=pigz
+#
+# the --quiet switch suppresses AWS command output. Might wish to control this external to this script?
+#
+aws_flags=--quiet
 
 usage () {
     echo
@@ -66,8 +76,7 @@ if [[ ! -f $aws ]]; then
 fi
 
 echo
-echo "Beginning archiving of file set version '$version' of knowledge graph '$knowledge_graph'"
-echo
+echo "Beginning creation of tar.gz archive for file set version '$version' of '$knowledge_graph'"
 
 # Folder of given versioned file set of the Knowledge Graph
 file_set=$knowledge_graph/$version
@@ -91,29 +100,33 @@ echo
 echo Retrieve and tar files:
 for file in ${output[@]};
 do
-  $aws s3 cp $s3/$file .
+  $aws s3 cp $aws_flags $s3/$file .
   if [ $? -eq 0 ] && [ -f $file ]; then
-     echo "- $file: archived!"
+     echo -n "- $file..."
      # use `rf` for tar to create if not exists,
      # append files if existing
      tar rf $tarfile $file
+     echo "archived!"
      rm $file
   else
-     echo "- $file: unavailable for archiving?"
+     echo "unavailable for archiving?"
   fi
 done
 
 ## after archiving all of the files, compress them
+echo Running $gzip
 $gzip $tarfile
 
 ## copy the new archive file to s3
-$aws s3 cp $tarfile.gz $s3/$tarfile.gz
+echo Uploading $s3/$tarfile.gz archive
+$aws s3 cp  $aws_flags $tarfile.gz $s3/$tarfile.gz
 
 ## cleanup the local copy of the tar.gz file
+echo Deleting $tarfile.gz
 rm $tarfile.gz
 
 echo
-echo "...done archiving"
+echo "Done creating tar.gz archive for file set version '$version' of '$knowledge_graph'"
 
 # signal of success to other processes
 exit 0;

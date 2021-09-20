@@ -13,7 +13,7 @@ import time
 from .models import (
     KgeMetadata,
     UploadTokenObject,
-    UploadProgressToken
+    UploadProgressToken, KgeFileSetStatusCode
 )
 from .models.kge_upload_progress_status_code import KgeUploadProgressStatusCode
 from ...aws.assume_role import AssumeRole
@@ -433,27 +433,43 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             )
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+        
+        if not knowledge_graph:
+            await report_not_found(
+                request,
+                f"publish_kge_file_set() errors: unknown knowledge graph '{kg_id}'?"
+            )
+            
         file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
-        
-        published: bool = False
-        
-        if file_set:
-            logger.debug("\tPublishing fileset version '" + fileset_version + "' of graph '" + kg_id + "'")
+
+        if not file_set:
+            await report_not_found(
+                request,
+                f"publish_kge_file_set() errors: unknown '{fileset_version}' for knowledge graph '{kg_id}'?"
+            )
+            
+        if file_set.get_file_set_status() == KgeFileSetStatusCode.CREATED:
+            # Assume that it still needs to be processed
+            logger.debug(f"\tPublishing fileset version '{fileset_version}' of graph '{kg_id}'")
             try:
-                published = await file_set.publish()
+                await file_set.publish()
             except Exception as exception:
                 logger.error(str(exception))
     
-        if not published:
+        if file_set.get_file_set_status() == KgeFileSetStatusCode.ERROR:
             await report_error(
                 request,
                 f"publish_kge_file_set() errors: file set version '{fileset_version}' " +
-                f"for knowledge graph '{kg_id}' could not be published?"
+                f"for knowledge graph '{kg_id}' has errors thus could not be published?"
             )
 
+        # Should either be under PROCESSING or VALIDATED at this point.
         await redirect(
             request,
-            f"{SUBMISSION_CONFIRMATION}?kg_name={knowledge_graph.get_name()}&fileset_version={fileset_version}",
+            f"{SUBMISSION_CONFIRMATION}?" +
+            f"kg_name={knowledge_graph.get_name()}&" +
+            f"fileset_version={fileset_version}&" +
+            f"validated={str(file_set.get_file_set_status() == KgeFileSetStatusCode.VALIDATED)}",
             active_session=True
         )
 

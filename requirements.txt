@@ -2,10 +2,6 @@
 # connexion
 -e git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion
 
-# Bug fix and KGE troubleshooting patches to s3-tar
-# We can revert to master on the original project once PR processed (at https://github.com/xtream1101/s3-tar/pull/11)
--e git+https://github.com/STARInformatics/s3-tar.git@troubleshoot_s3_access#egg=s3-tar
-
 multidict~=4.7.6
 
 swagger-ui-bundle == 0.0.6
@@ -17,7 +13,6 @@ aiohttp_cors >= 0.7.0
 requests~=2.26.0
 botocore
 boto3
-s3-tar
 pyyaml~=5.4.1
 pytest~=6.2.4
 

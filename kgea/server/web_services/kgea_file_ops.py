@@ -8,7 +8,7 @@ o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
 
-from os import sep as os_separator
+from os import sep as os_separator, environ
 from os.path import dirname, abspath, splitext
 import io
 import traceback
@@ -552,24 +552,29 @@ def compress_fileset(
     archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
     logger.debug(f"Archive Script: ({archive_script})")
     try:
-        script_log = TemporaryFile()
-        with subprocess.Popen(
-            args=[
-                archive_script,
-                kg_id,
-                version
-            ],
-            stdout=script_log,
-            stderr=script_log
-        ) as proc:
-            proc.wait()
-            script_log.flush()
-            log_text = script_log.read()
-            logger.info(
-                f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}: " +
-                f"\n\tReturn Code {proc.returncode}, log:\n\t{log_text}"
-            )
-            script_log.close()
+        script_env = environ.copy()
+        script_env["KGE_BUCKET"] = bucket
+        script_env["KGE_ROOT_DIRECTORY"] = root
+        with TemporaryFile() as script_log:
+            with subprocess.Popen(
+                args=[
+                    archive_script,
+                    kg_id,
+                    version
+                ],
+                env=script_env,
+                stdout=script_log,
+                stderr=script_log
+            ) as proc:
+                proc.wait()
+                script_log.flush()
+                script_log.seek(0)
+                log_text = script_log.read()
+                logger.info(
+                    f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}: " +
+                    f"\n\tReturn Code {proc.returncode}, log:\n\t{str(log_text)}"
+                )
+
     except Exception as e:
         logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
     
