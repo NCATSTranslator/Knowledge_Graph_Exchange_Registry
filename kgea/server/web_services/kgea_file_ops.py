@@ -1027,17 +1027,20 @@ def ec2_client(assumed_role=the_role):
     return assumed_role.get_client('ec2')
 
 ###################################################################################################
-# Dynamic EBS provisioning - steps
+# Dynamic EBS provisioning steps, orchestrated by the KgeArchiver.worker() task which
+# direct calls methods using S3 and EC2 clients, plus an (steps 1.3, 1.4 plus 3.1) enhanced
+# version of the (step 2.0) kgea/server/web_services/scripts/kge_archiver.bash script.
 #
-# KgeArchiver.worker():
-# 0.1 Calculate EBS storage needs for target activity
+# object_folder_contents_size():
+# 0.1 (S3 client) - Calculate EBS storage needs for target activity
 # (step 2.0 - archiving.. see below), then proceed to step 1.1
 #
 # create_ebs_volume():
 # 1.1 (EC2 client) - Create a suitably sized EBS volume, via the EC2 client
 # 1.2 (EC2 client) - Associate the EBS volume with the EC2 instance running the application
 # 1.3 (Popen() run bash script) - Mount the EBS volume inside the EC2 instance
-# 1.4 (Popen() run bash script) - Format the EBS volume (might use a persistent EBS Snapshot in step 1 to avoid this?)
+# 1.4 (Popen() run bash script) - Format the EBS volume
+#     TODO: might try to configure and use a persistent EBS Snapshot in step 1 to accelerate this step?
 #
 # compress_fileset():
 # 2.0 (Popen() run bash script) - Use the instance as the volume working space for target
