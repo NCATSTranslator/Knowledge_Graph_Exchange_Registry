@@ -352,7 +352,7 @@ async def register_kge_file_set(request: web.Request):
         if not knowledge_graph:
             await report_not_found(
                 request,
-                "register_kge_file_set(): knowledge graph '" + kg_id + "' was not found in the catalog?",
+                f"register_kge_file_set(): knowledge graph '{kg_id}' was not found in the catalog?",
                 active_session=True
             )
 
@@ -433,11 +433,12 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             )
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
-        
+
         if not knowledge_graph:
             await report_not_found(
                 request,
-                f"publish_kge_file_set() errors: unknown knowledge graph '{kg_id}'?"
+                f"publish_kge_file_set(): knowledge graph '{kg_id}' was not found in the catalog?",
+                active_session=True
             )
             
         file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
@@ -1066,9 +1067,23 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
+        if not knowledge_graph:
+            await report_not_found(
+                request,
+                f"get_kge_file_set_metadata(): knowledge graph '{kg_id}' was not found in the catalog?",
+                active_session=True
+            )
+        
         try:
             file_set_metadata: KgeMetadata = knowledge_graph.get_metadata(fileset_version)
 
+            if not file_set_metadata:
+                await report_not_found(
+                    request,
+                    f"file_set_metadata(): file set metadata for knowledge graph '{kg_id}' is not available?",
+                    active_session=True
+                )
+            
             file_set_status_as_dict = file_set_metadata.to_dict()
 
             _sanitize_metadata(file_set_status_as_dict)
@@ -1090,12 +1105,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
         await redirect(request, LANDING_PAGE)
 
 
-async def kge_meta_knowledge_graph(
-        request: web.Request,
-        kg_id: str,
-        fileset_version: str,
-        downloading: bool = True
-):
+async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_version: str, downloading: bool = True):
     """Get supported relationships by source and target
 
     :param request:
@@ -1123,6 +1133,13 @@ async def kge_meta_knowledge_graph(
         
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
+        if not knowledge_graph:
+            await report_not_found(
+                request,
+                f"kge_meta_knowledge_graph(): knowledge graph '{kg_id}' was not found in the catalog?",
+                active_session=True
+            )
+            
         file_set_location, assigned_version = with_version(func=get_object_location, version=fileset_version)(kg_id)
 
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
