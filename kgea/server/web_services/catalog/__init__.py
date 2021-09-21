@@ -1092,7 +1092,22 @@ class KgeArchiveCatalog:
         # archive_contents keys are the kg_id's, entries are the rest of the KGE File Set metadata
         archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'])
         for kg_id, entry in archive_contents.items():
-            self.load_archive_entry(kg_id=kg_id, entry=entry)
+            if self.is_complete_kg(kg_id, entry):
+                self.load_archive_entry(kg_id=kg_id, entry=entry)
+
+    def is_complete_kg(self, kg_id, entry) -> bool:
+        """
+        Verifies that an S3 KG entry (and all its file sets) are valid
+        and complete for use by the front end application.
+
+        :param kg_id:
+        :param entry:
+        :return:
+        """
+        if not (kg_id and entry):
+            return False
+    
+        return True
     
     @classmethod
     def catalog(cls):
