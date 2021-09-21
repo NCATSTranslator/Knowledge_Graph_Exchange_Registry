@@ -21,6 +21,7 @@ The Translator Knowledge Graph Exchange Archive Web Server ("Archive") is an onl
     - [Operating System](#operating-system)
     - [Cloud Deployment](#cloud-deployment)
         - [Docker Storage Considerations on the Cloud](#docker-storage-considerations-on-the-cloud)
+        - [Extending AWS EBS Disk Sizes](#extending-aws-ebs-disk-sizes)
         - [Configuration for Amazon Web Services](#configuration-for-amazon-web-services)
     - [Installing Docker and Compose](#installing-docker-and-compose)
         - [Testing Docker Compose](#testing-docker-compose)
@@ -346,6 +347,14 @@ In effect, it is generally useful to host the entire portal and its associated d
     $ sudo ln -s /opt/docker /var/lib  
     
 Now, you can proceed to install Docker and Docker Compose.
+
+### Extending AWS EBS Disk Sizes
+
+If you need a larger disk size than originally allocated in an AMI / EC2 instance, see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html.
+
+See also [here](https://medium.com/geekculture/tutorial-how-to-extend-aws-ebs-volumes-with-no-downtime-ec7d9e82426e) and [here](https://unix.stackexchange.com/questions/546785/how-do-i-resize-this-aws-ec2-ubuntu-18-instance-from-16gb-to-100gb) for additional tips.
+
+Note that the KGE Archive uses its disk volumes for some hard drive storage intensive operations (i.e. tar.gz archiving of file sets) thus the allocated disk size may need to be increased in a similar manner to process huge data sets (unless dynamic provisioning of temporary 'scratch' EBS volumes is implemented, T.B.A.)
 
 ### Configuration for Amazon Web Services
 
