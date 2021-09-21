@@ -40,7 +40,7 @@ from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     redirect,
     with_session,
-    report_error
+    report_bad_request
 )
 from .kgea_users import (
     login_url,
@@ -129,13 +129,13 @@ async def kge_client_authentication(request: web.Request):
     error = request.query.get('error', default='')
     if error:
         error_description = request.query.get('error_description', default='')
-        await report_error(request, "User not authenticated. Reason: " + str(error_description))
+        await report_bad_request(request, "User not authenticated. Reason: " + str(error_description))
 
     code = request.query.get('code', default='')
     state = request.query.get('state', default='')
 
     if not (code and state):
-        await report_error(request, "User not authenticated. Reason: no authorization code returned?")
+        await report_bad_request(request, "User not authenticated. Reason: no authorization code returned?")
 
     user_attributes: Dict = await authenticate_user(code, state)
     
@@ -318,7 +318,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             missing.append("fileset_version")
 
         if missing:
-            await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
+            await report_bad_request(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
         
         context = {
             "kg_id": kg_id,
@@ -386,7 +386,7 @@ async def get_kge_data_unavailable(request: web.Request) -> web.Response:
         if not fileset_version:
             missing.append("fileset_version")
         if missing:
-            await report_error(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
+            await report_bad_request(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
             
         context = {
             "kg_name": kg_name,
