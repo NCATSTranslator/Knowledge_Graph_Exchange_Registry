@@ -5,6 +5,15 @@
             integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
             crossorigin="anonymous"></script>
     <script>
+        // function URLExists(url) {
+        //     const xhr = new XMLHttpRequest();
+        //     xhr.onreadystatechange = function() {
+        //         if (xhr.readyState == XMLHttpRequest.DONE) {
+        //             alert(xhr.responseText);
+        //         }
+        //     }
+        // }
+
         // empty catalog... needs to be retrieved from the back end
         let kgea_catalog = {};
         async function showVersions(selectObject) {
@@ -74,16 +83,18 @@
             // window.alert("ViewMetadata() URL: '" + metadata_url + "'");
 
             try {
+
                 let a = document.createElement('a');
                 a.href = metadata_url;
-
-                // we need to append the element to the DOM,
-                // otherwise it will not work in Firefox
+                // console.log(URLExists(a.href))
+                //
+                // // we need to append the element to the DOM,
+                // // otherwise it will not work in Firefox
                 document.body.appendChild(a);
-
-                a.click();
-
-                // afterwards we remove the element again
+                //
+                // a.click();
+                //
+                // // afterwards we remove the element again
                 a.remove();
 
             } catch(e) {
@@ -114,6 +125,7 @@
             try {
                 let a = document.createElement('a');
                 a.href = add_fs_url;
+                // console.log(URLExists(a.href))
 
                 // we need to append the element to the DOM,
                 // otherwise it will not work in Firefox
@@ -176,16 +188,16 @@
             try {
                 let a = document.createElement('a');
                 a.href = url;
+                // console.log(URLExists(a.href))
 
                 // we need to append the element to the DOM,
                 // otherwise it will not work in Firefox
-                document.body.appendChild(a);
+                // document.body.appendChild(a);
+                //
                 a.click();
-
+                //
                 // afterwards we remove the element again
                 a.remove();
-
-                // console.log('HTTP response code:', r.status);
 
             } catch(e) {
                console.log('File download error:', e);

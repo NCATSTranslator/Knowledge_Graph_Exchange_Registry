@@ -123,7 +123,9 @@ async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
     # Paranoia: can't see the catalog without being logged in a user session
     session = await get_session(request)
     if not session.empty:
-        catalog = KgeArchiveCatalog.catalog().get_kg_entries()
+        catalog = KgeArchiveCatalog.catalog().get_kg_entries(
+            ignore_without_filetype=KgeFileType.KGE_ARCHIVE
+        )
 
     # but don't need to propagate the user session to the output
     response = web.json_response(catalog, status=200)

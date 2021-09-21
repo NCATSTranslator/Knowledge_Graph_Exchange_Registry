@@ -210,6 +210,8 @@ class KgeFileType(Enum):
     KGX_CONTENT_METADATA_FILE = "KGX metadata file"
     KGX_DATA_FILE = "KGX data file"
     KGE_ARCHIVE = "KGE data archive"
+    KGE_NODES = "KGX nodes"
+    KGE_EDGES = "KGX edges"
 
 
 class KgeFileSet:
@@ -274,7 +276,7 @@ class KgeFileSet:
             self.status = KgeFileSetStatusCode.CREATED
 
     def __str__(self):
-        return f"File set version '{self.fileset_version}' of graph '{self.kg_id}'"
+        return f"File set version '{self.fileset_version}' of graph '{self.kg_id}': {self.data_files}"
     
     def report_error(self, msg):
         """
@@ -381,6 +383,16 @@ class KgeFileSet:
             lambda x: '.tar.gz' in x, self.get_data_file_object_keys()
         ))
         return archive_files_keys
+
+    def has(self, filetype):
+        if filetype is KgeFileType.KGE_ARCHIVE:
+            return len(self.get_archive_files_keys()) > 0
+        elif filetype is KgeFileType.KGE_NODES:
+            return len(self.get_nodes()) > 0
+        elif filetype is KgeFileType.KGE_EDGES:
+            return len(self.get_edges()) > 0
+        else:
+            return None
 
     # Note: content metadata file name is already normalized on S3 to 'content_metadata.yaml'
     def set_content_metadata_file(self, file_name: str, file_size: int, object_key: str, s3_file_url: str):
@@ -1315,7 +1327,7 @@ class KgeArchiveCatalog:
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
 
-    def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
+    def get_kg_entries(self, ignore_without_filetype=None) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
         """
 
         :return:
@@ -1337,9 +1349,15 @@ class KgeArchiveCatalog:
             # The real content of the catalog
             catalog: Dict[str,  Dict[str, Union[str, List[str]]]] = dict()
             for kg_id, knowledge_graph in self._kge_knowledge_graph_catalog.items():
+
+                # We only want to show graphs that either satisfy the existence of a filetype,
+                # or a certain completion code. We do this now.
+                versions = knowledge_graph.get_version_names()
+                filtered_versions = [version for version in versions if knowledge_graph.get_file_set(version).has(filetype=ignore_without_filetype)]
+
                 catalog[kg_id] = dict()
                 catalog[kg_id]['name'] = knowledge_graph.get_name()
-                catalog[kg_id]['versions'] = knowledge_graph.get_version_names()
+                catalog[kg_id]['versions'] = filtered_versions
 
         return catalog
 
