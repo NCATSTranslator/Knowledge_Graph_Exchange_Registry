@@ -53,7 +53,7 @@ from .kgea_session import (
     redirect,
     download,
     with_session,
-    report_error,
+    report_bad_request,
     report_not_found
 )
 
@@ -166,7 +166,7 @@ async def register_kge_knowledge_graph(request: web.Request):
         kg_name = data['kg_name']
 
         if not kg_name:
-            await report_error(request, "register_kge_knowledge_graph(): knowledge graph name is unspecified?")
+            await report_bad_request(request, "register_kge_knowledge_graph(): knowledge graph name is unspecified?")
 
         # kg_description: detailed description of knowledge graph (may be multi-lined with '\n')
         kg_description = data['kg_description']
@@ -192,7 +192,7 @@ async def register_kge_knowledge_graph(request: web.Request):
             if license_name in _known_licenses:
                 license_url = _known_licenses[license_name]
             elif license_name != "Other":
-                await report_error(
+                await report_bad_request(
                     request,
                     "register_kge_knowledge_graph(): unknown licence_name: '" + license_name + "'?"
                 )
@@ -354,7 +354,7 @@ async def register_kge_file_set(request: web.Request):
         if not knowledge_graph:
             await report_not_found(
                 request,
-                "register_kge_file_set(): knowledge graph '" + kg_id + "' was not found in the catalog?",
+                f"register_kge_file_set(): knowledge graph '{kg_id}' was not found in the catalog?",
                 active_session=True
             )
 
@@ -372,7 +372,7 @@ async def register_kge_file_set(request: web.Request):
                     # existing file set for specified version... hmm... what do I do here?
                     if DEV_MODE:
                         # TODO: need to fail more gracefully here
-                        await report_error(
+                        await report_bad_request(
                             request,
                             "register_kge_file_set(): encountered duplicate file set version '" +
                             fileset_version + "' for knowledge graph '" + kg_id + "'?",
@@ -435,11 +435,12 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             )
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
-        
+
         if not knowledge_graph:
             await report_not_found(
                 request,
-                f"publish_kge_file_set() errors: unknown knowledge graph '{kg_id}'?"
+                f"publish_kge_file_set(): knowledge graph '{kg_id}' was not found in the catalog?",
+                active_session=True
             )
             
         file_set: KgeFileSet = knowledge_graph.get_file_set(fileset_version)
@@ -459,7 +460,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
                 logger.error(str(exception))
     
         if file_set.get_file_set_status() == KgeFileSetStatusCode.ERROR:
-            await report_error(
+            await report_bad_request(
                 request,
                 f"publish_kge_file_set() errors: file set version '{fileset_version}' " +
                 f"for knowledge graph '{kg_id}' has errors thus could not be published?"
@@ -515,18 +516,18 @@ async def _validate_and_set_up_archive_target(
     # """
     if not kg_id:
         # must not be empty string
-        await report_error(request, "_validate_and_set_up_archive_target(): empty Knowledge Graph Identifier?")
+        await report_bad_request(request, "_validate_and_set_up_archive_target(): empty Knowledge Graph Identifier?")
     
     if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
         # must not be empty string
-        await report_error(
+        await report_bad_request(
             request,
             f"_validate_and_set_up_archive_target(): empty or invalid KGX file content type: '{kgx_file_content}'?"
         )
     
     if not content_name:
         # must not be empty string
-        await report_error(request, "_validate_and_set_up_archive_target(): empty Content Name?")
+        await report_bad_request(request, "_validate_and_set_up_archive_target(): empty Content Name?")
     
     # """
     # END Error Handling
@@ -926,7 +927,7 @@ async def kge_transfer_from_url(
         
         if not content_url:
             # must not be empty string
-            await report_error(request, "kge_transfer_from_url(): empty Content URL?")
+            await report_bad_request(request, "kge_transfer_from_url(): empty Content URL?")
         
         logger.debug("kge_transfer_from_url(): content_url == '" + content_url + "')")
         
@@ -938,7 +939,7 @@ async def kge_transfer_from_url(
         tracker['end_position'] = get_url_file_size(content_url)
         
         if tracker['end_position'] <= 0:
-            await report_error(request, f"kge_transfer_from_url({content_url}): unknown URL resource size?")
+            await report_bad_request(request, f"kge_transfer_from_url({content_url}): unknown URL resource size?")
             
         tracker['status'] = KgeUploadProgressStatusCode.ONGOING
 
@@ -998,7 +999,7 @@ async def cancel_kge_upload(request: web.Request, upload_token):
         
         if not upload_token:
             # must not be empty string
-            await report_error(request, "cancel_kge_upload(): can't cancel an empty upload_token?")
+            await report_bad_request(request, "cancel_kge_upload(): can't cancel an empty upload_token?")
         
         # TODO: trigger deletion of the current upload/transfer operation here(?)
         logger.info(f"cancel_kge_upload() called for upload token '{upload_token}'")
@@ -1068,9 +1069,23 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
 
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
+        if not knowledge_graph:
+            await report_not_found(
+                request,
+                f"get_kge_file_set_metadata(): knowledge graph '{kg_id}' was not found in the catalog?",
+                active_session=True
+            )
+        
         try:
             file_set_metadata: KgeMetadata = knowledge_graph.get_metadata(fileset_version)
 
+            if not file_set_metadata:
+                await report_not_found(
+                    request,
+                    f"file_set_metadata(): file set metadata for knowledge graph '{kg_id}' is not available?",
+                    active_session=True
+                )
+            
             file_set_status_as_dict = file_set_metadata.to_dict()
 
             _sanitize_metadata(file_set_status_as_dict)
@@ -1080,7 +1095,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
             return await with_session(request, response)
 
         except RuntimeError as rte:
-            await report_error(
+            await report_bad_request(
                 request,
                 "get_kge_file_set_metadata() errors: file set version '" +
                 fileset_version + "' for knowledge graph '" + kg_id + "'" +
@@ -1092,12 +1107,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
         await redirect(request, LANDING_PAGE)
 
 
-async def kge_meta_knowledge_graph(
-        request: web.Request,
-        kg_id: str,
-        fileset_version: str,
-        downloading: bool = True
-):
+async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_version: str, downloading: bool = True):
     """Get supported relationships by source and target
 
     :param request:
@@ -1125,6 +1135,13 @@ async def kge_meta_knowledge_graph(
         
         knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
 
+        if not knowledge_graph:
+            await report_not_found(
+                request,
+                f"kge_meta_knowledge_graph(): knowledge graph '{kg_id}' was not found in the catalog?",
+                active_session=True
+            )
+            
         file_set_location, assigned_version = with_version(func=get_object_location, version=fileset_version)(kg_id)
 
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE

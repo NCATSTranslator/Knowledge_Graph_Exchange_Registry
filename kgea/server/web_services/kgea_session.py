@@ -165,7 +165,7 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
             session['email'] = user_attributes.setdefault("email", '')
     
     except RuntimeError as rte:
-        await report_error(request, "initialize_user_session() ERROR: " + str(rte))
+        await report_bad_request(request, "initialize_user_session() ERROR: " + str(rte))
 
 
 async def with_session(request, response):
@@ -179,7 +179,7 @@ async def with_session(request, response):
         session = await get_session(request)
         await KgeaSession.save_session(request, response, session)
     except RuntimeError as rte:
-        await report_error(request, "kgea_session.with_session() RuntimeError: " + str(rte))
+        await report_bad_request(request, "kgea_session.with_session() RuntimeError: " + str(rte))
     
     return response
 
@@ -253,7 +253,7 @@ async def report_not_found(request, reason: str, active_session: bool = False):
     )
 
 
-async def report_error(request, reason: str, active_session: bool = False):
+async def report_bad_request(request, reason: str, active_session: bool = False):
     """
 
     :param request:
