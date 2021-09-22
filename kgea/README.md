@@ -289,7 +289,9 @@ $ docker stop kge-test-run
 
 # Deployment for Production
 
-The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a Linux server or virtual machine (e.g. on an AWS EC2 cloud server instance).
+The KGE Archive can be run as a standalone application but for production deployments, the KGE Archive system is typically run within a **Docker** container when the application is run on a dedicated Linux server or virtual machine instance (e.g. on an AWS EC2 cloud server instance).
+
+A synopsis of steps for deployment are summarized in an [abridged deployment checklist document](KGE_DEPLOYMENT_CHECKLIST.md) but further technical details relating to the various steps are presented in this section (below).
 
 ## Operating System
 
