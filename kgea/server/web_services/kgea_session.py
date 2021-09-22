@@ -17,7 +17,7 @@ import asyncio
 from asyncio.events import AbstractEventLoop
 
 from aiohttp import web, ClientSession
-from aiohttp_session import AbstractStorage, setup, new_session, get_session
+from aiohttp_session import AbstractStorage, setup, new_session, get_session, Session
 from multidict import MultiDict
 
 from kgea.config import get_app_config, HOME_PAGE
@@ -172,6 +172,12 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
 
     except RuntimeError as rte:
         await report_bad_request(request, "initialize_user_session() ERROR: " + str(rte))
+
+
+def user_permitted(session: Session):
+    # Regular users have user role '0' hence not permitted?
+    permitted = session.get(KGE_USER_ROLE) if KGE_USER_ROLE in session else DEFAULT_KGE_USER_ROLE
+    return not session.empty and permitted
 
 
 async def with_session(request, response):
