@@ -740,12 +740,16 @@ def get_archive_contents(bucket_name: str) -> \
     for file_path in all_files:
 
         file_part = file_path.split('/')
-        if len(file_part) > 0:
-            if file_part[0] != _KGEA_APP_CONFIG['aws']['s3']['archive-directory']:
-                # ignore things that don't look like the KGE File Set archive folder
-                continue
+        
+        if not file_part:
+            continue
+
+        # ignore things that don't look like the KGE File Set archive folder
         if file_part[0] != _KGEA_APP_CONFIG['aws']['s3']['archive-directory']:
-            # ignore things that don't look like the KGE File Set archive folder
+            continue
+
+        # ignore empty KGE File Set archive folder
+        if len(file_part) == 1 or not file_part[1]:
             continue
 
         kg_id = file_part[1]

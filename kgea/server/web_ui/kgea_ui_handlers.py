@@ -141,7 +141,11 @@ async def kge_client_authentication(request: web.Request):
     
     if user_attributes:
 
-        print('kge_client_authentication(): user_attributes are:\n'+str(user_attributes))
+        logger.debug(
+            f"kge_client_authentication(): user_attributes are:\n" +
+            f"\tusername: {str(user_attributes['username'])}\n" +
+            f"\temail: {str(user_attributes['email'])}"
+        )
 
         await initialize_user_session(request, user_attributes=user_attributes)
         
