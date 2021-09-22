@@ -283,41 +283,25 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
     :param kg_id:
     :return versions_per_kg: dict
     """
+    import re
+    import itertools
+
+    p = re.compile('kge-data/([\S]+)/(\d+.\d+)/')  # for an s3 key, match on kg_id and on version
     kg_files = kg_files_in_location(bucket_name)
 
-    def kg_id_to_versions(kg_file):
-        """
-
-        :param kg_file:
-        :return:
-        """
-        root_path = str(list(Path(kg_file).parents)[-2])  # get the root directory (not local/`.`)
-        stem_path = str(Path(kg_file).name)
-    
-        entry_string = str(Path(kg_file))  # normalize delimiters
-        for i in [root_path, stem_path, 'node', 'edge']:
-            entry_string = entry_string.replace(i, '')
-
-        kg_info = list(entry_string.split(os_separator))
-        while '' in kg_info:
-            kg_info.remove('')
-    
-        _kg_id = kg_info[0]
-        _fileset_version = kg_info[1]
-    
-        return _kg_id, _fileset_version
-
+    # create a map of kg_ids and their versions
     versions_per_kg = {}
-    version_kg_pairs = set(
-        kg_id_to_versions(kg_file) for kg_file in kg_files if kg_id and kg_file[0] is kg_id or True)
+    version_kg_pairs = set((p.match(kg_file).group(1), p.match(kg_file).group(2)) for kg_file in kg_files if p.match(kg_file) is not None)
 
-    import itertools
     for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
         versions_per_kg[key] = []
         for thing in group:
             versions_per_kg[key].append(thing[1])
-    
-    return versions_per_kg
+
+    if kg_id is not None:
+        return versions_per_kg[kg_id]
+    else:
+        return versions_per_kg
 
 
 # TODO: clarify expiration time - default to 1 day (in seconds)

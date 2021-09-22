@@ -5,14 +5,6 @@
             integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
             crossorigin="anonymous"></script>
     <script>
-        // function URLExists(url) {
-        //     const xhr = new XMLHttpRequest();
-        //     xhr.onreadystatechange = function() {
-        //         if (xhr.readyState == XMLHttpRequest.DONE) {
-        //             alert(xhr.responseText);
-        //         }
-        //     }
-        // }
 
         // empty catalog... needs to be retrieved from the back end
         let kgea_catalog = {};
@@ -86,13 +78,13 @@
 
                 let a = document.createElement('a');
                 a.href = metadata_url;
-                // console.log(URLExists(a.href))
+
                 //
                 // // we need to append the element to the DOM,
                 // // otherwise it will not work in Firefox
                 document.body.appendChild(a);
                 //
-                // a.click();
+                a.click();
                 //
                 // // afterwards we remove the element again
                 a.remove();
@@ -125,7 +117,6 @@
             try {
                 let a = document.createElement('a');
                 a.href = add_fs_url;
-                // console.log(URLExists(a.href))
 
                 // we need to append the element to the DOM,
                 // otherwise it will not work in Firefox
@@ -188,7 +179,6 @@
             try {
                 let a = document.createElement('a');
                 a.href = url;
-                // console.log(URLExists(a.href))
 
                 // we need to append the element to the DOM,
                 // otherwise it will not work in Firefox
@@ -235,6 +225,13 @@
             $('#download').on('click', DownloadFile);
             $('#sha1hash').on('click', DownloadFile);
             $('#add_new_file_set').on('click', AddNewFileSet);
+            // function URLExists(url) {
+            //     const request = new XMLHttpRequest();
+            //     request.withCredentials = true;
+            //     request.open('HEAD', url, false);
+            //     request.send(null);
+            // }
+            // URLExists('http://www.mozilla.org');
 
         });
 

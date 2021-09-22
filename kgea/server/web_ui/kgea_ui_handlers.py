@@ -48,7 +48,7 @@ from .kgea_users import (
     authenticate_user,
     mock_user_attributes
 )
-from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
+from kgea.server.web_services.kgea_file_ops import get_default_date_stamp, get_fileset_versions_available
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -268,6 +268,13 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
         if not kg_id:
             await redirect(request, HOME_PAGE, active_session=True)
 
+        fileset_versions = get_fileset_versions_available(
+            bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+        )
+        maximum_version = max(float(el) for el in fileset_versions[kg_id])
+        max_major_str, max_minor_str = str(maximum_version).split('.')     # because "1.0" splits into ["1", "0"], and can be destructed
+        max_major, max_minor = int(max_major_str), int(max_minor_str) + 1  # increment minor version to prevent collision
+
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
@@ -276,11 +283,8 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
             "submitter_email": session['email'],
 
             "biolink_model_releases": _biolink_model_releases,
-
-            # TODO: might be best to somehow look up "latest" KGE file set version,
-            #       increment it then send it to the form here?
-            "fileset_major_version": "1",
-            "fileset_minor_version": "0",
+            "fileset_major_version": max_major,
+            "fileset_minor_version": max_minor,
 
             "date_stamp": get_default_date_stamp(),
             
