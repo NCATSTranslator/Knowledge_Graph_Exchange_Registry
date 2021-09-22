@@ -13,6 +13,8 @@ from uuid import uuid4
 
 from kgea.config import get_app_config
 from kgea.server.web_services.kgea_session import KgeaSession
+from kgea.server.web_services.kgea_user_roles import KGE_USER_TEAM, KGE_USER_AFFILIATION, KGE_USER_CONTACT_PI, \
+    KGE_USER_ROLE, DEFAULT_KGE_USER_ROLE
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,10 @@ def mock_user_attributes() -> Dict:
     user_attributes["given_name"] = 'Trans'
     user_attributes["family_name"] = 'Lator'
     user_attributes["email"] = 'translator@ncats.nih.gov'
+    user_attributes[KGE_USER_TEAM] = "SRI"
+    user_attributes[KGE_USER_AFFILIATION] = "NCATS"
+    user_attributes[KGE_USER_CONTACT_PI] = "self"
+    user_attributes[KGE_USER_ROLE] = DEFAULT_KGE_USER_ROLE
     return user_attributes
 
 
@@ -212,6 +218,8 @@ async def _get_user_attributes(code: str) -> Dict:
                 user_data: Dict = json.loads(data)
                 for key, value in user_data.items():
                     user_attributes[key] = value
+                if KGE_USER_ROLE not in user_attributes:
+                    user_attributes[KGE_USER_ROLE] = DEFAULT_KGE_USER_ROLE
             else:
                 # Unexpected response code?
                 errmsg = await resp.text(encoding='utf-8')

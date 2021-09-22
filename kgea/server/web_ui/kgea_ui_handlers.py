@@ -42,6 +42,10 @@ from kgea.server.web_services.kgea_session import (
     with_session,
     report_bad_request
 )
+from kgea.server.web_services.kgea_user_roles import (
+    KGE_USER_ROLE,
+    DEFAULT_KGE_USER_ROLE
+)
 from .kgea_users import (
     login_url,
     logout_url,
@@ -108,6 +112,7 @@ async def get_kge_home(request: web.Request) -> web.Response:
     if not session.empty:
         context = {
             "submitter_name": session['name'],
+            "user_role": session.get(KGE_USER_ROLE) if KGE_USER_ROLE in session else DEFAULT_KGE_USER_ROLE,
             "get_catalog": GET_KNOWLEDGE_GRAPH_CATALOG,
             "backend": BACKEND,
             "metadata_page": METADATA_PAGE,

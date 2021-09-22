@@ -25,6 +25,11 @@ from kgea.config import get_app_config, HOME_PAGE
 # Master flag for simplified local development
 from kgea.server.web_services.catalog import KgeArchiver
 
+from kgea.server.web_services.kgea_user_roles import (
+    KGE_USER_ROLE,
+    DEFAULT_KGE_USER_ROLE
+)
+
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 logger = logging.getLogger(__name__)
@@ -163,7 +168,8 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
             session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
                               user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
-    
+            session[KGE_USER_ROLE] = user_attributes.setdefault("user_role", DEFAULT_KGE_USER_ROLE)
+
     except RuntimeError as rte:
         await report_bad_request(request, "initialize_user_session() ERROR: " + str(rte))
 
