@@ -168,7 +168,7 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
             session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
                               user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
-            session['user_role'] = user_attributes.setdefault(KGE_USER_ROLE, DEFAULT_KGE_USER_ROLE)
+            session['user_role'] = int(user_attributes.setdefault(KGE_USER_ROLE, DEFAULT_KGE_USER_ROLE))
 
     except RuntimeError as rte:
         await report_bad_request(request, "initialize_user_session() ERROR: " + str(rte))

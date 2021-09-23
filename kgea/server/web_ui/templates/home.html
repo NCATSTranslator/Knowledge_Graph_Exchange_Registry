@@ -274,7 +274,7 @@
                     <label class="label" for="select_fileset_version">File Set Version:</label>
                     <select id="select_fileset_version">
                     </select>
-                    {% if user_role > 0 %}
+                    {% if int(user_role) > 0 %}
                     &nbsp;&nbsp;<button id="add_new_file_set">Add New File Set</button>
                     {% endif %}
                 </p>
