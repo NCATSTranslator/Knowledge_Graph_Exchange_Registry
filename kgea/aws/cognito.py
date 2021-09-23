@@ -18,6 +18,12 @@ from kgea.aws.assume_role import AssumeRole, aws_config
 logger = logging.getLogger(__name__)
 pp = PrettyPrinter(indent=4)
 
+
+# Cognito CLI commands
+GET_USER_DETAILS = "get-user-details"
+SET_USER_ATTRIBUTE = "set-user-attribute"
+
+
 def usage(
         err_msg: str = '',
         command: str = '',
@@ -28,7 +34,7 @@ def usage(
 
     if not command:
         cmd = " <operation>"
-        description = f"where <operation> is one of 'get-user' or 'attributes'\n"
+        description = f"where <operation> is one of '{GET_USER_DETAILS}' or '{SET_USER_ATTRIBUTE}'\n"
     else:
         cmd = f" {command}"
         description = ''
@@ -79,11 +85,6 @@ def update_user_attributes(
 
     except Boto3Error as b3e:
         logger.error(f"update_user_attributes() exception: {b3e}")
-
-
-# Cognito CLI commands
-GET_USER_DETAILS = "get-user-details"
-SET_USER_ATTRIBUTE = "set-user-attribute"
 
 
 # Run the module as a CLI

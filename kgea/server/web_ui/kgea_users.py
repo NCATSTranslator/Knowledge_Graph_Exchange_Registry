@@ -1,6 +1,7 @@
 """
 KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cognito)
 """
+import pprint
 import sys
 from os import getenv
 from typing import Dict
@@ -232,6 +233,8 @@ async def _get_user_attributes(code: str) -> Dict:
                     "/oauth2/userinfo POST\n\tHTTP Status: " + str(resp.status) +
                     "\n\tResponse:" + errmsg
                 )
+
+    logger.debug(f"_get_user_attributes(): user_attributes are:\n{pprint.pp(user_attributes, indent=4)}")
 
     return user_attributes
 
