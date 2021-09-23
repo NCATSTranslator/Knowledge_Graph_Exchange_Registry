@@ -737,12 +737,13 @@ def aggregate_files(
     agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
     with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
         file_object_keys = filter(match_function, file_object_keys)
-        for file_object_key in file_object_keys:
+        for index, file_object_key in enumerate(file_object_keys):
             target_key_uri = f"s3://{bucket}/{file_object_key}"
             with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
                 for line in subfile:
                     aggregated_file.write(line)
-                aggregated_file.write("\n")
+                if index < (len(file_object_keys) - 1):  # only add newline if it isn't the last file. -1 for zero index
+                    aggregated_file.write("\n")
 
     return agg_path
 
