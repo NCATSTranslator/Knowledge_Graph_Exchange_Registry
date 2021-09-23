@@ -2008,7 +2008,7 @@ class KgeArchiver:
 
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Error while unpacking archive?: " + str(e))
+                print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
 
 
