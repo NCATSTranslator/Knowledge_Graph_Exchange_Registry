@@ -168,7 +168,7 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
             session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
                               user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
-            session[KGE_USER_ROLE] = user_attributes.setdefault("user_role", DEFAULT_KGE_USER_ROLE)
+            session['user_role'] = user_attributes.setdefault(KGE_USER_ROLE, DEFAULT_KGE_USER_ROLE)
 
     except RuntimeError as rte:
         await report_bad_request(request, "initialize_user_session() ERROR: " + str(rte))
@@ -176,7 +176,7 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
 
 def user_permitted(session: Session):
     # Regular users have user role '0' hence not permitted?
-    permitted = session.get(KGE_USER_ROLE) if KGE_USER_ROLE in session else DEFAULT_KGE_USER_ROLE
+    permitted = session.get('user_role') if 'user_role' in session else DEFAULT_KGE_USER_ROLE
     return not session.empty and permitted
 
 

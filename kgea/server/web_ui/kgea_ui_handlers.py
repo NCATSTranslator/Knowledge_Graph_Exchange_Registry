@@ -113,7 +113,7 @@ async def get_kge_home(request: web.Request) -> web.Response:
     if not session.empty:
         context = {
             "submitter_name": session['name'],
-            "user_role": session.get(KGE_USER_ROLE) if KGE_USER_ROLE in session else DEFAULT_KGE_USER_ROLE,
+            "user_role": session.get('user_role') if 'user_role' in session else DEFAULT_KGE_USER_ROLE,
             "get_catalog": GET_KNOWLEDGE_GRAPH_CATALOG,
             "backend": BACKEND,
             "metadata_page": METADATA_PAGE,
