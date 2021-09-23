@@ -49,7 +49,10 @@ For the moment, the following options for Archive client Login standard required
 
 with the addition of one required custom attributes:
 
-- Team  # string 3..32 characters  # Translator clients will indicate their team name here, e.g. SRI, Molecular Data Provider, etc.
+- Team  # string 1..60 characters  # Translator clients will indicate their funded project name here, e.g. SRI, Molecular Data Provider, etc.
+- Affiliation # string 1..60 characters, Institutional affiliation
+- Contact_PI  # string 1..20 characters, Team Principal Investigator (could be 'self')
+- User_Role   # integer 0..4, where 0 is the default value and denotes the role of a data read-only general user of the system; 1 is "data curator" with knowledge graph and file set creation role privilege; 3 is reserved for KGE Owner roles; 4 defines a root "admin" role
 
 ### Login Policies
 
