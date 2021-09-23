@@ -9,7 +9,7 @@ Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biol
 """
 
 from os import sep as os_separator, environ
-from os.path import dirname, abspath, splitext
+from os.path import dirname, abspath, splitext, basename
 import io
 import traceback
 from sys import stderr, exc_info
@@ -286,22 +286,28 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
     import re
     import itertools
 
-    p = re.compile('kge-data/([\S]+)/(\d+.\d+)/')  # for an s3 key, match on kg_id and on version
     kg_files = kg_files_in_location(bucket_name)
 
+    kg_ids_pattern = re.compile('kge-data/([a-zA-Z\d\-]+)/.+')  # for an s3 key, match on kg_id and on version
+    kg_ids_with_versions_pattern = re.compile('kge-data/([\S]+)/(\d+.\d+)/')  # for an s3 key, match on kg_id and on version
+
     # create a map of kg_ids and their versions
+    kg_ids = set(kg_ids_pattern.match(kg_file).group(1) for kg_file in kg_files if kg_ids_pattern.match(kg_file) is not None)  # some kg_ids don't have versions
     versions_per_kg = {}
-    version_kg_pairs = set((p.match(kg_file).group(1), p.match(kg_file).group(2)) for kg_file in kg_files if p.match(kg_file) is not None)
+    version_kg_pairs = set((kg_ids_with_versions_pattern.match(kg_file).group(1), kg_ids_with_versions_pattern.match(kg_file).group(2)) for kg_file in kg_files if kg_ids_with_versions_pattern.match(kg_file) is not None)
+
 
     for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
         versions_per_kg[key] = []
         for thing in group:
             versions_per_kg[key].append(thing[1])
 
-    if kg_id is not None:
-        return versions_per_kg[kg_id]
-    else:
-        return versions_per_kg
+    # add kg_ids that became filtered
+    for kg_id in kg_ids:
+        if kg_id not in versions_per_kg:
+            versions_per_kg[kg_id] = []
+
+    return versions_per_kg
 
 
 # TODO: clarify expiration time - default to 1 day (in seconds)
@@ -573,8 +579,11 @@ def decompress_in_place(gzipped_key, location=None):
     :param location:
     :return:
     """
+    from pprint import pp
+
     if location is None:
         location = '/'.join(gzipped_key.split('/')[:-1])+'/'
+
     tarfile_location = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{gzipped_key}"
     file_entries = []
 
@@ -584,19 +593,24 @@ def decompress_in_place(gzipped_key, location=None):
         with tarfile.open(fileobj=fd, mode='r:gz') as tf:
             for entry in tf:  # list each entry one by one
                 fileobj = tf.extractfile(entry)
-                s3_client().upload_fileobj(  # upload a new obj to s3
-                    Fileobj=io.BytesIO(fileobj.read()),
-                    Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
-                    Key=location+entry.name
-                )
-                file_entries.append({
-                    "file_type": "KGX data file",
-                    "file_name": entry.name,
-                    "file_size": entry.size,
-                    # TODO deal with import circularities: reorganize the project
-                    "object_key": location+entry.name,
-                    "s3_file_url": '',
-                })
+
+                # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
+                unpacked_filename = basename(entry.name)
+
+                if fileobj is not None:  # not a directory
+                    s3_client().upload_fileobj(  # upload a new obj to s3
+                        Fileobj=io.BytesIO(fileobj.read()),
+                        Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
+                        Key=location+unpacked_filename
+                    )
+                    file_entries.append({
+                        "file_type": "KGX data file", # TODO: refine to more specific types?
+                        "file_name": unpacked_filename,
+                        "file_size": entry.size,
+                        # TODO deal with import circularities: reorganize the project
+                        "object_key": location+unpacked_filename,
+                        "s3_file_url": '',
+                    })
     return file_entries
 
 

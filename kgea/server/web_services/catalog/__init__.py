@@ -21,6 +21,7 @@ from string import punctuation
 from io import BytesIO, StringIO
 from datetime import date, datetime
 import logging
+import re
 
 import tempfile
 
@@ -359,8 +360,10 @@ class KgeFileSet:
         """
         :return:
         """
+        node_file_pattern = re.compile('node[s]?.tsv')  # a node file by its own admission
+        node_folder_pattern = re.compile('nodes/')  # a nodes file given where it's placed
         node_files_keys = list(filter(
-            lambda x: 'nodes/' or 'nodes.tsv' in x and not ('aggregates/' in x), self.get_data_file_object_keys()
+            lambda x: node_folder_pattern.match(x) is not None or node_file_pattern.match(x) is not None and not ('aggregates/' in x), self.get_data_file_object_keys()
         ))
         return node_files_keys
 
@@ -369,8 +372,10 @@ class KgeFileSet:
 
         :return:
         """
+        edge_file_pattern = re.compile('edge[s]?.tsv')  # an edge file by its own admission
+        edge_folder_pattern = re.compile('edges/')  # an edges file given where it's placed
         edge_files_keys = list(filter(
-            lambda x: 'edges/' or 'edges.tsv' in x and not ('aggregates/' in x), self.get_data_file_object_keys()
+            lambda x: edge_folder_pattern.match(x) is not None or edge_file_pattern.match(x) is not None and not ('aggregates/' in x), self.get_data_file_object_keys()
         ))
         return edge_files_keys
 
@@ -544,7 +549,7 @@ class KgeFileSet:
         """
         # Signal that the KGE File Set is in a post-processing state
         self.status = KgeFileSetStatusCode.PROCESSING
-        
+
         try:
             # Publish a 'file_set.yaml' metadata file to the
             # versioned archive subdirectory containing the KGE File Set
@@ -1979,12 +1984,14 @@ class KgeArchiver:
         if task_id is None:
             task_id = len(self._archiver_worker)
 
+
+
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
             logger.info(f"KgeArchiver worker {task_id} starting archive of {str(file_set)}")
 
-            # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
+            # Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
                 logger.info(f"KgeArchiver task {task_id} unpacking archive:...")
                 for file_key in file_set.get_archive_files_keys():
@@ -2001,19 +2008,21 @@ class KgeArchiver:
 
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Error while unpacking archive?: "+str(e))
+                print_error_trace("Error while unpacking archive?: " + str(e))
                 raise e
 
-            # 2. Aggregate each of all nodes and edges each into their respective files in the archive folder
+
+
+            # 1. Aggregate each of all nodes and edges each into their respective files in the archive folder
             self.aggregate_to_archive(file_set, "nodes", file_set.get_nodes())
             self.aggregate_to_archive(file_set, "edges", file_set.get_edges())
 
-            # 3. Copy over metadata files into the archive folder
+            # 2. Copy over metadata files into the archive folder
             self.copy_to_kge_archive(file_set, "provider.yaml")
             self.copy_to_kge_archive(file_set, "file_set.yaml")
             self.copy_to_kge_archive(file_set, "content_metadata.json")
 
-            # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
+            # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
             #    containing the aggregated nodes.tsv, edges.tsv,
             # Appending `file_set_root_key` with 'aggregates/' and 'archive/' to prevent multiple compress_fileset runs
             # from compressing the previous compression (so the source of files is distinct from the target written to)

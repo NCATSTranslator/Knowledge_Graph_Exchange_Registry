@@ -114,12 +114,12 @@ async function UploadFile(source) {
         return;
     }
 
-    if (kgx_file_content === "archive") {
-        window.alert(
-            "Sorry, KGX 'tar.gz' compressed archives are not " +
-            "yet fully handled in the interface (coming soon!)");
-        return;
-    }
+    // if (kgx_file_content === "archive") {
+    //     window.alert(
+    //         "Sorry, KGX 'tar.gz' compressed archives are not " +
+    //         "yet fully handled in the interface (coming soon!)");
+    //     return;
+    // }
 
     // Need to know where I am in the internet space...
     const url = new URL(window.location.href);
@@ -654,7 +654,7 @@ function getSize(size) {
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
-                    (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'nodes' file.
+                    (*) Must be a valid KGX-compliant TSV formatted 'nodes' file.
                     Multiple files may be uploaded, but the first file should have a proper TSV header line at the top.
                 </span>
             </div>
@@ -664,11 +664,12 @@ function getSize(size) {
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
-                    (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'edges' file.
+                    (*) Must be a valid KGX-compliant TSV formatted 'edges' file.
                     Multiple files may be uploaded, but the first file should have a proper TSV header line at the top.
                 </span>
             </div>
             <p></p>
+            <hr>
             <input type="radio" id="archive" name="kgx_file_content" value="archive">
             <label class="label" for="archive">Archive</label>
             <div class="tooltip">
