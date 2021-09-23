@@ -54,11 +54,17 @@ with the addition of one required custom attributes:
 - Contact_PI  # string 1..20 characters, Team Principal Investigator (could be 'self')
 - User_Role   # integer 0..4, where 0 is the default value and denotes the role of a data read-only general user of the system; 1 is "data curator" with knowledge graph and file set creation role privilege; 3 is reserved for KGE Owner roles; 4 defines a root "admin" role
 
+### Administrative Setting of Attributes  (including User Custom Attributes)
+
+The AWS Cognito Dashboard allows the creation of custom attributes and initial settings by batch upload or user registration;  however,  resetting of attributes values can only be done via the AWS API's or various programmatic SDK's.
+
+In the KGE Archive project, kgea.aws.cognito module may be run from the command line to view user details and (re-)set user  attributes.
+
 ### Login Policies
 
 #### Password
 
-Minimum length: 12
+Minimum length: 15 characters
 
 - Require numbers
 - Require special character
@@ -67,7 +73,7 @@ Minimum length: 12
 
 #### Account Sign-Up Policy
 
-To facilitate usage in the short term (and given that the Archive will initially be experiment and have little data and will need to be quickly used in the February 2021 Translator Relay), the User Pool will be initially configured to "_Allow users to sign themselves up_".  Later, the more restrictive option of "_Only allow administrators to create users_" may be asserted to ensure security of the system for general project access.
+The AWS Cognito system of the KGE Archive "production" installation is now constrained to have "administrative" creation of user accounts (only).
 
 ### Multi-Factor Authentication (MFA) & Verifications ?
 
