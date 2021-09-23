@@ -16,6 +16,7 @@ from sys import stderr, exc_info
 from tempfile import TemporaryFile
 from typing import Dict, Union, List, Optional
 import subprocess
+import re
 
 import logging
 
@@ -165,6 +166,7 @@ def with_version(func, version="1.0"):
     :param version:
     :return:
     """
+
     def wrapper(kg_id):
         """
 
@@ -289,13 +291,16 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
     kg_files = kg_files_in_location(bucket_name)
 
     kg_ids_pattern = re.compile('kge-data/([a-zA-Z\d\-]+)/.+')  # for an s3 key, match on kg_id and on version
-    kg_ids_with_versions_pattern = re.compile('kge-data/([\S]+)/(\d+.\d+)/')  # for an s3 key, match on kg_id and on version
+    kg_ids_with_versions_pattern = re.compile(
+        'kge-data/([\S]+)/(\d+.\d+)/')  # for an s3 key, match on kg_id and on version
 
     # create a map of kg_ids and their versions
-    kg_ids = set(kg_ids_pattern.match(kg_file).group(1) for kg_file in kg_files if kg_ids_pattern.match(kg_file) is not None)  # some kg_ids don't have versions
+    kg_ids = set(kg_ids_pattern.match(kg_file).group(1) for kg_file in kg_files if
+                 kg_ids_pattern.match(kg_file) is not None)  # some kg_ids don't have versions
     versions_per_kg = {}
-    version_kg_pairs = set((kg_ids_with_versions_pattern.match(kg_file).group(1), kg_ids_with_versions_pattern.match(kg_file).group(2)) for kg_file in kg_files if kg_ids_with_versions_pattern.match(kg_file) is not None)
-
+    version_kg_pairs = set(
+        (kg_ids_with_versions_pattern.match(kg_file).group(1), kg_ids_with_versions_pattern.match(kg_file).group(2)) for
+        kg_file in kg_files if kg_ids_with_versions_pattern.match(kg_file) is not None)
 
     for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
         versions_per_kg[key] = []
@@ -336,7 +341,7 @@ def create_presigned_url(bucket, object_key, expiration=86400) -> Optional[str]:
             ExpiresIn=expiration
         )
     except Exception as e:
-        logger.error("create_presigned_url() error: "+str(e))
+        logger.error("create_presigned_url() error: " + str(e))
         return None
 
     # The endpoint contains the pre-signed URL
@@ -436,7 +441,7 @@ def upload_file(bucket, object_key, source, client=s3_client(), config=None, cal
 
     :raises RuntimeError if the S3 file object upload call fails
     """
-    
+
     # Upload the file
     try:
         # TODO: how can these upload calls be aborted, especially, if they are multi-part uploads?
@@ -523,10 +528,10 @@ def infix_string(name, infix, delimiter="."):
 
 
 def compress_fileset(
-    kg_id,
-    version,
-    bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-    root='kge-data'
+        kg_id,
+        version,
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        root='kge-data'
 ) -> str:
     """
 
@@ -536,9 +541,9 @@ def compress_fileset(
     :param root:
     :return:
     """
-    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id+'_'+version}.tar.gz"
+    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
-    
+
     archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
     logger.debug(f"Archive Script: ({archive_script})")
     try:
@@ -547,14 +552,14 @@ def compress_fileset(
         script_env["KGE_ROOT_DIRECTORY"] = root
         with TemporaryFile() as script_log:
             with subprocess.Popen(
-                args=[
-                    archive_script,
-                    kg_id,
-                    version
-                ],
-                env=script_env,
-                stdout=script_log,
-                stderr=script_log
+                    args=[
+                        archive_script,
+                        kg_id,
+                        version
+                    ],
+                    env=script_env,
+                    stdout=script_log,
+                    stderr=script_log
             ) as proc:
                 proc.wait()
                 script_log.flush()
@@ -567,22 +572,31 @@ def compress_fileset(
 
     except Exception as e:
         logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
-    
+
     logger.info(f"Exiting compress_fileset({s3_archive_key})")
     return s3_archive_key
 
 
-def decompress_in_place(gzipped_key, location=None):
+def decompress_in_place(gzipped_key, location=None, traversal_func=None):
     """
 
-    :param gzipped_key:
-    :param location:
+    Decompress a gzipped file from within a given S3 bucket.
+
+    Can take a custom location to stop the unpacking from being in the location of the gzipped file,
+    but instead done somewhere else.
+
+    Can take a traversal function to customize the distribution of unpacked files into different folders.
+
+    :param gzipped_key: The S3 key for the gzipped archive
+    :param location: The location to unpack onto (not necessarily the root folder of the gzipped file)
     :return:
     """
-    from pprint import pp
+
+    if '.gz' not in gzipped_key:
+        raise Exception('decompress_in_place(): Gzipped key cannot be a GZIP file! (' + str(gzipped_key) + ')')
 
     if location is None:
-        location = '/'.join(gzipped_key.split('/')[:-1])+'/'
+        location = '/'.join(gzipped_key.split('/')[:-1]) + '/'
 
     tarfile_location = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{gzipped_key}"
     file_entries = []
@@ -591,27 +605,113 @@ def decompress_in_place(gzipped_key, location=None):
     # to open gzip files transparently to avoid gzip+tar step
     with smart_open.open(tarfile_location, 'rb', compression="disable") as fd:
         with tarfile.open(fileobj=fd, mode='r:gz') as tf:
-            for entry in tf:  # list each entry one by one
-                fileobj = tf.extractfile(entry)
+            if traversal_func is not None:
+                file_entries = traversal_func(tf, location)
+            else:
+                for entry in tf:  # list each entry one by one
+                    fileobj = tf.extractfile(entry)
 
-                # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
-                unpacked_filename = basename(entry.name)
+                    # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
+                    unpacked_filename = basename(entry.name)
 
-                if fileobj is not None:  # not a directory
+                    if fileobj is not None:  # not a directory
+                        s3_client().upload_fileobj(  # upload a new obj to s3
+                            Fileobj=io.BytesIO(fileobj.read()),
+                            Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
+                            Key=location + unpacked_filename
+                        )
+                        file_entries.append({
+                            "file_type": "KGX data file",  # TODO: refine to more specific types?
+                            "file_name": unpacked_filename,
+                            "file_size": entry.size,
+                            "object_key": location + unpacked_filename,
+                            "s3_file_url": '',
+                        })
+
+    return file_entries
+
+
+def decompress_to_kgx(gzipped_key, location, strict=False):
+    """
+    Decompress a gzipped file from within a given S3 bucket. If it's a nodes file or edges file, place them into their
+    corresponding folder within the knowledge graph working directory.
+
+    For instance:
+    - if the tarfile has a file `./nodes/kgx-1.tsv`, it goes into the nodes/ folder. Similarly with edges.
+    - if the tarfile has a file `node.tsv`, it goes into the nodes/ folder. Similarly with edges.
+    - if the tarfile has a file `metadata/content.json`, it fails to upload the file as metadata.
+    - if the tarfile has a file `metadata/content_metadata.json`, it goes into the metadata/ folder.
+
+    For anything else, if `strict` is False, then these other files are  uploaded to the key given by `location`.
+
+    If `strict` is true, only node, edge or metadata files are added to this `location` modulo the conventions above.
+
+    This decompression function is used as a way of standardizing the uploaded archives into KGX graphs. When used
+    strictly, it should help ensure that only KGX-validatable data occupies the final archive. When used un-strictly,
+    it allows for a loose conception of archives that lets them be not necessarily validatable by KGX. This notion
+    is preferred in the case where an archive's data is useful, but still needs to work towards being KGX-compliant.
+
+    :param gzipped_key: The S3 key for the gzipped archive
+    :param location: The location to unpack onto (not necessarily the root folder of the gzipped file)
+    :return:
+    """
+
+    # check for node-yness or edge-yness
+    # a tarfile entry is node-y if it's packed inside a nodes folder, or has the word "node" in it towards the end of the filename
+    def isNodey(entry_name):
+        node_file_pattern = re.compile('node[s]?.tsv')  # a node file by its own admission
+        node_folder_pattern = re.compile('nodes/')  # a nodes file given where it's placed
+        return node_file_pattern.match(entry_name) is not None or node_folder_pattern.match(
+            entry_name) is not None
+
+    # a tarfile entry is edge-y if it's packed inside an edges folder, or has the word "edge" in it towards the end of the filename
+    def isEdgey(entry_name):
+        edge_file_pattern = re.compile('edge[s]?.tsv')  # an edge file by its own admission
+        edge_folder_pattern = re.compile('edges/')  # an edges file given where it's placed
+        return edge_file_pattern.match(entry_name) is not None or edge_folder_pattern.match(
+            entry_name) is not None
+
+    def isMetadata(entry_name):
+        metadata_file_pattern = re.compile('content_metadata\.json')  # a metadata file by its own admission
+        # metadata_folder_pattern = re.compile('metadata/')
+        return metadata_file_pattern.match(entry_name) is not None  # we're strict about the filename for the metadata
+
+    def traversal_func(tf):
+        file_entries = []
+        for entry in tf:  # list each entry one by one
+
+            object_key = location if not strict else None
+            fileobj = tf.extractfile(entry)
+
+            if fileobj is not None:  # not a directory
+                pre_name = entry.name
+                unpacked_filename = basename(pre_name)
+
+                # sort the file into its different categories
+                if isNodey(pre_name):
+                    object_key = location + 'nodes/' + unpacked_filename
+                elif isEdgey(pre_name):
+                    object_key = location + 'edges/' + unpacked_filename
+                elif isMetadata(pre_name):
+                    object_key = location + 'metadata/' + unpacked_filename
+
+                if object_key is not None:
                     s3_client().upload_fileobj(  # upload a new obj to s3
                         Fileobj=io.BytesIO(fileobj.read()),
                         Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
-                        Key=location+unpacked_filename
+                        Key=location + unpacked_filename
                     )
                     file_entries.append({
-                        "file_type": "KGX data file", # TODO: refine to more specific types?
+                        "file_type": "KGX data file",  # TODO: refine to more specific types?
                         "file_name": unpacked_filename,
                         "file_size": entry.size,
-                        # TODO deal with import circularities: reorganize the project
-                        "object_key": location+unpacked_filename,
+                        "object_key": object_key,
                         "s3_file_url": '',
                     })
-    return file_entries
+
+        return file_entries
+
+    return decompress_in_place(gzipped_key, location, traversal_func)
 
 
 def aggregate_files(
@@ -633,7 +733,7 @@ def aggregate_files(
     """
     if not file_object_keys:
         return ''
-    
+
     agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
     with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
         file_object_keys = filter(match_function, file_object_keys)
@@ -643,7 +743,7 @@ def aggregate_files(
                 for line in subfile:
                     aggregated_file.write(line)
                 aggregated_file.write("\n")
-                
+
     return agg_path
 
 
@@ -662,18 +762,18 @@ def copy_file(
     """
     if not (source_key and target_dir):
         raise RuntimeError("copy_file_to_archive(): missing source_key or target_dir?")
-    
+
     source_file_name = source_key.split("/")[-1]
     target_key = f"{target_dir}/{source_file_name}"
-    
+
     logger.debug(f"Copying {source_key} to {target_key}")
-    
+
     copy_source = {
         'Bucket': bucket,
         'Key': source_key
     }
     s3_client().copy(copy_source, bucket, target_key)
-    
+
     logger.debug(f"...copy completed!")
 
 
@@ -754,7 +854,7 @@ def get_archive_contents(bucket_name: str) -> \
     for file_path in all_files:
 
         file_part = file_path.split('/')
-        
+
         if not file_part:
             continue
 
@@ -787,14 +887,14 @@ def get_archive_contents(bucket_name: str) -> \
             # since it is global to the knowledge graph.  In fact,
             # sometimes, the fileset_version may not yet be properly set!
             continue
-            
+
         else:
             # otherwise, assume file_part[2] is a 'version folder'
             fileset_version = file_part[2]
             if fileset_version not in contents[kg_id]['versions']:
                 contents[kg_id]['versions'][fileset_version] = dict()
                 contents[kg_id]['versions'][fileset_version]['file_object_keys'] = list()
-            
+
             # if the fileset versioned object key is not empty?
             if len(file_part) >= 4:
                 if file_part[3] == FILE_SET_METADATA_FILE:
@@ -865,7 +965,7 @@ def upload_from_link(
     """
 
     # make sure we're getting a valid url
-    assert(valid_url(source))
+    assert (valid_url(source))
 
     # this will use the smart_open http client (given that `source` is a full url)
     """
