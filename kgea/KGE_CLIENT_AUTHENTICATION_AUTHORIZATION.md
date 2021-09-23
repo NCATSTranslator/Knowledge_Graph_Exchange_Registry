@@ -33,7 +33,7 @@ Given that NCATS resides in Maryland, we host  Cognito IDP host in the AWS **us-
 
 For the moment, the following options for Archive client Login identification are specified:
 
-- Username: Users can use a username and optionally multiple alternatives to sign up and sign in.
+- _Username:_ Users can use a username and optionally multiple alternatives to sign up and sign in.
     - Also allow sign in with verified email address
     - Also allow sign in with verified phone number
     - Also allow sign in with preferred username (a username that your users can change)
@@ -42,17 +42,25 @@ For the moment, the following options for Archive client Login identification ar
 
 For the moment, the following options for Archive client Login standard required attributes are specified:
 
-- email
-- family name
-- given name
-- website # to capture the user's affiliation
+- _email_
+- _family_name_
+- _given_name_
+- _website_ 
 
 with the addition of one required custom attributes:
 
-- Team  # string 1..60 characters  # Translator clients will indicate their funded project name here, e.g. SRI, Molecular Data Provider, etc.
-- Affiliation # string 1..60 characters, Institutional affiliation
-- Contact_PI  # string 1..20 characters, Team Principal Investigator (could be 'self')
-- User_Role   # integer 0..4, where 0 is the default value and denotes the role of a data read-only general user of the system; 1 is "data curator" with knowledge graph and file set creation role privilege; 3 is reserved for KGE Owner roles; 4 defines a root "admin" role
+- _Team_  # string 1..60 characters  # Translator clients will indicate their funded project name here, e.g. SRI, Molecular Data Provider, etc.
+- _Affiliation_ # string 1..60 characters, Institutional affiliation
+- _Contact_PI_  # string 1..20 characters, Team Principal Investigator (could be 'self')
+- _User_Role_   # integer 0..4, where 0 is the default value and denotes the role of a data read-only general user of the system; 1 is "data curator" with knowledge graph and file set creation role privilege; 3 is reserved for KGE Owner roles; 4 defines a root "admin" role
+
+### Custom "User Role" Attribute
+
+The custom "User Role" attribute merits a quick discussion here. The basic meaning of the attribute is defined above. User_Role 0 (zero) is the baseline which only allows 'read only' access to the system (i.e. mainly just the 'home' (minus some buttons) and 'metadata' pages. 
+
+All other Roles have "read/write" for data, although roles 3 and 4 don't have any special significance (yet).
+
+The default role for users in the system is 0, if their custom User_Role is not set; however,  this default may be globally overridden (typically, to User Role == 1 (one)) by setting the environment variable **DEFAULT_KGE_USER_ROLE**.
 
 ### Administrative Setting of Attributes  (including User Custom Attributes)
 
