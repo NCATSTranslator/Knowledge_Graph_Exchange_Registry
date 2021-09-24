@@ -27,7 +27,7 @@ usage () {
     echo
     echo "Usage:"
     echo
-    echo "./upload_archiver.bash <Knowledge Graph Identifier> <File Set Version>"
+    echo "./kge_archiver.bash <Knowledge Graph Identifier> <File Set Version>"
 #    exit -1  bash exits 0-255
     exit 1
 }

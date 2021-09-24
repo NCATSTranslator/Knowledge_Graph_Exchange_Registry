@@ -56,6 +56,7 @@ _KGEA_APP_CONFIG = get_app_config()
 # Probably won't change the name of the
 # script again, but changed once already...
 _KGEA_ARCHIVER_SCRIPT = "kge_archiver.bash"
+_KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
 
 
 def print_error_trace(err_msg: str):
@@ -1037,15 +1038,25 @@ def upload_from_link(
         #     loop = asyncio.get_event_loop()
         #     loop.run_in_executor(None, simulated_progress)
         #
-        archive_script = f"curl -L -s {source} | aws s3 cp - s3://{bucket}/{object_key}"
+        # file_transfer_cmd = f"curl -L -s ${source} | $aws s3 cp $aws_flags - s3://${bucket}/${object_key}"
         # system(command=file_transfer_cmd)
         # finished = True
+        #
+        
+        # Popen solution
+        archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_URL_TRANSFER_SCRIPT}"
+        logger.debug(f"Direct URL Transfer Script: ({archive_script})")
+        
+        script_env = environ.copy()
+        script_env["KGE_BUCKET"] = bucket
+        
         run_script(
             script=archive_script,
-            # args=[kg_id, version],
-            # env=script_env
+            args=[source, object_key],
+            env=script_env
         )
-    
+        logger.info(f"Finished running {_KGEA_URL_TRANSFER_SCRIPT}\n\tto transfer {source} to {object_key}")
+        
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
         # TODO: what sort of post-cancellation processing is needed here?

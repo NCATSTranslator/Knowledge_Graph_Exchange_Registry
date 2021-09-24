@@ -9,7 +9,7 @@ from pathlib import Path
 # A temporary convenience to point to testing data in a specific branch.
 # Should default to 'master' or 'develop' later?
 # https://raw.githubusercontent.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry/pre-release_15-Sept-2021/kgea/tests/data/README.md
-KGE_CODE_BRANCH = "pre-release_15-Sept-2021"
+KGE_CODE_BRANCH = "master"
 
 TEST_DATA_DIR = Path(abspath(dirname(__file__))).joinpath("data")
 TEST_OUTPUT_DIR = Path(abspath(dirname(__file__))).joinpath("output")
