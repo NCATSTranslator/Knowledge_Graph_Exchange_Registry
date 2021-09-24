@@ -528,6 +528,8 @@ function update_file_list(kgx_file_content, filename, status) {
         document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
     } else if (kgx_file_content === "edges") {
         document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
+    } else if (kgx_file_content === "archive") {
+        document.getElementById("uploaded_archive_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
     }
 }
 
@@ -746,6 +748,8 @@ Uploading file, please don't navigate away from the page...</span>
             <ul id="uploaded_node_files"></ul>
             <b>Edges:</b><br>
             <ul id="uploaded_edge_files"></ul>
+            <b>Archives:</b><br>
+            <ul id="uploaded_archive_files"></ul>
         </td>
     </tr>
 </table>
