@@ -918,8 +918,6 @@ async def kge_transfer_from_url(
     """
     logger.debug("Entering kge_transfer_from_url()")
 
-
-
     session = await get_session(request)
     if not session.empty:
         
