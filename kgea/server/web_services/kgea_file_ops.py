@@ -7,8 +7,9 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
-
-from os import sep as os_separator, environ
+import asyncio
+from asyncio import sleep
+from os import sep as os_separator, environ, system
 from os.path import dirname, abspath, splitext
 import io
 import traceback
@@ -20,7 +21,6 @@ import subprocess
 import logging
 
 import random
-import time
 
 import requests
 import smart_open
@@ -854,7 +854,7 @@ def upload_from_link(
         object_key,
         source,
         client=s3_client(),
-        callback=None
+        callback=None  # how do we implement this?
 ):
     """
     Transfers a file resource to S3 from a URL location.
@@ -880,54 +880,57 @@ def upload_from_link(
     to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
     """
     try:
-        with smart_open.open(
-                source,
-                'r',
-                compression='disable',
-                encoding="utf8",
-                transport_params={
-                    'headers': {
-                        'Accept-Encoding': 'identity',
-                        'Content-Type': 'application/octet-stream'
-                    }
-                }
-        ) as fin:
-            with smart_open.open(
-                    f"s3://{bucket}/{object_key}", 'w',
-                    transport_params={'client': client},
-                    encoding="utf8"
-            ) as fout:
-                read_so_far = 0
-                while read_so_far < fin.buffer.content_length:
-                    line = fin.read(1)
-                    encoded = line.encode(fin.encoding)
-                    fout.write(line)
-                    if callback:
-                        # pass increment of bytes
-                        callback(len(encoded))
-                    read_so_far += 1
-
+        # with smart_open.open(
+        #         source,
+        #         'r',
+        #         compression='disable',
+        #         encoding="utf8",
+        #         transport_params={
+        #             'headers': {
+        #                 'Accept-Encoding': 'identity',
+        #                 'Content-Type': 'application/octet-stream'
+        #             }
+        #         }
+        # ) as fin:
+        #     with smart_open.open(
+        #             f"s3://{bucket}/{object_key}", 'w',
+        #             transport_params={'client': client},
+        #             encoding="utf8"
+        #     ) as fout:
+        #         read_so_far = 0
+        #         while read_so_far < fin.buffer.content_length:
+        #             line = fin.read(1)
+        #             encoded = line.encode(fin.encoding)
+        #             fout.write(line)
+        #             if callback:
+        #                 # pass increment of bytes
+        #                 callback(len(encoded))
+        #             read_so_far += 1
+        
+        # Fake the call back progress monitor
+        if callback:
+            
+            finished: bool = False
+            
+            def simulated_progress():
+                """
+                Simulates callback progress
+                """
+                bytes_so_far: int = 0
+                file_size = callback.get_file_size()
+                increment = int(file_size / 1000000)
+                while not finished:
+                    bytes_so_far += increment
+                    callback(bytes_so_far)
+                    sleep(10)
+            
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(None, simulated_progress)
+        
+        file_transfer_cmd = f"curl -L -s {source} | aws s3 cp - s3://{bucket}/{object_key}"
+        system(command=file_transfer_cmd)
+        finished = True
+        
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
         # TODO: what sort of post-cancellation processing is needed here?
-
-
-"""
-Unit Tests
-* Run each test function as an assertion if we are debugging the project
-"""
-
-
-def run_test(test_func):
-    """
-    Run a test function (timed)
-    :param test_func:
-    """
-    try:
-        start = time.time()
-        assert (test_func())
-        end = time.time()
-        print("{} passed: {} seconds".format(test_func.__name__, end - start))
-    except Exception as e:
-        logger.error("{} failed!".format(test_func.__name__))
-        logger.error(e)

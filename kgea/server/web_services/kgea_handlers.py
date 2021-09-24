@@ -751,6 +751,10 @@ class ProgressPercentage(object):
             raise RuntimeWarning("Transfer/upload was cancelled?")
         else:
             self._seen_so_far += bytes_amount
+            
+            if self._seen_so_far > self.transfer_tracker['end_position']:
+                self._seen_so_far = self.transfer_tracker['end_position']
+                
             self.transfer_tracker['current_position'] = self._seen_so_far
             t_now = time.time()
             dt = t_now-self.t0+0.001
@@ -760,7 +764,6 @@ class ProgressPercentage(object):
             if dt_log >= self.dt_log_min:
                 logger.info(f"ProgressPercentage mbps={mbps} mb={mb}")
                 self.t_log_prev = t_now
-
 
 _num_s3_threads = 16
 _s3_transfer_cfg = Config(signature_version='s3v4', max_pool_connections=_num_s3_threads)
