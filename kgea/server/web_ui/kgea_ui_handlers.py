@@ -38,9 +38,14 @@ from kgea.config import (
 from kgea.server.web_services.catalog import get_biolink_model_releases
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
+    user_permitted,
     redirect,
     with_session,
     report_bad_request
+)
+from kgea.server.web_services.kgea_user_roles import (
+    KGE_USER_ROLE,
+    DEFAULT_KGE_USER_ROLE
 )
 from .kgea_users import (
     login_url,
@@ -108,6 +113,7 @@ async def get_kge_home(request: web.Request) -> web.Response:
     if not session.empty:
         context = {
             "submitter_name": session['name'],
+            "user_role": session.get('user_role') if 'user_role' in session else DEFAULT_KGE_USER_ROLE,
             "get_catalog": GET_KNOWLEDGE_GRAPH_CATALOG,
             "backend": BACKEND,
             "metadata_page": METADATA_PAGE,
@@ -208,7 +214,7 @@ async def get_kge_graph_registration_form(request: web.Request) -> web.Response:
     :rtype: web.Response
     """
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         context = {
             "submitter_name": session['name'],
             "submitter_email": session['email'],
@@ -264,7 +270,7 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
     :rtype: web.Response
     """
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         kg_id = request.query.get('kg_id', default='')
         kg_name = request.query.get('kg_name', default='')
@@ -305,7 +311,7 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
     :type request: web.Request
     """
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
 
         submitter_name = session['name']
 
@@ -350,7 +356,7 @@ async def get_kge_fileset_submitted(request: web.Request) -> web.Response:
     :type request: web.Request
     """
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         submitter_name = session['name']
         kg_name = request.query.get('kg_name', default='')

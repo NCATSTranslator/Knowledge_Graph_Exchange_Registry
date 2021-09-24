@@ -50,6 +50,7 @@ from kgea.config import (
 )
 
 from .kgea_session import (
+    user_permitted,
     redirect,
     download,
     with_session,
@@ -151,7 +152,7 @@ async def register_kge_knowledge_graph(request: web.Request):
     logger.debug("Entering register_kge_knowledge_graph()")
 
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
 
         # submitter: name & email of submitter of the KGE file set,
         # cached in session from user authentication
@@ -280,7 +281,7 @@ async def register_kge_file_set(request: web.Request):
     logger.debug("Entering register_kge_file_set()")
 
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
 
         # submitter: name & email of submitter of the KGE file set,
         # cached in session from user authentication
@@ -424,7 +425,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
     logger.debug("Entering publish_kge_file_set()")
 
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
 
         if not (kg_id and fileset_version):
             await report_not_found(
@@ -665,7 +666,7 @@ async def setup_kge_upload_context(
     logger.debug("Entering setup_kge_upload_context()")
     
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         upload_token_object: UploadTokenObject = \
             await _initialize_upload_token(request, kg_id, fileset_version, kgx_file_content, content_name)
@@ -693,7 +694,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
     """
     
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         """
         NOTE: Sometimes it takes awhile for end_position to be calculated initialize, particularly if the
@@ -863,7 +864,7 @@ async def upload_kge_file(
     logger.debug("Entering upload_kge_file()")
     
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         tracker: Dict = get_upload_tracker_details(upload_token)
         
@@ -919,7 +920,7 @@ async def kge_transfer_from_url(
     logger.debug("Entering kge_transfer_from_url()")
 
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         if not content_url:
             # must not be empty string
@@ -1011,6 +1012,7 @@ async def cancel_kge_upload(request: web.Request, upload_token):
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
         await redirect(request, LANDING_PAGE)
+
 
 #############################################################
 # Content Metadata Controller Handler

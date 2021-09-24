@@ -158,3 +158,7 @@ T.B.A
 #### Configuring SNS from the Command Line, using STS AssumeRole permissions
 
 T.B.A
+
+# KGE AWS Utility Modules
+
+Various utility AWS CLI modules (available in the **kgea.aws** package of the project) may be used the KGEA config.yaml configurations for AWS IAM, S3, EC2, Cognito, etc. operations, to access a given KGE Archive site.  For example, the [S3 module](s3.py) permits administrative access the back end KGE archive bucket contents. The [Cognito module](cognito.py) can halp administrative maintenance of the KGE user auth/auth system  (e.g. to (re-)set User_Role attributes of registered users)

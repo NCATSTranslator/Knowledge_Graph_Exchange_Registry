@@ -17,6 +17,10 @@ from botocore.config import Config
 from kgea.aws.assume_role import AssumeRole, aws_config
 
 
+def usage():
+    pass
+
+
 def upload_file(client, bucket_name: str, filepath: str, object_key: str):
     """
     Upload a test file.
