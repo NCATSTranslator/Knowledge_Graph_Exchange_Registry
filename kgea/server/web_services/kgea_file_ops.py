@@ -1050,7 +1050,7 @@ def upload_from_link(
         print(cmd)
 
         # I'm going to assume that curl reports progress in 1% increments?
-        pc_bytes_increment:int = int(callback.get_file_size())/100
+        pc_bytes_increment: int = round(int(callback.get_file_size())/100)
 
         with Popen(
             cmd,
