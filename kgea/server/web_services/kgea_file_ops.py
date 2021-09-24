@@ -16,6 +16,7 @@ from tempfile import TemporaryFile
 from typing import Dict, Union, List, Optional, Tuple
 
 from subprocess import Popen, PIPE
+import re
 
 import logging
 
@@ -1024,8 +1025,8 @@ def upload_from_link(
         bucket,
         object_key,
         source,
-        client=s3_client(),
-        callback=None  # how do we implement this?
+        client=s3_client(),  # not used here. EC2 level aws cli used instead
+        callback=None
 ):
     """
     Transfers a file resource to S3 from a URL location.
@@ -1034,41 +1035,40 @@ def upload_from_link(
     :param object_key: of target S3 object
     :param source: url of resource to be uploaded to S3
     :param callback: e.g. progress monitor
-    :param client: for S3
+    :param client: for S3 - ignored (aws CLI used instead)
     """
 
     # make sure we're getting a valid url
     assert(valid_url(source))
 
     try:
-        # KGE Popen solution
-        # archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_URL_TRANSFER_SCRIPT}"
-        # logger.debug(f"Direct URL Transfer Script: ({archive_script})")
-        #
-        # script_env = environ.copy()
-        # script_env["KGE_BUCKET"] = bucket
-        #
-        # run_script(
-        #     script=archive_script,
-        #     args=[source, object_key],
-        #     env=script_env
-        # )
-        # logger.info(f"Finished running {_KGEA_URL_TRANSFER_SCRIPT}\n\tto transfer {url} to {object_key}")
 
-        s3_object_target = "s3://"+object_key
+        s3_object_target = f"s3://{bucket}/{object_key}"
 
         cmd = "curl -L " + source + " | aws s3 cp - " + s3_object_target
         
         print(cmd)
 
+        # I'm going to assume that curl reports progress in 1% increments?
+        pc_bytes_increment = callback.get_file_size()/100
+
         with Popen(
-                cmd,
-                stderr=PIPE,
-                shell=True
-        ) as proc:
-            with proc.stderr as proc_stderr:
-                for line in proc_stderr:
-                    print(line)
+            cmd,
+            bufsize=1,
+            universal_newlines=True,
+            stderr=PIPE,
+            shell=True
+        ).stderr as proc_stderr:
+            pc_complete: int = 0
+            for line in proc_stderr:
+                if line.startswith("##O#"):
+                    continue
+                pc_progress = len(re.findall("#", line))
+                if pc_complete < pc_progress:
+                    # probably just incremented by 1% but just in case
+                    bytes_increment = (pc_progress-pc_complete) * pc_bytes_increment
+                    pc_complete = pc_progress
+                    callback(bytes_increment)
         
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
