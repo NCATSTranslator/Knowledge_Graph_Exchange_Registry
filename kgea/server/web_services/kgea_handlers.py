@@ -60,7 +60,7 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     create_presigned_url,
-    kg_files_in_location,
+    object_keys_for_fileset_version,
     get_object_location,
     with_version,
     object_key_exists,
@@ -1210,21 +1210,16 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
 
     session = await get_session(request)
     if not session.empty:
-
-        file_set_object_key, _ = with_version(get_object_location, fileset_version)(kg_id)
-
-        kg_files_for_version = kg_files_in_location(
-            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            file_set_object_key,
-        )
-
+        
         # TODO: I don't think that this code snippet is reliable now,
         #       if the user uploads one or more tar.gz files
         #       which are meant to be partial input data without metadata?
-        maybe_archive = [
-            kg_path for kg_path in kg_files_for_version
-            if ".tar.gz" in kg_path
-        ]
+        maybe_archive, _ = fileset_version = \
+            object_keys_for_fileset_version(
+                kg_id=kg_id,
+                fileset_version=fileset_version,
+                match_function=lambda x: ".tar.gz" in x
+            )
 
         if len(maybe_archive) == 1:
             download_url = create_presigned_url(
@@ -1246,7 +1241,7 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
         await redirect(request, LANDING_PAGE)
 
 
-async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fileset_version):
+async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id: str, fileset_version: str):
     """Returns SHA1 hash of the current KGE File Set as a small text file.
 
     :param request:
@@ -1272,17 +1267,12 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fi
     session = await get_session(request)
     if not session.empty:
 
-        file_set_object_key, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
-
-        kg_files_for_version = kg_files_in_location(
-            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            file_set_object_key,
-        )
-
-        maybe_sha1hash = [
-            kg_path for kg_path in kg_files_for_version
-            if "sha1.txt" in kg_path
-        ]
+        maybe_sha1hash, fileset_version = \
+            object_keys_for_fileset_version(
+                kg_id=kg_id,
+                fileset_version=fileset_version,
+                match_function=lambda x: "sha1.txt" in x
+            )
 
         sha1hash_file_key: str = ''
         if len(maybe_sha1hash) == 1:
