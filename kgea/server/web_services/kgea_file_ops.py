@@ -14,7 +14,8 @@ import traceback
 from sys import stderr, exc_info
 from tempfile import TemporaryFile
 from typing import Dict, Union, List, Optional, Tuple
-import subprocess
+
+from subprocess import Popen, PIPE
 
 import logging
 
@@ -90,7 +91,7 @@ def run_script(
     cmd.append(script)
     cmd.extend(args)
     with TemporaryFile() as script_log:
-        with subprocess.Popen(
+        with Popen(
                 args=cmd,
                 env=env,
                 stdout=script_log,
@@ -956,6 +957,69 @@ def get_archive_contents(bucket_name: str) -> \
     return contents
 
 
+def deprecated_upload_from_link(
+        bucket,
+        object_key,
+        source,
+        client=s3_client(),
+        callback=None  # how do we implement this?
+):
+    """
+    Transfers a file resource to S3 from a URL location.
+
+    :param bucket: in S3
+    :param object_key: of target S3 object
+    :param source: url of resource to be uploaded to S3
+    :param callback: e.g. progress monitor
+    :param client: for S3
+    """
+    
+    # make sure we're getting a valid url
+    assert (valid_url(source))
+    
+    # this will use the smart_open http client (given that `source` is a full url)
+    """
+    Explaining the arguments for smart_open
+    * encoding - utf-8 to get rid of encoding errors
+    * compression - smart_open opens tar.gz files by default; unnecessary, maybe cause slowdown with big files.
+    * transport_params - modifying the headers will let us pick an optimal mimetype for transfer
+
+    The block is written in a way that tries to minimize blocking access to the requests and files, instead opting
+    to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
+    """
+    try:
+        with smart_open.open(
+                source,
+                'r',
+                compression='disable',
+                encoding="utf8",
+                transport_params={
+                    'headers': {
+                        'Accept-Encoding': 'identity',
+                        'Content-Type': 'application/octet-stream'
+                    }
+                }
+        ) as fin:
+            with smart_open.open(
+                    f"s3://{bucket}/{object_key}", 'w',
+                    transport_params={'client': client},
+                    encoding="utf8"
+            ) as fout:
+                read_so_far = 0
+                while read_so_far < fin.buffer.content_length:
+                    line = fin.read(1)
+                    encoded = line.encode(fin.encoding)
+                    fout.write(line)
+                    if callback:
+                        # pass increment of bytes
+                        callback(len(encoded))
+                    read_so_far += 1
+    
+    except RuntimeWarning:
+        logger.warning("URL transfer cancelled by exception?")
+        # TODO: what sort of post-cancellation processing is needed here?
+
+
 def upload_from_link(
         bucket,
         object_key,
@@ -976,86 +1040,35 @@ def upload_from_link(
     # make sure we're getting a valid url
     assert(valid_url(source))
 
-    # this will use the smart_open http client (given that `source` is a full url)
-    """
-    Explaining the arguments for smart_open
-    * encoding - utf-8 to get rid of encoding errors
-    * compression - smart_open opens tar.gz files by default; unnecessary, maybe cause slowdown with big files.
-    * transport_params - modifying the headers will let us pick an optimal mimetype for transfer
-    
-    The block is written in a way that tries to minimize blocking access to the requests and files, instead opting
-    to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
-    """
     try:
-        # Original file transfer solution:
+        # KGE Popen solution
+        # archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_URL_TRANSFER_SCRIPT}"
+        # logger.debug(f"Direct URL Transfer Script: ({archive_script})")
         #
-        # with smart_open.open(
-        #         source,
-        #         'r',
-        #         compression='disable',
-        #         encoding="utf8",
-        #         transport_params={
-        #             'headers': {
-        #                 'Accept-Encoding': 'identity',
-        #                 'Content-Type': 'application/octet-stream'
-        #             }
-        #         }
-        # ) as fin:
-        #     with smart_open.open(
-        #             f"s3://{bucket}/{object_key}", 'w',
-        #             transport_params={'client': client},
-        #             encoding="utf8"
-        #     ) as fout:
-        #         read_so_far = 0
-        #         while read_so_far < fin.buffer.content_length:
-        #             line = fin.read(1)
-        #             encoded = line.encode(fin.encoding)
-        #             fout.write(line)
-        #             if callback:
-        #                 # pass increment of bytes
-        #                 callback(len(encoded))
-        #             read_so_far += 1
+        # script_env = environ.copy()
+        # script_env["KGE_BUCKET"] = bucket
+        #
+        # run_script(
+        #     script=archive_script,
+        #     args=[source, object_key],
+        #     env=script_env
+        # )
+        # logger.info(f"Finished running {_KGEA_URL_TRANSFER_SCRIPT}\n\tto transfer {url} to {object_key}")
+
+        s3_object_target = "s3://"+object_key
+
+        cmd = "curl -L " + source + " | aws s3 cp - " + s3_object_target
         
-        # First 'system' iteration on a file transfer solution:
-        #
-        # Fake the call back progress monitor
-        # if callback:
-        #
-        #     finished: bool = False
-        #
-        #     def simulated_progress():
-        #         """
-        #         Simulates callback progress
-        #         """
-        #         bytes_so_far: int = 0
-        #         file_size = callback.get_file_size()
-        #         increment = int(file_size / 1000000)
-        #         while not finished:
-        #             bytes_so_far += increment
-        #             callback(bytes_so_far)
-        #             sleep(10)
-        #
-        #     loop = asyncio.get_event_loop()
-        #     loop.run_in_executor(None, simulated_progress)
-        #
-        # file_transfer_cmd = f"curl -L -s ${source} | $aws s3 cp $aws_flags - s3://${bucket}/${object_key}"
-        # system(command=file_transfer_cmd)
-        # finished = True
-        #
-        
-        # Popen solution
-        archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_URL_TRANSFER_SCRIPT}"
-        logger.debug(f"Direct URL Transfer Script: ({archive_script})")
-        
-        script_env = environ.copy()
-        script_env["KGE_BUCKET"] = bucket
-        
-        run_script(
-            script=archive_script,
-            args=[source, object_key],
-            env=script_env
-        )
-        logger.info(f"Finished running {_KGEA_URL_TRANSFER_SCRIPT}\n\tto transfer {source} to {object_key}")
+        print(cmd)
+
+        with Popen(
+                cmd,
+                stderr=PIPE,
+                shell=True
+        ) as proc:
+            with proc.stderr as proc_stderr:
+                for line in proc_stderr:
+                    print(line)
         
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
