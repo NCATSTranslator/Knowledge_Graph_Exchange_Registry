@@ -880,6 +880,8 @@ def upload_from_link(
     to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
     """
     try:
+        # Original file transfer solution:
+        #
         # with smart_open.open(
         #         source,
         #         'r',
@@ -907,30 +909,33 @@ def upload_from_link(
         #                 callback(len(encoded))
         #             read_so_far += 1
         
+        # First 'system' iteration on a file transfer solution:
+        #
         # Fake the call back progress monitor
-        if callback:
-            
-            finished: bool = False
-            
-            def simulated_progress():
-                """
-                Simulates callback progress
-                """
-                bytes_so_far: int = 0
-                file_size = callback.get_file_size()
-                increment = int(file_size / 1000000)
-                while not finished:
-                    bytes_so_far += increment
-                    callback(bytes_so_far)
-                    sleep(10)
-            
-            loop = asyncio.get_event_loop()
-            loop.run_in_executor(None, simulated_progress)
-        
-        file_transfer_cmd = f"curl -L -s {source} | aws s3 cp - s3://{bucket}/{object_key}"
-        system(command=file_transfer_cmd)
-        finished = True
-        
+        # if callback:
+        #
+        #     finished: bool = False
+        #
+        #     def simulated_progress():
+        #         """
+        #         Simulates callback progress
+        #         """
+        #         bytes_so_far: int = 0
+        #         file_size = callback.get_file_size()
+        #         increment = int(file_size / 1000000)
+        #         while not finished:
+        #             bytes_so_far += increment
+        #             callback(bytes_so_far)
+        #             sleep(10)
+        #
+        #     loop = asyncio.get_event_loop()
+        #     loop.run_in_executor(None, simulated_progress)
+        #
+        # file_transfer_cmd = f"curl -L -s {source} | aws s3 cp - s3://{bucket}/{object_key}"
+        # system(command=file_transfer_cmd)
+        # finished = True
+        pass
+    
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
         # TODO: what sort of post-cancellation processing is needed here?
