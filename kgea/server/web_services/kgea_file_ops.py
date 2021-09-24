@@ -1037,10 +1037,14 @@ def upload_from_link(
         #     loop = asyncio.get_event_loop()
         #     loop.run_in_executor(None, simulated_progress)
         #
-        # file_transfer_cmd = f"curl -L -s {source} | aws s3 cp - s3://{bucket}/{object_key}"
+        archive_script = f"curl -L -s {source} | aws s3 cp - s3://{bucket}/{object_key}"
         # system(command=file_transfer_cmd)
         # finished = True
-        pass
+        run_script(
+            script=archive_script,
+            # args=[kg_id, version],
+            # env=script_env
+        )
     
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
