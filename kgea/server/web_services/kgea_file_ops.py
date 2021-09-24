@@ -1067,9 +1067,15 @@ def upload_from_link(
             callback(0)
             logger.debug("upload_from_link() starting progress monitoring...")
             for line in proc_stderr:
+                
+                logger.debug(f"upload_from_link() line from proc_stderr: {line}")
+                
                 if line.startswith("##O#"):
                     continue
+                
                 pc_progress = len(re.findall("#", line))
+                logger.debug(f"upload_from_link() % progress: {pc_progress}")
+                
                 if pc_complete < pc_progress:
                     # probably just incremented by 1% but just in case, adjust upwards
                     bytes_increment = (pc_progress-pc_complete) * pc_bytes_increment
