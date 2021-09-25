@@ -1022,7 +1022,7 @@ def deprecated_upload_from_link(
 
 
 # Curl Bytes Received
-_cbr_pattern = re.compile(r"^(\d+)([KMGTP])$")
+_cbr_pattern = re.compile(r"^(?P<num>\d+(\.\d+)?)(?P<mag>[KMGTP])?$", flags=re.IGNORECASE)
 _cbr_magnitude = {
     'K': 2**10,
     'M': 2**20,
@@ -1040,9 +1040,12 @@ def _cbr(value) -> int:
     """
     m = _cbr_pattern.match(value)
     if m:
-        return m[1] * _cbr_magnitude[m[2]]
+        if m.group('mag'):
+            return round(float(m.group('num')) * _cbr_magnitude[m.group('mag').upper()])
+        else:
+            return round(float(m.group('num')))
     else:
-        return 0
+        return -1
 
 
 def upload_from_link(
@@ -1073,12 +1076,7 @@ def upload_from_link(
         
         print(cmd)
 
-        file_size = int(callback.get_file_size())
-        
-        # I'm going to assume that curl reports progress in 1% increments?
-        pc_bytes_increment: int = round(file_size/100)
-        
-        logger.debug(f"upload_from_link(): file size '{file_size}' => 1% bytes increment '{pc_bytes_increment}'")
+        # file_size = int(callback.get_file_size())
 
         with Popen(
             cmd,
@@ -1087,17 +1085,26 @@ def upload_from_link(
             stderr=PIPE,
             shell=True
         ).stderr as proc_stderr:
+            
             previous: int = 0
+            
             callback(0)
             
             logger.debug("upload_from_link() starting progress monitoring...")
             for line in proc_stderr:
                 
-                # logger.debug(f"upload_from_link() line from proc_stderr: {line}")
+                logger.debug(f"upload_from_link() line from proc_stderr: {line}")
                 
                 # The 'line' is the full curl progress meter
                 field = line.split()    # len(re.findall("#", line))
-                current = _cbr(field[3])
+                if not field:
+                    continue
+                    
+                logger.debug(f"field: {field}")
+                
+                current: int = _cbr(field[3])
+                if current < 0:
+                    continue
 
                 logger.debug(f"upload_from_link() % size progress: {current}")
                 
@@ -1105,8 +1112,8 @@ def upload_from_link(
                     callback(current-previous)
                     previous = current
                 
-            # force completion, just in case transfer is super fast?
-            callback(file_size)
+            # signal completion, just in case transfer is super fast?
+            # callback(file_size)
             logger.debug("upload_from_link() finished progress monitoring...")
         
     except RuntimeWarning:
