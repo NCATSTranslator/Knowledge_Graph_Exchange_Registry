@@ -1021,6 +1021,30 @@ def deprecated_upload_from_link(
         # TODO: what sort of post-cancellation processing is needed here?
 
 
+# Curl Bytes Received
+_cbr_pattern = re.compile(r"^(\d+)([KMGTP])$")
+_cbr_magnitude = {
+    'K': 2**10,
+    'M': 2**20,
+    'G': 2**30,
+    'T': 2**40,
+    'P': 2**50,
+}
+
+
+def _cbr(value) -> int:
+    """
+    Symbolic Curl Bytes Received string, parsed to int
+    :param value:
+    :return:
+    """
+    m = _cbr_pattern.match(value)
+    if m:
+        return m[1] * _cbr_magnitude[m[2]]
+    else:
+        return 0
+
+
 def upload_from_link(
         bucket,
         object_key,
@@ -1063,29 +1087,27 @@ def upload_from_link(
             stderr=PIPE,
             shell=True
         ).stderr as proc_stderr:
-            pc_complete: int = 0
+            previous: int = 0
             callback(0)
+            
             logger.debug("upload_from_link() starting progress monitoring...")
             for line in proc_stderr:
                 
-                logger.debug(f"upload_from_link() line from proc_stderr: {line}")
+                # logger.debug(f"upload_from_link() line from proc_stderr: {line}")
                 
-                if line.startswith("##O#"):
-                    continue
+                # The 'line' is the full curl progress meter
+                field = line.split()    # len(re.findall("#", line))
+                current = _cbr(field[3])
+
+                logger.debug(f"upload_from_link() % size progress: {current}")
                 
-                pc_progress = len(re.findall("#", line))
-                logger.debug(f"upload_from_link() % progress: {pc_progress}")
-                
-                if pc_complete < pc_progress:
-                    # probably just incremented by 1% but just in case, adjust upwards
-                    bytes_increment = (pc_progress-pc_complete) * pc_bytes_increment
-                    pc_complete = pc_progress
-                    callback(bytes_increment)
-                    
-                logger.debug(f"upload_from_link() % complete: {pc_complete}")
+                if previous < current:
+                    callback(current-previous)
+                    previous = current
                 
             # force completion, just in case transfer is super fast?
             callback(file_size)
+            logger.debug("upload_from_link() finished progress monitoring...")
         
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
