@@ -958,69 +958,6 @@ def get_archive_contents(bucket_name: str) -> \
     return contents
 
 
-def deprecated_upload_from_link(
-        bucket,
-        object_key,
-        source,
-        client=s3_client(),
-        callback=None  # how do we implement this?
-):
-    """
-    Transfers a file resource to S3 from a URL location.
-
-    :param bucket: in S3
-    :param object_key: of target S3 object
-    :param source: url of resource to be uploaded to S3
-    :param callback: e.g. progress monitor
-    :param client: for S3
-    """
-    
-    # make sure we're getting a valid url
-    assert (valid_url(source))
-    
-    # this will use the smart_open http client (given that `source` is a full url)
-    """
-    Explaining the arguments for smart_open
-    * encoding - utf-8 to get rid of encoding errors
-    * compression - smart_open opens tar.gz files by default; unnecessary, maybe cause slowdown with big files.
-    * transport_params - modifying the headers will let us pick an optimal mimetype for transfer
-
-    The block is written in a way that tries to minimize blocking access to the requests and files, instead opting
-    to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
-    """
-    try:
-        with smart_open.open(
-                source,
-                'r',
-                compression='disable',
-                encoding="utf8",
-                transport_params={
-                    'headers': {
-                        'Accept-Encoding': 'identity',
-                        'Content-Type': 'application/octet-stream'
-                    }
-                }
-        ) as fin:
-            with smart_open.open(
-                    f"s3://{bucket}/{object_key}", 'w',
-                    transport_params={'client': client},
-                    encoding="utf8"
-            ) as fout:
-                read_so_far = 0
-                while read_so_far < fin.buffer.content_length:
-                    line = fin.read(1)
-                    encoded = line.encode(fin.encoding)
-                    fout.write(line)
-                    if callback:
-                        # pass increment of bytes
-                        callback(len(encoded))
-                    read_so_far += 1
-    
-    except RuntimeWarning:
-        logger.warning("URL transfer cancelled by exception?")
-        # TODO: what sort of post-cancellation processing is needed here?
-
-
 # Curl Bytes Received
 _cbr_pattern = re.compile(r"^(?P<num>\d+(\.\d+)?)(?P<mag>[KMGTP])?$", flags=re.IGNORECASE)
 _cbr_magnitude = {
@@ -1052,7 +989,7 @@ def upload_from_link(
         bucket,
         object_key,
         source,
-        client=s3_client(),  # not used here. EC2 level aws cli used instead
+        client=None,  # not used here. EC2 level aws cli used instead
         callback=None
 ):
     """
@@ -1064,20 +1001,11 @@ def upload_from_link(
     :param callback: e.g. progress monitor
     :param client: for S3 - ignored (aws CLI used instead)
     """
-
     # make sure we're getting a valid url
     assert(valid_url(source))
-
     try:
-
         s3_object_target = f"s3://{bucket}/{object_key}"
-
         cmd = "curl -L " + source + " | aws s3 cp - " + s3_object_target
-        
-        print(cmd)
-
-        # file_size = int(callback.get_file_size())
-
         with Popen(
             cmd,
             bufsize=1,
@@ -1085,40 +1013,22 @@ def upload_from_link(
             stderr=PIPE,
             shell=True
         ).stderr as proc_stderr:
-            
             previous: int = 0
-            
             callback(0)
-            
-            logger.debug("upload_from_link() starting progress monitoring...")
             for line in proc_stderr:
-                
-                logger.debug(f"upload_from_link() line from proc_stderr: {line}")
-                
                 # The 'line' is the full curl progress meter
-                field = line.split()    # len(re.findall("#", line))
+                field = line.split()
                 if not field:
                     continue
-                    
-                logger.debug(f"field: {field}")
-                
                 current: int = _cbr(field[3])
                 if current < 0:
                     continue
-
-                logger.debug(f"upload_from_link() % size progress: {current}")
-                
                 if previous < current:
                     callback(current-previous)
                     previous = current
-                
-            # signal completion, just in case transfer is super fast?
-            # callback(file_size)
-            logger.debug("upload_from_link() finished progress monitoring...")
         
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
-        # TODO: what sort of post-cancellation processing is needed here?
 
 
 ###################################
