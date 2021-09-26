@@ -70,6 +70,10 @@ def logout_url() -> str:
 
 
 def mock_user_attributes() -> Dict:
+    """
+
+    :return:
+    """
     # Stub implementation in DEV_MODE
     user_attributes: Dict = dict()
     user_attributes["preferred_username"] = 'translator'
@@ -79,7 +83,7 @@ def mock_user_attributes() -> Dict:
     user_attributes[KGE_USER_TEAM] = "SRI"
     user_attributes[KGE_USER_AFFILIATION] = "NCATS"
     user_attributes[KGE_USER_CONTACT_PI] = "self"
-    user_attributes[KGE_USER_ROLE] = DEFAULT_KGE_USER_ROLE
+    user_attributes[KGE_USER_ROLE] = "1"
     return user_attributes
 
 
@@ -216,7 +220,8 @@ async def _get_user_attributes(code: str) -> Dict:
             #    "given_name": "Jane",
             #    "family_name": "Doe",
             #    "preferred_username": "j.doe",
-            #    "email": "janedoe@example.com"
+            #    "email": "janedoe@example.com",
+            #    "custom:User_Role": "0"
             # }
             #
             if resp.status == 200:

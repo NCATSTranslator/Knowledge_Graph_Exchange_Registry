@@ -175,6 +175,11 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
 
 
 def user_permitted(session: Session):
+    """
+
+    :param session:
+    :return:
+    """
     # Regular users have user role '0' hence not permitted?
     permitted = session.get('user_role') if 'user_role' in session else DEFAULT_KGE_USER_ROLE
     return not session.empty and permitted
