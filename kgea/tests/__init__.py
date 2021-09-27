@@ -15,6 +15,7 @@ TEST_DATA_DIR = Path(abspath(dirname(__file__))).joinpath("data")
 TEST_OUTPUT_DIR = Path(abspath(dirname(__file__))).joinpath("output")
 
 TEST_BUCKET = 'kgea-test-bucket'
+TEST_BUCKET_2 = 'delphinai-kgea-test-bucket-2'
 TEST_KG_ID = 'test-kg'
 TEST_FS_VERSION = "1.0"
 TEST_OBJECT = "test_object.txt"
@@ -39,3 +40,6 @@ TEST_HUGE_EDGES_FILE_KEY = f"kge-data/{TEST_KG_ID}/{TEST_FS_VERSION}/edges/{TEST
 
 # This is externally hosted Monarch data, the availability for which may change with time
 TEST_HUGE_FILE_RESOURCE_URL = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
+
+# a production server test files
+PROD_TEST_FILE_KEY = 'kge-data/sri-semantic-medline-database/4.3/content_metadata.json'

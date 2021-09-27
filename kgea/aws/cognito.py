@@ -55,6 +55,12 @@ def get_user_details(
         upi: str,
         uid: str
 ):
+    """
+
+    :param client:
+    :param upi:
+    :param uid:
+    """
     try:
         response = client.admin_get_user(
             UserPoolId=upi,
@@ -72,6 +78,13 @@ def update_user_attributes(
         uid: str,
         attributes: Dict
 ):
+    """
+
+    :param client:
+    :param upi:
+    :param uid:
+    :param attributes:
+    """
     try:
         response = client.admin_update_user_attributes(
             UserPoolId=upi,

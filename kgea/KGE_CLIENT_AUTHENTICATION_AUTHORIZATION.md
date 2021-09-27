@@ -62,6 +62,8 @@ All other Roles have "read/write" for data, although roles 3 and 4 don't have an
 
 The default role for users in the system is 0, if their custom User_Role is not set; however,  this default may be globally overridden (typically, to User Role == 1 (one)) by setting the environment variable **DEFAULT_KGE_USER_ROLE**.
 
+A utility bash script '[set_user_role.bash](../scripts/set_user_role.bash)' is available to facilite the setting of KGEA system user roles, to one of (regular) **user**, (data) **curator**, **owner**, **admin** or **superuser**.
+
 ### Administrative Setting of Attributes  (including User Custom Attributes)
 
 The AWS Cognito Dashboard allows the creation of custom attributes and initial settings by batch upload or user registration;  however,  resetting of attributes values can only be done via the AWS API's or various programmatic SDK's.

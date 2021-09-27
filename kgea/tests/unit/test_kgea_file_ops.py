@@ -132,8 +132,8 @@ def test_object_folder_contents_size(
         test_fileset_version=TEST_FS_VERSION,
         test_bucket=TEST_BUCKET
 ):
-    fk1 = _upload_test_file(test_subfolder='archive/')
-    fk2 = _upload_test_file(test_file_path=TEST_LARGE_FILE_PATH, test_subfolder='archive/')
+    fk1 = upload_test_file(test_subfolder='archive/')
+    fk2 = upload_test_file(test_file_path=TEST_LARGE_FILE_PATH, test_subfolder='archive/')
     
     size = object_folder_contents_size(
         kg_id=test_kg_id,
@@ -144,8 +144,8 @@ def test_object_folder_contents_size(
     
     assert(size > 0)
     
-    _delete_test_file(test_object_key=fk1)
-    _delete_test_file(test_object_key=fk2)
+    delete_test_file(test_object_key=fk1)
+    delete_test_file(test_object_key=fk2)
 
 
 def test_create_presigned_url(test_bucket=TEST_BUCKET):
@@ -160,39 +160,57 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET):
         assert False
 
 
-def _upload_test_file(
+def upload_test_file(
         test_bucket=TEST_BUCKET,
         test_kg=TEST_KG_ID,
         test_file_path=TEST_SMALL_FILE_PATH,
         test_subfolder=''
 ):
+    """
+
+    :param test_bucket:
+    :param test_kg:
+    :param test_file_path:
+    :param test_subfolder:
+    :return:
+    """
     # NOTE: file must be read in binary mode!
-    logger.debug(f"_upload_test_file(): '{test_file_path}' in '{test_kg}' of '{test_bucket}'")
+    logger.debug(f"upload_test_file(): '{test_file_path}' in '{test_kg}' of '{test_bucket}'")
+    
     with open(test_file_path, 'rb') as test_file:
+        
         content_location, _ = with_version(get_object_location)(test_kg)
         content_location = f"{content_location}{test_subfolder}"
-        object_key = get_object_key(content_location, test_file.name)
-        upload_file(
-            bucket=test_bucket,
-            object_key=object_key,
-            source=test_file,  # packaged_file - not really implemented? what was the idea behind it?
-        )
-        assert (object_key in object_keys_in_location(test_bucket, content_location))
+        test_file_object_key = get_object_key(content_location, test_file.name)
+        
+        # only create the object key if it doesn't already exist?
+        if not object_key_exists(object_key=test_file_object_key):
+            upload_file(
+                bucket=test_bucket,
+                object_key=test_file_object_key,
+                source=test_file
+            )
+            assert (test_file_object_key in object_keys_in_location(test_bucket, content_location))
 
-    return object_key
+    return test_file_object_key
 
 
-def _delete_test_file(test_object_key, test_bucket=TEST_BUCKET):
+def delete_test_file(test_object_key, test_bucket=TEST_BUCKET):
+    """
+
+    :param test_object_key:
+    :param test_bucket:
+    """
     # Suppress object deletion in DEV_MODE for test troubleshooting
     # With DEV_MODE on, one needs to manually go into S3 and clean things up.
     if not DEV_MODE:
-        logger.debug(f"_delete_test_file(): {test_object_key} in {test_bucket}")
+        logger.debug(f"delete_test_file(): {test_object_key} in {test_bucket}")
         s3_client().delete_object(Bucket=test_bucket, Key=test_object_key)
 
 
 def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
     try:
-        test_object_key = _upload_test_file(
+        test_object_key = upload_test_file(
             test_bucket=test_bucket,
             test_kg=test_kg,
             test_subfolder='archive/'
@@ -210,7 +228,7 @@ def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
         logger.error(e)
         assert False
 
-    _delete_test_file(test_object_key=test_object_key, test_bucket=test_bucket)
+    delete_test_file(test_object_key=test_object_key, test_bucket=test_bucket)
 
 
 def test_kg_files_for_version(

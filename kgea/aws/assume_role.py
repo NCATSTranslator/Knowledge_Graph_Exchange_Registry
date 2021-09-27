@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
-aws_config = _KGEA_APP_CONFIG['aws']
+_KGEA_APP_CONFIG: Dict = get_app_config()
+aws_config: Dict = _KGEA_APP_CONFIG['aws']
 
 home = expanduser("~")
 AWS_CONFIG_ROOT = home + "/.aws/"
