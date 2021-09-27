@@ -95,7 +95,7 @@ from kgea.server.web_services.kgea_file_ops import (
     copy_file,
     upload_file,
     random_alpha_string,
-    decompress_in_place,
+    decompress_to_kgx,
     object_key_exists
 )
 
@@ -1325,7 +1325,6 @@ class KgeArchiveCatalog:
         else:
             # Found a matching KGE Knowledge Graph?
             file_set = knowledge_graph.get_file_set(fileset_version=fileset_version)
-
             # Add the current (meta-)data file to the KGE File Set
             # associated with this fileset_version of the graph.
             if file_type in [KgeFileType.KGX_DATA_FILE, KgeFileType.KGE_ARCHIVE]:
@@ -1984,8 +1983,6 @@ class KgeArchiver:
         if task_id is None:
             task_id = len(self._archiver_worker)
 
-
-
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
@@ -1993,12 +1990,14 @@ class KgeArchiver:
 
             # Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
-                logger.info(f"KgeArchiver task {task_id} unpacking archive:...")
+                logger.info(f"KgeArchiver task {task_id} unpacking archives: {file_set.get_archive_files_keys()}...")
                 for file_key in file_set.get_archive_files_keys():
+                    print(f'Unpacking archive {file_key}')
                     logger.info(f"\t{str(file_key)}")
                     # returns entries that follow the KgeFileSetEntry Schema
                     # decompresses the archive and sends files to s3
-                    archive_file_entries = decompress_in_place(file_key)
+                    archive_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive/"
+                    archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     logger.info(f"...finished! To fileset '{file_set.id()}', adding files:")
                     for entry in archive_file_entries:
                         # spread the entry across the add_data_file function,

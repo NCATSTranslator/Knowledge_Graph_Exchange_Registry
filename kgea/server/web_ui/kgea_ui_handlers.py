@@ -275,7 +275,6 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
         fileset_versions = get_fileset_versions_available(
             bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']
         )
-        print(fileset_versions)
         # default case when a registered graph has no file versions
         max_major, max_minor = 1, 0
         if kg_id in fileset_versions and len(fileset_versions[kg_id]) > 0:  # if a registered graph does have file versions, increment from latest

@@ -1217,15 +1217,12 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
             file_set_object_key,
         )
 
-        # TODO: I don't think that this code snippet is reliable now,
-        #       if the user uploads one or more tar.gz files
-        #       which are meant to be partial input data without metadata?
         maybe_archive = [
             kg_path for kg_path in kg_files_for_version
-            if ".tar.gz" in kg_path
+            if ".tar.gz" in kg_path and "archive/" in kg_path
         ]
 
-        if len(maybe_archive) == 1:
+        if len(maybe_archive) > 0:
             download_url = create_presigned_url(
                 bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
                 object_key=maybe_archive[0]

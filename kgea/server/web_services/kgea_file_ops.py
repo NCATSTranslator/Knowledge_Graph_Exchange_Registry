@@ -10,6 +10,7 @@ Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biol
 
 from os import sep as os_separator, environ
 from os.path import dirname, abspath, splitext, basename
+import sys
 import io
 import traceback
 from sys import stderr, exc_info
@@ -290,7 +291,7 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
 
     kg_files = kg_files_in_location(bucket_name)
 
-    kg_ids_pattern = re.compile('kge-data/([a-zA-Z\d\-]+)/.+')  # for an s3 key, match on kg_id and on version
+    kg_ids_pattern = re.compile('kge-data/([a-zA-Z\d \-]+)/.+')  # for an s3 key, match on kg_id and on version
     kg_ids_with_versions_pattern = re.compile(
         'kge-data/([\S]+)/(\d+.\d+)/')  # for an s3 key, match on kg_id and on version
 
@@ -301,7 +302,7 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
     version_kg_pairs = set(
         (kg_ids_with_versions_pattern.match(kg_file).group(1), kg_ids_with_versions_pattern.match(kg_file).group(2)) for
         kg_file in kg_files if kg_ids_with_versions_pattern.match(kg_file) is not None)
-
+    print(kg_ids, version_kg_pairs)
     for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
         versions_per_kg[key] = []
         for thing in group:
@@ -545,18 +546,26 @@ def compress_fileset(
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
 
     archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
+
+    # normalize to unix path from windows path
+    # if sys.platform is 'win32':
+    archive_script = archive_script.replace('\\', '/').replace('C:', '/mnt/c/')
+
     logger.debug(f"Archive Script: ({archive_script})")
     try:
         script_env = environ.copy()
         script_env["KGE_BUCKET"] = bucket
         script_env["KGE_ROOT_DIRECTORY"] = root
+
+        # if sys.platform is 'win32':
+        #     args = ['bash', archive_script, kg_id, version, bucket, root]
+        # else:
+        #     args = [archive_script, kg_id, version]
+
         with TemporaryFile() as script_log:
             with subprocess.Popen(
-                    args=[
-                        archive_script,
-                        kg_id,
-                        version
-                    ],
+                    args=['bash', archive_script, kg_id, version, bucket, root],
+                    # executable='/bin/bash',
                     env=script_env,
                     stdout=script_log,
                     stderr=script_log
@@ -592,6 +601,10 @@ def decompress_in_place(gzipped_key, location=None, traversal_func=None):
     :return:
     """
 
+    if location[-1] is not '/':
+        raise Warning(f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}."+
+                      "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair.")
+
     if '.gz' not in gzipped_key:
         raise Exception('decompress_in_place(): Gzipped key cannot be a GZIP file! (' + str(gzipped_key) + ')')
 
@@ -603,9 +616,10 @@ def decompress_in_place(gzipped_key, location=None, traversal_func=None):
 
     # one step decompression - use the tarfile library's ability
     # to open gzip files transparently to avoid gzip+tar step
-    with smart_open.open(tarfile_location, 'rb', compression="disable") as fd:
-        with tarfile.open(fileobj=fd, mode='r:gz') as tf:
+    with smart_open.open(tarfile_location, 'rb', compression='disable') as fin:
+        with tarfile.open(fileobj=fin) as tf:
             if traversal_func is not None:
+                print('decompress_in_place(): traversing the archive with a custom traversal function')
                 file_entries = traversal_func(tf, location)
             else:
                 for entry in tf:  # list each entry one by one
@@ -631,7 +645,8 @@ def decompress_in_place(gzipped_key, location=None, traversal_func=None):
     return file_entries
 
 
-def decompress_to_kgx(gzipped_key, location, strict=False):
+def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
+    # TODO: implement strict
     """
     Decompress a gzipped file from within a given S3 bucket. If it's a nodes file or edges file, place them into their
     corresponding folder within the knowledge graph working directory.
@@ -656,6 +671,12 @@ def decompress_to_kgx(gzipped_key, location, strict=False):
     :return:
     """
 
+    if location[-1] is not '/':
+        raise Warning(f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}."+
+                      "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair.")
+
+    print('decompress_to_kgx(): Decompress the archive as if it is a KGX file')
+
     # check for node-yness or edge-yness
     # a tarfile entry is node-y if it's packed inside a nodes folder, or has the word "node" in it towards the end of the filename
     def isNodey(entry_name):
@@ -676,31 +697,46 @@ def decompress_to_kgx(gzipped_key, location, strict=False):
         # metadata_folder_pattern = re.compile('metadata/')
         return metadata_file_pattern.match(entry_name) is not None  # we're strict about the filename for the metadata
 
-    def traversal_func(tf):
+    def traversal_func_kgx(tf, location):
+        print('traversal_func_kgx(): Begin traversing across the archive for nodes and edge files', tf)
         file_entries = []
         for entry in tf:  # list each entry one by one
+            print('traversal_func_kgx(): Traversing entry', entry)
 
-            object_key = location if not strict else None
+            object_key = location #if not strict else None
             fileobj = tf.extractfile(entry)
+
+            print('traversal_func_kgx(): Entry file object', fileobj)
 
             if fileobj is not None:  # not a directory
                 pre_name = entry.name
                 unpacked_filename = basename(pre_name)
 
+                print('traversal_func_kgx(): Entry names: pre_name, unpacked_filename = ', pre_name, ',', unpacked_filename)
+
                 # sort the file into its different categories
-                if isNodey(pre_name):
-                    object_key = location + 'nodes/' + unpacked_filename
-                elif isEdgey(pre_name):
-                    object_key = location + 'edges/' + unpacked_filename
-                elif isMetadata(pre_name):
-                    object_key = location + 'metadata/' + unpacked_filename
+                # if prefix:
+                # if isNodey(pre_name):
+                #     object_key = location + unpacked_filename
+                # elif isEdgey(pre_name):
+                #     object_key = location + unpacked_filename
+                # elif isMetadata(pre_name):
+                #     object_key = location + unpacked_filename
+                object_key = location + unpacked_filename
+                # else:
+                #     # object key is location by default
+                #     pass
+                print('traversal_func_kgx(): Object key will be', object_key)
 
                 if object_key is not None:
+                    print('traversal_func_kgx(): uploading entry into', object_key)
+
                     s3_client().upload_fileobj(  # upload a new obj to s3
                         Fileobj=io.BytesIO(fileobj.read()),
                         Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
-                        Key=location + unpacked_filename
+                        Key=object_key #TODO was this a bug before? (when it was location + unpacked_filename)
                     )
+
                     file_entries.append({
                         "file_type": "KGX data file",  # TODO: refine to more specific types?
                         "file_name": unpacked_filename,
@@ -708,10 +744,10 @@ def decompress_to_kgx(gzipped_key, location, strict=False):
                         "object_key": object_key,
                         "s3_file_url": '',
                     })
-
+        print('traversal_func_kgx(): file entries: ', file_entries)
         return file_entries
 
-    return decompress_in_place(gzipped_key, location, traversal_func)
+    return decompress_in_place(gzipped_key, location, traversal_func_kgx)
 
 
 def aggregate_files(

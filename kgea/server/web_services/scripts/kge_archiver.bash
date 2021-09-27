@@ -32,21 +32,21 @@ usage () {
     exit 1
 }
 
-if [[ -z $KGE_BUCKET ]]; then
-    echo
-    echo "Please set the \$KGE_BUCKET environment variable"
-    echo "(S3 bucket source where the file set is located)"
-#    exit -2  bash exits 0-255
-    exit 2
-fi
-
-if [[ -z "$KGE_ROOT_DIRECTORY" ]]; then
-    echo
-    echo "Please set the \$KGE_ROOT_DIRECTORY environment variable"
-    echo "(Root S3 folder in the bucket, containing the knowledge graph -> file set)"
-#    exit -3  bash exits 0-255
-    exit 3
-fi
+#if [[ -z $KGE_BUCKET ]]; then
+#    echo
+#    echo "Please set the \$KGE_BUCKET environment variable"
+#    echo "(S3 bucket source where the file set is located)"
+##    exit -2  bash exits 0-255
+#    exit 2
+#fi
+#
+#if [[ -z "$KGE_ROOT_DIRECTORY" ]]; then
+#    echo
+#    echo "Please set the \$KGE_ROOT_DIRECTORY environment variable"
+#    echo "(Root S3 folder in the bucket, containing the knowledge graph -> file set)"
+##    exit -3  bash exits 0-255
+#    exit 3
+#fi
 
 if [[ -z "$1" ]]; then
     usage
@@ -61,6 +61,20 @@ else
     # TODO: validate proper SemVer format of file set version string here?
     # File Set Version of the Knowledge Graph
     version=$2
+fi
+
+if [[ -z "$3" ]]; then
+    usage
+else
+    # Archive Bucket
+    KGE_BUCKET=$3
+fi
+
+if [[ -z "$4" ]]; then
+    usage
+else
+    # Root folder of all archives
+    KGE_ROOT_DIRECTORY=$4
 fi
 
 # AWS command (can be tweaked if problematic, e.g. under Windows?)
@@ -93,7 +107,7 @@ tarfile=$knowledge_graph'_'$version.tar
 
 # use awk to get the keys for files
 # output=`$aws s3 ls "$s3/"| awk '{print $4}'`
-output=("provider.yaml" "file_set.yaml" "content_metadata.json" "nodes.tsv" "edges.tsv")
+output=("provider.yaml" "file_set.yaml" "content_metadata.json" "nodes.tsv" "edges.tsv" "nodes/nodes.tsv" "edges/edges.tsv")
 
 # iterate over files
 echo
@@ -109,7 +123,7 @@ do
      echo "archived!"
      rm $file
   else
-     echo "unavailable for archiving?"
+     echo $file "unavailable for archiving?"
   fi
 done
 
