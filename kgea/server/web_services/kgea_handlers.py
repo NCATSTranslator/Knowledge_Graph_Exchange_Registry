@@ -814,6 +814,8 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
             logger.error(exc_msg)
             raise RuntimeError(exc_msg)
         
+        # TODO: could check for and unpack tar.gz archives here?
+        
         # Assuming success, the new file should be
         # added to into the file set in the Catalog.
         try:
