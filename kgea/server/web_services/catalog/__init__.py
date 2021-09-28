@@ -71,7 +71,7 @@ from kgx.validator import Validator
 from kgea.config import (
     get_app_config,
     PROVIDER_METADATA_FILE,
-    FILE_SET_METADATA_FILE
+    FILE_SET_METADATA_FILE, CONTENT_METADATA_FILE
 )
 
 from kgea.server.web_services.models import (
@@ -500,7 +500,11 @@ class KgeFileSet:
         try:
             # TODO: need to be careful here with data file removal in case
             #       the file in question is still being actively validated?
-            details = self.data_files.pop(object_key)
+            entry = self.data_files.pop(object_key)
+            print(entry)
+            # Remove size of this file from file set aggregate size
+            self.size = self.size - entry['file_size']
+
         except KeyError:
             logger.warning(
                 "File with object key '" + object_key + "' was not found in " +
@@ -1998,12 +2002,29 @@ class KgeArchiver:
                     # decompresses the archive and sends files to s3
                     archive_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive/"
                     archive_file_entries = decompress_to_kgx(file_key, archive_location)
+                    print(archive_file_entries)
+
                     logger.info(f"...finished! To fileset '{file_set.id()}', adding files:")
+
+                    # republish the file_set.yaml file to modify the archives in place
+                    # this is done as a side-effect onto S3 before the files are aggregated to the archive,
+                    # or are copied to the archive.
+                    file_set.remove_data_file(file_key)  # remove the archive from the file set
+                    # add the archive's files to the file set
                     for entry in archive_file_entries:
                         # spread the entry across the add_data_file function,
                         # which will take all its values as arguments
                         logger.info(f"\t{entry['file_name']}")
                         file_set.add_data_file(**entry)
+
+                    # rewrite the new file set file
+                    fileset_metadata_file = file_set.generate_fileset_metadata_file()
+                    fileset_metadata_object_key = add_to_s3_repository(
+                        kg_id=file_set.kg_id,
+                        text=fileset_metadata_file,
+                        file_name=FILE_SET_METADATA_FILE,
+                        fileset_version=file_set.fileset_version
+                    )
 
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
@@ -2017,9 +2038,9 @@ class KgeArchiver:
             self.aggregate_to_archive(file_set, "edges", file_set.get_edges())
 
             # 2. Copy over metadata files into the archive folder
-            self.copy_to_kge_archive(file_set, "provider.yaml")
-            self.copy_to_kge_archive(file_set, "file_set.yaml")
-            self.copy_to_kge_archive(file_set, "content_metadata.json")
+            self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
+            self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
+            self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
 
             # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
             #    containing the aggregated nodes.tsv, edges.tsv,
