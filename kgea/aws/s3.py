@@ -25,6 +25,7 @@ def usage(err_msg: str = ''):
     """
     if err_msg:
         print(err_msg)
+
     print("Usage:\n")
     print(
         "\tpython -m kgea.aws."+Path(sys.argv[0]).stem +
@@ -54,7 +55,7 @@ s3_client = \
 def upload_file(
         bucket_name: str,
         source_filepath: str,
-        targe_object_key: str,
+        target_object_key: str,
         client=s3_client
 ):
     """
@@ -62,17 +63,16 @@ def upload_file(
     
     :param bucket_name:
     :param source_filepath:
-    :param targe_object_key:
+    :param target_object_key:
     :param client:
     :return:
     """
     print(
-        "\n###Uploading file '" + source_filepath + "' to object '" + targe_object_key +
+        "\n###Uploading file '" + source_filepath + "' to object '" + target_object_key +
         "' in the S3 bucket '" + bucket_name + "'\n"
     )
-    
     try:
-        client.upload_file(source_filepath, bucket_name, targe_object_key)
+        client.upload_file(source_filepath, bucket_name, target_object_key)
         
     except Exception as exc:
         usage("upload_file() exception: " + str(exc))
@@ -118,7 +118,7 @@ def list_files(
         for entry in response['Contents']:
             print(entry['Key'], ':', entry['Size'])
     else:
-        print("S3 bucket '" + bucket_name + "' is empty?")
+        usage("S3 bucket '" + bucket_name + "' is empty?")
 
 
 def local_copy(
@@ -145,16 +145,23 @@ def local_copy(
     )
 
 
+# So-called 'remote' copy relies on deferential
+# target_client configuration (by the caller)
+# and uses a locally cached file for the copy operation
+# (presumed fast enough on an EC2 instance?)
+# TODO: can this be converted to a Unix PIPE operation?
 def remote_copy(
         source_key: str,
         target_key: str,
+        target_bucket: str,
+        target_client,
         source_bucket=s3_bucket_name,
-        target_bucket=None,
         source_client=s3_client,
-        target_client=None
 ):
     """
-
+    Copy an object from a source bucket and account to a second bucket and account, where access
+    to the account is defined in the target client configuration by the caller of the function.
+    
     :param source_key:
     :param target_key:
     :param source_bucket:
@@ -162,7 +169,20 @@ def remote_copy(
     :param source_client:
     :param target_client:
     """
-    pass
+    if not (target_bucket and target_client):
+        usage("Remote copy: requires an non-empty target_bucket and target_client")
+    
+    source_file_name = download_file(
+                            bucket_name=source_bucket,
+                            source_object_key=source_key,
+                            client=source_client
+                        )
+    upload_file(
+            bucket_name=target_bucket,
+            source_filepath=source_file_name,
+            target_object_key=target_key,
+            client=target_client
+    )
 
 
 def download_file(
@@ -170,7 +190,7 @@ def download_file(
         source_object_key: str,
         target_filename: str = '',
         client=s3_client
-):
+) -> str:
     """
     Delete an object key (file) in a given bucket.
 
@@ -189,6 +209,8 @@ def download_file(
 
     with open(target_filename, 'wb') as fd:
         client.download_fileobj(Bucket=bucket_name, Key=source_object_key, Fileobj=fd)
+        
+    return target_filename
 
 
 def delete_object(
@@ -216,27 +238,6 @@ def delete_object(
         print(f"Could not delete the '{target_object_key}' in bucket '{bucket_name}'?")
 
 
-def test_assumed_role_s3_access(
-        bucket_name: str,
-        client=s3_client
-):
-    """
-    Test for assumed role s3 access on a given bucket.
-    
-    :param client:
-    :param bucket_name:
-    :return:
-    """
-    TEST_FILE_PATH = abspath(dirname(__file__) + '/README.md')
-    TEST_FILE_OBJECT_KEY = 'test_file.txt'
-    
-    upload_file(bucket_name, TEST_FILE_PATH, TEST_FILE_OBJECT_KEY, client)
-
-    list_files(bucket_name, client)
-
-    delete_object(bucket_name, TEST_FILE_OBJECT_KEY, client)
-
-
 # Run the module as a CLI
 if __name__ == '__main__':
 
@@ -247,10 +248,7 @@ if __name__ == '__main__':
         s3_operation = sys.argv[1]
         
         if s3_operation.lower() == 'help':
-            print()
-
-        elif s3_operation.lower() == 'test':
-            test_assumed_role_s3_access(s3_bucket_name)
+            usage()
     
         elif s3_operation.lower() == 'upload':
             if len(sys.argv) >= 3:
@@ -352,7 +350,11 @@ if __name__ == '__main__':
             if len(sys.argv) >= 3:
                 object_key = sys.argv[2]
                 filename = sys.argv[3] if len(sys.argv) >= 4 else object_key.split("/")[-1]
-                download_file(s3_bucket_name, object_key, filename)
+                download_file(
+                    bucket_name=s3_bucket_name,
+                    source_object_key=object_key,
+                    target_filename=filename
+                )
             else:
                 usage("\nMissing S3 object key for file to download?")
         
