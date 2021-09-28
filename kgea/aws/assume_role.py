@@ -202,6 +202,12 @@ class AssumeRole:
             return self.aws_session.client(service, config=config)
 
     def get_resource(self, service, **kwargs):
+        """
+
+        :param service:
+        :param kwargs:
+        :return:
+        """
         if self._default_credentials:
             return boto3.resource('s3', **kwargs)
         else:

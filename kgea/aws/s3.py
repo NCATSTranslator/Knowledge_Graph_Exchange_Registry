@@ -55,7 +55,7 @@ def upload_file(
         bucket_name: str,
         source_filepath: str,
         targe_object_key: str,
-        client = s3_client
+        client=s3_client
 ):
     """
     Upload a test file.
@@ -121,11 +121,35 @@ def list_files(
         print("S3 bucket '" + bucket_name + "' is empty?")
 
 
-def copy(
+def local_copy(
         source_key: str,
         target_key: str,
-        source_bucket: str = s3_bucket_name,
-        target_bucket: str = None,
+        bucket: str = s3_bucket_name,
+        client=s3_client,
+):
+    """
+
+    :param source_key:
+    :param target_key:
+    :param bucket:
+    :param client:
+    """
+    copy_source = {
+        'Bucket': bucket,
+        'Key': source_key
+    }
+    client.copy(
+        CopySource=copy_source,
+        Bucket=bucket,
+        Key=target_key
+    )
+
+
+def remote_copy(
+        source_key: str,
+        target_key: str,
+        source_bucket=s3_bucket_name,
+        target_bucket=None,
         source_client=s3_client,
         target_client=None
 ):
@@ -138,22 +162,7 @@ def copy(
     :param source_client:
     :param target_client:
     """
-    if not target_bucket:
-        target_bucket = source_bucket
-        
-    if not target_client:
-        target_client = source_client
-
-    copy_source = {
-        'Bucket': source_bucket,
-        'Key': source_key
-    }
-    target_client.copy(
-        SourceClient=source_client,
-        CopySource=copy_source,
-        Bucket=target_bucket,
-        Key=target_key
-    )
+    pass
 
 
 def download_file(
@@ -237,13 +246,13 @@ if __name__ == '__main__':
 
         s3_operation = sys.argv[1]
         
-        if s3_operation.upper() == 'HELP':
+        if s3_operation.lower() == 'help':
             print()
 
-        elif s3_operation.upper() == 'TEST':
+        elif s3_operation.lower() == 'test':
             test_assumed_role_s3_access(s3_bucket_name)
     
-        elif s3_operation.upper() == 'UPLOAD':
+        elif s3_operation.lower() == 'upload':
             if len(sys.argv) >= 3:
                 filepath = sys.argv[2]
                 object_key = sys.argv[3] if len(sys.argv) >= 4 else filepath
@@ -251,31 +260,45 @@ if __name__ == '__main__':
             else:
                 usage("\nMissing path to file to upload?")
 
-        elif s3_operation.upper() == 'LIST':
+        elif s3_operation.lower() == 'list':
             list_files(s3_bucket_name)
 
-        elif s3_operation.upper() == 'COPY':
+        elif s3_operation.lower() == 'copy':
             
             if len(sys.argv) >= 4:
                 
                 source_key = sys.argv[2]
                 target_key = sys.argv[3]
+                target_s3_bucket_name = s3_bucket_name
+
+                # Default target bucket may also be overridden on the command line
+                target_s3_bucket_name = sys.argv[4] if len(sys.argv) >= 5 else target_s3_bucket_name
                 
+                local_copy(
+                    source_key=source_key,
+                    target_key=target_key,
+                )
+            else:
+                usage("\nLocal copy() operation needs a 'source' and 'target' key?")
+
+        elif s3_operation.lower() == 'remote-copy':
+    
+            if len(sys.argv) >= 4:
+        
+                source_key = sys.argv[2]
+                target_key = sys.argv[3]
+        
                 #
                 # The 'target' client and possibly, the target bucket
                 # (if not given as the 3rd CLI arguments after the 'copy' command)
                 # are configured here using "s3_remote" settings as provided
                 # from the application's config.yaml file.
                 #
-                # Targets default to local unless overridden
-                #
-                target_client = s3_client
-                target_s3_bucket_name = s3_bucket_name
-                
-                if "s3_remote" in aws_config:
-                    
-                    # config.yaml 's3_remote' override - must be completely specified?
-                    if not all(
+                target_client = None
+                target_s3_bucket_name = None
+            
+                if "s3_remote" not in aws_config or \
+                    not all(
                         [
                             tag in aws_config["s3_remote"]
                             for tag in [
@@ -286,16 +309,15 @@ if __name__ == '__main__':
                                 'bucket',
                                 'region'
                             ]
-                        ]
-                    ):
-                        usage("copy(): 's3_remote' settings in 'config.yaml' are incomplete?")
-    
+                        ]):
+                    usage("Remote copy(): 's3_remote' settings in 'config.yaml' missing or incomplete?")
+            
                     target_assumed_role = AssumeRole(
                         host_account=aws_config["s3_remote"]['host_account'],
                         guest_external_id=aws_config["s3_remote"]['guest_external_id'],
                         iam_role_name=aws_config["s3_remote"]['iam_role_name']
                     )
-
+            
                     target_client = \
                         target_assumed_role.get_client(
                             's3',
@@ -304,13 +326,18 @@ if __name__ == '__main__':
                                 region_name=aws_config["s3_remote"]["region"]
                             )
                         )
-
+                    
+                    assert target_client
+                    
                     target_s3_bucket_name = aws_config["s3_remote"]["bucket"]
-
-                # Target bucket may also be overridden on the command line
+        
+                # Default remote target bucket name may also be overridden on the command line
                 target_s3_bucket_name = sys.argv[4] if len(sys.argv) >= 5 else target_s3_bucket_name
+        
+                if not target_s3_bucket_name:
+                    usage("Remote copy(): missing target bucket name?")
                 
-                copy(
+                remote_copy(
                     source_key=source_key,
                     target_key=target_key,
                     source_bucket=s3_bucket_name,
@@ -319,9 +346,9 @@ if __name__ == '__main__':
                     target_client=target_client
                 )
             else:
-                usage("\nCopy operation needs a 'source' and 'target' key?")
+                usage("\nRemote copy(): operation needs a 'source' and 'target' key?")
 
-        elif s3_operation.upper() == 'DOWNLOAD':
+        elif s3_operation.lower() == 'download':
             if len(sys.argv) >= 3:
                 object_key = sys.argv[2]
                 filename = sys.argv[3] if len(sys.argv) >= 4 else object_key.split("/")[-1]
@@ -329,7 +356,7 @@ if __name__ == '__main__':
             else:
                 usage("\nMissing S3 object key for file to download?")
         
-        elif s3_operation.upper() == 'DELETE':
+        elif s3_operation.lower() == 'delete':
             if len(sys.argv) >= 3:
                 object_keys = sys.argv[2:]
                 for key in object_keys:
@@ -343,7 +370,7 @@ if __name__ == '__main__':
             else:
                 usage("\nMissing S3 key(s) of object(s) to delete?")
 
-        elif s3_operation.upper() == 'DELETE-BATCH':
+        elif s3_operation.lower() == 'delete-batch':
             if len(sys.argv) >= 3:
                 object_keys = get_object_keys(s3_bucket_name, filter_prefix=sys.argv[2])
                 print("Deleting key(s): ")
@@ -357,7 +384,6 @@ if __name__ == '__main__':
                     print("Cancelling deletion of objects...")
             else:
                 usage("\nMissing prefix filter for keys of S3 object(s) to delete?")
-
         else:
             usage("\nUnknown s3_operation: '" + s3_operation + "'")
     else:
