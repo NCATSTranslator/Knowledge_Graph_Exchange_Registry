@@ -6,14 +6,16 @@ credentials to execute an AWS Secure Token Service-mediated access
 to a Simple Storage Service (S3) bucket given as an argument.
 """
 import sys
+from typing import List
 from os.path import abspath, dirname
 from pathlib import Path
-
-from typing import List
+from pprint import PrettyPrinter
 
 from botocore.config import Config
 
 from kgea.aws.assume_role import AssumeRole, aws_config
+
+pp = PrettyPrinter(indent=4)
 
 
 def usage(err_msg: str = ''):
@@ -27,36 +29,60 @@ def usage(err_msg: str = ''):
     print(
         "\tpython -m kgea.aws."+Path(sys.argv[0]).stem +
         " <operation> [<object_key>+|<prefix_filter>]\n\n" +
-        "where <operation> is one of upload, list, download, delete, delete-batch and test.\n\n"
+        "where <operation> is one of upload, list, copy, download, delete, delete-batch and test.\n\n"
         "Note:\tone or more <object_key> strings are only required for 'delete' operation.\n" +
         "\tA <prefix_filter> string is only required for 'delete-batch' operation.\n"
     )
     exit(0)
 
 
-def upload_file(client, bucket_name: str, filepath: str, object_key: str):
+s3_bucket_name: str = aws_config["s3"]["bucket"]
+s3_region_name: str = aws_config["s3"]["region"]
+
+assumed_role = AssumeRole()
+
+s3_client = \
+    assumed_role.get_client(
+        's3',
+        config=Config(
+            signature_version='s3v4',
+            region_name=s3_region_name
+        )
+    )
+
+
+def upload_file(
+        bucket_name: str,
+        source_filepath: str,
+        targe_object_key: str,
+        client = s3_client
+):
     """
     Upload a test file.
     
-    :param client:
     :param bucket_name:
-    :param filepath:
-    :param object_key:
+    :param source_filepath:
+    :param targe_object_key:
+    :param client:
     :return:
     """
     print(
-        "\n###Uploading file '" + filepath + "' object '" + object_key +
+        "\n###Uploading file '" + source_filepath + "' to object '" + targe_object_key +
         "' in the S3 bucket '" + bucket_name + "'\n"
     )
     
     try:
-        client.upload_file(filepath, bucket_name, object_key)
+        client.upload_file(source_filepath, bucket_name, targe_object_key)
         
     except Exception as exc:
         usage("upload_file() exception: " + str(exc))
 
 
-def get_object_keys(client, bucket_name: str, filter_prefix='') -> List[str]:
+def get_object_keys(
+        bucket_name: str,
+        filter_prefix='',
+        client=s3_client
+) -> List[str]:
     """
     Check for the new file in the bucket listing.
     :param client:
@@ -75,7 +101,10 @@ def get_object_keys(client, bucket_name: str, filter_prefix='') -> List[str]:
         return []
 
 
-def list_files(client, bucket_name: str):
+def list_files(
+        bucket_name: str,
+        client=s3_client
+):
     """
     Check for the new file in the bucket listing.
     :param client:
@@ -92,42 +121,96 @@ def list_files(client, bucket_name: str):
         print("S3 bucket '" + bucket_name + "' is empty?")
 
 
-def download_file(client, bucket_name, object_key: str, filename: str = ''):
+def copy(
+        source_key: str,
+        target_key: str,
+        source_bucket: str = s3_bucket_name,
+        target_bucket: str = None,
+        source_client=s3_client,
+        target_client=None
+):
+    """
+
+    :param source_key:
+    :param target_key:
+    :param source_bucket:
+    :param target_bucket:
+    :param source_client:
+    :param target_client:
+    """
+    if not target_bucket:
+        target_bucket = source_bucket
+        
+    if not target_client:
+        target_client = source_client
+
+    copy_source = {
+        'Bucket': source_bucket,
+        'Key': source_key
+    }
+    target_client.copy(
+        SourceClient=source_client,
+        CopySource=copy_source,
+        Bucket=target_bucket,
+        Key=target_key
+    )
+
+
+def download_file(
+        bucket_name: str,
+        source_object_key: str,
+        target_filename: str = '',
+        client=s3_client
+):
     """
     Delete an object key (file) in a given bucket.
 
     :param client: S3 client to access S3 bucket
     :param bucket_name: the target bucket
-    :param object_key: the target object_key
-    :param filename: filename to which to save the file
+    :param source_object_key: the target object_key
+    :param target_filename: filename to which to save the file
     :return:
     """
     print(
-        "\n### Downloading the test object '" + object_key +
-        "' from the S3 bucket '" + bucket_name + "' to file " + str(filename)
+        "\n### Downloading the test object '" + source_object_key +
+        "' from the S3 bucket '" + bucket_name + "' to file " + str(target_filename)
     )
-    with open(filename, 'wb') as fd:
-        client.download_fileobj(Bucket=bucket_name, Key=object_key, Fileobj=fd)
+    if not target_filename:
+        target_filename = source_object_key.split("/")[-1]
+
+    with open(target_filename, 'wb') as fd:
+        client.download_fileobj(Bucket=bucket_name, Key=source_object_key, Fileobj=fd)
 
 
-def delete_object(client, bucket_name, object_key: str):
+def delete_object(
+        bucket_name: str,
+        target_object_key: str,
+        client=s3_client
+):
     """
     Delete an object key (file) in a given bucket.
     
     :param client:
     :param bucket_name:
-    :param object_key:
+    :param target_object_key:
     :return:
     """
     # print(
     #     "\n### Deleting the test object '" + object_key +
     #     "' in the S3 bucket '" + bucket_name + "'"
     # )
-    response = client.delete_object(Bucket=bucket_name, Key=object_key)
-    # print(dumps(response))
+    response = client.delete_object(Bucket=bucket_name, Key=target_object_key)
+    deleted = response["DeleteMarker"]
+    if deleted:
+        print(f"'{target_object_key}' deleted in bucket '{bucket_name}'!")
+    else:
+        print(f"Could not delete the '{target_object_key}' in bucket '{bucket_name}'?")
 
 
-def test_assumed_role_s3_access(client, bucket_name: str):
+def test_assumed_role_s3_access(
+        bucket_name: str,
+        client=s3_client
+):
     """
     Test for assumed role s3 access on a given bucket.
     
@@ -138,57 +221,111 @@ def test_assumed_role_s3_access(client, bucket_name: str):
     TEST_FILE_PATH = abspath(dirname(__file__) + '/README.md')
     TEST_FILE_OBJECT_KEY = 'test_file.txt'
     
-    upload_file(client, bucket_name, TEST_FILE_PATH, TEST_FILE_OBJECT_KEY)
+    upload_file(bucket_name, TEST_FILE_PATH, TEST_FILE_OBJECT_KEY, client)
 
-    list_files(client, bucket_name)
+    list_files(bucket_name, client)
 
-    delete_object(client, bucket_name, TEST_FILE_OBJECT_KEY)
+    delete_object(bucket_name, TEST_FILE_OBJECT_KEY, client)
 
 
 # Run the module as a CLI
 if __name__ == '__main__':
 
-    s3_bucket_name: str = aws_config["s3"]["bucket"]
-    s3_region_name: str = aws_config["s3"]["region"]
     s3_operation: str = ''
     
     if len(sys.argv) > 1:
-        s3_operation = sys.argv[1]
 
-        assumed_role = AssumeRole()
-        
-        s3_client = \
-            assumed_role.get_client(
-                        's3',
-                        config=Config(
-                            signature_version='s3v4',
-                            region_name=s3_region_name
-                        )
-            )
+        s3_operation = sys.argv[1]
         
         if s3_operation.upper() == 'HELP':
             print()
 
         elif s3_operation.upper() == 'TEST':
-    
-            test_assumed_role_s3_access(s3_client, s3_bucket_name)
+            test_assumed_role_s3_access(s3_bucket_name)
     
         elif s3_operation.upper() == 'UPLOAD':
             if len(sys.argv) >= 3:
                 filepath = sys.argv[2]
                 object_key = sys.argv[3] if len(sys.argv) >= 4 else filepath
-                upload_file(s3_client, s3_bucket_name, filepath, object_key)
+                upload_file(s3_bucket_name, filepath, object_key)
             else:
                 usage("\nMissing path to file to upload?")
 
         elif s3_operation.upper() == 'LIST':
-            list_files(s3_client, s3_bucket_name)
+            list_files(s3_bucket_name)
+
+        elif s3_operation.upper() == 'COPY':
+            
+            if len(sys.argv) >= 4:
+                
+                source_key = sys.argv[2]
+                target_key = sys.argv[3]
+                
+                #
+                # The 'target' client and possibly, the target bucket
+                # (if not given as the 3rd CLI arguments after the 'copy' command)
+                # are configured here using "s3_remote" settings as provided
+                # from the application's config.yaml file.
+                #
+                # Targets default to local unless overridden
+                #
+                target_client = s3_client
+                target_s3_bucket_name = s3_bucket_name
+                
+                if "s3_remote" in aws_config:
+                    
+                    # config.yaml 's3_remote' override - must be completely specified?
+                    if not all(
+                        [
+                            tag in aws_config["s3_remote"]
+                            for tag in [
+                                'guest_external_id',
+                                'host_account',
+                                'iam_role_name',
+                                'archive-directory',
+                                'bucket',
+                                'region'
+                            ]
+                        ]
+                    ):
+                        usage("copy(): 's3_remote' settings in 'config.yaml' are incomplete?")
+    
+                    target_assumed_role = AssumeRole(
+                        host_account=aws_config["s3_remote"]['host_account'],
+                        guest_external_id=aws_config["s3_remote"]['guest_external_id'],
+                        iam_role_name=aws_config["s3_remote"]['iam_role_name']
+                    )
+
+                    target_client = \
+                        target_assumed_role.get_client(
+                            's3',
+                            config=Config(
+                                signature_version='s3v4',
+                                region_name=aws_config["s3_remote"]["region"]
+                            )
+                        )
+
+                    target_s3_bucket_name = aws_config["s3_remote"]["bucket"]
+
+                # Target bucket may also be overridden on the command line
+                target_s3_bucket_name = sys.argv[4] if len(sys.argv) >= 5 else target_s3_bucket_name
+                
+                copy(
+                    source_key=source_key,
+                    target_key=target_key,
+                    source_bucket=s3_bucket_name,
+                    target_bucket=target_s3_bucket_name,
+                    source_client=s3_client,
+                    target_client=target_client
+                )
+            else:
+                usage("\nCopy operation needs a 'source' and 'target' key?")
 
         elif s3_operation.upper() == 'DOWNLOAD':
             if len(sys.argv) >= 3:
                 object_key = sys.argv[2]
                 filename = sys.argv[3] if len(sys.argv) >= 4 else object_key.split("/")[-1]
-                download_file(s3_client, s3_bucket_name, object_key, filename)
+                download_file(s3_bucket_name, object_key, filename)
             else:
                 usage("\nMissing S3 object key for file to download?")
         
@@ -200,7 +337,7 @@ if __name__ == '__main__':
                 prompt = input("Proceed (Type 'yes')? ")
                 if prompt.upper() == "YES":
                     for key in object_keys:
-                        delete_object(s3_client, s3_bucket_name, key)
+                        delete_object(s3_bucket_name, key)
                 else:
                     print("Cancelling deletion of objects...")
             else:
@@ -208,15 +345,14 @@ if __name__ == '__main__':
 
         elif s3_operation.upper() == 'DELETE-BATCH':
             if len(sys.argv) >= 3:
-                object_keys = get_object_keys(s3_client, s3_bucket_name, filter_prefix=sys.argv[2])
+                object_keys = get_object_keys(s3_bucket_name, filter_prefix=sys.argv[2])
                 print("Deleting key(s): ")
                 for key in object_keys:
                     print("\t"+key)
                 prompt = input("Proceed (Type 'yes')? ")
                 if prompt.upper() == "YES":
                     for key in object_keys:
-                        delete_object(s3_client, s3_bucket_name, key)
-                    print("Key(s) deleted!")
+                        delete_object(s3_bucket_name, key)
                 else:
                     print("Cancelling deletion of objects...")
             else:
