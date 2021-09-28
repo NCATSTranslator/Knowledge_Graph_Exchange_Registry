@@ -7,7 +7,7 @@ to a Simple Storage Service (S3) bucket given as an argument.
 """
 import sys
 from typing import List
-from os.path import abspath, dirname
+from os import remove
 from pathlib import Path
 from pprint import PrettyPrinter
 
@@ -149,7 +149,6 @@ def local_copy(
 # target_client configuration (by the caller)
 # and uses a locally cached file for the copy operation
 # (presumed fast enough on an EC2 instance?)
-# TODO: can this be converted to a Unix PIPE operation?
 def remote_copy(
         source_key: str,
         target_key: str,
@@ -171,7 +170,8 @@ def remote_copy(
     """
     if not (target_bucket and target_client):
         usage("Remote copy: requires an non-empty target_bucket and target_client")
-    
+
+    # TODO: can this be converted to a Unix file PIPE operation?
     source_file_name = download_file(
                             bucket_name=source_bucket,
                             source_object_key=source_key,
@@ -183,6 +183,10 @@ def remote_copy(
             target_object_key=target_key,
             client=target_client
     )
+    
+    # Need to delete the locally cached file here,
+    # unless one streams the data in a PIPE
+    remove(source_file_name)
 
 
 def download_file(

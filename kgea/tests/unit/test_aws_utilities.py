@@ -125,9 +125,17 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
         target_client=target_client
     )
     
-    assert (object_key_exists(object_key=src_test_key, bucket_name=target_bucket))
+    assert object_key_exists(
+        object_key=src_test_key,
+        bucket_name=target_bucket,
+        assumed_role=target_assumed_role
+    )
+    
+    list_files(target_bucket, target_client)
     
     if not KEEP_TEST_FILES:
-        # Don't delete the original source key!!! It's a real data file!!!
-        # However, you can delete the key in the default bucket == TEST_BUCKET
-        delete_test_file(test_object_key=src_test_key, test_bucket=target_bucket)
+        delete_test_file(
+            test_object_key=src_test_key,
+            test_bucket=target_bucket,
+            test_client=target_client
+        )

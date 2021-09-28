@@ -195,17 +195,14 @@ def upload_test_file(
     return test_file_object_key
 
 
-def delete_test_file(test_object_key, test_bucket=TEST_BUCKET):
+def delete_test_file(test_object_key, test_bucket=TEST_BUCKET, test_client=s3_client()):
     """
 
     :param test_object_key:
     :param test_bucket:
     """
-    # Suppress object deletion in DEV_MODE for test troubleshooting
-    # With DEV_MODE on, one needs to manually go into S3 and clean things up.
-    if not DEV_MODE:
-        logger.debug(f"delete_test_file(): {test_object_key} in {test_bucket}")
-        s3_client().delete_object(Bucket=test_bucket, Key=test_object_key)
+    logger.debug(f"delete_test_file(): {test_object_key} in {test_bucket}")
+    test_client.delete_object(Bucket=test_bucket, Key=test_object_key)
 
 
 def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
