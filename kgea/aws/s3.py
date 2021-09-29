@@ -6,8 +6,8 @@ credentials to execute an AWS Secure Token Service-mediated access
 to a Simple Storage Service (S3) bucket given as an argument.
 """
 import sys
-from typing import List
-from os import remove
+from typing import List, Union
+from os import remove, pipe
 from pathlib import Path
 from pprint import PrettyPrinter
 
@@ -54,28 +54,38 @@ s3_client = \
 
 def upload_file(
         bucket_name: str,
-        source_filepath: str,
+        source_file,
         target_object_key: str,
         client=s3_client
 ):
     """
-    Upload a test file.
+    Upload a file.
     
     :param bucket_name:
-    :param source_filepath:
+    :param source_file: may be a file name string or a file descriptor open for reading
     :param target_object_key:
     :param client:
     :return:
     """
-    print(
-        "\n###Uploading file '" + source_filepath + "' to object '" + target_object_key +
-        "' in the S3 bucket '" + bucket_name + "'\n"
-    )
-    try:
-        client.upload_file(source_filepath, bucket_name, target_object_key)
-        
-    except Exception as exc:
-        usage("upload_file() exception: " + str(exc))
+    if isinstance(source_file, str):
+        print(
+            f"\n###Uploading file '{source_file}' to object " +
+            f"'{target_object_key}' in the S3 bucket '{bucket_name}'\n"
+        )
+        try:
+            client.upload_file(source_file, bucket_name, target_object_key)
+        except Exception as exc:
+            usage("upload_file(): 'client.upload_file' exception: " + str(exc))
+    else:
+        # assume that an open file descriptor is being passed for reading
+        print(
+            f"\n###Uploading file '{source_file.name}' to object " +
+            f"'{target_object_key}' in the S3 bucket '{bucket_name}'\n"
+        )
+        try:
+            client.upload_fileobj(source_file, bucket_name, target_object_key)
+        except Exception as exc:
+            usage("upload_file(): 'client.upload_fileobj' exception: " + str(exc))
 
 
 def get_object_keys(
@@ -119,6 +129,47 @@ def list_files(
             print(entry['Key'], ':', entry['Size'])
     else:
         usage("S3 bucket '" + bucket_name + "' is empty?")
+
+
+def download_file(
+        bucket_name: str,
+        source_object_key: str,
+        target_file=None,
+        client=s3_client
+) -> str:
+    """
+    Delete an object key (file) in a given bucket.
+
+    :param client: S3 client to access S3 bucket
+    :param bucket_name: the target bucket
+    :param source_object_key: the target object_key
+    :param target_file: file name string or file descriptor (open for (binary) writing) to which to save the file
+    :return:
+    """
+    if not target_file:
+        target_file = source_object_key.split("/")[-1]
+        
+    if isinstance(target_file, str):
+        print(
+            f"\n###Downloading file '{target_file}' from object " +
+            f"'{source_object_key}' in the S3 bucket '{bucket_name}'\n"
+        )
+        try:
+            client.download_file(Bucket=bucket_name, Key=source_object_key, Filename=target_file)
+        except Exception as exc:
+            usage("download_file(): 'client.download_file' exception: " + str(exc))
+    else:
+        # assume that an open file descriptor is being passed for reading
+        print(
+            f"\n###Downloading file '{target_file.name}' from object " +
+            f"'{source_object_key}' in the S3 bucket '{bucket_name}'\n"
+        )
+        try:
+            client.download_fileobj(Bucket=bucket_name, Key=source_object_key, Fileobj=target_file)
+        except Exception as exc:
+            usage("upload_file(): 'client.downloadload_fileobj' exception: " + str(exc))
+    
+    return target_file
 
 
 def local_copy(
@@ -172,6 +223,54 @@ def remote_copy(
         usage("Remote copy: requires an non-empty target_bucket and target_client")
 
     # TODO: can this be converted to a Unix file PIPE operation?
+    #============================================
+    # Python program to explain os.pipe() method
+
+    # importing os module
+    import os
+
+    # Create a pipe
+    r, w = os.pipe()
+
+    # The returned file descriptor r and w
+    # can be used for reading and
+    # writing respectively.
+
+    # We will create a child process
+    # and using these file descriptor
+    # the parent process will write
+    # some text and child process will
+    # read the text written by the parent process
+
+    # Create a child process
+    pid = os.fork()
+
+    # pid greater than 0 represents
+    # the parent process
+    if pid > 0:
+    
+        # This is the parent process
+        # Closes file descriptor r
+        os.close(r)
+    
+        # Write some text to file descriptor w
+        print("Parent process is writing")
+        text = b"Hello child process"
+        os.write(w, text)
+        print("Written text:", text.decode())
+
+
+    else:
+    
+        # This is the parent process
+        # Closes file descriptor w
+        os.close(w)
+    
+        # Read the text written by parent process
+        print("\nChild Process is reading")
+        r = os.fdopen(r)
+        print("Read text:", r.read())
+    #============================================
     source_file_name = download_file(
                             bucket_name=source_bucket,
                             source_object_key=source_key,
@@ -187,34 +286,6 @@ def remote_copy(
     # Need to delete the locally cached file here,
     # unless one streams the data in a PIPE
     remove(source_file_name)
-
-
-def download_file(
-        bucket_name: str,
-        source_object_key: str,
-        target_filename: str = '',
-        client=s3_client
-) -> str:
-    """
-    Delete an object key (file) in a given bucket.
-
-    :param client: S3 client to access S3 bucket
-    :param bucket_name: the target bucket
-    :param source_object_key: the target object_key
-    :param target_filename: filename to which to save the file
-    :return:
-    """
-    print(
-        "\n### Downloading the test object '" + source_object_key +
-        "' from the S3 bucket '" + bucket_name + "' to file " + str(target_filename)
-    )
-    if not target_filename:
-        target_filename = source_object_key.split("/")[-1]
-
-    with open(target_filename, 'wb') as fd:
-        client.download_fileobj(Bucket=bucket_name, Key=source_object_key, Fileobj=fd)
-        
-    return target_filename
 
 
 def delete_object(

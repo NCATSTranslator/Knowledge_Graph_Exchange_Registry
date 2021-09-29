@@ -1,14 +1,21 @@
-#
-# Unit tests for AWS utilities
-#
-from os import getenv
+"""
+Unit tests for AWS utilities
+"""
+from os import getenv, remove
+from os.path import isfile
 
 from botocore.config import Config
 
 from kgea.aws.assume_role import aws_config, AssumeRole
-from kgea.aws.s3 import local_copy, s3_client, upload_file, list_files, delete_object, remote_copy
+from kgea.aws.s3 import local_copy, s3_client, upload_file, list_files, delete_object, remote_copy, download_file
 from kgea.server.web_services.kgea_file_ops import object_key_exists
-from kgea.tests import TEST_BUCKET_2, TEST_BUCKET, TEST_SMALL_FILE_PATH, TEST_SMALL_FILE_KEY
+from kgea.tests import (
+    TEST_BUCKET_2,
+    TEST_BUCKET,
+    TEST_SMALL_FILE,
+    TEST_SMALL_FILE_PATH,
+    TEST_SMALL_FILE_KEY
+)
 from kgea.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file
 
 # Master flag for local development retaining
@@ -33,6 +40,106 @@ def test_assumed_role_s3_access(
     list_files(bucket_name, client)
     
     delete_object(bucket_name, TEST_SMALL_FILE_KEY, client)
+
+
+def test_upload_file(
+        bucket_name: str = TEST_BUCKET,
+        client=s3_client
+):
+    """
+    Test for uploading of file to S3.
+
+    :param client:
+    :param bucket_name:
+    :return:
+    """
+    upload_file(
+        bucket_name=bucket_name,
+        source_file=TEST_SMALL_FILE_PATH,
+        target_object_key=TEST_SMALL_FILE_KEY,
+        client=client
+    )
+    
+    # successful upload?
+    assert (object_key_exists(object_key=TEST_SMALL_FILE_KEY))
+    
+    # clean up after test
+    delete_object(
+        bucket_name=bucket_name,
+        target_object_key=TEST_SMALL_FILE_KEY,
+        client=client
+    )
+
+    with open(TEST_SMALL_FILE_PATH, 'rb') as fileobj:
+        upload_file(
+            bucket_name=bucket_name,
+            source_file=fileobj,
+            target_object_key=TEST_SMALL_FILE_KEY,
+            client=client
+        )
+        
+    # successful upload?
+    assert (object_key_exists(object_key=TEST_SMALL_FILE_KEY))
+
+    # clean up after test
+    delete_object(
+        bucket_name=bucket_name,
+        target_object_key=TEST_SMALL_FILE_KEY,
+        client=client
+    )
+
+
+def test_download_file(
+        bucket_name: str = TEST_BUCKET,
+        client=s3_client
+):
+    """
+    Test for downloading of a S3 object to a target file.
+
+    :param client:
+    :param bucket_name:
+    :return:
+    """
+
+    # ensure that a test file exists for downloading
+    src_test_key = upload_test_file()
+    assert (object_key_exists(object_key=src_test_key))
+    
+    # Test first downloading to a file of given name
+    download_file(
+        bucket_name=bucket_name,
+        source_object_key=src_test_key,
+        target_file=TEST_SMALL_FILE,
+        client=client
+    )
+
+    # successful download?
+    assert isfile(TEST_SMALL_FILE)
+    
+    # Clean up test file
+    remove(TEST_SMALL_FILE)
+    
+    # Test next downloading the test object to write to a open file object of a given name
+    with open(TEST_SMALL_FILE, 'wb') as fileobj:
+        download_file(
+            bucket_name=bucket_name,
+            source_object_key=src_test_key,
+            target_file=fileobj,
+            client=client
+        )
+
+    # successful download?
+    assert isfile(TEST_SMALL_FILE)
+
+    # Clean up test file
+    remove(TEST_SMALL_FILE)
+
+    # Clean up test object in S3
+    delete_object(
+        bucket_name=bucket_name,
+        target_object_key=src_test_key,
+        client=client
+    )
 
 
 def test_s3_local_copy_to_new_key_in_same_bucket():
