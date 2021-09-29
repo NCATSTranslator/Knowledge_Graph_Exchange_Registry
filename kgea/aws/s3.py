@@ -6,9 +6,10 @@ credentials to execute an AWS Secure Token Service-mediated access
 to a Simple Storage Service (S3) bucket given as an argument.
 """
 import sys
+from multiprocessing.connection import Connection
 from typing import List
-from os import pipe, fork, close, fdopen
 from pathlib import Path
+from multiprocessing import Process, Pipe
 from pprint import PrettyPrinter
 
 from botocore.config import Config
@@ -159,11 +160,26 @@ def download_file(
         except Exception as exc:
             usage("download_file(): 'client.download_file' exception: " + str(exc))
     else:
-        # assume that an open file descriptor is being passed for reading
+        # assume that an open file descriptor is being
+        # passed for writing of the downloaded S3 object
         print(
             f"\n###Downloading file '{target_file.name}' from object " +
             f"'{source_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
+        #
+        # These default transfer configuration parameters may be ok for most transfers or may need to be tweaked
+        # for S3 object 'remote_copy' which uses multiprocessor Pipe Connections (not sure...)
+        #
+        # boto3.s3.transfer.TransferConfig(
+        #     multipart_threshold=8388608,
+        #     max_concurrency=10,
+        #     multipart_chunksize=8388608,
+        #     num_download_attempts=5,
+        #     max_io_queue=100,
+        #     io_chunksize=262144,
+        #     use_threads=True
+        #     )[source]
+        #
         try:
             client.download_fileobj(Bucket=bucket_name, Key=source_object_key, Fileobj=target_file)
         except Exception as exc:
@@ -222,47 +238,85 @@ def remote_copy(
     if not (target_bucket and target_client):
         usage("Remote copy: requires an non-empty target_bucket and target_client")
 
-    # Create a pipe
-    # The returned file descriptor r and w
-    # can be used for reading and
-    # writing respectively.
-    upload_read_fd, download_write_fd = pipe()
-
-    # We create a child process and using these file descriptors,
-    # the parent process will write some text and child process will
-    # read the text written by the parent process
-
-    # Create a child process
-    pid = fork()
-
-    # pid greater than 0 represents the parent process
-    if pid > 0:
+    # ========================================================
     
-        # This is the parent process... the 'upload_read_fd' is not needed
-        close(upload_read_fd)
-    
-        print("Parent process is downloading the S3 source key object into the pipe")
+    # Child process method
+    def retrieve_the_object(conn: Connection):
+        """
+        Downloads an S3 object and streams it into the Pipe(),
+        to the complementary S3 upload parent process?
+        
+        :param conn: child Pipe connection
+        """
+        download_write_fd = conn.fileno()
+        
+        # TODO: how can I set a limited mpu part (buffer) size in download_fileobj() for download streaming?
         download_file(
             bucket_name=source_bucket,
             source_object_key=source_key,
             target_file=download_write_fd,
             client=source_client
         )
+        
+        conn.close()
 
-    else:
-        # This is the child process... the 'download_write_fd' not needed
-        close(download_write_fd)
+    parent_conn: Connection
+    child_conn: Connection
+    parent_conn, child_conn = Pipe(duplex=False)
     
-        # Child process is reading the data stream of the S3 object downloaded
-        # by the parent process and uploading it up to another S3 bucket
-        print("The parent process is uploading the S3 source key object data from the pipe")
-        with fdopen(upload_read_fd, mode='rb') as upload_read_fd:
-            upload_file(
-                    bucket_name=target_bucket,
-                    source_file=upload_read_fd,
-                    target_object_key=target_key,
-                    client=target_client
-            )
+    # Start a second process to download the source object
+    # from the source bucket in the source account
+    p = Process(target=retrieve_the_object, args=(child_conn,))
+    p.start()
+    
+    upload_read_fd = parent_conn.fileno
+    upload_file(
+        bucket_name=target_bucket,
+        source_file=upload_read_fd,
+        target_object_key=target_key,
+        client=target_client
+    )
+    p.join()
+        
+    # # ===================== UNIX-specific version of code =============================
+    # # Create a pipe: the returned file descriptors upload_read_fd and download_write_fd
+    # # can be used for reading and writing respectively.
+    # upload_read_fd, download_write_fd = pipe()
+    #
+    # # We create a child process and using these file descriptors, the parent process will
+    # # write data and child process will read the data written by the parent process
+    #
+    # # Create a child process
+    # pid = fork()
+    #
+    # # pid greater than 0 represents the parent process
+    # if pid > 0:
+    #
+    #     # This is the parent process... the 'upload_read_fd' is not needed
+    #     close(upload_read_fd)
+    #
+    #     print("Parent process is downloading the S3 source key object into the pipe")
+    #     download_file(
+    #         bucket_name=source_bucket,
+    #         source_object_key=source_key,
+    #         target_file=download_write_fd,
+    #         client=source_client
+    #     )
+    #
+    # else:
+    #     # This is the child process... the 'download_write_fd' not needed
+    #     close(download_write_fd)
+    #
+    #     # Child process is reading the data stream of the S3 object downloaded
+    #     # by the parent process and uploading it up to another S3 bucket
+    #     print("The parent process is uploading the S3 source key object data from the pipe")
+    #     with fdopen(upload_read_fd, mode='rb') as upload_read_fd:
+    #         upload_file(
+    #                 bucket_name=target_bucket,
+    #                 source_file=upload_read_fd,
+    #                 target_object_key=target_key,
+    #                 client=target_client
+    #         )
 
 
 def delete_object(
