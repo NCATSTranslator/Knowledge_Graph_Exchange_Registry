@@ -70,10 +70,10 @@ def test_upload_file(
         client=client
     )
 
-    with open(TEST_SMALL_FILE_PATH, 'rb') as fileobj:
+    with open(TEST_SMALL_FILE_PATH, mode='rb') as test_fd:
         upload_file(
             bucket_name=bucket_name,
-            source_file=fileobj,
+            source_file=test_fd,
             target_object_key=TEST_SMALL_FILE_KEY,
             client=client
         )
@@ -120,11 +120,11 @@ def test_download_file(
     remove(TEST_SMALL_FILE)
     
     # Test next downloading the test object to write to a open file object of a given name
-    with open(TEST_SMALL_FILE, 'wb') as fileobj:
+    with open(TEST_SMALL_FILE, 'wb') as test_fd:
         download_file(
             bucket_name=bucket_name,
             source_object_key=src_test_key,
-            target_file=fileobj,
+            target_file=test_fd,
             client=client
         )
 
@@ -223,7 +223,6 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
     
     # Expect the local 'src_test_key' resource
     # to be copied into the default remote bucket?
-
     remote_copy(
         source_key=src_test_key,
         target_key=src_test_key,

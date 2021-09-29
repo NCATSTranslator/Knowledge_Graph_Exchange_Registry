@@ -6,8 +6,8 @@ credentials to execute an AWS Secure Token Service-mediated access
 to a Simple Storage Service (S3) bucket given as an argument.
 """
 import sys
-from typing import List, Union
-from os import remove, pipe
+from typing import List
+from os import pipe, fork, close, fdopen
 from pathlib import Path
 from pprint import PrettyPrinter
 
@@ -222,70 +222,47 @@ def remote_copy(
     if not (target_bucket and target_client):
         usage("Remote copy: requires an non-empty target_bucket and target_client")
 
-    # TODO: can this be converted to a Unix file PIPE operation?
-    #============================================
-    # Python program to explain os.pipe() method
-
-    # importing os module
-    import os
-
     # Create a pipe
-    r, w = os.pipe()
-
     # The returned file descriptor r and w
     # can be used for reading and
     # writing respectively.
+    upload_read_fd, download_write_fd = pipe()
 
-    # We will create a child process
-    # and using these file descriptor
-    # the parent process will write
-    # some text and child process will
+    # We create a child process and using these file descriptors,
+    # the parent process will write some text and child process will
     # read the text written by the parent process
 
     # Create a child process
-    pid = os.fork()
+    pid = fork()
 
-    # pid greater than 0 represents
-    # the parent process
+    # pid greater than 0 represents the parent process
     if pid > 0:
     
-        # This is the parent process
-        # Closes file descriptor r
-        os.close(r)
+        # This is the parent process... the 'upload_read_fd' is not needed
+        close(upload_read_fd)
     
-        # Write some text to file descriptor w
-        print("Parent process is writing")
-        text = b"Hello child process"
-        os.write(w, text)
-        print("Written text:", text.decode())
-
+        print("Parent process is downloading the S3 source key object into the pipe")
+        download_file(
+            bucket_name=source_bucket,
+            source_object_key=source_key,
+            target_file=download_write_fd,
+            client=source_client
+        )
 
     else:
+        # This is the child process... the 'download_write_fd' not needed
+        close(download_write_fd)
     
-        # This is the parent process
-        # Closes file descriptor w
-        os.close(w)
-    
-        # Read the text written by parent process
-        print("\nChild Process is reading")
-        r = os.fdopen(r)
-        print("Read text:", r.read())
-    #============================================
-    source_file_name = download_file(
-                            bucket_name=source_bucket,
-                            source_object_key=source_key,
-                            client=source_client
-                        )
-    upload_file(
-            bucket_name=target_bucket,
-            source_filepath=source_file_name,
-            target_object_key=target_key,
-            client=target_client
-    )
-    
-    # Need to delete the locally cached file here,
-    # unless one streams the data in a PIPE
-    remove(source_file_name)
+        # Child process is reading the data stream of the S3 object downloaded
+        # by the parent process and uploading it up to another S3 bucket
+        print("The parent process is uploading the S3 source key object data from the pipe")
+        with fdopen(upload_read_fd, mode='rb') as upload_read_fd:
+            upload_file(
+                    bucket_name=target_bucket,
+                    source_file=upload_read_fd,
+                    target_object_key=target_key,
+                    client=target_client
+            )
 
 
 def delete_object(
@@ -428,7 +405,7 @@ if __name__ == '__main__':
                 download_file(
                     bucket_name=s3_bucket_name,
                     source_object_key=object_key,
-                    target_filename=filename
+                    target_file=filename
                 )
             else:
                 usage("\nMissing S3 object key for file to download?")
