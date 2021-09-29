@@ -199,23 +199,30 @@ def download_file(
 def local_copy(
         source_key: str,
         target_key: str,
-        bucket: str = s3_bucket_name,
+        source_bucket: str = s3_bucket_name,
+        target_bucket: str = None,
         client=s3_client,
 ):
     """
-
+    Local direct copy of a key in one bucket to another key in the same or
+    another bucket, but all within the same AWS account (as wrapped by 'client').
+    
     :param source_key:
     :param target_key:
-    :param bucket:
+    :param source_bucket:
+    :param target_bucket:
     :param client:
     """
+    if not target_bucket:
+        target_bucket = source_bucket
+
     copy_source = {
-        'Bucket': bucket,
+        'Bucket': source_bucket,
         'Key': source_key
     }
     client.copy(
         CopySource=copy_source,
-        Bucket=bucket,
+        Bucket=target_bucket,
         Key=target_key
     )
 
