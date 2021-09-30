@@ -200,6 +200,7 @@ def delete_test_file(test_object_key, test_bucket=TEST_BUCKET, test_client=s3_cl
 
     :param test_object_key:
     :param test_bucket:
+    :param test_client:
     """
     logger.debug(f"delete_test_file(): {test_object_key} in {test_bucket}")
     test_client.delete_object(Bucket=test_bucket, Key=test_object_key)

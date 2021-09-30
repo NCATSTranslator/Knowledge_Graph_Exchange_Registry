@@ -9,6 +9,8 @@ import sys
 
 from sys import platform
 
+from kgea.server.web_services.kgea_file_ops import object_key_exists
+
 if platform != "win32":
     from os import fdopen, pipe, fork, close
 
@@ -32,11 +34,12 @@ pp = PrettyPrinter(indent=4)
 
 def usage(err_msg: str = ''):
     """
-
+    Print S3 command usage (possibly prefixed with an error message).
     :param err_msg:
     """
     if err_msg:
         print(err_msg)
+        logger.debug(f"usage({err_msg})")
 
     print("Usage:\n")
     print(
@@ -86,7 +89,7 @@ def upload_file(
         if not source_file_name:
             source_file_name = source_file.split("/")[-1]
             
-        print(
+        logger.debug(
             f"\n###Uploading file '{source_file_name}' to object " +
             f"'{target_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
@@ -101,7 +104,7 @@ def upload_file(
             source_file_name = target_object_key.split("/")[-1]
             
         # assume that an open file descriptor is being passed for reading
-        print(
+        logger.debug(
             f"\n###Uploading file '{source_file_name}' to object " +
             f"'{target_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
@@ -126,7 +129,7 @@ def get_object_keys(
     response = client.list_objects_v2(Bucket=bucket_name, Prefix=filter_prefix)
 
     if 'Contents' in response:
-        print("### Returning list of keys with prefix '" + filter_prefix +
+        logger.debug("### Returning list of keys with prefix '" + filter_prefix +
               "'from the S3 bucket '" + bucket_name + "'")
         return [item['Key'] for item in response['Contents']]
     else:
@@ -147,7 +150,7 @@ def list_files(
     response = client.list_objects_v2(Bucket=bucket_name)
     
     if 'Contents' in response:
-        print("### Listing contents of the S3 bucket '" + bucket_name + "':")
+        logger.debug("### Listing contents of the S3 bucket '" + bucket_name + "':")
         for entry in response['Contents']:
             print(entry['Key'], ':', entry['Size'])
     else:
@@ -180,7 +183,7 @@ def download_file(
         if not target_file_name:
             target_file_name = target_file.split("/")[-1]
             
-        print(
+        logger.debug(
             f"\n###Downloading file '{target_file_name}' from object " +
             f"'{source_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
@@ -195,7 +198,7 @@ def download_file(
             
         # assume that an open file descriptor is being
         # passed for writing of the downloaded S3 object
-        print(
+        logger.debug(
             f"\n###Downloading file '{target_file_name}' from object " +
             f"'{source_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
@@ -280,47 +283,6 @@ def remote_copy(
         
         if not (target_bucket and target_client):
             usage("Remote copy: requires a distinct non-empty target_bucket and target_client")
-    
-        # ============== Multiprocessor -specific version of code (doesn't work yet) =============
-        #
-        # # Child process method
-        # def retrieve_the_object(conn: Connection):
-        #     """
-        #     Downloads an S3 object and streams it into the Pipe(),
-        #     to the complementary S3 upload parent process?
-        #
-        #     :param conn: child Pipe connection
-        #     """
-        #     with fdopen(conn.fileno(), mode='wb') as download_write_fd:
-        #         download_file(
-        #             bucket_name=source_bucket,
-        #             source_object_key=source_key,
-        #             target_file=download_write_fd,
-        #             client=source_client
-        #         )
-        #
-        #     conn.close()
-        #
-        # parent_conn: Connection
-        # child_conn: Connection
-        # parent_conn, child_conn = Pipe(duplex=False)
-        #
-        # # Child process to download the object from the source bucket
-        # # owned by the source account and feed its data into the Pipe
-        # p = Process(target=retrieve_the_object, args=(child_conn,))
-        # p.start()
-        #
-        # # Give the child process time to start
-        # sleep(1)
-        #
-        # with fdopen(parent_conn.fileno(), mode='rb') as upload_read_fd:
-        #     upload_file(
-        #         bucket_name=target_bucket,
-        #         source_file=upload_read_fd,
-        #         target_object_key=target_key,
-        #         client=target_client
-        #     )
-        # p.join()
         
         # ===================== UNIX-specific version of code =============================
         # Create a pipe: the returned file descriptors upload_read_fd and download_write_fd
