@@ -252,10 +252,6 @@ def local_copy(
     )
 
 
-# So-called 'remote' copy relies on deferential
-# target_client configuration (by the caller)
-# and uses a locally cached file for the copy operation
-# (presumed fast enough on an EC2 instance?)
 def remote_copy(
         source_key: str,
         target_key: str,
@@ -343,7 +339,7 @@ def remote_copy(
             # This is the parent process... the 'upload_read_fd' is not needed
             close(upload_read_fd)
     
-            logger.debug(f"The child process is downloading data from the S3 {source_key} object into the pipe")
+            logger.debug(f"The child process is downloading data from the S3 '{source_key}' object into the pipe")
             
             with fdopen(download_write_fd, mode='wb') as target_fileobj:
                 download_file(
@@ -360,7 +356,7 @@ def remote_copy(
             # Child process is reading the data stream of the S3 object downloaded
             # by the parent process and uploading it up to another S3 bucket
             
-            logger.debug(f"The parent process is uploading data from the pipe to the S3 {target_key} object")
+            logger.debug(f"The parent process is uploading data from the pipe to the S3 '{target_key}' object")
             
             with fdopen(upload_read_fd, mode='rb') as source_fileobj:
                 upload_file(

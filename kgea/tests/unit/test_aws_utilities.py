@@ -249,7 +249,7 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
         target_client=target_client
     )
 
-    logger.debug(f"list contents of target bucket{target_bucket}")
+    logger.debug(f"list contents of target bucket '{target_bucket}'")
 
     list_files(bucket_name=target_bucket, client=target_client)
     
@@ -262,7 +262,7 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
     )
     
     if not KEEP_TEST_FILES:
-        logger.debug(f"Deleting {src_test_key} in {target_bucket}")
+        logger.debug(f"Deleting '{src_test_key}' in '{target_bucket}'")
         delete_test_file(
             test_object_key=src_test_key,
             test_bucket=target_bucket,
