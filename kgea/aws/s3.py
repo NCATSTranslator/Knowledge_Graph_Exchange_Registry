@@ -65,30 +65,41 @@ def upload_file(
         bucket_name: str,
         source_file,
         target_object_key: str,
+        source_file_name: str = '',
         client=s3_client
 ):
     """
     Upload a file.
     
     :param bucket_name:
-    :param source_file: may be a file name string or a file descriptor open for reading
-    :param target_object_key:
+    :param source_file: may be a file path string or a file descriptor open for reading
+    :param target_object_key: target S3 object_key to which to upload the file
+    :param source_file_name: (optional) source file name. Defaults to last name of source file path or target object key
     :param client:
     :return:
     """
     if isinstance(source_file, str):
+        
+        if not source_file_name:
+            source_file_name = source_file.split("/")[-1]
+            
         print(
-            f"\n###Uploading file '{source_file}' to object " +
+            f"\n###Uploading file '{source_file_name}' to object " +
             f"'{target_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
         try:
             client.upload_file(source_file, bucket_name, target_object_key)
         except Exception as exc:
             usage("upload_file(): 'client.upload_file' exception: " + str(exc))
+
     else:
+        
+        if not source_file_name:
+            source_file_name = target_object_key.split("/")[-1]
+            
         # assume that an open file descriptor is being passed for reading
         print(
-            f"\n###Uploading file '{source_file.name}' to object " +
+            f"\n###Uploading file '{source_file_name}' to object " +
             f"'{target_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
         try:
@@ -144,23 +155,30 @@ def download_file(
         bucket_name: str,
         source_object_key: str,
         target_file=None,
+        target_file_name=None,
         client=s3_client
 ) -> str:
     """
     Delete an object key (file) in a given bucket.
 
+    :param target_file_name:
     :param client: S3 client to access S3 bucket
     :param bucket_name: the target bucket
-    :param source_object_key: the target object_key
-    :param target_file: file name string or file descriptor (open for (binary) writing) to which to save the file
+    :param source_object_key: source S3 object_key from which to download the file
+    :param target_file: file path string or file descriptor (open for (binary) writing) to which to save the file
+    :param target_file_name: (optional) target file name. Defaults to last name of target file path or source object key
     :return:
     """
     if not target_file:
         target_file = source_object_key.split("/")[-1]
         
     if isinstance(target_file, str):
+        
+        if not target_file_name:
+            target_file_name = target_file.split("/")[-1]
+            
         print(
-            f"\n###Downloading file '{target_file}' from object " +
+            f"\n###Downloading file '{target_file_name}' from object " +
             f"'{source_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
         try:
@@ -168,10 +186,14 @@ def download_file(
         except Exception as exc:
             usage("download_file(): 'client.download_file' exception: " + str(exc))
     else:
+        
+        if not target_file_name:
+            target_file_name = source_object_key.split("/")[-1]
+            
         # assume that an open file descriptor is being
         # passed for writing of the downloaded S3 object
         print(
-            f"\n###Downloading file '{target_file.name}' from object " +
+            f"\n###Downloading file '{target_file_name}' from object " +
             f"'{source_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
         #
