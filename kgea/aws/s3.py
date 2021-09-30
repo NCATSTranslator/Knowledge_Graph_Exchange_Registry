@@ -24,6 +24,9 @@ from botocore.config import Config
 
 from kgea.aws.assume_role import AssumeRole, aws_config
 
+import logging
+logger = logging.getLogger(__name__)
+
 pp = PrettyPrinter(indent=4)
 
 
@@ -272,6 +275,8 @@ def remote_copy(
     :param source_client:
     :param target_client:
     """
+    logger.debug("Entering remote_copy")
+    
     if platform == "win32":
         raise NotImplementedError("remote_copy() is not yet implemented for Microsoft Windows!")
     
@@ -338,7 +343,7 @@ def remote_copy(
             # This is the parent process... the 'upload_read_fd' is not needed
             close(upload_read_fd)
     
-            print("The child process is downloading from the S3 source key object into the pipe")
+            logger.debug(f"The child process is downloading data from the S3 {source_key} object into the pipe")
             
             with fdopen(download_write_fd, mode='wb') as target_fileobj:
                 download_file(
@@ -355,7 +360,7 @@ def remote_copy(
             # Child process is reading the data stream of the S3 object downloaded
             # by the parent process and uploading it up to another S3 bucket
             
-            print("The parent process is uploading the S3 source key object with data from the pipe")
+            logger.debug(f"The parent process is uploading data from the pipe to the S3 {target_key} object")
             
             with fdopen(upload_read_fd, mode='rb') as source_fileobj:
                 upload_file(
@@ -364,7 +369,9 @@ def remote_copy(
                     target_object_key=target_key,
                     client=target_client
                 )
-
+                
+    logger.debug("Exiting remote_copy")
+    
 
 def delete_object(
         bucket_name: str,

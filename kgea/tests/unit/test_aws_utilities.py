@@ -18,6 +18,9 @@ from kgea.tests import (
 )
 from kgea.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Master flag for local development retaining
 # created test files in S3 after the test is run
 KEEP_TEST_FILES = getenv('KEEP_TEST_FILES', default=False) == 'True'
@@ -183,6 +186,10 @@ def test_s3_local_copy_to_new_key_in_different_bucket():
 
 def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
     
+    logger.debug("Entering test_s3_local_copy_to_new_key_in_different_bucket_and_account()")
+    
+    logger.debug("Validate 's3_remote' parameters")
+    
     # config.yaml 's3_remote' override - must be completely specified?
     assert([
             tag in aws_config["s3_remote"]
@@ -196,15 +203,19 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
             ]
         ]
     )
-    
-    target_bucket = aws_config["s3_remote"]["bucket"]
 
+    target_bucket = aws_config["s3_remote"]["bucket"]
+    
+    logger.debug("Assume remote role")
+    
     target_assumed_role = AssumeRole(
         host_account=aws_config["s3_remote"]['host_account'],
         guest_external_id=aws_config["s3_remote"]['guest_external_id'],
         iam_role_name=aws_config["s3_remote"]['iam_role_name']
     )
 
+    logger.debug("Get target client")
+    
     target_client = \
         target_assumed_role.get_client(
             's3',
@@ -213,14 +224,20 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
                 region_name=aws_config["s3_remote"]["region"]
             )
         )
-        
+
+    logger.debug("upload test file")
+    
     src_test_key = upload_test_file()
 
+    logger.debug("check existence of upload test file")
+    
     # Sanity check - is the file there?
     assert object_key_exists(
         object_key=src_test_key,
         bucket_name=TEST_BUCKET
     )
+
+    logger.debug("start remote copy")
     
     # Expect the local 'src_test_key' resource
     # to be copied into the default remote bucket?
@@ -231,6 +248,12 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
         target_bucket=target_bucket,
         target_client=target_client
     )
+
+    logger.debug(f"list contents of target bucket{target_bucket}")
+
+    list_files(bucket_name=target_bucket, client=target_client)
+    
+    logger.debug("end remote copy - check existence of source key in target bucket (with target assumed role)")
     
     assert object_key_exists(
         object_key=src_test_key,
@@ -238,11 +261,12 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
         assumed_role=target_assumed_role
     )
     
-    list_files(target_bucket, target_client)
-    
     if not KEEP_TEST_FILES:
+        logger.debug(f"Deleting {src_test_key} in {target_bucket}")
         delete_test_file(
             test_object_key=src_test_key,
             test_bucket=target_bucket,
             test_client=target_client
         )
+        
+    logger.debug("Exiting test_s3_local_copy_to_new_key_in_different_bucket_and_account()")
