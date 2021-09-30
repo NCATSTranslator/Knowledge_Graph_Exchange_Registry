@@ -239,23 +239,24 @@ def remote_copy(
         source_bucket=s3_bucket_name,
         source_client=s3_client,
 ):
+    """
+    Copy an object from a source bucket and account to a second bucket and account, where access
+    to the account is defined in the target client configuration by the caller of the function.
+
+    :param source_key:
+    :param target_key:
+    :param source_bucket:
+    :param target_bucket:
+    :param source_client:
+    :param target_client:
+    """
     if platform == "win32":
         raise NotImplementedError("remote_copy() is not yet implemented for Microsoft Windows!")
     
     else:  # *nix operating system should support this version of remote_copy?
-        """
-        Copy an object from a source bucket and account to a second bucket and account, where access
-        to the account is defined in the target client configuration by the caller of the function.
         
-        :param source_key:
-        :param target_key:
-        :param source_bucket:
-        :param target_bucket:
-        :param source_client:
-        :param target_client:
-        """
         if not (target_bucket and target_client):
-            usage("Remote copy: requires an non-empty target_bucket and target_client")
+            usage("Remote copy: requires a distinct non-empty target_bucket and target_client")
     
         # ============== Multiprocessor -specific version of code (doesn't work yet) =============
         #

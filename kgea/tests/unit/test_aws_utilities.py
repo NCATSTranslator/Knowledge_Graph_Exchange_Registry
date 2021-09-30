@@ -171,8 +171,9 @@ def test_s3_local_copy_to_new_key_in_different_bucket():
     local_copy(
         source_key=src_test_key,
         target_key=tgt_test_key,
-        bucket=TEST_BUCKET_2
+        target_bucket=TEST_BUCKET_2
     )
+    
     assert (object_key_exists(object_key=tgt_test_key, bucket_name=TEST_BUCKET_2))
     
     if not KEEP_TEST_FILES:
