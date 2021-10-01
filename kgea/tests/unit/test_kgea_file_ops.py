@@ -9,8 +9,11 @@ import logging
 
 import pytest
 import requests
-from botocore.exceptions import ClientError
 
+from botocore.exceptions import ClientError
+from botocore.config import Config
+
+from kgea.aws.assume_role import aws_config, AssumeRole
 from kgea.tests import (
     TEST_BUCKET,
     
@@ -160,6 +163,52 @@ def test_create_presigned_url(test_bucket=TEST_BUCKET):
         assert False
 
 
+def get_remote_client():
+    """
+
+    :return:
+    """
+    logger.debug("Validate 's3_remote' parameters")
+    
+    # config.yaml 's3_remote' override - must be completely specified?
+    assert (
+        [
+            tag in aws_config["s3_remote"]
+            for tag in [
+                    'guest_external_id',
+                    'host_account',
+                    'iam_role_name',
+                    'archive-directory',
+                    'bucket',
+                    'region'
+                ]
+        ]
+    )
+    
+    target_bucket = aws_config["s3_remote"]["bucket"]
+    
+    logger.debug("Assume remote role")
+    
+    target_assumed_role = AssumeRole(
+        host_account=aws_config["s3_remote"]['host_account'],
+        guest_external_id=aws_config["s3_remote"]['guest_external_id'],
+        iam_role_name=aws_config["s3_remote"]['iam_role_name']
+    )
+    
+    logger.debug("Configure target client")
+    
+    target_client = \
+        target_assumed_role.get_client(
+            's3',
+            config=Config(
+                signature_version='s3v4',
+                region_name=aws_config["s3_remote"]["region"]
+            )
+        )
+    
+    return target_assumed_role, target_client, target_bucket
+
+
 def upload_test_file(
         test_bucket=TEST_BUCKET,
         test_kg=TEST_KG_ID,
@@ -184,14 +233,14 @@ def upload_test_file(
         test_file_object_key = get_object_key(content_location, test_file.name)
         
         # only create the object key if it doesn't already exist?
-        if not object_key_exists(object_key=test_file_object_key):
+        if not object_key_exists(object_key=test_file_object_key, bucket_name=test_bucket):
             upload_file(
                 bucket=test_bucket,
                 object_key=test_file_object_key,
                 source=test_file
             )
-            assert (test_file_object_key in object_keys_in_location(test_bucket, content_location))
-
+            assert object_key_exists(object_key=test_file_object_key, bucket_name=test_bucket)
+    
     return test_file_object_key
 
 
@@ -207,6 +256,32 @@ def delete_test_file(test_object_key, test_bucket=TEST_BUCKET, test_client=s3_cl
 
 
 def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
+    try:
+        test_object_key = upload_test_file(
+            test_bucket=test_bucket,
+            test_kg=test_kg,
+            test_subfolder='archive/'
+        )
+    except FileNotFoundError as e:
+        logger.error("Test is malformed!")
+        logger.error(e)
+        assert False
+    except ClientError as e:
+        logger.error('The upload to S3 has failed!')
+        logger.error(e)
+        assert False
+    except AssertionError as e:
+        logger.error('The resulting path was not found inside of the knowledge graph folder!')
+        logger.error(e)
+        assert False
+
+    delete_test_file(test_object_key=test_object_key, test_bucket=test_bucket)
+
+
+def test_upload_file_to_remote_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
+    
+    target_assumed_role, target_client, target_bucket = get_remote_client()
+    
     try:
         test_object_key = upload_test_file(
             test_bucket=test_bucket,

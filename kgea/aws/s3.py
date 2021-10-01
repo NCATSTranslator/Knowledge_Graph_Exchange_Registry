@@ -9,8 +9,6 @@ import sys
 
 from sys import platform
 
-from kgea.server.web_services.kgea_file_ops import object_key_exists
-
 if platform != "win32":
     from os import fdopen, pipe, fork, close
 
@@ -224,32 +222,39 @@ def download_file(
     return target_file
 
 
-def local_copy(
+def copy(
         source_key: str,
         target_key: str,
-        source_bucket: str = s3_bucket_name,
-        target_bucket: str = None,
-        client=s3_client,
+        source_bucket=s3_bucket_name,
+        target_bucket: str = '',
+        source_client=s3_client,
+        target_client=None
 ):
     """
     Local direct copy of a key in one bucket to another key in the same or
     another bucket, but all within the same AWS account (as wrapped by 'client').
-    
+
     :param source_key:
     :param target_key:
     :param source_bucket:
     :param target_bucket:
-    :param client:
+    :param source_client:
+    :param target_client:
     """
     if not target_bucket:
         target_bucket = source_bucket
+        
+    if not target_client:
+        target_client = source_client
 
     copy_source = {
         'Bucket': source_bucket,
         'Key': source_key
     }
-    client.copy(
+    
+    target_client.copy(
         CopySource=copy_source,
+        SourceClient=source_client,
         Bucket=target_bucket,
         Key=target_key
     )
@@ -390,7 +395,7 @@ if __name__ == '__main__':
                 # Default target bucket may also be overridden on the command line
                 target_s3_bucket_name = sys.argv[4] if len(sys.argv) >= 5 else target_s3_bucket_name
                 
-                local_copy(
+                copy(
                     source_key=source_key,
                     target_key=target_key,
                 )

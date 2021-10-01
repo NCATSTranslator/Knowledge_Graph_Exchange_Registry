@@ -1,13 +1,15 @@
 """
 Unit tests for AWS utilities
 """
+from sys import platform
 from os import getenv, remove
 from os.path import isfile
+from pytest import mark
 
 from botocore.config import Config
 
 from kgea.aws.assume_role import aws_config, AssumeRole
-from kgea.aws.s3 import local_copy, s3_client, upload_file, list_files, delete_object, remote_copy, download_file
+from kgea.aws.s3 import copy, s3_client, upload_file, list_files, delete_object, remote_copy, download_file
 from kgea.server.web_services.kgea_file_ops import object_key_exists
 from kgea.tests import (
     TEST_BUCKET_2,
@@ -16,7 +18,7 @@ from kgea.tests import (
     TEST_SMALL_FILE_PATH,
     TEST_SMALL_FILE_KEY
 )
-from kgea.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file
+from kgea.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file, get_remote_client
 
 import logging
 logger = logging.getLogger(__name__)
@@ -152,7 +154,7 @@ def test_s3_local_copy_to_new_key_in_same_bucket():
     
     tgt_test_key = f"{src_test_key}_copy"
     
-    local_copy(
+    copy(
         source_key=src_test_key,
         target_key=tgt_test_key
     )
@@ -171,7 +173,7 @@ def test_s3_local_copy_to_new_key_in_different_bucket():
     
     tgt_test_key = f"{src_test_key}_copy"
     
-    local_copy(
+    copy(
         source_key=src_test_key,
         target_key=tgt_test_key,
         target_bucket=TEST_BUCKET_2
@@ -184,58 +186,61 @@ def test_s3_local_copy_to_new_key_in_different_bucket():
         delete_test_file(tgt_test_key, test_bucket=TEST_BUCKET_2)
 
 
-def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
+def test_s3_copy_to_new_key_in_different_bucket_and_account():
     
-    logger.debug("Entering test_s3_local_copy_to_new_key_in_different_bucket_and_account()")
+    logger.debug("Entering test_s3_copy_to_new_key_in_different_bucket_and_account()")
     
-    logger.debug("Validate 's3_remote' parameters")
+    target_assumed_role, target_client, target_bucket = get_remote_client()
     
-    # config.yaml 's3_remote' override - must be completely specified?
-    assert([
-            tag in aws_config["s3_remote"]
-            for tag in [
-                'guest_external_id',
-                'host_account',
-                'iam_role_name',
-                'archive-directory',
-                'bucket',
-                'region'
-            ]
-        ]
-    )
-
-    target_bucket = aws_config["s3_remote"]["bucket"]
-    
-    logger.debug("Assume remote role")
-    
-    target_assumed_role = AssumeRole(
-        host_account=aws_config["s3_remote"]['host_account'],
-        guest_external_id=aws_config["s3_remote"]['guest_external_id'],
-        iam_role_name=aws_config["s3_remote"]['iam_role_name']
-    )
-
-    logger.debug("Get target client")
-    
-    target_client = \
-        target_assumed_role.get_client(
-            's3',
-            config=Config(
-                signature_version='s3v4',
-                region_name=aws_config["s3_remote"]["region"]
-            )
-        )
-
     logger.debug("upload test file")
     
     src_test_key = upload_test_file()
-
-    logger.debug("check existence of upload test file")
     
-    # Sanity check - is the file there?
+    logger.debug("start remote copy")
+    
+    # Expect the local 'src_test_key' resource
+    # to be copied into the default remote bucket?
+    copy(
+        source_key=src_test_key,
+        target_key=src_test_key,
+        source_bucket=TEST_BUCKET,
+        target_bucket=target_bucket,
+        target_client=target_client
+    )
+    
+    logger.debug(f"list contents of copy() target bucket '{target_bucket}'")
+    
+    list_files(bucket_name=target_bucket, client=target_client)
+    
+    logger.debug("end remote copy - check existence of source key in target bucket (with target assumed role)")
+    
     assert object_key_exists(
         object_key=src_test_key,
-        bucket_name=TEST_BUCKET
+        bucket_name=target_bucket,
+        assumed_role=target_assumed_role
     )
+    
+    if not KEEP_TEST_FILES:
+        logger.debug(f"Deleting '{src_test_key}' in '{target_bucket}'")
+        delete_test_file(
+            test_object_key=src_test_key,
+            test_bucket=target_bucket,
+            test_client=target_client
+        )
+    
+    logger.debug("Exiting test_s3_copy_to_new_key_in_different_bucket_and_account()")
+
+
+@mark.skipif(platform == "win32", reason="remote_copy() only implemented under unix")
+def test_s3_unix_remote_copy_to_new_key_in_different_bucket_and_account():
+    
+    logger.debug("Entering test_s3_local_copy_to_new_key_in_different_bucket_and_account()")
+    
+    target_assumed_role, target_client, target_bucket = get_remote_client()
+    
+    logger.debug("upload test file")
+    
+    src_test_key = upload_test_file()
 
     logger.debug("start remote copy")
     
@@ -249,7 +254,7 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
         target_client=target_client
     )
 
-    logger.debug(f"list contents of target bucket '{target_bucket}'")
+    logger.debug(f"list contents of remote_copy() target bucket '{target_bucket}'")
 
     list_files(bucket_name=target_bucket, client=target_client)
     
@@ -270,3 +275,5 @@ def test_s3_local_copy_to_new_key_in_different_bucket_and_account():
         )
         
     logger.debug("Exiting test_s3_local_copy_to_new_key_in_different_bucket_and_account()")
+    
+    
