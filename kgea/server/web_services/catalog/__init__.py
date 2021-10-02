@@ -360,10 +360,8 @@ class KgeFileSet:
         """
         :return:
         """
-        node_file_pattern = re.compile('node[s]?.tsv')  # a node file by its own admission
-        node_folder_pattern = re.compile('nodes/')  # a nodes file given where it's placed
         node_files_keys = list(filter(
-            lambda x: node_folder_pattern.match(x) is not None or node_file_pattern.match(x) is not None and not ('aggregates/' in x), self.get_data_file_object_keys()
+            lambda x: 'nodes/' in x or 'nodes.tsv' in x, self.get_data_file_object_keys()
         ))
         return node_files_keys
 
@@ -372,10 +370,8 @@ class KgeFileSet:
 
         :return:
         """
-        edge_file_pattern = re.compile('edge[s]?.tsv')  # an edge file by its own admission
-        edge_folder_pattern = re.compile('edges/')  # an edges file given where it's placed
         edge_files_keys = list(filter(
-            lambda x: edge_folder_pattern.match(x) is not None or edge_file_pattern.match(x) is not None and not ('aggregates/' in x), self.get_data_file_object_keys()
+            lambda x: 'edges/' in x or 'edges.tsv' in x, self.get_data_file_object_keys()
         ))
         return edge_files_keys
 
@@ -1924,7 +1920,7 @@ class KgeArchiver:
         return cls._the_archiver
     
     @staticmethod
-    def aggregate_to_archive(file_set: KgeFileSet, file_type: str, file_object_keys):
+    def aggregate_to_archive(file_set: KgeFileSet, file_type: str, file_object_keys, match_function=lambda x: True):
         """
         Wraps file aggregator for a given file type.
         
@@ -1932,14 +1928,18 @@ class KgeArchiver:
         :param file_type:
         :param file_object_keys:
         """
+        print(file_set, file_type, file_object_keys)
+
         file_type += ".tsv"
         logger.info(f"Aggregating {file_type} files:")
+
+
         try:
             agg_path: str = aggregate_files(
                 target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
                 target_name=file_type,
                 file_object_keys=file_object_keys,
-                match_function=lambda x: file_type in x
+                match_function=match_function
             )
             logger.info(f"{file_type} path: {agg_path}")
     
@@ -2000,9 +2000,8 @@ class KgeArchiver:
                     logger.info(f"\t{str(file_key)}")
                     # returns entries that follow the KgeFileSetEntry Schema
                     # decompresses the archive and sends files to s3
-                    archive_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive/"
+                    archive_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/"
                     archive_file_entries = decompress_to_kgx(file_key, archive_location)
-                    print(archive_file_entries)
 
                     logger.info(f"...finished! To fileset '{file_set.id()}', adding files:")
 
