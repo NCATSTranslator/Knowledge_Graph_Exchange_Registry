@@ -2031,9 +2031,8 @@ class KgeArchiver:
                 print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
 
-
-
-            # 1. Aggregate each of all nodes and edges each into their respective files in the archive folder
+            # 1. Aggregate each of all nodes and edges each
+            #    into their respective files in the archive folder
             self.aggregate_to_archive(file_set, "nodes", file_set.get_nodes())
             self.aggregate_to_archive(file_set, "edges", file_set.get_edges())
 
@@ -2043,9 +2042,10 @@ class KgeArchiver:
             self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
 
             # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
-            #    containing the aggregated nodes.tsv, edges.tsv,
-            # Appending `file_set_root_key` with 'aggregates/' and 'archive/' to prevent multiple compress_fileset runs
-            # from compressing the previous compression (so the source of files is distinct from the target written to)
+            #    containing the aggregated nodes.tsv, edges.tsv, Appending `file_set_root_key`
+            #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
+            #    from compressing the previous compression (so the source of files is distinct
+            #    from the target to which it is written)
             logger.info("Compressing total KGE file set...")
             try:
                 s3_archive_key: str = compress_fileset(
