@@ -713,19 +713,13 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
                 unpacked_filename = basename(pre_name)
 
                 print('traversal_func_kgx(): Entry names: pre_name, unpacked_filename = ', pre_name, ',', unpacked_filename)
+                if isNodey(pre_name):
+                    object_key = location + 'nodes/' + unpacked_filename
+                elif isEdgey(pre_name):
+                    object_key = location + 'edges/' + unpacked_filename
+                else:
+                    object_key = location + unpacked_filename
 
-                # sort the file into its different categories
-                # if prefix:
-                # if isNodey(pre_name):
-                #     object_key = location + unpacked_filename
-                # elif isEdgey(pre_name):
-                #     object_key = location + unpacked_filename
-                # elif isMetadata(pre_name):
-                #     object_key = location + unpacked_filename
-                object_key = location + unpacked_filename
-                # else:
-                #     # object key is location by default
-                #     pass
                 print('traversal_func_kgx(): Object key will be', object_key)
 
                 if object_key is not None:
@@ -772,7 +766,7 @@ def aggregate_files(
 
     agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
     with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
-        file_object_keys = filter(match_function, file_object_keys)
+        file_object_keys = list(filter(match_function, file_object_keys))
         for index, file_object_key in enumerate(file_object_keys):
             target_key_uri = f"s3://{bucket}/{file_object_key}"
             with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
