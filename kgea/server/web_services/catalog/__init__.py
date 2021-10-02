@@ -13,6 +13,7 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
+import asyncio
 from sys import stderr
 from os import getenv
 from os.path import dirname, abspath
@@ -1991,6 +1992,10 @@ class KgeArchiver:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
             logger.info(f"KgeArchiver worker {task_id} starting archive of {str(file_set)}")
+            
+            # perhaps await a few seconds before starting the work,
+            # to unblock co-routine responses in the main web application
+            await sleep(5)
 
             # Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
