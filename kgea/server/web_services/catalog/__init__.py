@@ -13,20 +13,21 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
-import asyncio
 from sys import stderr
+
 from os import getenv
 from os.path import dirname, abspath
+
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
-from string import punctuation
-from io import BytesIO, StringIO
+from enum import Enum
+from string import Template, punctuation
 from datetime import date, datetime
-import logging
+
+# TODO: maybe convert Catalog components to Python Dataclasses?
+# from dataclasses import dataclass
+
 import re
 
-import tempfile
-
-import re
 import threading
 from asyncio import (
     create_task,
@@ -38,15 +39,10 @@ from asyncio import (
     run
 )
 
-# TODO: maybe convert Catalog components to Python Dataclasses?
-# from dataclasses import dataclass
-
-from enum import Enum
-from string import Template
+from io import BytesIO, StringIO
+import tempfile
 
 import json
-
-import smart_open
 from jsonschema import (
     ValidationError,
     SchemaError,
@@ -54,8 +50,6 @@ from jsonschema import (
 )
 
 import yaml
-from kgx.utils.kgx_utils import GraphEntityType
-
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
     from yaml.scanner import ScannerError
@@ -66,6 +60,9 @@ except ImportError:
 from github import Github
 from github.GithubException import UnknownObjectException, BadCredentialsException
 
+import smart_open
+
+from kgx.utils.kgx_utils import GraphEntityType
 from kgx.transformer import Transformer
 from kgx.validator import Validator
 
@@ -102,6 +99,7 @@ from kgea.server.web_services.kgea_file_ops import (
 
 from kgea.server.web_services.sha_utils import sha1_manifest
 
+import logging
 logger = logging.getLogger(__name__)
 
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -138,7 +136,6 @@ def prepare_test(func):
 TRANSLATOR_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
-
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
@@ -387,6 +384,11 @@ class KgeFileSet:
         return archive_files_keys
 
     def has(self, filetype):
+        """
+
+        :param filetype:
+        :return:
+        """
         if filetype is KgeFileType.KGE_ARCHIVE:
             return len(self.get_archive_files_keys()) > 0
         elif filetype is KgeFileType.KGE_NODES:
@@ -1113,7 +1115,8 @@ class KgeArchiveCatalog:
             if self.is_complete_kg(kg_id, entry):
                 self.load_archive_entry(kg_id=kg_id, entry=entry)
 
-    def is_complete_kg(self, kg_id, entry) -> bool:
+    @staticmethod
+    def is_complete_kg(kg_id, entry) -> bool:
         """
         Verifies that an S3 KG entry (and all its file sets) are valid
         and complete for use by the front end application.
@@ -1373,8 +1376,10 @@ class KgeArchiveCatalog:
                 # We only want to show graphs that either satisfy the existence of a filetype,
                 # or a certain completion code. We do this now.
                 versions = knowledge_graph.get_version_names()
-                filtered_versions = [version for version in versions if knowledge_graph.get_file_set(version).has(filetype=ignore_without_filetype)]
-
+                filtered_versions = [
+                    version for version in versions
+                    if knowledge_graph.get_file_set(version).has(filetype=ignore_without_filetype)
+                ]
                 catalog[kg_id] = dict()
                 catalog[kg_id]['name'] = knowledge_graph.get_name()
                 catalog[kg_id]['versions'] = filtered_versions
@@ -1928,12 +1933,12 @@ class KgeArchiver:
         :param file_set:
         :param file_type:
         :param file_object_keys:
+        :param match_function:
         """
         print(file_set, file_type, file_object_keys)
 
         file_type += ".tsv"
         logger.info(f"Aggregating {file_type} files:")
-
 
         try:
             agg_path: str = aggregate_files(
@@ -2023,6 +2028,8 @@ class KgeArchiver:
 
                     # rewrite the new file set file
                     fileset_metadata_file = file_set.generate_fileset_metadata_file()
+                    
+                    # TODO: is it helpful to store this object key somewhere in the KgeFileSet?
                     fileset_metadata_object_key = add_to_s3_repository(
                         kg_id=file_set.kg_id,
                         text=fileset_metadata_file,
