@@ -1,7 +1,6 @@
 """
 Knowledge Graph Exchange Archive backend web service handlers.
 """
-import sys
 from os import getenv, path
 from pathlib import Path
 from typing import Dict, Tuple, Any
@@ -37,16 +36,12 @@ import asyncio
 #############################################################
 
 from kgea.config import (
-    get_app_config,
     CONTENT_METADATA_FILE,
-
     LANDING_PAGE,
-
     FILESET_REGISTRATION_FORM,
-    DATA_UNAVAILABLE,
-
     UPLOAD_FORM,
-    SUBMISSION_CONFIRMATION
+    SUBMISSION_CONFIRMATION,
+    DATA_UNAVAILABLE
 )
 
 from .kgea_session import (
@@ -59,6 +54,7 @@ from .kgea_session import (
 )
 
 from .kgea_file_ops import (
+    default_s3_bucket,
     create_presigned_url,
     object_keys_for_fileset_version,
     get_object_location,
@@ -72,7 +68,8 @@ from .kgea_file_ops import (
     get_pathless_file_size,
     get_url_file_size,
     upload_file,
-    upload_from_link
+    upload_from_link,
+    object_keys_in_location
 )
 
 from kgea.server.web_services.catalog import (
@@ -89,9 +86,6 @@ logger = logging.getLogger(__name__)
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
-
-# Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
 
 # This is likely invariant almost forever unless new types of
 # KGX data files will eventually be added, i.e. 'attributes'(?)
@@ -150,7 +144,6 @@ async def register_kge_knowledge_graph(request: web.Request):
     :param request:
     :type request: web.Request
     """
-    print("Entering register_kge_knowledge_graph()")
     logger.debug("Entering register_kge_knowledge_graph()")
 
     session = await get_session(request)
@@ -279,7 +272,6 @@ async def register_kge_file_set(request: web.Request):
     :param request:
     :type request: web.Request
     """
-    print("Entering register_kge_file_set()")
     logger.debug("Entering register_kge_file_set()")
 
     session = await get_session(request)
@@ -390,7 +382,8 @@ async def register_kge_file_set(request: web.Request):
                         submitter_email=submitter_email
                     )
 
-                print("knowledge_graph.add_file_set", knowledge_graph, file_set)
+                logger.debug(f"knowledge_graph.add_file_set({knowledge_graph}. {file_set})")
+                
                 # Add new versioned KGE File Set to the Catalog Knowledge Graph entry
                 knowledge_graph.add_file_set(fileset_version, file_set)
 
@@ -423,7 +416,6 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
     :param fileset_version: specific version of KGE File Set published for the specified Knowledge Graph Identifier
     :type fileset_version: str
     """
-    print("Entering publish_kge_file_set()")
     logger.debug("Entering publish_kge_file_set()")
 
     session = await get_session(request)
@@ -626,7 +618,7 @@ async def _initialize_upload_token(
                 "active": True  # Upload/transfer cancelled when this value becomes 'False'?
             }
         
-        print('session upload token', token, _upload_tracker['upload'][token])
+        logger.debug(f"session upload token: '{token}' = '{_upload_tracker['upload'][token]}'")
         
         upload_token_object = UploadTokenObject(token)
         
@@ -767,6 +759,7 @@ class ProgressPercentage(object):
                 logger.info(f"ProgressPercentage mbps={mbps} mb={mb}")
                 self.t_log_prev = t_now
 
+
 _num_s3_threads = 16
 _s3_transfer_cfg = Config(signature_version='s3v4', max_pool_connections=_num_s3_threads)
 
@@ -802,7 +795,7 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
         try:
             object_key = get_object_key(tracker['file_set_location'], content_name)
             transfer_function(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=object_key,
                 source=source,
                 client=client,
@@ -822,7 +815,7 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
         # added to into the file set in the Catalog.
         try:
             s3_file_url = create_presigned_url(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=object_key
             )
             
@@ -1153,7 +1146,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_ver
         
         if not object_key_exists(
                 object_key=content_metadata_file_key,
-                bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+                bucket_name=default_s3_bucket
         ):
             if downloading:
                 await redirect(
@@ -1169,10 +1162,10 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_ver
         # Current implementation of this handler triggers a
         # download of the KGX content metadata file, if available
         download_url = create_presigned_url(
-            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            bucket=default_s3_bucket,
             object_key=content_metadata_file_key
         )
-        print("kge_meta_knowledge_graph() download_url: '" + download_url + "'", file=sys.stderr)
+        logger.debug(f"kge_meta_knowledge_graph() download_url: '{download_url}'")
         if downloading:
             await download(request, download_url)
         else:
@@ -1217,9 +1210,9 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
 
         file_set_object_key, _ = with_version(get_object_location, fileset_version)(kg_id)
 
-        kg_files_for_version = kg_files_in_location(
-            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            file_set_object_key,
+        kg_files_for_version = object_keys_in_location(
+            default_s3_bucket,
+            file_set_object_key
         )
 
         maybe_archive = [
@@ -1229,10 +1222,10 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
 
         if len(maybe_archive) > 0:
             download_url = create_presigned_url(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=maybe_archive[0]
             )
-            print("download_kge_file_set_archive() download_url: '" + download_url + "'", file=sys.stderr)
+            logger.debug(f"download_kge_file_set_archive() download_url: '{download_url}'")
 
             await download(request, download_url)
         else:
@@ -1292,7 +1285,7 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id: st
 
         if sha1hash_file_key:
             download_url = create_presigned_url(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=sha1hash_file_key
             )
     
