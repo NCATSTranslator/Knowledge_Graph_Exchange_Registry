@@ -51,6 +51,7 @@ def usage(err_msg: str = ''):
 
 
 s3_bucket_name: str = aws_config["s3"]["bucket"]
+s3_directory: str   = aws_config["s3"]["archive-directory"]
 s3_region_name: str = aws_config["s3"]["region"]
 
 assumed_role = AssumeRole()
@@ -381,6 +382,34 @@ if __name__ == '__main__':
             else:
                 usage("\nMissing path to file to upload?")
 
+        elif s3_operation.lower() == 'upload-batch':
+            if len(sys.argv) >= 3:
+                
+                print(f"upload-batch arguments: {sys.argv}")
+                
+                # The minimum file spec is a directory containing the files of interest
+                source_dir = Path(sys.argv[2])
+                
+                # ... for uploading to a specified object key root location in the
+                # default target S3 bucket: e.g. "kge-data/kg_id/fileset_version"
+                # Default: the default S3 directory defined in the config.yaml...
+                object_key_base = sys.argv[3] if len(sys.argv) >= 4 else s3_directory
+                
+                print(f"Uploading the following local files to S3 location '{object_key_base}': ")
+                for filepath in source_dir.iterdir():
+                    print(f"\t{str(filepath)}")
+                prompt = input("Proceed (Type 'yes')? ")
+                if prompt.upper() == "YES":
+                    print(f"For target bucket '{s3_bucket_name}'")
+                    for filepath in source_dir.iterdir():
+                        object_key = f"{object_key_base}/{filepath.name}"
+                        print(f"...uploading {filepath} to {str(object_key)}")
+                        # upload_file(s3_bucket_name, filepath, object_key)
+                else:
+                    print("Cancelling uploading of files...")
+            else:
+                usage("\nMissing at least a local source directory containing the data files to upload?")
+
         elif s3_operation.lower() == 'list':
             list_files(s3_bucket_name)
 
@@ -480,7 +509,19 @@ if __name__ == '__main__':
                 )
             else:
                 usage("\nMissing S3 object key for file to download?")
-        
+
+        elif s3_operation.lower() == 'download-batch':
+            if len(sys.argv) >= 3:
+                object_key = sys.argv[2]
+                filename = sys.argv[3] if len(sys.argv) >= 4 else object_key.split("/")[-1]
+                download_file(
+                    bucket_name=s3_bucket_name,
+                    source_object_key=object_key,
+                    target_file=filename
+                )
+            else:
+                usage("\nMissing S3 object key for file to download?")
+
         elif s3_operation.lower() == 'delete':
             if len(sys.argv) >= 3:
                 object_keys = sys.argv[2:]
