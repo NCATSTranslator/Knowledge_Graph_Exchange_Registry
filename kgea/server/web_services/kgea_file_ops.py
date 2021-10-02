@@ -42,7 +42,6 @@ from boto3.s3.transfer import TransferConfig
 from kgea.aws.assume_role import AssumeRole, aws_config
 
 from kgea.config import (
-    get_app_config,
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE
 )
@@ -52,8 +51,10 @@ logger = logging.getLogger(__name__)
 # Master flag for local development, usually when code is not run inside an EC2 server
 DEV_MODE = getenv('DEV_MODE', default=False)
 
-# Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
+s3_config = aws_config['s3']
+default_s3_region = s3_config['region']
+default_s3_bucket = s3_config['bucket']
+default_s3_root_key = s3_config['archive-directory']
 
 # Probably won't change the name of the
 # script again, but changed once already...
@@ -231,7 +232,7 @@ def s3_client(
         assumed_role=the_role,
         config=Config(
             signature_version='s3v4',
-            region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
+            region_name=default_s3_region
         )
 ):
     """
@@ -249,7 +250,7 @@ def s3_resource(assumed_role=the_role):
     """
     return assumed_role.get_resource(
         's3',
-        region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
+        region_name=default_s3_region
     )
 
 
@@ -278,7 +279,7 @@ def get_object_location(kg_id):
     NOTE: Must be kept deterministic. No date times or
     randomness in this method; they may be appended afterwards.
     """
-    location = f"{_KGEA_APP_CONFIG['aws']['s3']['archive-directory']}/{kg_id}/"
+    location = f"{default_s3_root_key}/{kg_id}/"
     return location
 
 
@@ -338,7 +339,7 @@ def match_objects_from_bucket(bucket_name, object_key):
     return [w.key == key for w in objs]
 
 
-def object_key_exists(object_key, bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']) -> bool:
+def object_key_exists(object_key, bucket_name=default_s3_bucket) -> bool:
     """
     Checks for the existence of the specified object key
 
@@ -409,7 +410,7 @@ def object_keys_in_location(bucket, object_location='') -> List[str]:
 def object_keys_for_fileset_version(
         kg_id: str,
         fileset_version: str,
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        bucket=default_s3_bucket,
         match_function=lambda x: True
 ) -> Tuple[List[str], str]:
     """
@@ -439,7 +440,7 @@ def object_folder_contents_size(
         kg_id: str,
         fileset_version: str,
         object_subfolder='',
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+        bucket=default_s3_bucket
 ) -> int:
     """
     :param kg_id: knowledge graph identifier
@@ -468,10 +469,10 @@ def object_folder_contents_size(
 
 
 # for an s3 key, match on kg_id
-kg_ids_pattern = re.compile(rf"{aws_config['archive-directory']}/([a-zA-Z\d \-]+)/.+")
+kg_ids_pattern = re.compile(rf"{default_s3_root_key}/([a-zA-Z\d \-]+)/.+")
 
 # for an s3 key, match on kg_id and fileset version
-kg_ids_with_versions_pattern = re.compile(rf"{aws_config['archive-directory']}/([\S]+)/(\d+.\d+)/")
+kg_ids_with_versions_pattern = re.compile(rf"{default_s3_root_key}/([\S]+)/(\d+.\d+)/")
 
 
 def get_fileset_versions_available(bucket_name):
@@ -494,7 +495,7 @@ def get_fileset_versions_available(bucket_name):
     all_kge_archive_files = \
         object_entries_in_location(
             bucket=bucket_name,
-            object_location=aws_config['archive-directory']
+            object_location=default_s3_root_key
         )
 
     # create a map of kg_ids and their versions
@@ -690,8 +691,8 @@ def upload_file_multipart(
 def compress_fileset(
         kg_id,
         version,
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
-        root='kge-data'
+        bucket=default_s3_bucket,
+        root=default_s3_root_key
 ) -> str:
     """
     :param kg_id:
@@ -745,7 +746,7 @@ def decompress_in_place(gzipped_key, location=None, traversal_func=None):
     :return:
     """
 
-    if location[-1] is not '/':
+    if location[-1] != '/':
         raise Warning(
             f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}." +
             "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair."
@@ -757,7 +758,7 @@ def decompress_in_place(gzipped_key, location=None, traversal_func=None):
     if location is None:
         location = '/'.join(gzipped_key.split('/')[:-1]) + '/'
 
-    tarfile_location = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{gzipped_key}"
+    tarfile_location = f"s3://{default_s3_bucket}/{gzipped_key}"
     file_entries = []
 
     # one step decompression - use the tarfile library's ability
@@ -777,7 +778,7 @@ def decompress_in_place(gzipped_key, location=None, traversal_func=None):
                     if fileobj is not None:  # not a directory
                         s3_client().upload_fileobj(  # upload a new obj to s3
                             Fileobj=io.BytesIO(fileobj.read()),
-                            Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
+                            Bucket=default_s3_bucket,  # target bucket, writing to
                             Key=location + unpacked_filename
                         )
                         file_entries.append({
@@ -819,7 +820,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
     :return:
     """
 
-    if location[-1] is not '/':
+    if location[-1] != '/':
         raise Warning(
             f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}." +
             "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair."
@@ -903,7 +904,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
 
                     s3_client().upload_fileobj(  # upload a new obj to s3
                         Fileobj=io.BytesIO(fileobj.read()),
-                        Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
+                        Bucket=default_s3_bucket,  # target bucket, writing to
                         Key=object_key  # TODO was this a bug before? (when it was location + unpacked_filename)
                     )
 
@@ -924,7 +925,7 @@ def aggregate_files(
         target_folder,
         target_name,
         file_object_keys,
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        bucket=default_s3_bucket,
         match_function=lambda x: True
 ) -> str:
     """
@@ -957,7 +958,7 @@ def aggregate_files(
 def copy_file(
         source_key,
         target_dir,
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+        bucket=default_s3_bucket
 ):
     """
     Copies source_key text file into target_dir
@@ -1066,7 +1067,7 @@ def get_archive_contents(bucket_name: str) -> \
             continue
 
         # ignore things that don't look like the KGE File Set archive folder
-        if file_part[0] != _KGEA_APP_CONFIG['aws']['s3']['archive-directory']:
+        if file_part[0] != default_s3_root_key:
             continue
 
         # ignore empty KGE File Set archive folder
