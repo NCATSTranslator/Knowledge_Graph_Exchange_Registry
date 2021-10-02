@@ -50,6 +50,7 @@ from kgea.config import (
 )
 
 from .kgea_session import (
+    user_permitted,
     redirect,
     download,
     with_session,
@@ -59,7 +60,7 @@ from .kgea_session import (
 
 from .kgea_file_ops import (
     create_presigned_url,
-    kg_files_in_location,
+    object_keys_for_fileset_version,
     get_object_location,
     with_version,
     object_key_exists,
@@ -153,7 +154,7 @@ async def register_kge_knowledge_graph(request: web.Request):
     logger.debug("Entering register_kge_knowledge_graph()")
 
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
 
         # submitter: name & email of submitter of the KGE file set,
         # cached in session from user authentication
@@ -282,7 +283,7 @@ async def register_kge_file_set(request: web.Request):
     logger.debug("Entering register_kge_file_set()")
 
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
 
         # submitter: name & email of submitter of the KGE file set,
         # cached in session from user authentication
@@ -426,7 +427,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
     logger.debug("Entering publish_kge_file_set()")
 
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
 
         if not (kg_id and fileset_version):
             await report_not_found(
@@ -667,7 +668,7 @@ async def setup_kge_upload_context(
     logger.debug("Entering setup_kge_upload_context()")
     
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         upload_token_object: UploadTokenObject = \
             await _initialize_upload_token(request, kg_id, fileset_version, kgx_file_content, content_name)
@@ -695,7 +696,7 @@ async def get_kge_upload_status(request: web.Request, upload_token: str) -> web.
     """
     
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         """
         NOTE: Sometimes it takes awhile for end_position to be calculated initialize, particularly if the
@@ -752,6 +753,10 @@ class ProgressPercentage(object):
             raise RuntimeWarning("Transfer/upload was cancelled?")
         else:
             self._seen_so_far += bytes_amount
+            
+            if self._seen_so_far > self.transfer_tracker['end_position']:
+                self._seen_so_far = self.transfer_tracker['end_position']
+                
             self.transfer_tracker['current_position'] = self._seen_so_far
             t_now = time.time()
             dt = t_now-self.t0+0.001
@@ -761,7 +766,6 @@ class ProgressPercentage(object):
             if dt_log >= self.dt_log_min:
                 logger.info(f"ProgressPercentage mbps={mbps} mb={mb}")
                 self.t_log_prev = t_now
-
 
 _num_s3_threads = 16
 _s3_transfer_cfg = Config(signature_version='s3v4', max_pool_connections=_num_s3_threads)
@@ -811,6 +815,8 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
                            "file_type: " + str(tracker["file_type"]) + ") threw exception: " + str(exc)
             logger.error(exc_msg)
             raise RuntimeError(exc_msg)
+        
+        # TODO: could check for and unpack tar.gz archives here?
         
         # Assuming success, the new file should be
         # added to into the file set in the Catalog.
@@ -865,7 +871,7 @@ async def upload_kge_file(
     logger.debug("Entering upload_kge_file()")
     
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         tracker: Dict = get_upload_tracker_details(upload_token)
         
@@ -920,10 +926,8 @@ async def kge_transfer_from_url(
     """
     logger.debug("Entering kge_transfer_from_url()")
 
-
-
     session = await get_session(request)
-    if not session.empty:
+    if user_permitted(session):
         
         if not content_url:
             # must not be empty string
@@ -1015,6 +1019,7 @@ async def cancel_kge_upload(request: web.Request, upload_token):
         # If session is not active, then just a redirect
         # directly back to unauthenticated landing page
         await redirect(request, LANDING_PAGE)
+
 
 #############################################################
 # Content Metadata Controller Handler
@@ -1242,7 +1247,7 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
         await redirect(request, LANDING_PAGE)
 
 
-async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fileset_version):
+async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id: str, fileset_version: str):
     """Returns SHA1 hash of the current KGE File Set as a small text file.
 
     :param request:
@@ -1268,17 +1273,12 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fi
     session = await get_session(request)
     if not session.empty:
 
-        file_set_object_key, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
-
-        kg_files_for_version = kg_files_in_location(
-            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            file_set_object_key,
-        )
-
-        maybe_sha1hash = [
-            kg_path for kg_path in kg_files_for_version
-            if "sha1.txt" in kg_path
-        ]
+        maybe_sha1hash, fileset_version = \
+            object_keys_for_fileset_version(
+                kg_id=kg_id,
+                fileset_version=fileset_version,
+                match_function=lambda x: "sha1.txt" in x
+            )
 
         sha1hash_file_key: str = ''
         if len(maybe_sha1hash) == 1:

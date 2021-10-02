@@ -1047,7 +1047,7 @@ class KgeKnowledgeGraph:
     # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # # TODO: convert into redirect approach with cross-origin scripting?
     # file_set_location, _ = with_version(func=get_object_location, version=self.fileset_version)(self.kg_id)
-    # kg_files = kg_files_in_location(
+    # kg_files = object_keys_in_location(
     #     bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
     #     object_location=file_set_location
     # )

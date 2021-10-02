@@ -244,6 +244,8 @@
 {% block title %}Welcome '{{submitter_name}}' to the<br>Knowledge Graph Exchange (KGE) Archive{% endblock %}
 {% block content %}
     <table class="center_align proportioned">
+
+        {% if user_role > 0 %}
         <tr>
             <td>
                 <p class="center_align">
@@ -258,6 +260,8 @@
                 </form -->
             </td>
         </tr>
+        {% endif %}
+
         <tr>
             <td>
                 <!-- p><label for="kg_name"><b>Graph Name</b></label>
@@ -279,7 +283,9 @@
                     <label class="label" for="select_fileset_version">File Set Version:</label>
                     <select id="select_fileset_version">
                     </select>
+                    {% if user_role|int > 0 %}
                     &nbsp;&nbsp;<button id="add_new_file_set">Add New File Set</button>
+                    {% endif %}
                 </p>
                 <p>
                     <button id="view_metadata">View Metadata</button>

@@ -33,7 +33,7 @@ Given that NCATS resides in Maryland, we host  Cognito IDP host in the AWS **us-
 
 For the moment, the following options for Archive client Login identification are specified:
 
-- Username: Users can use a username and optionally multiple alternatives to sign up and sign in.
+- _Username:_ Users can use a username and optionally multiple alternatives to sign up and sign in.
     - Also allow sign in with verified email address
     - Also allow sign in with verified phone number
     - Also allow sign in with preferred username (a username that your users can change)
@@ -42,20 +42,37 @@ For the moment, the following options for Archive client Login identification ar
 
 For the moment, the following options for Archive client Login standard required attributes are specified:
 
-- email
-- family name
-- given name
-- website # to capture the user's affiliation
+- _email_
+- _family_name_
+- _given_name_
+- _website_ 
 
 with the addition of one required custom attributes:
 
-- Team  # string 3..32 characters  # Translator clients will indicate their team name here, e.g. SRI, Molecular Data Provider, etc.
+- _Team_  # string 1..60 characters  # Translator clients will indicate their funded project name here, e.g. SRI, Molecular Data Provider, etc.
+- _Affiliation_ # string 1..60 characters, Institutional affiliation
+- _Contact_PI_  # string 1..20 characters, Team Principal Investigator (could be 'self')
+- _User_Role_   # integer 0..4, where 0 is the default value and denotes the role of a data read-only general user of the system; 1 is "data curator" with knowledge graph and file set creation role privilege; 3 is reserved for KGE Owner roles; 4 defines a root "admin" role
+
+### Custom "User Role" Attribute
+
+The custom "User Role" attribute merits a quick discussion here. The basic meaning of the attribute is defined above. User_Role 0 (zero) is the baseline which only allows 'read only' access to the system (i.e. mainly just the 'home' (minus some buttons) and 'metadata' pages. 
+
+All other Roles have "read/write" for data, although roles 3 and 4 don't have any special significance (yet).
+
+The default role for users in the system is 0, if their custom User_Role is not set; however,  this default may be globally overridden (typically, to User Role == 1 (one)) by setting the environment variable **DEFAULT_KGE_USER_ROLE**.
+
+### Administrative Setting of Attributes  (including User Custom Attributes)
+
+The AWS Cognito Dashboard allows the creation of custom attributes and initial settings by batch upload or user registration;  however,  resetting of attributes values can only be done via the AWS API's or various programmatic SDK's.
+
+In the KGE Archive project, kgea.aws.cognito module may be run from the command line to view user details and (re-)set user  attributes.
 
 ### Login Policies
 
 #### Password
 
-Minimum length: 12
+Minimum length: 15 characters
 
 - Require numbers
 - Require special character
@@ -64,7 +81,7 @@ Minimum length: 12
 
 #### Account Sign-Up Policy
 
-To facilitate usage in the short term (and given that the Archive will initially be experiment and have little data and will need to be quickly used in the February 2021 Translator Relay), the User Pool will be initially configured to "_Allow users to sign themselves up_".  Later, the more restrictive option of "_Only allow administrators to create users_" may be asserted to ensure security of the system for general project access.
+The AWS Cognito system of the KGE Archive "production" installation is now constrained to have "administrative" creation of user accounts (only).
 
 ### Multi-Factor Authentication (MFA) & Verifications ?
 

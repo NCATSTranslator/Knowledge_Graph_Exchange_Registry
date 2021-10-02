@@ -7,22 +7,20 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
-
-from os import sep as os_separator, environ
-from os.path import dirname, abspath, splitext, basename
-import sys
-import io
-import traceback
 from sys import stderr, exc_info
-from tempfile import TemporaryFile
-from typing import Dict, Union, List, Optional
-import subprocess
-import re
-
-import logging
+from typing import Union, List, Tuple, Dict, Optional
+from subprocess import Popen, PIPE, STDOUT
+from os import sep as os_separator, getenv
+from os.path import dirname, abspath, splitext, basename
+import io
 
 import random
-import time
+
+import re
+import itertools
+
+import traceback
+import logging
 
 import requests
 import smart_open
@@ -41,7 +39,7 @@ except ImportError:
 from botocore.config import Config
 from boto3.s3.transfer import TransferConfig
 
-from kgea.aws.assume_role import AssumeRole
+from kgea.aws.assume_role import AssumeRole, aws_config
 
 from kgea.config import (
     get_app_config,
@@ -51,12 +49,17 @@ from kgea.config import (
 
 logger = logging.getLogger(__name__)
 
+# Master flag for local development, usually when code is not run inside an EC2 server
+DEV_MODE = getenv('DEV_MODE', default=False)
+
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
 
 # Probably won't change the name of the
 # script again, but changed once already...
+_SHELL_CMD = "/usr/bin/env bash"
 _KGEA_ARCHIVER_SCRIPT = "kge_archiver.bash"
+_KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
 
 
 def print_error_trace(err_msg: str):
@@ -68,12 +71,161 @@ def print_error_trace(err_msg: str):
     traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
 
 
-#
-# Obtain an AWS S3 Client using an Assumed IAM Role
+#############################################
+# General Utility Functions for this Module #
+#############################################
+def run_script(
+        script,
+        args: Tuple = (),
+        # env: Optional = None
+) -> int:
+    """
+    Run a given script in the background, with
+     specified arguments and environment variables.
+
+    :param script: full OS path to the executable script.
+    :param args: command line arguments for the script
+    :return:
+    """
+    cmd: List = list()
+    cmd.append(script)
+    cmd.extend(args)
+    
+    with Popen(
+            args=cmd,
+            # env=env,
+            bufsize=1,
+            universal_newlines=True,
+            executable=_SHELL_CMD,
+            stdout=PIPE,
+            stderr=STDOUT
+    ) as proc:
+        logger.info(f"run_script({script}) log:")
+        for line in proc.stdout:
+            logger.info(line)
+    return proc.returncode
+
+
+# https://www.askpython.com/python/examples/generate-random-strings-in-python
+def random_alpha_string(length=8):
+    """
+
+    :param length:
+    :return:
+    """
+    random_string = ''
+    for _ in range(length):
+        # Considering only upper and lowercase letters
+        random_integer = random.randint(97, 97 + 26 - 1)
+        flip_bit = random.randint(0, 1)
+        # Convert to lowercase if the flip bit is on
+        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
+        # Keep appending random characters using chr(x)
+        random_string += (chr(random_integer))
+    return random_string
+
+
+def get_default_date_stamp():
+    """
+    Returns the default date stamp as 'now', as an ISO Format string 'YYYY-MM-DD'
+    :return:
+    """
+    return datetime.now().strftime('%Y-%m-%d')
+
+
+def infix_string(name, infix, delimiter="."):
+    """
+
+    :param name:
+    :param infix:
+    :param delimiter:
+    :return:
+    """
+    tokens = name.split(delimiter)
+    *pre_name, end_name = tokens
+    name = ''.join([delimiter.join(pre_name), infix, delimiter, end_name])
+    return name
+
+
+def get_pathless_file_size(data_file):
+    """
+    Takes an open file-like object, gets its end location (in bytes),
+    and returns it as a measure of the file size.
+
+    Traditionally, one would use a systems-call to get the size
+    of a file (using the `os` module). But `TemporaryFileWrapper`s
+    do not feature a location in the filesystem, and so cannot be
+    tested with `os` methods, as they require access to a filepath,
+    or a file-like object that supports a path, in order to work.
+
+    This function seeks the end of a file-like object, records
+    the location, and then seeks back to the beginning so that
+    the file behaves as if it was opened for the first time.
+    This way you can get a file's size before reading it.
+
+    (Note how we aren't using a `with` block, which would close
+    the file after use. So this function leaves the file open,
+    as an implicit non-effect. Closing is problematic for
+     TemporaryFileWrappers which wouldn't be operable again)
+
+    :param data_file:
+    :return size:
+    """
+    if not data_file.closed:
+        data_file.seek(0, 2)
+        size = data_file.tell()
+        print(size)
+        data_file.seek(0, 0)
+        return size
+    else:
+        return 0
+
+
+def get_url_file_size(url: str) -> int:
+    """
+    Takes a URL specified resource, and gets its size (in bytes)
+
+    :param url: resource whose size is being queried
+    :return size:
+    """
+    size: int = 0
+    if url:
+        try:
+            assert (valid_url(url))
+
+            # fetching the header information
+            info = requests.head(url)
+            content_length = info.headers['Content-Length']
+            size: int = int(content_length)
+            return size
+        except ValidationFailure:
+            logger.error(f"get_url_file_size(url: '{str(url)}') is invalid?")
+            return -2
+        except KeyError:
+            logger.error(f"get_url_file_size(url: '{str(url)}') doesn't have a 'Content-Length' value in its header?")
+            return -3
+        except Exception as exc:
+            logger.error(f"get_url_file_size(url:'{str(url)}'): {str(exc)}")
+            # TODO: invalidate the size invariant to propagate a call error
+            # for now return -1 to encode the error state
+            return -1
+
+    return size
+
+
+################################################
+# Wrapper for AWS IAM Role for the Application #
+################################################
+
+# Obtain an AWS Clients using an Assumed IAM Role
 # with default parameters (loaded from config.yaml)
 #
 the_role = AssumeRole()
 
+
+############################
+# AWS S3 client operations #
+############################
 
 def s3_client(
         assumed_role=the_role,
@@ -83,19 +235,17 @@ def s3_client(
         )
 ):
     """
-
     :param assumed_role:
     :param config:
-    :return:
+    :return: S3 client
     """
     return assumed_role.get_client('s3', config=config)
 
 
 def s3_resource(assumed_role=the_role):
     """
-
     :param assumed_role:
-    :return:
+    :return: S3 resource
     """
     return assumed_role.get_resource(
         's3',
@@ -123,25 +273,6 @@ def delete_location(bucket, kg_id):
     return s3_client().delete(Bucket=bucket, Key=get_object_location(kg_id))
 
 
-# https://www.askpython.com/python/examples/generate-random-strings-in-python
-def random_alpha_string(length=8):
-    """
-
-    :param length:
-    :return:
-    """
-    random_string = ''
-    for _ in range(length):
-        # Considering only upper and lowercase letters
-        random_integer = random.randint(97, 97 + 26 - 1)
-        flip_bit = random.randint(0, 1)
-        # Convert to lowercase if the flip bit is on
-        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
-        # Keep appending random characters using chr(x)
-        random_string += (chr(random_integer))
-    return random_string
-
-
 def get_object_location(kg_id):
     """
     NOTE: Must be kept deterministic. No date times or
@@ -149,14 +280,6 @@ def get_object_location(kg_id):
     """
     location = f"{_KGEA_APP_CONFIG['aws']['s3']['archive-directory']}/{kg_id}/"
     return location
-
-
-def get_default_date_stamp():
-    """
-    Returns the default date stamp as 'now', as an ISO Format string 'YYYY-MM-DD'
-    :return:
-    """
-    return datetime.now().strftime('%Y-%m-%d')
 
 
 # Don't use date stamp for versioning anymore
@@ -247,29 +370,111 @@ def location_available(bucket_name, object_key) -> bool:
         return True
 
 
-def kg_files_in_location(bucket_name, object_location='') -> List[str]:
+def object_entries_in_location(bucket, object_location='') -> Dict[str, int]:
     """
-
-    :param bucket_name:
+    :param bucket:
     :param object_location:
-    :return:
+    :return: dictionary of object entries with their size in specified
+             object location in a bucket (all bucket entries if object_location is empty)
     """
-    bucket_listings: List = list()
+    bucket_listings: Dict = dict()
     # print(s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket_name))
-    for p in s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket_name):
+    for p in s3_client().get_paginator("list_objects_v2").paginate(Bucket=bucket):
         if 'Contents' in p:
-            for e in p['Contents']:
-                bucket_listings.append(e['Key'])
+            for entry in p['Contents']:
+                bucket_listings[entry['Key']] = entry['Size']
         else:
-            return []  # empty bucket?
+            return {}  # empty bucket?
 
     # If object_location is the empty string, then each object
     # listed passes (since the empty string is part of every string)
-    object_matches = [object_name for object_name in bucket_listings if object_location in object_name]
+    object_matches = {key: bucket_listings[key] for key in bucket_listings if object_location in key}
+    
     return object_matches
 
 
-def get_fileset_versions_available(bucket_name, kg_id=None):
+def object_keys_in_location(bucket, object_location='') -> List[str]:
+    """
+    :param bucket:
+    :param object_location:
+    
+    :return: all object keys in specified object location of a
+             specified bucket (all bucket keys if object_location is empty)
+    """
+    key_catalog = object_entries_in_location(bucket, object_location=object_location)
+    
+    return list(key_catalog.keys())
+
+
+def object_keys_for_fileset_version(
+        kg_id: str,
+        fileset_version: str,
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        match_function=lambda x: True
+) -> Tuple[List[str], str]:
+    """
+    Returns a list of all the files associated with a
+    given knowledge graph, for a given file set version.
+
+    :param kg_id: knowledge graph identifier
+    :param fileset_version: semantic version ('major.minor') of the file set
+    :param bucket: target S3 bucket (default: current config.yaml bucket)
+    :param match_function: (optional) lambda filter for list of file object keys returned
+
+    :return: Tuple [ matched list of file object keys, file set version ] found
+    """
+    target_fileset, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
+    
+    object_key_list: List[str] = \
+        object_keys_in_location(
+            bucket=bucket,
+            object_location=target_fileset,
+        )
+    filtered_file_key_list = list(filter(match_function, object_key_list))
+    
+    return filtered_file_key_list, fileset_version
+
+
+def object_folder_contents_size(
+        kg_id: str,
+        fileset_version: str,
+        object_subfolder='',
+        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+) -> int:
+    """
+    :param kg_id: knowledge graph identifier
+    :param fileset_version: semantic version ('major.minor') of the file set
+    :param bucket: target S3 bucket (default: current config.yaml bucket)
+    :param object_subfolder: subfolder path from root fileset path (default: empty - use fileset root path)
+
+    :return: total size of archived files (in bytes)
+    """
+    target_fileset, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
+    target_folder = f"{target_fileset}{object_subfolder}"
+    
+    logger.debug(f"object_folder_contents_size({target_folder})")
+    
+    object_key_catalog: Dict[str, int] = \
+        object_entries_in_location(
+            bucket=bucket,
+            object_location=target_folder,
+        )
+
+    total_size = 0
+    for size in object_key_catalog.values():
+        total_size += size
+    
+    return total_size
+
+
+# for an s3 key, match on kg_id
+kg_ids_pattern = re.compile(rf"{aws_config['archive-directory']}/([a-zA-Z\d \-]+)/.+")
+
+# for an s3 key, match on kg_id and fileset version
+kg_ids_with_versions_pattern = re.compile(rf"{aws_config['archive-directory']}/([\S]+)/(\d+.\d+)/")
+
+
+def get_fileset_versions_available(bucket_name):
     """
     A roster of all the versions that all knowledge graphs have been updated to.
 
@@ -283,26 +488,28 @@ def get_fileset_versions_available(bucket_name, kg_id=None):
         - Filter out crud data (like NoneTypes) to guarantee portability between server and client
 
     :param bucket_name:
-    :param kg_id:
     :return versions_per_kg: dict
     """
-    import re
-    import itertools
 
-    kg_files = kg_files_in_location(bucket_name)
-
-    kg_ids_pattern = re.compile('kge-data/([a-zA-Z\d \-]+)/.+')  # for an s3 key, match on kg_id and on version
-    kg_ids_with_versions_pattern = re.compile(
-        'kge-data/([\S]+)/(\d+.\d+)/')  # for an s3 key, match on kg_id and on version
+    all_kge_archive_files = \
+        object_entries_in_location(
+            bucket=bucket_name,
+            object_location=aws_config['archive-directory']
+        )
 
     # create a map of kg_ids and their versions
-    kg_ids = set(kg_ids_pattern.match(kg_file).group(1) for kg_file in kg_files if
+    kg_ids = set(kg_ids_pattern.match(kg_file).group(1) for kg_file in all_kge_archive_files if
                  kg_ids_pattern.match(kg_file) is not None)  # some kg_ids don't have versions
+    
     versions_per_kg = {}
     version_kg_pairs = set(
-        (kg_ids_with_versions_pattern.match(kg_file).group(1), kg_ids_with_versions_pattern.match(kg_file).group(2)) for
-        kg_file in kg_files if kg_ids_with_versions_pattern.match(kg_file) is not None)
+        (
+            kg_ids_with_versions_pattern.match(kg_file).group(1),
+            kg_ids_with_versions_pattern.match(kg_file).group(2)
+        ) for kg_file in all_kge_archive_files if kg_ids_with_versions_pattern.match(kg_file) is not None)
+    
     print(kg_ids, version_kg_pairs)
+
     for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
         versions_per_kg[key] = []
         for thing in group:
@@ -329,7 +536,7 @@ def create_presigned_url(bucket, object_key, expiration=86400) -> Optional[str]:
     # Generate a pre-signed URL for the S3 object
     # https://stackoverflow.com/a/52642792
     #
-    # This may thrown a Boto related exception - assume that it will be caught by the caller
+    # This may throw a Boto related exception - assume that it will be caught by the caller
     #
     try:
         endpoint = s3_client().generate_presigned_url(
@@ -359,7 +566,7 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
     :param attachment:
     :return:
     """
-    return f"{root}/{kg_id}/{fileset_version}{subdir + '/'}{attachment}"
+    return f"{root}/{kg_id}/{fileset_version}{subdir}/{attachment}"
 
 
 # def package_file_manifest(tar_path):
@@ -385,40 +592,6 @@ def kg_filepath(kg_id, fileset_version, root='', subdir='', attachment=''):
 #                 "size": tarinfo.size
 #             }
 #         return manifest
-
-
-def get_pathless_file_size(data_file):
-    """
-    Takes an open file-like object, gets its end location (in bytes),
-    and returns it as a measure of the file size.
-
-    Traditionally, one would use a systems-call to get the size
-    of a file (using the `os` module). But `TemporaryFileWrapper`s
-    do not feature a location in the filesystem, and so cannot be
-    tested with `os` methods, as they require access to a filepath,
-    or a file-like object that supports a path, in order to work.
-
-    This function seeks the end of a file-like object, records
-    the location, and then seeks back to the beginning so that
-    the file behaves as if it was opened for the first time.
-    This way you can get a file's size before reading it.
-
-    (Note how we aren't using a `with` block, which would close
-    the file after use. So this function leaves the file open,
-    as an implicit non-effect. Closing is problematic for
-     TemporaryFileWrappers which wouldn't be operable again)
-
-    :param data_file:
-    :return size:
-    """
-    if not data_file.closed:
-        data_file.seek(0, 2)
-        size = data_file.tell()
-        print(size)
-        data_file.seek(0, 0)
-        return size
-    else:
-        return 0
 
 
 def get_object_key(object_location, filename):
@@ -514,20 +687,6 @@ def upload_file_multipart(
     return object_key
 
 
-def infix_string(name, infix, delimiter="."):
-    """
-
-    :param name:
-    :param infix:
-    :param delimiter:
-    :return:
-    """
-    tokens = name.split(delimiter)
-    *pre_name, end_name = tokens
-    name = ''.join([delimiter.join(pre_name), infix, delimiter, end_name])
-    return name
-
-
 def compress_fileset(
         kg_id,
         version,
@@ -535,7 +694,6 @@ def compress_fileset(
         root='kge-data'
 ) -> str:
     """
-
     :param kg_id:
     :param version:
     :param bucket:
@@ -549,45 +707,30 @@ def compress_fileset(
 
     # normalize to unix path from windows path
     # if sys.platform is 'win32':
-    archive_script = archive_script.replace('\\', '/').replace('C:', '/mnt/c/')
-
+    # archive_script = archive_script.replace('\\', '/').replace('C:', '/mnt/c/')
+    
     logger.debug(f"Archive Script: ({archive_script})")
     try:
-        script_env = environ.copy()
-        script_env["KGE_BUCKET"] = bucket
-        script_env["KGE_ROOT_DIRECTORY"] = root
-
-        # if sys.platform is 'win32':
-        #     args = ['bash', archive_script, kg_id, version, bucket, root]
-        # else:
-        #     args = [archive_script, kg_id, version]
-
-        with TemporaryFile() as script_log:
-            with subprocess.Popen(
-                    args=['bash', archive_script, kg_id, version, bucket, root],
-                    # executable='/bin/bash',
-                    env=script_env,
-                    stdout=script_log,
-                    stderr=script_log
-            ) as proc:
-                proc.wait()
-                script_log.flush()
-                script_log.seek(0)
-                log_text = script_log.read()
-                logger.info(
-                    f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n\tto build {s3_archive_key}: " +
-                    f"\n\tReturn Code {proc.returncode}, log:\n\t{str(log_text)}"
-                )
-
+        return_code = run_script(
+            script=archive_script,
+            args=(bucket, root, kg_id, version)
+        )
+        logger.info(
+            f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n" +
+            f"\tbuild {s3_archive_key}, with return code {str(return_code)}"
+        )
+        
     except Exception as e:
         logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
 
     logger.info(f"Exiting compress_fileset({s3_archive_key})")
+    
     return s3_archive_key
 
 
 def decompress_in_place(gzipped_key, location=None, traversal_func=None):
     """
+
 
     Decompress a gzipped file from within a given S3 bucket.
 
@@ -598,12 +741,15 @@ def decompress_in_place(gzipped_key, location=None, traversal_func=None):
 
     :param gzipped_key: The S3 key for the gzipped archive
     :param location: The location to unpack onto (not necessarily the root folder of the gzipped file)
+    :param traversal_func:
     :return:
     """
 
     if location[-1] is not '/':
-        raise Warning(f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}."+
-                      "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair.")
+        raise Warning(
+            f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}." +
+            "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair."
+        )
 
     if '.gz' not in gzipped_key:
         raise Exception('decompress_in_place(): Gzipped key cannot be a GZIP file! (' + str(gzipped_key) + ')')
@@ -668,42 +814,69 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
 
     :param gzipped_key: The S3 key for the gzipped archive
     :param location: The location to unpack onto (not necessarily the root folder of the gzipped file)
+    :param strict:
+    :param prefix:
     :return:
     """
 
     if location[-1] is not '/':
-        raise Warning(f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}."+
-                      "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair.")
+        raise Warning(
+            f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}." +
+            "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair."
+        )
 
     print('decompress_to_kgx(): Decompress the archive as if it is a KGX file')
 
     # check for node-yness or edge-yness
-    # a tarfile entry is node-y if it's packed inside a nodes folder, or has the word "node" in it towards the end of the filename
-    def isNodey(entry_name):
+    # a tarfile entry is node-y if it's packed inside a nodes folder,
+    # or has the word "node" in it towards the end of the filename
+    def is_node_y(entry_name):
+        """
+
+        :param entry_name:
+        :return:
+        """
         node_file_pattern = re.compile('node[s]?.tsv')  # a node file by its own admission
         node_folder_pattern = re.compile('nodes/')  # a nodes file given where it's placed
         return node_file_pattern.match(entry_name) is not None or node_folder_pattern.match(
             entry_name) is not None
 
-    # a tarfile entry is edge-y if it's packed inside an edges folder, or has the word "edge" in it towards the end of the filename
-    def isEdgey(entry_name):
+    # a tarfile entry is edge-y if it's packed inside an edges folder,
+    # or has the word "edge" in it towards the end of the filename
+    def is_edge_y(entry_name):
+        """
+
+        :param entry_name:
+        :return:
+        """
         edge_file_pattern = re.compile('edge[s]?.tsv')  # an edge file by its own admission
         edge_folder_pattern = re.compile('edges/')  # an edges file given where it's placed
         return edge_file_pattern.match(entry_name) is not None or edge_folder_pattern.match(
             entry_name) is not None
 
-    def isMetadata(entry_name):
-        metadata_file_pattern = re.compile('content_metadata\.json')  # a metadata file by its own admission
+    def is_metadata(entry_name):
+        """
+
+        :param entry_name:
+        :return:
+        """
+        metadata_file_pattern = re.compile(r'content_metadata\.json')  # a metadata file by its own admission
         # metadata_folder_pattern = re.compile('metadata/')
         return metadata_file_pattern.match(entry_name) is not None  # we're strict about the filename for the metadata
 
     def traversal_func_kgx(tf, location):
+        """
+
+        :param tf:
+        :param location:
+        :return:
+        """
         print('traversal_func_kgx(): Begin traversing across the archive for nodes and edge files', tf)
         file_entries = []
         for entry in tf:  # list each entry one by one
             print('traversal_func_kgx(): Traversing entry', entry)
 
-            object_key = location #if not strict else None
+            object_key = location  # if not strict else None
             fileobj = tf.extractfile(entry)
 
             print('traversal_func_kgx(): Entry file object', fileobj)
@@ -712,10 +885,13 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
                 pre_name = entry.name
                 unpacked_filename = basename(pre_name)
 
-                print('traversal_func_kgx(): Entry names: pre_name, unpacked_filename = ', pre_name, ',', unpacked_filename)
-                if isNodey(pre_name):
+                print(
+                    'traversal_func_kgx(): Entry names: pre_name, unpacked_filename = ',
+                    pre_name, ',', unpacked_filename
+                )
+                if is_node_y(pre_name):
                     object_key = location + 'nodes/' + unpacked_filename
-                elif isEdgey(pre_name):
+                elif is_edge_y(pre_name):
                     object_key = location + 'edges/' + unpacked_filename
                 else:
                     object_key = location + unpacked_filename
@@ -728,7 +904,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
                     s3_client().upload_fileobj(  # upload a new obj to s3
                         Fileobj=io.BytesIO(fileobj.read()),
                         Bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],  # target bucket, writing to
-                        Key=object_key #TODO was this a bug before? (when it was location + unpacked_filename)
+                        Key=object_key  # TODO was this a bug before? (when it was location + unpacked_filename)
                     )
 
                     file_entries.append({
@@ -860,7 +1036,7 @@ def get_archive_contents(bucket_name: str) -> \
     :param bucket_name: The bucket
     :return: multi-level catalog of KGE knowledge graphs and associated versioned file sets from S3 storage
     """
-    all_files = kg_files_in_location(bucket_name=bucket_name)
+    all_object_keys = object_keys_in_location(bucket=bucket_name)
 
     contents: Dict[
         str,  # kg_id's of every KGE archived knowledge graph
@@ -882,7 +1058,7 @@ def get_archive_contents(bucket_name: str) -> \
         ]
     ] = dict()
 
-    for file_path in all_files:
+    for file_path in all_object_keys:
 
         file_part = file_path.split('/')
 
@@ -946,43 +1122,38 @@ def get_archive_contents(bucket_name: str) -> \
     return contents
 
 
-def get_url_file_size(url: str) -> int:
+# Curl Bytes Received
+_cbr_pattern = re.compile(r"^(?P<num>\d+(\.\d+)?)(?P<mag>[KMGTP])?$", flags=re.IGNORECASE)
+_cbr_magnitude = {
+    'K': 2**10,
+    'M': 2**20,
+    'G': 2**30,
+    'T': 2**40,
+    'P': 2**50,
+}
+
+
+def _cbr(value) -> int:
     """
-    Takes a URL specified resource, and gets its size (in bytes)
-
-    :param url: resource whose size is being queried
-    :return size:
+    Symbolic Curl Bytes Received string, parsed to int
+    :param value:
+    :return:
     """
-    size: int = 0
-    if url:
-        try:
-            assert (valid_url(url))
-
-            # fetching the header information
-            info = requests.head(url)
-            content_length = info.headers['Content-Length']
-            size: int = int(content_length)
-            return size
-        except ValidationFailure:
-            logger.error(f"get_url_file_size(url: '{str(url)}') is invalid?")
-            return -2
-        except KeyError:
-            logger.error(f"get_url_file_size(url: '{str(url)}') doesnt have a 'Content-Length' value in its header?")
-            return -3
-        except Exception as exc:
-            logger.error(f"get_url_file_size(url:'{str(url)}'): {str(exc)}")
-            # TODO: invalidate the size invariant to propagate a call error
-            # for now return -1 to encode the error state
-            return -1
-
-    return size
+    m = _cbr_pattern.match(value)
+    if m:
+        if m.group('mag'):
+            return round(float(m.group('num')) * _cbr_magnitude[m.group('mag').upper()])
+        else:
+            return round(float(m.group('num')))
+    else:
+        return -1
 
 
 def upload_from_link(
         bucket,
         object_key,
         source,
-        client=s3_client(),
+        client=None,  # not used here. EC2 level aws cli used instead
         callback=None
 ):
     """
@@ -992,71 +1163,122 @@ def upload_from_link(
     :param object_key: of target S3 object
     :param source: url of resource to be uploaded to S3
     :param callback: e.g. progress monitor
-    :param client: for S3
+    :param client: for S3 - ignored (aws CLI used instead)
     """
-
     # make sure we're getting a valid url
-    assert (valid_url(source))
-
-    # this will use the smart_open http client (given that `source` is a full url)
-    """
-    Explaining the arguments for smart_open
-    * encoding - utf-8 to get rid of encoding errors
-    * compression - smart_open opens tar.gz files by default; unnecessary, maybe cause slowdown with big files.
-    * transport_params - modifying the headers will let us pick an optimal mimetype for transfer
+    assert(valid_url(source))
     
-    The block is written in a way that tries to minimize blocking access to the requests and files, instead opting
-    to stream the data into `s3` bytewise. It tries to reduce extraneous steps at the library and protocol levels.
-    """
     try:
-        with smart_open.open(
-                source,
-                'r',
-                compression='disable',
-                encoding="utf8",
-                transport_params={
-                    'headers': {
-                        'Accept-Encoding': 'identity',
-                        'Content-Type': 'application/octet-stream'
-                    }
-                }
-        ) as fin:
-            with smart_open.open(
-                    f"s3://{bucket}/{object_key}", 'w',
-                    transport_params={'client': client},
-                    encoding="utf8"
-            ) as fout:
-                read_so_far = 0
-                while read_so_far < fin.buffer.content_length:
-                    line = fin.read(1)
-                    encoded = line.encode(fin.encoding)
-                    fout.write(line)
-                    if callback:
-                        # pass increment of bytes
-                        callback(len(encoded))
-                    read_so_far += 1
-
+        
+        s3_object_target = f"s3://{bucket}/{object_key}"
+        cmd = f"curl -L {source}| aws s3 cp - {s3_object_target}"
+        with Popen(
+            cmd,
+            bufsize=1,
+            universal_newlines=True,
+            stderr=PIPE,
+            shell=True
+        ).stderr as proc_stderr:
+            previous: int = 0
+            callback(0)
+            for line in proc_stderr:
+                # The 'line' is the full curl progress meter
+                field = line.split()
+                if not field:
+                    continue
+                current: int = _cbr(field[3])
+                if current < 0:
+                    continue
+                if previous < current:
+                    callback(current-previous)
+                    previous = current
+        
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
-        # TODO: what sort of post-cancellation processing is needed here?
 
 
-"""
-Unit Tests
-* Run each test function as an assertion if we are debugging the project
-"""
+###################################
+# AWS EC2 & EBS client operations #
+###################################
 
-
-def run_test(test_func):
+def ec2_client(assumed_role=the_role):
     """
-    Run a test function (timed)
-    :param test_func:
+    :param assumed_role:
+    :return: EC2 client
     """
-    try:
-        start = time.time()
-        assert (test_func())
-        end = time.time()
-        print("{} passed: {} seconds".format(test_func.__name__, end - start))
-    except Exception as e:
-        logger.error("{} failed!".format(test_func.__name__))
-        logger.error(e)
+    return assumed_role.get_client('ec2')
+
+###################################################################################################
+# Dynamic EBS provisioning steps, orchestrated by the KgeArchiver.worker() task which
+# direct calls methods using S3 and EC2 clients, plus an (steps 1.3, 1.4 plus 3.1) enhanced
+# version of the (step 2.0) kgea/server/web_services/scripts/kge_archiver.bash script.
+#
+# object_folder_contents_size():
+# 0.1 (S3 client) - Calculate EBS storage needs for target activity
+# (step 2.0 - archiving.. see below), then proceed to step 1.1
+#
+# create_ebs_volume():
+# 1.1 (EC2 client) - Create a suitably sized EBS volume, via the EC2 client
+# 1.2 (EC2 client) - Associate the EBS volume with the EC2 instance running the application
+# 1.3 (Popen() run bash script) - Mount the EBS volume inside the EC2 instance
+# 1.4 (Popen() run bash script) - Format the EBS volume
+#     TODO: might try to configure and use a persistent EBS Snapshot in step 1 to accelerate this step?
+#
+# compress_fileset():
+# 2.0 (Popen() run bash script) - Use the instance as the volume working space for target
+#     application activities (i.e. archiving). Likely need to set or change to the
+#     current working directory to one hosted on the target EBS volume.
+#
+# delete_ebs_volume():
+# 3.1 (Popen() run bash script) - Cleanly unmount EBS volume after it is no longer needed.
+# 3.2 (EC2 client) - Disassociate the EBS volume from the EC2 instance.
+# 3.3 (EC2 client) - Delete the instance (to avoid economic cost).
+###################################################################################################
+
+
+def create_ebs_volume(size: int) -> str:
+    """
+    Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
+    The EBS volume is mounted by default on the (Linux) directory '/data' and formatted as a simple
+    
+    Note: is a 'no operation' in application 'DEV_MODE' thus  returns an empty string identifier.
+    
+    :param size: specified size (in gigabytes)
+    :return: EBS volume instance identifier
+    """
+    if DEV_MODE:
+        return ''
+    else:
+
+        raise RuntimeError("create_ebs_volume(): Not yet implemented!")
+
+
+def delete_ebs_volume(identifier: str):
+    """
+    Discards a given volume.
+    
+    :param identifier: EBS volume instance identifier
+    """
+    raise RuntimeError("create_ebs_volume(): Not yet implemented!")
+
+
+# DEPRECATED - Unit tests moved over to kgea 'tests' folder
+# """
+# Unit Tests
+# * Run each test function as an assertion if we are debugging the project
+# """
+#
+#
+# def run_test(test_func):
+#     """
+#     Run a test function (timed)
+#     :param test_func:
+#     """
+#     try:
+#         start = time.time()
+#         assert (test_func())
+#         end = time.time()
+#         print("{} passed: {} seconds".format(test_func.__name__, end - start))
+#     except Exception as e:
+#         logger.error("{} failed!".format(test_func.__name__))
+#         logger.error(e)

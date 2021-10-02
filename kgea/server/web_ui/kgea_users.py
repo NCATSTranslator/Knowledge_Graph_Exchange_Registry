@@ -1,6 +1,7 @@
 """
 KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cognito)
 """
+import pprint
 import sys
 from os import getenv
 from typing import Dict
@@ -13,6 +14,13 @@ from uuid import uuid4
 
 from kgea.config import get_app_config
 from kgea.server.web_services.kgea_session import KgeaSession
+from kgea.server.web_services.kgea_user_roles import (
+    KGE_USER_TEAM,
+    KGE_USER_AFFILIATION,
+    KGE_USER_CONTACT_PI,
+    KGE_USER_ROLE,
+    DEFAULT_KGE_USER_ROLE
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +70,20 @@ def logout_url() -> str:
 
 
 def mock_user_attributes() -> Dict:
+    """
+
+    :return:
+    """
     # Stub implementation in DEV_MODE
     user_attributes: Dict = dict()
     user_attributes["preferred_username"] = 'translator'
     user_attributes["given_name"] = 'Trans'
     user_attributes["family_name"] = 'Lator'
     user_attributes["email"] = 'translator@ncats.nih.gov'
+    user_attributes[KGE_USER_TEAM] = "SRI"
+    user_attributes[KGE_USER_AFFILIATION] = "NCATS"
+    user_attributes[KGE_USER_CONTACT_PI] = "self"
+    user_attributes[KGE_USER_ROLE] = "1"
     return user_attributes
 
 
@@ -204,7 +220,8 @@ async def _get_user_attributes(code: str) -> Dict:
             #    "given_name": "Jane",
             #    "family_name": "Doe",
             #    "preferred_username": "j.doe",
-            #    "email": "janedoe@example.com"
+            #    "email": "janedoe@example.com",
+            #    "custom:User_Role": "0"
             # }
             #
             if resp.status == 200:
@@ -212,6 +229,8 @@ async def _get_user_attributes(code: str) -> Dict:
                 user_data: Dict = json.loads(data)
                 for key, value in user_data.items():
                     user_attributes[key] = value
+                if KGE_USER_ROLE not in user_attributes:
+                    user_attributes[KGE_USER_ROLE] = DEFAULT_KGE_USER_ROLE
             else:
                 # Unexpected response code?
                 errmsg = await resp.text(encoding='utf-8')
@@ -219,6 +238,8 @@ async def _get_user_attributes(code: str) -> Dict:
                     "/oauth2/userinfo POST\n\tHTTP Status: " + str(resp.status) +
                     "\n\tResponse:" + errmsg
                 )
+
+    logger.debug(f"_get_user_attributes(): user_attributes are:\n{pprint.pp(user_attributes, indent=4)}")
 
     return user_attributes
 

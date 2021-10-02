@@ -12,20 +12,24 @@ aws:
   # EC2 instance profile to get at an EC2 role
   host_account: '<Host AWS Account Number>'
   guest_external_id: '<Guest-specified external identifier'
-  iam_role_name: '<Host-specified IAM Role name>'
   s3:
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
-    region: <S3 bucket region>    # even though S3 is global, the actual bucket endpoint may be regiospecific, i.e. us-east-1
     archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+    #
+    # although S3 is global, actual bucket endpoint may be regiospecific, i.e. us-east-1 and
+    # may be located in a different region from an EC2 instance running the application
+    #
+    region: '<S3 bucket region>'
   cognito:
     # AWS Cognito OAuth2 transaction parameters
     # These parameters should match those set as 'app client' parameters in Cognito
     # i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
+    user-pool-id: '<Cognito User Pool Id>'
     host:      '<AWS Cognito URL>'
-    client_id: '<myClientid>'     # get from AWS Cognito User Pool app
-    client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
-    site_uri:  '<myArchiveSiteURL>' # get from AWS Cognito User Pool app
+    client_id: '<myClientid>'          # get from AWS Cognito User Pool app
+    client_secret: '<myClientSecret>'  # get from value set in the AWS Cognito User Pool app
+    site_uri:  '<myArchiveSiteURL>'    # get from AWS Cognito User Pool app
     login_callback:  '/oauth2callback'
 
 github:
