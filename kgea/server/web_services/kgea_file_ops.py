@@ -10,8 +10,8 @@ Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biol
 from sys import stderr, exc_info
 from typing import Union, List, Tuple, Dict, Optional
 from subprocess import Popen, PIPE, STDOUT
-from os import sep as os_separator, getenv
-from os.path import dirname, abspath, splitext, basename
+from os import getenv
+from os.path import splitext, basename
 import io
 
 import random
@@ -26,7 +26,7 @@ import requests
 import smart_open
 from datetime import datetime
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import tarfile
 
 from validators import ValidationFailure, url as valid_url
@@ -58,7 +58,6 @@ default_s3_root_key = s3_config['archive-directory']
 
 # Probably won't change the name of the
 # script again, but changed once already...
-_SHELL_CMD = "/usr/bin/env bash"
 _KGEA_ARCHIVER_SCRIPT = "kge_archiver.bash"
 _KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
 
@@ -92,18 +91,24 @@ def run_script(
     cmd.append(script)
     cmd.extend(args)
     
-    with Popen(
-            args=cmd,
-            # env=env,
-            bufsize=1,
-            universal_newlines=True,
-            executable=_SHELL_CMD,
-            stdout=PIPE,
-            stderr=STDOUT
-    ) as proc:
-        logger.info(f"run_script({script}) log:")
-        for line in proc.stdout:
-            logger.info(line)
+    logger.debug(f"run_script(cmd: '{cmd}'")
+    try:
+        with Popen(
+                args=cmd,
+                # env=env,
+                bufsize=1,
+                universal_newlines=True,
+                stdout=PIPE,
+                stderr=STDOUT
+        ) as proc:
+            logger.info(f"run_script({script}) log:")
+            for line in proc.stdout:
+                logger.info(line)
+                
+    except RuntimeError:
+        logger.error(f"run_script({script}) exception: {exc_info()}")
+        return -1
+    
     return proc.returncode
 
 
@@ -704,13 +709,14 @@ def compress_fileset(
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
 
-    archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
+    # archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
+    archive_script = str(PurePosixPath('scripts', _KGEA_ARCHIVER_SCRIPT))
 
     # normalize to unix path from windows path
     # if sys.platform is 'win32':
     # archive_script = archive_script.replace('\\', '/').replace('C:', '/mnt/c/')
     
-    logger.debug(f"Archive Script: ({archive_script})")
+    logger.debug(f"Archive Script: ({str(archive_script)})")
     try:
         return_code = run_script(
             script=archive_script,

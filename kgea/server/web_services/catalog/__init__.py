@@ -81,6 +81,7 @@ from kgea.server.web_services.models import (
 )
 
 from kgea.server.web_services.kgea_file_ops import (
+    default_s3_bucket,
     print_error_trace,
     get_default_date_stamp,
     get_object_location,
@@ -111,19 +112,35 @@ CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
 
 def prepare_test(func):
     """
-    
+
     :param func:
     :return:
     """
+    
     def wrapper():
         """
-        
+
         :return:  function called
         """
         print("\n" + str(func) + " ----------------\n")
         return func()
+    
     return wrapper
 
+
+# Opaquely access the configuration dictionary
+_KGEA_APP_CONFIG = get_app_config()
+site_hostname = _KGEA_APP_CONFIG['site_hostname']
+
+Number_of_Archiver_Tasks = \
+    _KGEA_APP_CONFIG['Number_of_Archiver_Tasks'] if 'Number_of_Archiver_Tasks' in _KGEA_APP_CONFIG else 3
+
+Number_of_Validator_Tasks = \
+    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
+
+# TODO: operational parameter dependent configuration
+MAX_WAIT = 100  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
+MAX_QUEUE = 0  # amount of queueing until we stop pushing onto the queue. 0 for unlimited queue items
 
 #
 # Until we are confident about the KGE File Set publication
@@ -137,25 +154,12 @@ TRANSLATOR_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
 
-# Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
-
-Number_of_Archiver_Tasks = \
-    _KGEA_APP_CONFIG['Number_of_Archiver_Tasks'] if 'Number_of_Archiver_Tasks' in _KGEA_APP_CONFIG else 3
-
-Number_of_Validator_Tasks = \
-    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
-
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_provider_metadata.yaml')
 FILE_SET_METADATA_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_fileset_metadata.yaml')
 TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
-
-# TODO: operational parameter dependent configuration
-MAX_WAIT = 100  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
-MAX_QUEUE = 0  # amount of queueing until we stop pushing onto the queue. 0 for unlimited queue items
 
 
 def _populate_template(filename, **kwargs) -> str:
@@ -421,7 +425,7 @@ class KgeFileSet:
         self.add_file_size(file_size)
 
         content_metadata_file_text = load_s3_text_file(
-            bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            bucket_name=default_s3_bucket,
             object_name=object_key
         )
         # Must load the JSON into a Python dictionary for validation
@@ -629,7 +633,7 @@ class KgeFileSet:
             files += "- " + entry["file_name"]+"\n"
         try:
             fileset_metadata_yaml = _populate_template(
-                host=_KGEA_APP_CONFIG['site_hostname'],
+                host=site_hostname,
                 filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
                 kg_id=self.kg_id,
                 biolink_model_release=self.biolink_model_release,
@@ -910,7 +914,7 @@ class KgeKnowledgeGraph:
         """
         return _populate_template(
             filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
-            host=_KGEA_APP_CONFIG['site_hostname'], kg_id=self.kg_id, **self.parameter
+            host=site_hostname, kg_id=self.kg_id, **self.parameter
         )
 
     def generate_translator_registry_entry(self) -> str:
@@ -920,7 +924,7 @@ class KgeKnowledgeGraph:
         """
         return _populate_template(
             filename=TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH,
-            host=_KGEA_APP_CONFIG['site_hostname'], kg_id=self.kg_id, **self.parameter
+            host=site_hostname, kg_id=self.kg_id, **self.parameter
         )
 
     def get_version_names(self) -> List[str]:
@@ -1050,7 +1054,7 @@ class KgeKnowledgeGraph:
     # # TODO: convert into redirect approach with cross-origin scripting?
     # file_set_location, _ = with_version(func=get_object_location, version=self.fileset_version)(self.kg_id)
     # kg_files = object_keys_in_location(
-    #     bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+    #     bucket_name=default_s3_bucket,
     #     object_location=file_set_location
     # )
     # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
@@ -1059,7 +1063,7 @@ class KgeKnowledgeGraph:
     #     map(
     #         lambda kg_file: [
     #             Path(kg_file).stem,
-    #             create_presigned_url(_KGEA_APP_CONFIG['aws']['s3']['bucket'], kg_file)
+    #             create_presigned_url(default_s3_bucket, kg_file)
     #         ],
     #         kg_listing))
     # # logger.info('access urls %s, KGs: %s', kg_urls, kg_listing)
@@ -1110,7 +1114,7 @@ class KgeArchiveCatalog:
 
         # Initialize catalog with the metadata of all the existing KGE Archive (AWS S3 stored) KGE File Sets
         # archive_contents keys are the kg_id's, entries are the rest of the KGE File Set metadata
-        archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'])
+        archive_contents: Dict = get_archive_contents(bucket_name=default_s3_bucket)
         for kg_id, entry in archive_contents.items():
             if self.is_complete_kg(kg_id, entry):
                 self.load_archive_entry(kg_id=kg_id, entry=entry)
@@ -1403,7 +1407,7 @@ def test_get_catalog_entries():
 
 
 _TEST_TSE_PARAMETERS = dict(
-    host=_KGEA_APP_CONFIG['site_hostname'],
+    host=site_hostname,
     kg_id="disney_small_world_graph",
     kg_name="Disneyland Small World Graph",
     kg_description="""Voyage along the Seven Seaways canal and behold a cast of
@@ -1472,7 +1476,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     file_name = 'MickeyMouseFanClub_nodes.tsv'
     object_key = get_object_key(file_set_location, file_name)
     key = upload_file(
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        bucket=default_s3_bucket,
         object_key=object_key,
         source=test_file1
     )
@@ -1492,7 +1496,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     file_name = 'MinnieMouseFanClub_edges.tsv'
     object_key = get_object_key(file_set_location, file_name)
     key = upload_file(
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        bucket=default_s3_bucket,
         object_key=object_key,
         source=test_file2
     )
@@ -1531,7 +1535,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         with open(tempdir+'/'+tar_file_name, 'rb') as test_tarfile1:
             object_key = get_object_key(file_set_location, test_name['archive'])
             key = upload_file(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=object_key,
                 source=test_tarfile1
             )
@@ -1595,7 +1599,7 @@ def add_to_s3_repository(
         data_bytes = text.encode('utf-8')
         object_key = get_object_key(file_set_location, file_name)
         upload_file(
-            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            bucket=default_s3_bucket,
             object_key=object_key,
             source=BytesIO(data_bytes)
         )
@@ -1821,15 +1825,6 @@ Knowledge Graph eXchange (KGX) tool kit validation of
 Knowledge Graph Exchange (KGE) File Sets located on AWS S3
 """
 
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
-
-# one could perhaps parameterize this in the _KGEA_APP_CONFIG
-_NUMBER_OF_KGX_VALIDATION_WORKER_TASKS = _KGEA_APP_CONFIG.setdefault("Number_of_KGX_Validation_Worker_Tasks", 3)
 # KGX Content Metadata Validator is a simply JSON Schema validation operation
 CONTENT_METADATA_SCHEMA_FILE = abspath(dirname(__file__) + '/content_metadata.schema.json')
 with open(CONTENT_METADATA_SCHEMA_FILE, mode='r', encoding='utf-8') as cms:
@@ -1837,9 +1832,8 @@ with open(CONTENT_METADATA_SCHEMA_FILE, mode='r', encoding='utf-8') as cms:
 
 
 # This first iteration only validates the JSON structure and property tags against the JSON schema
-# TODO: perhaps should also check the existence of
-#       Biolink node categories and predicates
-#       (using the Biolink Model Toolkit)?
+# TODO: perhaps should also check the existence of Biolink
+#       node categories and predicates (using the Biolink Model Toolkit)?
 def validate_content_metadata(content_metadata_file) -> List:
     """
     
@@ -2086,7 +2080,7 @@ class KgeArchiver:
                     sha1sum_value = sha1sum[archive_file_key.name]
                     sha1tsv = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
                     manifest_object_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/manifest/"
-                    sha1_s3_path = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{manifest_object_location}{sha1tsv}"
+                    sha1_s3_path = f"s3://{default_s3_bucket}/{manifest_object_location}{sha1tsv}"
                     with smart_open.open(sha1_s3_path, 'w') as sha1file:
                         sha1file.write(sha1sum_value)
 
