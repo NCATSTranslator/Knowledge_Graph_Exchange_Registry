@@ -14,7 +14,6 @@ if platform != "win32":
 
 from typing import List
 from pathlib import Path
-from pprint import PrettyPrinter
 
 # from multiprocessing import Process, Pipe
 # from multiprocessing.connection import Connection
@@ -27,8 +26,6 @@ from kgea.aws.assume_role import AssumeRole, aws_config
 
 import logging
 logger = logging.getLogger(__name__)
-
-pp = PrettyPrinter(indent=4)
 
 HELP = "help"
 UPLOAD = "upload"
@@ -50,7 +47,7 @@ helpdoc = Help(
 
 
 s3_bucket_name: str = aws_config["s3"]["bucket"]
-s3_directory: str   = aws_config["s3"]["archive-directory"]
+s3_directory: str = aws_config["s3"]["archive-directory"]
 s3_region_name: str = aws_config["s3"]["region"]
 
 assumed_role = AssumeRole()
@@ -130,7 +127,7 @@ def get_object_keys(
 
     if 'Contents' in response:
         logger.debug("### Returning list of keys with prefix '" + filter_prefix +
-              "'from the S3 bucket '" + bucket_name + "'")
+                     "'from the S3 bucket '" + bucket_name + "'")
         return [item['Key'] for item in response['Contents']]
     else:
         print("S3 bucket '" + bucket_name + "' is empty?")

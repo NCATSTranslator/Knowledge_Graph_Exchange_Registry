@@ -164,8 +164,8 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
         
         if user_attributes:
             logger.debug(f"initialize_user_session(): user_attributes:\n{pprint.pp(user_attributes, indent=4)}")
-            session['username'] = user_attributes.setdefault("preferred_username", 'anonymous')
-            session['name'] = user_attributes.setdefault("given_name", '') + ' ' +\
+            session['username'] = user_attributes.setdefault("username", 'anonymous')
+            session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
                               user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
             session['user_role'] = int(user_attributes.setdefault(KGE_USER_ROLE, DEFAULT_KGE_USER_ROLE))

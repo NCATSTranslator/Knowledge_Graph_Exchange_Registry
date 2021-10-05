@@ -42,7 +42,8 @@ def get_user_details(
             UserPoolId=upi,
             Username=uid
         )
-        logger.info(f"get_user_details() response:\n{pp.pprint(response)}")
+        logger.info(f"get_user_details() response:")
+        pp.pprint(response)
 
     except Boto3Error as b3e:
         logger.error(f"get_user_details() exception: {b3e}")
@@ -70,7 +71,8 @@ def update_user_attributes(
                 for key, value in attributes.items()
             ],
         )
-        logger.info(f"update_user_attributes() response:\n{pp.pprint(response)}")
+        logger.info(f"update_user_attributes() response:")
+        pp.pprint(response)
 
     except Boto3Error as b3e:
         logger.error(f"update_user_attributes() exception: {b3e}")

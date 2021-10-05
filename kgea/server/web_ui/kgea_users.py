@@ -4,7 +4,9 @@ KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cogn
 import sys
 from os import getenv
 from typing import Dict
-import pprint
+
+from pprint import PrettyPrinter
+
 import logging
 
 import json
@@ -23,6 +25,8 @@ from kgea.server.web_services.kgea_user_roles import (
 )
 
 logger = logging.getLogger(__name__)
+
+pp = PrettyPrinter(indent=4)
 
 # Master flag for simplified local development
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -215,23 +219,24 @@ async def _get_user_attributes(code: str) -> Dict:
             # HTTP/1.1 200 OK
             # Content-Type: application/json;charset=UTF-8
             # {
-            #    "sub": "248289761001",
-            #    "name": "Jane Doe",
-            #    "given_name": "Jane",
-            #    "family_name": "Doe",
-            #    "preferred_username": "j.doe",
-            #    "email": "janedoe@example.com",
-            #    "custom:User_Role": "0"
+            #     website=www.starinformatics.com
+            #     email_verified=true
+            #     custom:User_Role=4
+            #     given_name=Richard
+            #     family_name=Bruskiewich
+            #     email=richard.bruskiewich@delphinai.com
+            #     username=rbruskiewich
             # }
             #
             if resp.status == 200:
                 data = await resp.text()
                 user_data: Dict = json.loads(data)
-                logger.debug(
-                    "_get_user_attributes(): user_info_url response, key=value data being loaded into user_attributes:"
-                )
+                # logger.debug(
+                #     "_get_user_attributes(): user_info_url response, " +
+                #     "key=value data being loaded into user_attributes:"
+                # )
                 for key, value in user_data.items():
-                    logger.debug(f"\t{key}={value}")
+                    # logger.debug(f"\t{key}={value}")
                     user_attributes[key] = value
                 if KGE_USER_ROLE not in user_attributes:
                     logger.warning(
@@ -246,7 +251,8 @@ async def _get_user_attributes(code: str) -> Dict:
                     "\n\tResponse:" + errmsg
                 )
 
-    logger.debug(f"_get_user_attributes(): user_attributes are:\n{pprint.pp(user_attributes, indent=4)}")
+    logger.debug("_get_user_attributes(): user_attributes are:")
+    pp.pprint(user_attributes)
 
     return user_attributes
 
