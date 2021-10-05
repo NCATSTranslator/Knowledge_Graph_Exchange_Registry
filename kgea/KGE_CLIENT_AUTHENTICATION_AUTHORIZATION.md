@@ -68,7 +68,7 @@ A utility bash script '[set_user_role.bash](../scripts/set_user_role.bash)' is a
 
 The AWS Cognito Dashboard allows the creation of custom attributes and initial settings by batch upload or user registration;  however,  resetting of attributes values can only be done via the AWS API's or various programmatic SDK's.
 
-In the KGE Archive project, kgea.aws.cognito module may be run from the command line to view user details and (re-)set user  attributes.
+In the KGE Archive project, **kgea.aws.cognito** module may be run from the command line to view user details and (re-)set user  attributes.
 
 ### Login Policies
 
@@ -126,13 +126,44 @@ None initially configured. To be reviewed at a later date. Available options are
 
 The [AWS Cognito procedure for creating a client app login](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-app-integration.html) is our initial guide here.
 
+### App Client Creation and Parameters
+
+A new "App Client" is needed for each distinct website using a specified Cognito User Pool (which can be shared across web sites).   
+
+There are two left-hand sidebar items relating to App Clients - one under **General Settings** and one under App Client integration. A working App Client requires inputs under both menu items, first, under the **General Settings..App Client** menu item, then under the  [App Client Integration](#app-client-integration) menu item.
+
+#### Creating the App Client
+
+First, under the **General Settings..App Client**, start by clicking the **Add another app client** link. A new App Client section will come up on the screen. Give the new client a unique name within the User Pool. 
+
+#### Customizing the App Client
+
+Most of the App Client default settings may be kept as is. However, read and write permissions for app client attributes need to be fixed.
+
+##### User Attributes
+
+Select, as a minimum, the following:
+
+- **_Readable Attributes_**:
+    - _scopes:_ only check the _Address_ and _Email_ scopes.
+    - _mandatory selections:_ email, family name, given name, preferred username, custom:User Role
+- **_Writeable Attributes_**:
+    - _scopes:_ only check the _Address_ scope.
+    - _mandatory selections:_ email, family name, given name, preferred username, custom:User Role
+
+After checking the attributes, make sure to click the "**Save app client changes**" button.
+
+Note that the custom:User Role is a custom KGE-specific attribute which must be created before it is visible to be checked (details  elsewhere in this README).
+
+Now, with the App Client created and basically configurated, continue with _App Client Integration_ in the next section.
+
 ### App Client Integration
 
 #### Enabled Identity Providers
 
 Should select **Cognito User Pool**.
 
-#### Sign in and sign out URLs
+#### Sign in and Sign out URLs
 
 A suitably active https-secured web server host needs to be deployed, live and visible, perhaps something like "**https://kgea.translator.ncats.io**" We point the `Callback URL` and `Sign out URL` to that host.
 
@@ -152,7 +183,7 @@ In principle, the specified hostname of the live (https-secured) KGE Archive ser
 
 #### Client Secret
 
-Full access to the AWS Cognito managed ID token for a user (and  its attributes) will require a server-side managed  'client secret' to select for this.
+Full access to the AWS Cognito managed ID token for a user (and  its attributes) will require a server-side managed  'client secret'. Click the checkbox to select for this.
 
 #### Using the login interface
 
