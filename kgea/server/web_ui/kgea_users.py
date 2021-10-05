@@ -1,10 +1,10 @@
 """
 KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cognito)
 """
-import pprint
 import sys
 from os import getenv
 from typing import Dict
+import pprint
 import logging
 
 import json
@@ -230,6 +230,9 @@ async def _get_user_attributes(code: str) -> Dict:
                 for key, value in user_data.items():
                     user_attributes[key] = value
                 if KGE_USER_ROLE not in user_attributes:
+                    logger.warning(
+                        f"User Attribute {KGE_USER_ROLE} not retrieved from Cognito '{user_info_url}' endpoint?"
+                    )
                     user_attributes[KGE_USER_ROLE] = DEFAULT_KGE_USER_ROLE
             else:
                 # Unexpected response code?

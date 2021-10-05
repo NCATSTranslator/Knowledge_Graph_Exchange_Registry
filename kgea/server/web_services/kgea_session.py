@@ -9,7 +9,7 @@ async def handler(request):
 """
 from os import getenv
 from typing import Dict
-import logging
+import pprint
 
 from uuid import uuid4
 
@@ -21,18 +21,17 @@ from aiohttp_session import AbstractStorage, setup, new_session, get_session, Se
 from multidict import MultiDict
 
 from kgea.config import get_app_config, HOME_PAGE
-
-# Master flag for simplified local development
 from kgea.server.web_services.catalog import KgeArchiver
-
 from kgea.server.web_services.kgea_user_roles import (
     KGE_USER_ROLE,
     DEFAULT_KGE_USER_ROLE
 )
 
-DEV_MODE = getenv('DEV_MODE', default=False)
-
+import logging
 logger = logging.getLogger(__name__)
+
+# Master flag for simplified local development
+DEV_MODE = getenv('DEV_MODE', default=False)
 
 
 class KgeaSession:
@@ -164,8 +163,9 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
         session['uid'] = uid
         
         if user_attributes:
+            logger.debug(f"initialize_user_session(): user_attributes:\n{pprint.pp(user_attributes, indent=4)}")
             session['username'] = user_attributes.setdefault("preferred_username", 'anonymous')
-            session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
+            session['name'] = user_attributes.setdefault("given_name", '') + ' ' +\
                               user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
             session['user_role'] = int(user_attributes.setdefault(KGE_USER_ROLE, DEFAULT_KGE_USER_ROLE))
