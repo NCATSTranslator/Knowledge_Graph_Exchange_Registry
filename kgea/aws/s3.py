@@ -32,19 +32,20 @@ pp = PrettyPrinter(indent=4)
 
 HELP = "help"
 UPLOAD = "upload"
-UPLOAD_BATCH = "upload-batch"
+BATCH_UPLOAD = "batch-upload"
 DOWNLOAD = "download"
-DOWNLOAD_BATCH = "download-batch"
+BATCH_DOWNLOAD = "batch-download"
 LIST = "list"
 COPY = "copy"
 REMOTE_COPY = "remote-copy"
 DELETE = "delete"
-DELETE_BATCH = "delete-batch"
+BATCH_DELETE = "batch-delete"
 
 
 helpdoc = Help(
     default_usage=f"\tpython -m kgea.aws.'{Path(argv[0]).stem}' <operation> [<object_key>+|<prefix_filter>]\n\n" +
-                  "where <operation> is one of upload, list, copy, download, delete, delete-batch and test.\n\n" +
+                  "where <operation> is one of upload, batch-upload, list, copy, "
+                  "download, batch-download, delete, batch-delete and test.\n\n" +
                   "Note:\tone or more <object_key> strings are only required for 'delete' operation.\n" +
                   "\tA <prefix_filter> string is only required for 'delete-batch' operation.\n"
 )
@@ -391,7 +392,7 @@ if __name__ == '__main__':
                     }
                 )
 
-        elif s3_operation.lower() == UPLOAD_BATCH:
+        elif s3_operation.lower() == BATCH_UPLOAD:
             
             if len(argv) >= 3:
                 
@@ -427,7 +428,7 @@ if __name__ == '__main__':
             else:
                 helpdoc.usage(
                     err_msg="Missing at least a local source directory containing the data files to upload?",
-                    command=UPLOAD_BATCH,
+                    command=BATCH_UPLOAD,
                     args={
                         "<source directory>": "local source directory containing the data files to upload",
                         "[<target object key base>]?": "(optional) object key root location in the target S3 bucket"
@@ -572,7 +573,7 @@ if __name__ == '__main__':
             else:
                 helpdoc.usage(
                     err_msg="Missing S3 object key for file to download?",
-                    command=DOWNLOAD_BATCH,
+                    command=BATCH_DOWNLOAD,
                     args={
                         "<object key>": "key of object to download",
                         "[<filename>]?":
@@ -581,7 +582,7 @@ if __name__ == '__main__':
                     }
                 )
 
-        elif s3_operation.lower() == DOWNLOAD_BATCH:
+        elif s3_operation.lower() == BATCH_DOWNLOAD:
             
             if len(argv) >= 3:
                 
@@ -607,7 +608,7 @@ if __name__ == '__main__':
             else:
                 helpdoc.usage(
                     err_msg="Missing prefix filter for keys of S3 object(s) to download?",
-                    command=DOWNLOAD_BATCH,
+                    command=BATCH_DOWNLOAD,
                     args={
                         "<filter>": "filter of object keys of objects to download from the target bucket",
                         "[<target directory>]?": "(optional) target directory for downloaded files (default: current)"
@@ -634,7 +635,7 @@ if __name__ == '__main__':
                     }
                 )
 
-        elif s3_operation.lower() == DELETE_BATCH:
+        elif s3_operation.lower() == BATCH_DELETE:
             if len(argv) >= 3:
                 object_keys = get_object_keys(s3_bucket_name, filter_prefix=argv[2])
                 print("Deleting key(s): ")
@@ -649,7 +650,7 @@ if __name__ == '__main__':
             else:
                 helpdoc.usage(
                     err_msg="Missing prefix filter for keys of S3 object(s) to delete?",
-                    command=DELETE_BATCH,
+                    command=BATCH_DELETE,
                     args={
                         "<filter>": "object key string (prefix) filter"
                     }
