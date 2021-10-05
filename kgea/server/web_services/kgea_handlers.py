@@ -1144,10 +1144,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_ver
 
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
         
-        if not object_key_exists(
-                object_key=content_metadata_file_key,
-                bucket_name=default_s3_bucket
-        ):
+        if not object_key_exists(object_key=content_metadata_file_key):
             if downloading:
                 await redirect(
                     request,
