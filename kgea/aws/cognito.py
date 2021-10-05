@@ -5,49 +5,25 @@
 # credentials to execute an AWS Secure Token Service-mediated access
 # to the AWS Cognito (OAuth2) management service.
 #
-import sys
-from pathlib import Path
-from typing import Dict, Optional
+from sys import argv
+from typing import Dict
 from pprint import PrettyPrinter
-import logging
 
 from boto3.exceptions import Boto3Error
 
+from kgea.aws import Help
 from kgea.aws.assume_role import AssumeRole, aws_config
 
+import logging
 logger = logging.getLogger(__name__)
-pp = PrettyPrinter(indent=4)
 
+pp = PrettyPrinter(indent=4)
 
 # Cognito CLI commands
 GET_USER_DETAILS = "get-user-details"
 SET_USER_ATTRIBUTE = "set-user-attribute"
 
-
-def usage(
-        err_msg: str = '',
-        command: str = '',
-        args:  Optional[Dict] = None
-):
-    if err_msg:
-        print(err_msg)
-
-    if not command:
-        cmd = " <operation>"
-        description = f"where <operation> is one of '{GET_USER_DETAILS}' or '{SET_USER_ATTRIBUTE}'\n"
-    else:
-        cmd = f" {command}"
-        description = ''
-        for arg, desc in args.items():
-            cmd += f" {arg}"
-            description += f"\t{arg} is the {desc}\n"
-    print(
-        f"Usage:\n\npython -m kgea.aws.{Path(sys.argv[0]).stem}{cmd}\n\n" +
-        "where:\n" +
-        f"{description}\n"
-
-    )
-    exit(0)
+helpdoc = Help(default_usage=f"where <operation> is one of '{GET_USER_DETAILS}' or '{SET_USER_ATTRIBUTE}'\n")
 
 
 def get_user_details(
@@ -55,6 +31,12 @@ def get_user_details(
         upi: str,
         uid: str
 ):
+    """
+
+    :param client:
+    :param upi:
+    :param uid:
+    """
     try:
         response = client.admin_get_user(
             UserPoolId=upi,
@@ -72,6 +54,13 @@ def update_user_attributes(
         uid: str,
         attributes: Dict
 ):
+    """
+
+    :param client:
+    :param upi:
+    :param uid:
+    :param attributes:
+    """
     try:
         response = client.admin_update_user_attributes(
             UserPoolId=upi,
@@ -90,20 +79,20 @@ def update_user_attributes(
 # Run the module as a CLI
 if __name__ == '__main__':
 
-    if len(sys.argv) > 1:
+    if len(argv) > 1:
 
         user_pool_id: str = aws_config["cognito"]["user-pool-id"]
 
-        operation = sys.argv[1]
+        operation = argv[1]
 
         assumed_role = AssumeRole()
 
         cognito_client = assumed_role.get_client('cognito-idp')
 
         if operation.lower() == GET_USER_DETAILS:
-            if len(sys.argv) >= 3:
+            if len(argv) >= 3:
 
-                username = sys.argv[2]
+                username = argv[2]
 
                 get_user_details(
                     cognito_client,
@@ -111,7 +100,7 @@ if __name__ == '__main__':
                     uid=username
                 )
             else:
-                usage(
+                helpdoc.usage(
                     err_msg="get-user-details needs the target username",
                     command=GET_USER_DETAILS,
                     args={
@@ -119,10 +108,10 @@ if __name__ == '__main__':
                     }
                 )
         elif operation.lower() == SET_USER_ATTRIBUTE:
-            if len(sys.argv) >= 5:
-                username = sys.argv[2]
-                name = sys.argv[3]
-                value = sys.argv[4]
+            if len(argv) >= 5:
+                username = argv[2]
+                name = argv[3]
+                value = argv[4]
 
                 user_attributes = {name: value}
 
@@ -133,7 +122,7 @@ if __name__ == '__main__':
                     attributes=user_attributes
                 )
             else:
-                usage(
+                helpdoc.usage(
                     err_msg="set-user-attribute needs more arguments",
                     command=SET_USER_ATTRIBUTE,
                     args={
@@ -145,6 +134,6 @@ if __name__ == '__main__':
         # elif operation.upper() == 'OTHER':
         #     pass
         else:
-            usage("\nUnknown Operation: '" + operation + "'")
+            helpdoc.usage("\nUnknown Operation: '" + operation + "'")
     else:
-        usage()
+        helpdoc.usage()

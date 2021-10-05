@@ -16,7 +16,7 @@ Although the project itself is coded in Python, updating the Python code for the
 sudo apt install default-jre
 ```
 
-If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, the script has a few other dependencies:
+If you are working on a Linux server, you may find the [bash launcher script](https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.bash) useful to manage and launch the code generator.  A copy of this script (circa January 2021) is copied into the `scripts` subfolder of this project repository as a convenience. However, in addition to Java 8, the script has a few other dependencies:
 
 1. [Maven dependency management tool](https://maven.apache.org/) (release 3.3.4 or better)
 2.  `jq` program 
@@ -28,12 +28,12 @@ sudo apt install maven
 sudo apt install jq
 ```
 
-Running the `openapi-generator-cli.sh` the first time downloads the required JAR file to the same directory as the script, thus when the script is rerun again, it performs all the expected operations. For example:
+Running the `openapi-generator-cli.bash` the first time downloads the required JAR file to the same directory as the script, thus when the script is rerun again, it performs all the expected operations. For example:
 
 ```shell
-scripts/openapi-generator-cli.sh
+scripts/openapi-generator-cli.bash
 #... lots of output showing the script execution
-scripts/openapi-generator-cli.sh version
+scripts/openapi-generator-cli.bash version
 5.0.0
 ```
 
@@ -42,18 +42,18 @@ scripts/openapi-generator-cli.sh version
 Whenever a change is made to the project OpenAPI yaml file, it is a good idea to validate it against OpenAPI 3 expectations, as follows:
 
 ```shell
-./scripts/openapi-generator-cli.sh validate -i ./kgea/api/kgea_api.yaml
+./scripts/openapi-generator-cli.bash validate -i ./kgea/api/kgea_api.yaml
 
 ```
 
 ## Generating Code
 
-A custom project script [generate-kge-server.sh](../scripts/generate-kge-server.sh) calls a locally mirrored copy of the [OpenAPI Generator Script](../scripts/openapi-generator-cli.sh). Running the `openapi-generator-cli.sh` the first time downloads the required OpenAPI code generator JAR file to the same directory as the script. 
+A custom project script [generate-kge-server.bash](../scripts/generate-kge-server.bash) calls a locally mirrored copy of the [OpenAPI Generator Script](../scripts/openapi-generator-cli.bash). Running the `openapi-generator-cli.bash` the first time downloads the required OpenAPI code generator JAR file to the same directory as the script. 
 
 The output is something like:
 
 ```shell
-./scripts/generate-kge-server.sh
+./scripts/generate-kge-server.bash
 
 Project name: kge-archive
 Project description: NCATS_Knowledge_Graph_Exchange_Archive_Web_Services

@@ -229,7 +229,7 @@ the_role = AssumeRole()
 ############################
 
 def s3_client(
-        assumed_role=the_role,
+        assumed_role=None,
         config=Config(
             signature_version='s3v4',
             region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
@@ -240,6 +240,10 @@ def s3_client(
     :param config:
     :return: S3 client
     """
+    
+    if not assumed_role:
+        assumed_role = the_role
+
     return assumed_role.get_client('s3', config=config)
 
 
@@ -248,6 +252,10 @@ def s3_resource(assumed_role=the_role):
     :param assumed_role:
     :return: S3 resource
     """
+    
+    if not assumed_role:
+        assumed_role = the_role
+
     return assumed_role.get_resource(
         's3',
         region_name=_KGEA_APP_CONFIG['aws']['s3']['region']
@@ -325,30 +333,42 @@ def get_object_from_bucket(bucket_name, object_key):
     return bucket.Object(object_key)
 
 
-def match_objects_from_bucket(bucket_name, object_key):
+def match_objects_from_bucket(bucket_name, object_key, assumed_role=None):
     """
 
     :param bucket_name:
     :param object_key:
     :return:
     """
-    bucket = s3_resource().Bucket(bucket_name)
+    bucket = s3_resource(assumed_role=assumed_role).Bucket(bucket_name)
     key = object_key
     objs = list(bucket.objects.filter(Prefix=key))
     return [w.key == key for w in objs]
 
 
-def object_key_exists(object_key, bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']) -> bool:
+def object_key_exists(
+        object_key,
+        bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        assumed_role=None
+) -> bool:
     """
     Checks for the existence of the specified object key
 
     :param bucket_name: The bucket
     :param object_key: Target object key in the bucket
+    :param assumed_role: (optional) Assumed IAM Role with authority to make this inquiry
+
     :return: True if the object is in the bucket, False if it is not in the bucket (False also if empty object key)
     """
     if not object_key:
         return False
-    return any(match_objects_from_bucket(bucket_name, object_key))
+    return any(
+        match_objects_from_bucket(
+            bucket_name=bucket_name,
+            object_key=object_key,
+            assumed_role=assumed_role
+        )
+    )
 
 
 def location_available(bucket_name, object_key) -> bool:
