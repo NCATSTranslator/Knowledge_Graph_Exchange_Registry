@@ -405,7 +405,7 @@ if __name__ == '__main__':
                 object_key_base = argv[3] if len(argv) >= 4 else s3_directory
                 
                 print(
-                    f"Uploading the following local files to S3 bucket " +
+                    f"\tUploading the following local files to S3 bucket " +
                     f"{s3_bucket_name} location '{object_key_base}': "
                 )
                 for filepath in source_dir.iterdir():
@@ -413,7 +413,7 @@ if __name__ == '__main__':
                         print(f"\t{str(filepath)}")
                 prompt = input("Proceed (Type 'yes')? ")
                 if prompt.upper() == "YES":
-                    print(f"For target bucket '{s3_bucket_name}'")
+                    print(f"To target S3 bucket '{s3_bucket_name}':")
                     for filepath in source_dir.iterdir():
                         if not isdir(filepath):
                             object_key = f"{object_key_base}/{filepath.name}"
@@ -597,9 +597,10 @@ if __name__ == '__main__':
                 if prompt.upper() == "YES":
                     if not (target_directory == "." or isdir(target_directory)):
                         makedirs(target_directory)
+                    print(f"From source S3 bucket {s3_bucket_name}:")
                     for object_key in object_keys:
                         filepath = f"{target_directory}/{object_key.split('/')[-1]}"
-                        print(f"Downloading '{object_key}' to '{filepath}'...", end='')
+                        print(f"\tDownloading '{object_key}' to '{filepath}'...", end='')
                         download_file(
                             bucket_name=s3_bucket_name,
                             source_object_key=object_key,
