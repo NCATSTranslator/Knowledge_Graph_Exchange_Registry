@@ -26,7 +26,7 @@ class Help:
         :param args:
         """
         if err_msg:
-            print(f"{command} error: err_msg")
+            print(f"{command} error: {err_msg}")
     
         if not command:
             cmd = " <operation>"
