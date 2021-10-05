@@ -6,7 +6,7 @@ credentials to execute an AWS Secure Token Service-mediated access
 to a Simple Storage Service (S3) bucket given as an argument.
 """
 from sys import platform, argv
-from os import makedirs
+from os import makedirs, getcwd
 from os.path import isdir
 
 if platform != "win32":
@@ -399,7 +399,7 @@ if __name__ == '__main__':
                 print(f"upload-batch arguments: {argv}")
                 
                 # The minimum file spec is a directory containing the files of interest
-                source_dir = Path(argv[2])
+                source_dir = Path(getcwd(), argv[2])
                 
                 # ... for uploading to a specified object key root location in the
                 # default target S3 bucket: e.g. "kge-data/kg_id/fileset_version"
@@ -419,7 +419,7 @@ if __name__ == '__main__':
                             print(f"Uploading {filepath} to {str(object_key)}...", end='')
                             upload_file(
                                bucket_name=s3_bucket_name,
-                               source_file=filepath,
+                               source_file=str(filepath),  # need to coerce to string, 'cuz it's a Path object
                                target_object_key=object_key
                             )
                             print("Done!")
