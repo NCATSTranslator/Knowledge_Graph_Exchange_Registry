@@ -45,9 +45,7 @@ BATCH_DELETE = "batch-delete"
 helpdoc = Help(
     default_usage=f"\tpython -m kgea.aws.'{Path(argv[0]).stem}' <operation> [<object_key>+|<prefix_filter>]\n\n" +
                   "where <operation> is one of upload, batch-upload, list, copy, "
-                  "download, batch-download, delete, batch-delete and test.\n\n" +
-                  "Note:\tone or more <object_key> strings are only required for 'delete' operation.\n" +
-                  "\tA <prefix_filter> string is only required for 'delete-batch' operation.\n"
+                  "download, batch-download, delete, batch-delete and test.\n"
 )
 
 
@@ -396,7 +394,7 @@ if __name__ == '__main__':
             
             if len(argv) >= 3:
                 
-                print(f"upload-batch arguments: {argv}")
+                print(f"{BATCH_UPLOAD} arguments: {argv}")
                 
                 # The minimum file spec is a directory containing the files of interest
                 source_dir = Path(getcwd(), argv[2])
@@ -406,7 +404,10 @@ if __name__ == '__main__':
                 # Default: the default S3 directory defined in the config.yaml...
                 object_key_base = argv[3] if len(argv) >= 4 else s3_directory
                 
-                print(f"Uploading the following local files to S3 location '{object_key_base}': ")
+                print(
+                    f"Uploading the following local files to S3 bucket " +
+                    f"{s3_bucket_name} location '{object_key_base}': "
+                )
                 for filepath in source_dir.iterdir():
                     if not isdir(filepath):
                         print(f"\t{str(filepath)}")
