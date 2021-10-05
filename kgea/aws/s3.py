@@ -407,19 +407,21 @@ if __name__ == '__main__':
                 
                 print(f"Uploading the following local files to S3 location '{object_key_base}': ")
                 for filepath in source_dir.iterdir():
-                    print(f"\t{str(filepath)}")
+                    if not isdir(filepath):
+                        print(f"\t{str(filepath)}")
                 prompt = input("Proceed (Type 'yes')? ")
                 if prompt.upper() == "YES":
                     print(f"For target bucket '{s3_bucket_name}'")
                     for filepath in source_dir.iterdir():
-                        object_key = f"{object_key_base}/{filepath.name}"
-                        print(f"Uploading {filepath} to {str(object_key)}...", end='')
-                        upload_file(
-                           bucket_name=s3_bucket_name,
-                           source_file=filepath,
-                           target_object_key=object_key
-                        )
-                        print("Done!")
+                        if not isdir(filepath):
+                            object_key = f"{object_key_base}/{filepath.name}"
+                            print(f"Uploading {filepath} to {str(object_key)}...", end='')
+                            upload_file(
+                               bucket_name=s3_bucket_name,
+                               source_file=filepath,
+                               target_object_key=object_key
+                            )
+                            print("Done!")
                 else:
                     print("Cancelling uploading of files...")
             else:
