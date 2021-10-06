@@ -11,7 +11,7 @@ from sys import stderr, exc_info
 from typing import Union, List, Tuple, Dict, Optional
 from subprocess import Popen, PIPE, STDOUT
 from os import getenv
-from os.path import splitext, basename
+from os.path import sep, splitext, basename, dirname, abspath
 import io
 
 import random
@@ -729,8 +729,8 @@ def compress_fileset(
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
 
-    # archive_script = f"{dirname(abspath(__file__))}{os_separator}scripts{os_separator}{_KGEA_ARCHIVER_SCRIPT}"
-    archive_script = str(PurePosixPath('scripts', _KGEA_ARCHIVER_SCRIPT))
+    # archive_script = str(PurePosixPath('scripts', _KGEA_ARCHIVER_SCRIPT))
+    archive_script = f"{dirname(abspath(__file__))}{sep}scripts{sep}{_KGEA_ARCHIVER_SCRIPT}"
 
     # normalize to unix path from windows path
     # if sys.platform is 'win32':
