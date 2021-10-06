@@ -1977,22 +1977,24 @@ class KgeArchiver:
 
             logger.info(f"KgeArchiver worker {task_id} starting archive of {str(file_set)}")
             
-            # perhaps await a few seconds before starting the work,
+            # perhaps await a second before starting the work,
             # to unblock co-routine responses in the main web application
-            await sleep(5)
+            await sleep(1)
 
             # Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
-                logger.info(f"KgeArchiver task {task_id} unpacking archives: {file_set.get_archive_files_keys()}...")
+                logger.debug(f"KgeArchiver task {task_id} unpacking archives: {file_set.get_archive_files_keys()}...")
                 for file_key in file_set.get_archive_files_keys():
-                    print(f'Unpacking archive {file_key}')
-                    logger.info(f"\t{str(file_key)}")
+                    
+                    logger.debug(f"Unpacking archive {file_key}")
+                    
                     # returns entries that follow the KgeFileSetEntry Schema
                     # decompresses the archive and sends files to s3
                     archive_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/"
+                    
                     archive_file_entries = decompress_to_kgx(file_key, archive_location)
 
-                    logger.info(f"...finished! To fileset '{file_set.id()}', adding files:")
+                    logger.debug(f"...finished! To fileset '{file_set.id()}', adding files:")
 
                     # republish the file_set.yaml file to modify the archives in place
                     # this is done as a side-effect onto S3 before the files are aggregated to the archive,
@@ -2002,7 +2004,7 @@ class KgeArchiver:
                     for entry in archive_file_entries:
                         # spread the entry across the add_data_file function,
                         # which will take all its values as arguments
-                        logger.info(f"\t{entry['file_name']}")
+                        logger.debug(f"\t{entry['file_name']}")
                         file_set.add_data_file(**entry)
 
                     # rewrite the new file set file
@@ -2036,7 +2038,7 @@ class KgeArchiver:
             #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
             #    from compressing the previous compression (so the source of files is distinct
             #    from the target to which it is written)
-            logger.info("Compressing total KGE file set...")
+            logger.debug("Compressing total KGE file set...")
             try:
                 s3_archive_key: str = compress_fileset(
                     kg_id=file_set.kg_id,
@@ -2047,14 +2049,14 @@ class KgeArchiver:
                 print_error_trace("File set compression failure! "+str(e))
                 raise e
 
-            logger.info("...File compression completed!")
+            logger.debug("...File compression completed!")
 
             # 5. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
             #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
             #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
             #  the catalog loading, for communication back to the user as part of the catalog metadata
             #  (once the archiving and hash generation is completed...)
-            logger.info("Computing SHA1 hash sum...")
+            logger.debug("Computing SHA1 hash sum...")
             try:
                 # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format
                 # of whatever is being opened. If we let this happen, then the hash function would run over
@@ -2078,7 +2080,7 @@ class KgeArchiver:
             
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
             # TODO: need to managed multiple Biolink Model specific KGX validators
-            logger.info(
+            logger.debug(
                 f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive..."
             )
             # validator: KgxValidator = KnowledgeGraphCatalog.catalog().get_validator()
@@ -2088,7 +2090,7 @@ class KgeArchiver:
             # KGE File Set is validated by this point
             file_set.status = KgeFileSetStatusCode.VALIDATED
             
-            logger.info(f"KgeArchiver worker {task_id} finished archiving of {file_set.id()}")
+            logger.debug(f"KgeArchiver worker {task_id} finished archiving of {file_set.id()}")
 
             self._archiver_queue.task_done()
 
@@ -2147,13 +2149,13 @@ class KgeArchiver:
         """
         # Post the file set to the KgeArchiver task Queue for processing
         try:
-            logger.info("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
+            logger.debug("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
             self._archiver_queue.put_nowait(
                 file_set
             )
         except QueueFull:
             
-            logger.info("KgeArchiver.process(): work queue is full? Will sleep awhile...")
+            logger.debug("KgeArchiver.process(): work queue is full? Will sleep awhile...")
             await sleep(wait)
             try:
                 assert(waits < maxwait)
@@ -2304,7 +2306,7 @@ class KgxValidator:
                 object_key = entry["object_key"]
                 s3_file_url = entry["s3_file_url"]
 
-                logger.info(
+                logger.debug(
                     f"KgxValidator() processing file '{file_name}' '{object_key}' " +
                     f"of type '{file_type}', input format '{input_format}' " +
                     f"and with compression '{input_compression}', "
@@ -2341,7 +2343,7 @@ class KgxValidator:
                 file_set.report_error(f"WARNING: Unknown KgeFileType{file_type} ... Ignoring?")
 
             compliance: str = ' not ' if file_set.errors else ' '
-            logger.info(
+            logger.debug(
                 f"has finished processing. {str(file_set)} is" +
                 compliance + "KGX compliant"
             )
@@ -2365,7 +2367,7 @@ class KgxValidator:
         :return: (possibly empty) List of errors returned
         """
         logger.setLevel(logging.DEBUG)
-        logger.info(
+        logger.debug(
             "Entering KgxValidator.validate_data_file() with arguments:" +
             "\n\tfile set ID:" + str(file_set_id) +
             "\n\tinput files:" + str(input_files) +
@@ -2377,11 +2379,11 @@ class KgxValidator:
             # The putative KGX 'source' input files are currently sitting
             # at the end of S3 signed URLs for streaming into the validation.
 
-            logger.info("KgxValidator.validate_data_file(): creating the Transformer...")
+            logger.debug("KgxValidator.validate_data_file(): creating the Transformer...")
 
             transformer = Transformer(stream=True)
 
-            logger.info("KgxValidator.validate_data_file(): running the Transformer.transform...")
+            logger.debug("KgxValidator.validate_data_file(): running the Transformer.transform...")
 
             transformer.transform(
                 input_args={
@@ -2398,16 +2400,16 @@ class KgxValidator:
                 inspector=self.kgx_data_validator
             )
 
-            logger.info("KgxValidator.validate_data_file(): transform validate inspection complete: getting errors..")
+            logger.debug("KgxValidator.validate_data_file(): transform validation completed")
 
             errors: List[str] = self.kgx_data_validator.get_error_messages()
 
             if errors:
                 n = len(errors)
                 n = 9 if n >= 10 else n
-                logger.info("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
+                logger.error("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
 
-            logger.info("KgxValidator.validate_data_file(): Exiting validate_file_set()")
+            logger.debug("KgxValidator.validate_data_file(): Exiting validate_file_set()")
 
             return errors
 
@@ -2428,7 +2430,7 @@ def test_stub_archiver() -> bool:
         :return:
         """
 
-        logger.info("\ntest_stub_archiver() startup of tasks\n")
+        logger.debug("\ntest_stub_archiver() startup of tasks\n")
 
         fs = prepare_test_file_set("1.0")
         await archiver.process(fs)
@@ -2444,7 +2446,7 @@ def test_stub_archiver() -> bool:
         # # Don't want to finish too quickly...
         # await sleep(30)
         #
-        # logger.info("\ntest_stub_archiver() shutdown now!\n")
+        # logger.debug("\ntest_stub_archiver() shutdown now!\n")
         # await archiver.shutdown_workers()
         
     run(archive_test())
