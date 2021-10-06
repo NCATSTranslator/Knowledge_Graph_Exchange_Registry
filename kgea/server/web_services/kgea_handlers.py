@@ -73,7 +73,7 @@ from .kgea_file_ops import (
 )
 
 from kgea.server.web_services.catalog import (
-    KgeArchiveCatalog,
+    KnowledgeGraphCatalog,
     KgeKnowledgeGraph,
     KgeFileSet, KgeFileType
 )
@@ -118,7 +118,8 @@ async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
     # Paranoia: can't see the catalog without being logged in a user session
     session = await get_session(request)
     if not session.empty:
-        catalog = KgeArchiveCatalog.catalog().get_kg_entries(
+        
+        catalog = KnowledgeGraphCatalog.catalog().get_kg_entries(
             ignore_without_filetype=KgeFileType.KGE_ARCHIVE
         )
 
@@ -219,7 +220,7 @@ async def register_kge_knowledge_graph(request: web.Request):
 
                 # Here we start to start to track a specific
                 # knowledge graph submission within KGE Archive
-                knowledge_graph = KgeArchiveCatalog.catalog().add_knowledge_graph(
+                knowledge_graph = KnowledgeGraphCatalog.catalog().add_knowledge_graph(
                     kg_id=kg_id,
                     kg_name=kg_name,
                     kg_description=kg_description,
@@ -342,7 +343,7 @@ async def register_kge_file_set(request: web.Request):
         )
 
         knowledge_graph: KgeKnowledgeGraph = \
-            KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+            KnowledgeGraphCatalog.catalog().get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             await report_not_found(
@@ -382,7 +383,7 @@ async def register_kge_file_set(request: web.Request):
                         submitter_email=submitter_email
                     )
 
-                logger.debug(f"knowledge_graph.add_file_set({knowledge_graph}. {file_set})")
+                logger.debug(f"knowledge_graph.add_file_set({knowledge_graph.get_name()}.{file_set.id()})")
                 
                 # Add new versioned KGE File Set to the Catalog Knowledge Graph entry
                 knowledge_graph.add_file_set(fileset_version, file_set)
@@ -427,7 +428,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
                 "publish_kge_file_set(): knowledge graph id or file set version are null?"
             )
 
-        knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+        knowledge_graph: KgeKnowledgeGraph = KnowledgeGraphCatalog.catalog().get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             await report_not_found(
@@ -823,7 +824,7 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
             # identified by the 'kg_id', initiating or continuing a
             # the assembly process for the 'fileset_version' KGE file set.
             # May raise an Exception if something goes wrong.
-            KgeArchiveCatalog.catalog().add_to_kge_file_set(
+            KnowledgeGraphCatalog.catalog().add_to_kge_file_set(
                 kg_id=tracker["kg_id"],
                 fileset_version=tracker["fileset_version"],
                 file_type=tracker["file_type"],
@@ -1065,7 +1066,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
 
         logger.debug("...of file set version '" + fileset_version + "' for knowledge graph '" + kg_id + "'")
 
-        knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+        knowledge_graph: KgeKnowledgeGraph = KnowledgeGraphCatalog.catalog().get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             await report_not_found(
@@ -1131,7 +1132,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_ver
     session = await get_session(request)
     if not session.empty:
         
-        knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+        knowledge_graph: KgeKnowledgeGraph = KnowledgeGraphCatalog.catalog().get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             await report_not_found(

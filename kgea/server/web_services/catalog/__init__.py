@@ -760,23 +760,8 @@ class KgeKnowledgeGraph:
                 continue
             self.parameter[key] = self.sanitize(key, value)
 
-        # File Set Versions
+        # File Set Versions - none added upon KG creation
         self._file_set_versions: Dict[str, KgeFileSet] = dict()
-
-        #
-        # Knowledge Graph registration no longer
-        # automatically adds a new KGE File Set version
-        #
-        # Register an explicitly specified submitter-specified KGE File Set version
-        # Sanity check: we should probably not overwrite a KgeFileSet version if it already exists?
-        # if fileset_version and fileset_version not in self._file_set_versions:
-        #     self._file_set_versions[fileset_version] = KgeFileSet(
-        #         kg_id=self.kg_id,
-        #         fileset_version=fileset_version,
-        #         submitter_name=kwargs['submitter_name'],
-        #         submitter_email=kwargs['submitter_email']
-        #     )
-
         self._provider_metadata_object_key: Optional[str] = None
 
     _name_filter_table = None
@@ -1100,10 +1085,10 @@ class KgeKnowledgeGraph:
         return metadata
 
 
-class KgeArchiveCatalog:
+class KnowledgeGraphCatalog:
     """
-    Knowledge Graph Exchange (KGE) Temporary Registry for
-    tracking compilation and validation of complete KGE File Sets
+    Knowledge Graph Exchange (KGE) In Memory Catalog to manage compilation,
+     validation and user access of releases of KGX File Sets of Knowledge Graphs
     """
     _the_catalog = None
 
@@ -1137,12 +1122,12 @@ class KgeArchiveCatalog:
     @classmethod
     def catalog(cls):
         """
-        :return: singleton of KgeArchiveCatalog
+        :return: singleton of KnowledgeGraphCatalog
         """
         if not cls._the_catalog:
-            KgeArchiveCatalog._the_catalog = KgeArchiveCatalog()
+            KnowledgeGraphCatalog._the_catalog = KnowledgeGraphCatalog()
 
-        return KgeArchiveCatalog._the_catalog
+        return KnowledgeGraphCatalog._the_catalog
 
     def load_archive_entry(
             self,
@@ -1167,7 +1152,7 @@ class KgeArchiveCatalog:
         """
          Parse an KGE Archive entry for metadata
          to load into a KgeFileSet
-         for indexing in the KgeArchiveCatalog
+         for indexing in the KnowledgeGraphCatalog
         """
         if not (
             'metadata' in entry and
@@ -1401,7 +1386,7 @@ def test_check_kgx_compliance():
 @prepare_test
 def test_get_catalog_entries():
     print("\ntest_get_catalog_entries() test output:\n", file=stderr)
-    catalog = KgeArchiveCatalog.catalog().get_kg_entries()
+    catalog = KnowledgeGraphCatalog.catalog().get_kg_entries()
     print(json.dumps(catalog, indent=4, sort_keys=True), file=stderr)
     return True
 
@@ -1459,7 +1444,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     kg_id = "disney_small_world_graph"
     date_stamp = "1964-04-22"
 
-    fs = KgeFileSet(
+    file_set = KgeFileSet(
         kg_id=kg_id,
         biolink_model_release="2.0.2",
         fileset_version=fileset_version,
@@ -1480,7 +1465,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         object_key=object_key,
         source=test_file1
     )
-    fs.add_data_file(
+    file_set.add_data_file(
         object_key=key,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
@@ -1500,7 +1485,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         object_key=object_key,
         source=test_file2
     )
-    fs.add_data_file(
+    file_set.add_data_file(
         object_key=key,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
@@ -1539,7 +1524,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
                 object_key=object_key,
                 source=test_tarfile1
             )
-            fs.add_data_file(
+            file_set.add_data_file(
                 object_key=key,
                 file_type=KgeFileType.KGX_DATA_FILE,
                 file_name=test_name['archive'],
@@ -1547,7 +1532,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
                 s3_file_url=''
             )
 
-    return fs
+    return file_set
 
 
 @prepare_test
@@ -2094,16 +2079,16 @@ class KgeArchiver:
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
             # TODO: need to managed multiple Biolink Model specific KGX validators
             logger.info(
-                f"(Future) KgeArchiver worker {task_id} validation of of {str(file_set)} tar.gz archive..."
+                f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive..."
             )
-            # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
+            # validator: KgxValidator = KnowledgeGraphCatalog.catalog().get_validator()
             # KgxValidator.validate(self)
             
             # Assume that the TAR.GZ archive of the
             # KGE File Set is validated by this point
             file_set.status = KgeFileSetStatusCode.VALIDATED
             
-            logger.info(f"KgeArchiver worker {task_id} finished archiving of {str(file_set)}")
+            logger.info(f"KgeArchiver worker {task_id} finished archiving of {file_set.id()}")
 
             self._archiver_queue.task_done()
 

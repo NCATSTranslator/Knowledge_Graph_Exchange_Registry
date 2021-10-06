@@ -1092,11 +1092,11 @@ def get_archive_contents(bucket_name: str) -> \
         if not file_part:
             continue
 
-        # ignore things that don't look like the KGE File Set archive folder
+        # ignore things that don't look like the KGE File Set folder
         if file_part[0] != default_s3_root_key:
             continue
 
-        # ignore empty KGE File Set archive folder
+        # ignore empty KGE File Set folder
         if len(file_part) == 1 or not file_part[1]:
             continue
 
