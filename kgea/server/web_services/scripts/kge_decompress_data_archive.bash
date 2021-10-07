@@ -229,8 +229,6 @@ do
   echo "file_entry=${file_name},${file_type},${file_size},${file_object_key}"
 done
 
-exit 100
-
 #
 # STEP 7 - clean out the work directory
 echo "Deleting working directory ${workdir}"
