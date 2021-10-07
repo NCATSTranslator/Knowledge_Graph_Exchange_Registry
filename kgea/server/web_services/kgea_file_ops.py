@@ -62,7 +62,7 @@ default_s3_root_key = s3_config['archive-directory']
 # scripts, but changed once already...
 _KGEA_ARCHIVER_SCRIPT = "kge_archiver.bash"
 _KGEA_DIP_SCRIPT = "kge_decompression_in_place.bash"
-_DIP_OUTPUT_MARK = "entry="  # the Decompress-In-Place bash script comment output data signal prefix
+_DIP_OUTPUT_MARK = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
 _KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
 
 
@@ -817,7 +817,7 @@ def decompress_in_place(gzipped_key, target_location=None, traversal_func=None):
             """
             if line.startswith(_DIP_OUTPUT_MARK):
                 line = line.replace(_DIP_OUTPUT_MARK, '')
-                file_type, filename, size = line.split(',')
+                file_name, file_type, size = line.split(',')
                 #
                 # TODO: code the needful in the _KGEA_DIP_SCRIPT
                 #       bash script, then parse it out...
@@ -825,17 +825,21 @@ def decompress_in_place(gzipped_key, target_location=None, traversal_func=None):
                 file_entries.append({
                     # TODO: refine to more specific types?
                     "file_type": "KGX data file",
-                    "file_name": filename,
+                    "file_name": file_name,
                     "file_size": size,
-                    "object_key": target_location + filename,
+                    "object_key": target_location + file_name,
                     "s3_file_url": ''
                 })
         try:
             return_code = run_script(
                 script=dip_script,
                 args=(
-                    archive_location,
-                    target_location
+                    bucket,
+                    root,
+                    kg_id,
+                    version,
+                    subdirectory,
+                    archive_filename
                 ),
                 stdout_parser=output_parser
             )
@@ -884,21 +888,31 @@ def decompress_in_place(gzipped_key, target_location=None, traversal_func=None):
     return file_entries
 
 
+# KGE filename regex patterns pre-compiled
+node_file_pattern = re.compile('node[s]?.tsv')  # a node file by its own admission
+node_folder_pattern = re.compile('nodes/')  # a nodes file given where it's placed
+edge_file_pattern = re.compile('edge[s]?.tsv')  # an edge file by its own admission
+edge_folder_pattern = re.compile('edges/')  # an edges file given where it's placed
+metadata_file_pattern = re.compile(r'content_metadata\.json')
+# metadata_folder_pattern = re.compile('metadata/')
+
+
 def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
     # TODO: implement strict
     """
-    Decompress a gzipped file from within a given S3 bucket. If it's a nodes file or edges file, place them into their
-    corresponding folder within the knowledge graph working directory.
+    Decompress a gzip'd file which was uploaded to a given S3 bucket.
+    If it contains a nodes or edges file, place them into their
+    corresponding folders within the knowledge graph working directory.
 
     For instance:
     - if the tarfile has a file `./nodes/kgx-1.tsv`, it goes into the nodes/ folder. Similarly with edges.
     - if the tarfile has a file `node.tsv`, it goes into the nodes/ folder. Similarly with edges.
     - if the tarfile has a file `metadata/content.json`, it fails to upload the file as metadata.
-    - if the tarfile has a file `metadata/content_metadata.json`, it goes into the metadata/ folder.
+    - if the tarfile has a file `metadata/content_metadata.json`, it goes into the metadata/ folder(?)
 
     For anything else, if `strict` is False, then these other files are  uploaded to the key given by `location`.
 
-    If `strict` is true, only node, edge or metadata files are added to this `location` modulo the conventions above.
+    If `strict` is true, only node, edge or metadata files are added to this `location`, modulo the conventions above.
 
     This decompression function is used as a way of standardizing the uploaded archives into KGX graphs. When used
     strictly, it should help ensure that only KGX-validatable data occupies the final archive. When used un-strictly,
@@ -925,12 +939,9 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
     # or has the word "node" in it towards the end of the filename
     def is_node_y(entry_name):
         """
-
         :param entry_name:
         :return:
         """
-        node_file_pattern = re.compile('node[s]?.tsv')  # a node file by its own admission
-        node_folder_pattern = re.compile('nodes/')  # a nodes file given where it's placed
         return node_file_pattern.match(entry_name) is not None or node_folder_pattern.match(
             entry_name) is not None
 
@@ -941,19 +952,14 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
         :param entry_name:
         :return:
         """
-        edge_file_pattern = re.compile('edge[s]?.tsv')  # an edge file by its own admission
-        edge_folder_pattern = re.compile('edges/')  # an edges file given where it's placed
         return edge_file_pattern.match(entry_name) is not None or edge_folder_pattern.match(
             entry_name) is not None
 
     def is_metadata(entry_name):
         """
-
         :param entry_name:
         :return:
         """
-        metadata_file_pattern = re.compile(r'content_metadata\.json')  # a metadata file by its own admission
-        # metadata_folder_pattern = re.compile('metadata/')
         return metadata_file_pattern.match(entry_name) is not None  # we're strict about the filename for the metadata
 
     def traversal_func_kgx(tf, location):

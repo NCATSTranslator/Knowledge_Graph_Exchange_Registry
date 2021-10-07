@@ -18,6 +18,18 @@ gzip=gzip
 #
 aws_flags=--quiet
 
+# AWS command (can be tweaked if problematic, e.g. under Windows?)
+if [[ "$OSTYPE" == "cygwin" ]]; then
+        aws=$(which aws.cmd)
+else
+        aws=$(which aws)
+fi
+
+if [[ ! -f ${aws} ]]; then
+  echo "Please install Amazon Web Service ('aws') CLI tools before running this script."
+  exit 2
+fi
+
 usage () {
     echo
     echo "Usage:"
@@ -54,18 +66,6 @@ else
     # TODO: [perhaps need to validate proper SemVer format of file set version string here?
     # File Set Version of the Knowledge Graph
     version=${4}
-fi
-
-# AWS command (can be tweaked if problematic, e.g. under Windows?)
-if [[ "$OSTYPE" == "cygwin" ]]; then
-        aws=$(which aws.cmd)
-else
-        aws=$(which aws)
-fi
-
-if [[ ! -f ${aws} ]]; then
-  echo "Please install Amazon Web Service ('aws') CLI tools before running this script."
-  exit 2
 fi
 
 echo

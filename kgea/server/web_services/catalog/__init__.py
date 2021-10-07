@@ -2000,6 +2000,7 @@ class KgeArchiver:
                     # this is done as a side-effect onto S3 before the files are aggregated to the archive,
                     # or are copied to the archive.
                     file_set.remove_data_file(file_key)  # remove the archive from the file set
+                    
                     # add the archive's files to the file set
                     for entry in archive_file_entries:
                         # spread the entry across the add_data_file function,
