@@ -126,8 +126,6 @@ tar_file=$(ls *.tar)  # hopefully, just one file?
 $tar xvf "${tar_file}"
 rm "${tar_file}"
 
-exit 100
-
 file_typed_object_key () {
   if [[ "${1}" =~ node[s]?.tsv ]];
   then
@@ -156,17 +154,22 @@ file_typed_object_key () {
 # STEP 4 - for all archive files:
 for file_path in *;
 do
-  echo "file_path: ${file_path}"
+  echo "File Path: ${file_path}"
 
   # File name may at the end of the file path
   file_name=$(basename "${file_path}")
+  echo "Base File Name: ${file_name}"
 
   #
   # STEP 4a - file_typed_object_key() heuristically assigns
   #           the object key for various file types
   #
   file_object_key=$(file_typed_object_key "${file_path}")
-  echo "file_object_key: ${file_object_key}"
+  echo "File Object Key: ${file_object_key}"
+
+  # shellcheck disable=SC2012
+  file_size=$(ls -lh "${file_path}" | awk '{print  $5}')
+  echo "File Size: ${file_size}"
 
   # DON'T NEED RIGHT NOW.. BUT JUST KEEPING AROUND AS A CLUE ON HOW TO SPLIT A STRING IN BASH...
   #  IFS=',' read -ra file_data <<< "${file_object_key}"
@@ -180,10 +183,10 @@ do
   #
   # STEP 4c - return the metadata about the uploaded (meta-)data files,
   #           back to the caller of the script, via STDOUT.
-  # shellcheck disable=SC2012
-  file_size=$(ls -lh "${file_path}" | awk '{print  $5}')
   echo "file_entry=${file_name},${file_path},${file_size},${file_object_key}"
 done
+
+exit 100
 
 #
 # STEP 7 - clean out the work directory
