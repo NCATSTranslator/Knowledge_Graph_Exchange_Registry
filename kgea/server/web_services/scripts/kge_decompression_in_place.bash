@@ -167,7 +167,8 @@ do
   #           the object key for various file types
   #
   file_object_key=$(file_typed_object_key "${file_path}")
-  echo "File Object Key: ${file_object_key}"
+  file_object_uri="${s3_uri}/${file_object_key}"
+  echo "File Object URI: ${file_object_uri}"
 
   # shellcheck disable=SC2012
   file_size=$(ls -l "${file_path}" | awk '{print  $5}')
@@ -181,7 +182,7 @@ do
   #
   echo
   echo "Uploading ${file_path} to ${file_object_key}"
-  echo "${aws}" s3 cp "${aws_flags}" "${file_path}" "${file_object_key}"
+  echo "${aws}" s3 cp "${aws_flags}" "${file_path}" "${file_object_uri}"
   
   #
   # STEP 4c - return the metadata about the uploaded (meta-)data files,
