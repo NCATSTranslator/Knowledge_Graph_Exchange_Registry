@@ -117,11 +117,11 @@ cd "${workdir}" || exit 3
 # STEP 1 - download the tar.gz archive to the local working directory
 $aws s3 cp "${aws_flags}" "${archive_object_key}" .
 
-exit 100
-
 # STEP 2 - gunzip the archive
 gz_file=$(ls *.gz)  # hopefully, just one file?
 echo "${gunzip}" "${gz_file}"
+
+exit 100
 
 # STEP 3 - extract the tarfile for identification and later uploading
 tar_file=$(ls *.tar)  # hopefully, just one file?
