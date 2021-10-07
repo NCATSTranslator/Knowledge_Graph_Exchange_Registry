@@ -123,7 +123,8 @@ $gunzip "${gz_file}"
 
 # STEP 3 - extract the tarfile for identification and later uploading
 tar_file=$(ls *.tar)  # hopefully, just one file?
-echo "${tar}" xvf "${tar_file}"
+$tar xvf "${tar_file}"
+rm "${tar_file}"
 
 exit 100
 
