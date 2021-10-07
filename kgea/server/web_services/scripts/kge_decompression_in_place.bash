@@ -189,7 +189,7 @@ do
   #
   echo
   echo "Uploading tar archive file ${file_path} to ${file_object_uri}"
-  echo "${aws}" s3 cp "${aws_flags}" "${file_path}" "${file_object_uri}"
+  $aws s3 cp "${aws_flags}" "${file_path}" "${file_object_uri}"
   
   #
   # STEP 4c - return the metadata about the uploaded (meta-)data files,
@@ -202,7 +202,7 @@ exit 100
 #
 # STEP 7 - clean out the work directory
 echo "Deleting working directory ${workdir}"
-cd ..  # remember where you were just now...
+cd ..  
 echo rm -Rf "${workdir}"
 
 echo
