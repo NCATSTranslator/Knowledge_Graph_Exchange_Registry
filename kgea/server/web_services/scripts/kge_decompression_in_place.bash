@@ -146,7 +146,8 @@ file_typed_object_key () {
   then
     object_key="metadata/${1}" ;
   else
-    object_key="${1}";
+    # Otherwise, ignore the file
+    object_key=;
   fi
   echo "${object_key}"
 }
@@ -167,6 +168,11 @@ do
   #           the object key for various file types
   #
   file_object_key=$(file_typed_object_key "${file_path}")
+  if [[ -z "${file_object_key}" ]]; then
+    echo "File '${file_path}' is not a KGX graph (meta-) data file... ignored!"
+    continue
+  fi
+  
   file_object_uri="${s3_uri}/${file_object_key}"
   echo "File Object URI: ${file_object_uri}"
 
@@ -181,13 +187,13 @@ do
   # STEP 4b - Upload the resulting files back up to the target S3 location
   #
   echo
-  echo "Uploading ${file_path} to ${file_object_key}"
+  echo "Uploading tar archive file ${file_path} to ${file_object_uri}"
   echo "${aws}" s3 cp "${aws_flags}" "${file_path}" "${file_object_uri}"
   
   #
   # STEP 4c - return the metadata about the uploaded (meta-)data files,
   #           back to the caller of the script, via STDOUT.
-  echo "file_entry=${file_name},${file_path},${file_size},${file_object_key}"
+  echo "file_entry=${file_name},${file_path},${file_size},${file_object_uri}"
 done
 
 exit 100
