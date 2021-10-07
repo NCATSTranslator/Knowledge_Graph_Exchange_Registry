@@ -115,7 +115,7 @@ mkdir "${workdir}"
 cd "${workdir}" || exit 3
 
 # STEP 1 - download the tar.gz archive to the local working directory
-echo "${aws}" s3 cp "${aws_flags}" "${archive_object_key}" .
+$aws s3 cp "${aws_flags}" "${archive_object_key}" .
 
 exit 100
 
