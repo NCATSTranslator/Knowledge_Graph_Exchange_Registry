@@ -65,8 +65,8 @@ default_s3_root_key = s3_config['archive-directory']
 _KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
 logger.debug(f"Archive Script: ({_KGEA_ARCHIVER_SCRIPT})")
 
-_KGEA_DDA_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_decompress_data_archive.bash"
-logger.debug(f"Decompress-archive-in-place script Path: ({_KGEA_DDA_SCRIPT})")
+_KGEA_EDA_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_extract_data_archive.bash"
+logger.debug(f"Decompress-archive-in-place script Path: ({_KGEA_EDA_SCRIPT})")
 
 _DIP_OUTPUT_MARK = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
 
@@ -762,7 +762,7 @@ def compress_fileset(
     return s3_archive_key
 
 
-def decompress_data_archive(
+def extract_data_archive(
         kg_id: str,
         file_set_version: str,
         archive_filename: str,
@@ -784,12 +784,12 @@ def decompress_data_archive(
     :return: list of file entries
     """
     # one step decompression - bash level script operations on the local disk
-    logger.debug(f"Initiating execution of decompress_data_archive({archive_filename})")
+    logger.debug(f"Initiating execution of extract_data_archive({archive_filename})")
     
     if 'tar.gz' not in archive_filename:
         err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
         logger.error(err_msg)
-        raise RuntimeError(f"decompress_data_archive(): {err_msg}")
+        raise RuntimeError(f"extract_data_archive(): {err_msg}")
 
     s3_uri = f"s3://${bucket}/${root_directory}/${kg_id}/${file_set_version}"
     
@@ -812,7 +812,7 @@ def decompress_data_archive(
             })
     try:
         return_code = run_script(
-            script=_KGEA_DDA_SCRIPT,
+            script=_KGEA_EDA_SCRIPT,
             args=(
                 bucket,
                 root_directory,
@@ -822,7 +822,7 @@ def decompress_data_archive(
             ),
             stdout_parser=output_parser
         )
-        logger.debug(f"Completed decompress_data_archive({archive_filename}), with return code {str(return_code)}")
+        logger.debug(f"Completed extract_data_archive({archive_filename}), with return code {str(return_code)}")
         
     except Exception as e:
         logger.error(f"decompress_in_place({archive_filename}): exception {str(e)}")
@@ -834,12 +834,12 @@ def decompress_data_archive(
 
 def decompress_in_place(tar_gz_file_key, target_location=None, traversal_func=None):
     """
-    ### DEPRECIATED - see decompress_data_archive() above.
+    ### DEPRECIATED - see extract_data_archive() above.
     
     Decompress a gzipped file from within a given S3 bucket.
 
     Version 1.0 - this version used Smart_Open... not scalable
-    Version 2.0 - decompress_data_archive above uses an external bash shell script to perform this operation...
+    Version 2.0 - extract_data_archive above uses an external bash shell script to perform this operation...
 
     Can take a custom location to stop the unpacking from being in
     the location of the gzipped file, but instead done somewhere else.
@@ -912,7 +912,7 @@ metadata_folder_pattern = re.compile('metadata/')
 def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
     # TODO: implement strict
     """
-        ### DEPRECIATED - see decompress_data_archive() above.
+        ### DEPRECIATED - see extract_data_archive() above.
 
     Decompress a gzip'd file which was uploaded to a given S3 bucket.
     If it contains a nodes or edges file, place them into their

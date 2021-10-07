@@ -95,7 +95,7 @@ from kgea.server.web_services.kgea_file_ops import (
     upload_file,
     random_alpha_string,
     object_key_exists,
-    decompress_data_archive
+    extract_data_archive
 )
 
 from kgea.server.web_services.sha_utils import sha1_manifest
@@ -1993,12 +1993,12 @@ class KgeArchiver:
                     
                     #
                     # RMB: 2021-10-07, we deprecated the RAM-based version of the 'decompress-in-place' operation,
-                    # moving instead towards the kge_decompress_data_archive.bash harddisk-centric solution
+                    # moving instead towards the kge_extract_data_archive.bash harddisk-centric solution
                     #
                     # archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     #
                     archive_file_entries = \
-                        decompress_data_archive(
+                        extract_data_archive(
                             kg_id=file_set.get_kg_id(),
                             file_set_version=file_set.get_fileset_version(),
                             archive_filename=archive_filename

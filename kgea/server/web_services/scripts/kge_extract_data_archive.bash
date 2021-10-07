@@ -117,7 +117,7 @@ echo "Base S3 URI: ${s3_uri}"
 archive_object_key="${s3_uri}/${archive_filename}"
 
 echo
-echo "Beginning decompression of '${archive_object_key}'"
+echo "Beginning extraction of '${archive_object_key}'"
 
 # To avoid collision in concurrent data operations across multiple graphs
 # use a timestamped directory, instead of a simple literal subdirectory name
@@ -237,7 +237,7 @@ cd ..
 rm -Rf "${workdir}"
 
 echo
-echo "Completed decompression-in-place of '${archive_object_key}'"
+echo "Completed extraction of '${archive_object_key}'"
 
 # signal of success to other processes
 exit 0;
