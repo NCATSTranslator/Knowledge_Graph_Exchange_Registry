@@ -402,7 +402,7 @@ class KgeFileSet:
         else:
             return None
 
-    # Note: content metadata file name is already normalized on S3 to 'content_metadata.yaml'
+    # Note: content metadata file name is already normalized on S3 to 'content_metadata.json'
     def set_content_metadata_file(self, file_name: str, file_size: int, object_key: str, s3_file_url: str):
         """
         Sets the metadata file identification for a KGE File Set
@@ -665,7 +665,7 @@ class KgeFileSet:
                 submitter_name=self.submitter_name,
                 submitter_email=self.submitter_email,
                 status=self.status,
-                size=self.size/1024**2  # aggregate file size in megabytes
+                size=self.size/1024**2  # aggregated file size in megabytes
             )
 
         file_set: List[KgeFile] = [

@@ -144,7 +144,8 @@ file_typed_object_key () {
     object_key="metadata/content_metadata.json" ;
   elif [[ "${1}" =~ content_metadata\.json || "${1}" =~ metadata/ ]];
   then
-    object_key="metadata/${1}" ;
+    # place the single(?) content metadata file into the root fileset directory
+    object_key="content_metadata.json" ;
   else
     # Otherwise, ignore the file
     object_key=;
@@ -169,10 +170,10 @@ do
   #
   file_object_key=$(file_typed_object_key "${file_path}")
   if [[ -z "${file_object_key}" ]]; then
-    echo "File '${file_path}' is not a KGX graph (meta-) data file... ignored!"
+    echo "File '${file_path}' is not a KGX graph (meta-)data file... ignored!"
     continue
   fi
-  
+
   file_object_uri="${s3_uri}/${file_object_key}"
   echo "File Object URI: ${file_object_uri}"
 
