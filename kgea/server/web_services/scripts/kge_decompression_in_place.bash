@@ -112,45 +112,24 @@ tar_file=$(ls *.tar)  # hopefully, just one file?
 $tar xvf "${tar_file}"
 
 parse_file () {
-  # Stub file?
-  echo "${1},file_type,file_size"
-
-  #     def traversal_func_kgx(tf, location):
-  #        """
-  #        :param tf:
-  #        :param location:
-  #        :return:
-  #        """
-  #        logger.debug('traversal_func_kgx(): Begin traversing across the archive for nodes and edge files', tf)
-  #        file_entries = []
-  #        for entry in tf:  # list each entry one by one
+  file_type=''
+  object_key="${1}/${2}"
+  # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
+  # unpacked_filename = basename(${1})
   #
-  #            logger.debug('traversal_func_kgx(): Traversing entry', entry)
-  #
-  #            object_key = location  # if not strict else None
-  #
-  #            fileobj = tf.extractfile(entry)
-  #
-  #            logger.debug('traversal_func_kgx(): Entry file object', fileobj)
-  #
-  #            if fileobj is not None:  # not a directory
-  #
-  #                # not quite sure why the name needs to be copied oover...
-  #                pre_name = entry.name
-  #
-  #                # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
-  #                unpacked_filename = basename(pre_name)
-  #
-  #                logger.debug(f"traversal_func_kgx(): Entry names: {pre_name}, {unpacked_filename}")
-  #
-  #                if is_node_y(pre_name):
-  #                    object_key = location + 'nodes/' + unpacked_filename
-  #                elif is_edge_y(pre_name):
-  #                    object_key = location + 'edges/' + unpacked_filename
-  #                else:
-  #                    object_key = location + unpacked_filename
-  #
-  #                logger.debug('traversal_func_kgx(): Object key will be', object_key)
+  # if is_node_y (${1}):
+  #    file_type="node"
+  #    object_key = location + 'nodes/' + unpacked_filename
+  # elif is_edge_y(${1}):
+  #    file_type="edge"
+  #    object_key = location + 'edges/' + unpacked_filename
+  # elif is_metadata(${1}):
+  #    file_type="metadata"
+  #    object_key = location + unpacked_filename
+  # else:
+  #    file_type="unknown"
+  #    object_key = location + unpacked_filename
+  echo "${file_type},${object_key}"
 }
 
 # STEP 4 - for all archive files:
@@ -159,19 +138,21 @@ do
   #
   # STEP 4a - parse_file() applies the logic of the traversal_func() to extracted file entries
   #
-  file_details=$(parse_file "${file_name}")
+  file_type_n_key=$(parse_file "${s3}" "${file_name}")
+  IFS=',' read -ra file_data <<< "${file_type_n_key}"
   
   #
   # STEP 4b - Upload the resulting files back up to the target S3 location
   #
-  file_object_key=${s3}/${file_name}
-  echo "Uploading ${file_name} to ${file_object_key}"
-  $aws s3 cp  ${aws_flags} "${file_name}" "${file_object_key}"
+  echo "Uploading ${file_name} to ${file_data[1]}"
+  $aws s3 cp  ${aws_flags} "${file_name}" "${file_data[1]}"
   
   #
   # STEP 4c - return the metadata about the uploaded (meta-)data files,
   #           back to the caller of the script, via STDOUT.
-  echo "file_entry=${file_details}"
+  # shellcheck disable=SC2012
+  file_size=$(ls -lh "${file_name}" | awk '{print  $5}')
+  echo "file_entry=${file_name},${file_size},${file_type_n_key}"
 done
 
 #
