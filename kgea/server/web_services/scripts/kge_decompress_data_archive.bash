@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Shell script for *nix command line driven
-# decompression-in-place of an uploaded KGX dataset.
+# Extraction of an uploaded KGX tar.gz data archive.
 #
 # Script performance constraints:
 # ------------------------------
@@ -9,6 +9,11 @@
 # to manipulate archive files downloaded from S3.
 # Thus, the local drive must be large enough to accommodate
 # all extracted files of the contents of the downloaded archive.
+#
+echo
+echo "Executing ${0}"
+echo
+
 #
 gunzip=$(which gunzip)
 #
@@ -26,7 +31,6 @@ tar=$(which tar)
 #
 aws_flags=--quiet
 
-echo
 
 # AWS command (can be tweaked if problematic, e.g. under Windows?)
 if [[ "$OSTYPE" == "cygwin" ]]; then
@@ -49,6 +53,9 @@ usage () {
 #    exit -1  bash exits 0-255
     exit 1
 }
+
+echo "Input parameters:"
+echo
 
 if [[ -z "${1}" ]]; then
     echo "Specify S3 bucket for operation!"
@@ -108,7 +115,7 @@ echo "S3 URI: ${s3_uri}"
 archive_object_key="${s3_uri}/${archive_filename}"
 
 echo
-echo "Begin decompression-in-place of '${archive_object_key}'"
+echo "Begin decompression of '${archive_object_key}'"
 echo
 
 # To avoid collision in concurrent data operations across multiple graphs
@@ -118,17 +125,21 @@ mkdir "${workdir}"
 cd "${workdir}" || exit 3
 
 # STEP 1 - download the tar.gz archive to the local working directory
-echo "Downloading ${archive_object_key}"
+echo
+echo "Downloading '${archive_object_key}' data archive:"
 $aws s3 cp "${aws_flags}" "${archive_object_key}" .
 
 # STEP 2 - gunzip the archive
 gz_file=$(ls *.gz)  # hopefully, just one file?
+echo
 echo "Decompressing '${gz_file}'"
 $gunzip "${gz_file}"
 
 # STEP 3 - extract the tarfile for identification and later uploading
 tar_file=$(ls *.tar)  # hopefully, just one file?
-echo "Extracting '${tar_file}'"
+echo
+echo "Extracting '${tar_file}':"
+echo
 $tar xvf "${tar_file}"
 rm "${tar_file}"
 

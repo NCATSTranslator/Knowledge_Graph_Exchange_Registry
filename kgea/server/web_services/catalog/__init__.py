@@ -1993,7 +1993,7 @@ class KgeArchiver:
                     
                     #
                     # RMB: 2021-10-07, we deprecated the RAM-based version of the 'decompress-in-place' operation,
-                    # moving instead towards the kge_decompression_in_place.bash harddisk-centric solution
+                    # moving instead towards the kge_decompress_data_archive.bash harddisk-centric solution
                     #
                     # archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     #

@@ -65,8 +65,8 @@ default_s3_root_key = s3_config['archive-directory']
 _KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
 logger.debug(f"Archive Script: ({_KGEA_ARCHIVER_SCRIPT})")
 
-_KGEA_DIP_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_decompression_in_place.bash"
-logger.debug(f"Decompress-archive-in-place script Path: ({_KGEA_DIP_SCRIPT})")
+_KGEA_DDA_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_decompress_data_archive.bash"
+logger.debug(f"Decompress-archive-in-place script Path: ({_KGEA_DDA_SCRIPT})")
 
 _DIP_OUTPUT_MARK = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
 
@@ -811,7 +811,7 @@ def decompress_data_archive(
             })
     try:
         return_code = run_script(
-            script=_KGEA_DIP_SCRIPT,
+            script=_KGEA_DDA_SCRIPT,
             args=(
                 bucket,
                 root_directory,
