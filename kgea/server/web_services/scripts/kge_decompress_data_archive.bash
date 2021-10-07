@@ -11,7 +11,7 @@
 # all extracted files of the contents of the downloaded archive.
 #
 # Support KGX File Format Types
-kgx_file_ext="tsv|jsonl"
+kgx_file_ext="(tsv|jsonl)"
 #
 echo
 echo "Executing ${0}"
