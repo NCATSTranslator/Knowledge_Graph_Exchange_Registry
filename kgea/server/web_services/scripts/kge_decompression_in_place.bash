@@ -95,11 +95,11 @@ else
 fi
 
 # Folder of given versioned file set of the Knowledge Graph
-file_set_key="${kg_id}/${file_set_version}"
-echo "File Set Key: ${file_set_key}"
+file_set_key_path="${kg_id}/${file_set_version}"
+echo "File Set Key Path: ${file_set_key_path}"
 
 # Full S3 object key to the file set folder
-s3_uri="s3://${bucket}/${root_directory}/${file_set_key}"
+s3_uri="s3://${bucket}/${root_directory}/${file_set_key_path}"
 echo "S3 URI: ${s3_uri}"
 
 # Archive file to be extracted
@@ -114,10 +114,10 @@ workdir=archive_$(date +%s)
 mkdir "${workdir}"
 cd "${workdir}" || exit 3
 
-exit 100
-
 # STEP 1 - download the tar.gz archive to the local working directory
 echo "${aws}" s3 cp "${aws_flags}" "${archive_object_key}" .
+
+exit 100
 
 # STEP 2 - gunzip the archive
 gz_file=$(ls *.gz)  # hopefully, just one file?
