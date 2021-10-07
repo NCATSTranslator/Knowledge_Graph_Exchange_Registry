@@ -126,29 +126,36 @@ tar_file=$(ls *.tar)  # hopefully, just one file?
 $tar xvf "${tar_file}"
 rm "${tar_file}"
 
-file_typed_object_key () {
+typed_file_object_key () {
   if [[ "${1}" =~ node[s]?.tsv ]];
   then
-    object_key="nodes/${1}"
+    file_type="nodes"
+    file_object_key="nodes/${1}"
   elif [[ "${1}" =~ nodes/ ]];
   then
-    object_key="${1}" ;
+    file_type="nodes"
+    file_object_key="${1}" ;
   elif [[ "${1}" =~ edge[s]?.tsv ]];
   then
-    object_key="edges/${1}" ;
+    file_type="edges"
+    file_object_key="edges/${1}" ;
   elif [[ "${1}" =~ edges/ ]];
   then
-    object_key="${1}" ;
+    file_type="edges"
+    file_object_key="${1}" ;
   elif [[ "${1}" =~ content_metadata\.json || "${1}" =~ metadata/ ]];
   then
     # place the singleton(?) content metadata file
     # into the main versioned file set directory
-    object_key="content_metadata.json" ;
+    file_type="metadata"
+    file_object_key="content_metadata.json" ;
   else
     # Otherwise, ignore the file
-    object_key=;
+    file_object_key=;
+    echo
+    return
   fi
-  echo "${object_key}"
+  echo "${file_object_key},${file_type}"
 }
 
 # STEP 4 - for all archive files:
@@ -166,33 +173,40 @@ do
   # STEP 4a - file_typed_object_key() heuristically assigns
   #           the object key for various file types
   #
-  file_object_key=$(file_typed_object_key "${file_path}")
-  if [[ -z "${file_object_key}" ]]; then
+  result=$(typed_file_object_key "${file_path}")
+  if [[ -z "${result}" ]]; then
     echo "File '${file_path}' is not a KGX graph (meta-)data file... ignored!"
     continue
   fi
 
-  file_object_uri="${s3_uri}/${file_object_key}"
-  echo "File Object URI: ${file_object_uri}"
+  # parse out the result of the typed_file_object_key()
+  IFS=',' readarray file_data <<< "${result}"
+
+  file_object_key=${file_data[0]}
+  echo "File Object Key: ${file_object_key}"
+
+  file_type=${file_data[1]}
+  echo "File Type: ${file_type]}"
 
   # shellcheck disable=SC2012
+  # Get the size of the file
   file_size=$(ls -l "${file_path}" | awk '{print  $5}')
   echo "File Size: ${file_size}"
 
-  # DON'T NEED RIGHT NOW.. BUT JUST KEEPING AROUND AS A CLUE ON HOW TO SPLIT A STRING IN BASH...
-  #  IFS=',' read -ra file_data <<< "${file_object_key}"
+  file_object_uri="${s3_uri}/${file_object_key}"
+  echo "File Object URI: ${file_object_uri}"
 
   #
   # STEP 4b - Upload the resulting files back up to the target S3 location
   #
   echo
   echo "Uploading tar archive file ${file_path} to ${file_object_uri}"
-  $aws s3 cp "${aws_flags}" "${file_path}" "${file_object_uri}"
+  #$aws s3 cp "${aws_flags}" "${file_path}" "${file_object_uri}"
   
   #
   # STEP 4c - return the metadata about the uploaded (meta-)data files,
   #           back to the caller of the script, via STDOUT.
-  echo "file_entry=${file_name},${file_path},${file_size},${file_object_uri}"
+  echo "file_entry=${file_name},${file_type},${file_size},${file_object_key}"
 done
 
 exit 100

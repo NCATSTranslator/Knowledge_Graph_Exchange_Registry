@@ -94,8 +94,8 @@ from kgea.server.web_services.kgea_file_ops import (
     copy_file,
     upload_file,
     random_alpha_string,
-    decompress_to_kgx,
-    object_key_exists
+    object_key_exists,
+    decompress_data_archive
 )
 
 from kgea.server.web_services.sha_utils import sha1_manifest
@@ -1975,31 +1975,41 @@ class KgeArchiver:
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
-            logger.info(f"KgeArchiver worker {task_id} starting archive of {str(file_set)}")
+            logger.info(f"KgeArchiver worker {task_id} starting archive of {file_set.id()}")
             
             # perhaps await a second before starting the work,
             # to unblock co-routine responses in the main web application
             await sleep(1)
 
-            # Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
+            # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
-                logger.debug(f"KgeArchiver task {task_id} unpacking archives: {file_set.get_archive_files_keys()}...")
-                for file_key in file_set.get_archive_files_keys():
+                logger.debug(
+                    f"KgeArchiver task {task_id} unpacking incoming tar.gz archives: " +
+                    f"{file_set.get_archive_files_keys()}")
+                
+                for archive_filename in file_set.get_data_file_names():
                     
-                    logger.debug(f"Unpacking archive {file_key}")
+                    logger.debug(f"Unpacking archive {archive_filename}")
                     
-                    # returns entries that follow the KgeFileSetEntry Schema
-                    # decompresses the archive and sends files to s3
-                    archive_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/"
-                    
-                    archive_file_entries = decompress_to_kgx(file_key, archive_location)
+                    #
+                    # RMB: 2021-10-07, we deprecated the RAM-based version of the 'decompress-in-place' operation,
+                    # moving instead towards the kge_decompression_in_place.bash harddisk-centric solution
+                    #
+                    # archive_file_entries = decompress_to_kgx(file_key, archive_location)
+                    #
+                    archive_file_entries = \
+                        decompress_data_archive(
+                            kg_id=file_set.get_kg_id(),
+                            file_set_version=file_set.get_fileset_version(),
+                            archive_filename=archive_filename
+                        )
 
                     logger.debug(f"...finished! To fileset '{file_set.id()}', adding files:")
 
                     # republish the file_set.yaml file to modify the archives in place
                     # this is done as a side-effect onto S3 before the files are aggregated to the archive,
                     # or are copied to the archive.
-                    file_set.remove_data_file(file_key)  # remove the archive from the file set
+                    file_set.remove_data_file(archive_filename)  # remove the archive from the file set
                     
                     # add the archive's files to the file set
                     for entry in archive_file_entries:
@@ -2024,17 +2034,17 @@ class KgeArchiver:
                 print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
 
-            # 1. Aggregate each of all nodes and edges each
+            # 2. Aggregate each of all nodes and edges each
             #    into their respective files in the archive folder
             self.aggregate_to_archive(file_set, "nodes", file_set.get_nodes())
             self.aggregate_to_archive(file_set, "edges", file_set.get_edges())
 
-            # 2. Copy over metadata files into the archive folder
+            # 3. Copy over metadata files into the archive folder
             self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
             self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
             self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
 
-            # 3. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
+            # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
             #    containing the aggregated nodes.tsv, edges.tsv, Appending `file_set_root_key`
             #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
             #    from compressing the previous compression (so the source of files is distinct

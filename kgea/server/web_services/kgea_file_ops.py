@@ -51,18 +51,25 @@ logger = logging.getLogger(__name__)
 # Master flag for local development, usually when code is not run inside an EC2 server
 DEV_MODE = getenv('DEV_MODE', default=False)
 
-DECOMPRESS_VERSION = 2
-
 s3_config = aws_config['s3']
 default_s3_region = s3_config['region']
 default_s3_bucket = s3_config['bucket']
 default_s3_root_key = s3_config['archive-directory']
 
+# TODO: may need to fix script paths below - may not resolve under Microsoft Windows
+# if sys.platform is 'win32':
+#     archive_script = archive_script.replace('\\', '/').replace('C:', '/mnt/c/')
+
 # Probably will rarely change the name of these
 # scripts, but changed once already...
-_KGEA_ARCHIVER_SCRIPT = "kge_archiver.bash"
-_KGEA_DIP_SCRIPT = "kge_decompression_in_place.bash"
+_KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
+logger.debug(f"Archive Script: ({_KGEA_ARCHIVER_SCRIPT})")
+
+_KGEA_DIP_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_decompression_in_place.bash"
+logger.debug(f"Decompress-archive-in-place script Path: ({_KGEA_DIP_SCRIPT})")
+
 _DIP_OUTPUT_MARK = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
+
 _KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
 
 
@@ -740,38 +747,98 @@ def compress_fileset(
 
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
 
-    # archive_script = str(PurePosixPath('scripts', _KGEA_ARCHIVER_SCRIPT))
-    archive_script = f"{dirname(abspath(__file__))}{sep}scripts{sep}{_KGEA_ARCHIVER_SCRIPT}"
-
-    # normalize to unix path from windows path
-    # if sys.platform is 'win32':
-    # archive_script = archive_script.replace('\\', '/').replace('C:', '/mnt/c/')
-    
-    logger.debug(f"Archive Script: ({str(archive_script)})")
     try:
         return_code = run_script(
-            script=archive_script,
+            script=_KGEA_ARCHIVER_SCRIPT,
             args=(bucket, root, kg_id, version)
         )
-        logger.info(
-            f"Finished running {_KGEA_ARCHIVER_SCRIPT}\n" +
-            f"\tbuild {s3_archive_key}, with return code {str(return_code)}"
-        )
+        logger.info(f"Finished archive script build {s3_archive_key}, return code: {str(return_code)}")
         
     except Exception as e:
-        logger.error(f"compress_fileset({s3_archive_key}): exception {str(e)}")
+        logger.error(f"compress_fileset({s3_archive_key}) exception: {str(e)}")
 
     logger.info(f"Exiting compress_fileset({s3_archive_key})")
     
     return s3_archive_key
 
 
-def decompress_in_place(gzipped_key, target_location=None, traversal_func=None):
+def decompress_data_archive(
+        kg_id: str,
+        file_set_version: str,
+        archive_filename: str,
+        bucket: str = default_s3_bucket,
+        root_directory: str = default_s3_root_key
+):
     """
-    Decompress a gzipped file from within a given S3 bucket.
+    Decompress a tar.gz data archive file from a given S3 bucket, and upload back its internal files back.
     
-    Version 1.0 - used Smart_Open... not scalable
-    Version 2.0 - use a bash shell script to do this operation...
+    Version 1.0 - decompress_in_place() below used Smart_Open... not scalable
+    Version 2.0 - this version uses an external bash shell script to perform this operation...
+
+    :param kg_id: knowledge graph identifier to which the archive belongs
+    :param file_set_version: file set version to which the archive belongs
+    :param archive_filename: base name of the tar.gz archive to be decompressed
+    :param bucket: in S3
+    :param root_directory: KGE data folder in the bucket
+    
+    :return: list of file entries
+    """
+    # one step decompression - bash level script operations on the local disk
+    logger.debug(f"Initiating execution of decompress_data_archive({archive_filename})")
+    
+    if 'tar.gz' not in archive_filename:
+        err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
+        logger.error(err_msg)
+        raise RuntimeError(f"decompress_data_archive(): {err_msg}")
+
+    s3_uri = f"s3://${bucket}/${root_directory}/${kg_id}/${file_set_version}"
+    
+    file_entries = []
+
+    def output_parser(line: str):
+        """
+        :param line: bash script stdout line being parsed
+        """
+        if line.startswith(_DIP_OUTPUT_MARK):
+            line = line.replace(_DIP_OUTPUT_MARK, '')
+            file_name, file_type, file_size, file_object_key = line.split(',')
+            file_entries.append({
+                "file_name": file_name,
+                "file_type": file_type,
+                "file_size": file_size,
+                "object_key": file_object_key,
+                "s3_file_url": f"{s3_uri}/{file_object_key}"
+            })
+    try:
+        return_code = run_script(
+            script=_KGEA_DIP_SCRIPT,
+            args=(
+                bucket,
+                root_directory,
+                kg_id,
+                file_set_version,
+                archive_filename
+            ),
+            stdout_parser=output_parser
+        )
+        logger.debug(f"Completed decompress_data_archive({archive_filename}), with return code {str(return_code)}")
+        
+    except Exception as e:
+        logger.error(f"decompress_in_place({archive_filename}): exception {str(e)}")
+    
+    logger.debug(f"Exiting decompress_in_place({archive_filename})")
+
+    return file_entries
+
+
+def decompress_in_place(tar_gz_file_key, target_location=None, traversal_func=None):
+    """
+    ### DEPRECIATED - see decompress_data_archive() above.
+    
+    Decompress a gzipped file from within a given S3 bucket.
+
+    Version 1.0 - this version used Smart_Open... not scalable
+    Version 2.0 - decompress_data_archive above uses an external bash shell script to perform this operation...
 
     Can take a custom location to stop the unpacking from being in
     the location of the gzipped file, but instead done somewhere else.
@@ -779,112 +846,56 @@ def decompress_in_place(gzipped_key, target_location=None, traversal_func=None):
     Can take a traversal function to customize the distribution
     of unpacked files into different folders.
 
-    :param gzipped_key: The S3 key for the gzipped archive
+    :param tar_gz_file_key: The S3 key for the gzipped archive
     :param target_location: The location to which to unpack (not necessarily the root folder of the gzipped file)
     :param traversal_func: Optional
     :return:
     """
-
+    
     if target_location[-1] != '/':
         raise Warning(
             "decompress_to_kgx(): the target location given doesn't terminate in a separator, " +
             f" instead {target_location[-1]}." +
             "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair."
         )
-
-    if '.gz' not in gzipped_key:
-        raise Exception('decompress_in_place(): Gzipped key cannot be a GZIP file! (' + str(gzipped_key) + ')')
-
+    
+    if '.gz' not in tar_gz_file_key:
+        raise Exception('decompress_in_place(): Gzipped key cannot be a GZIP file! (' + str(tar_gz_file_key) + ')')
+    
     if target_location is None:
-        target_location = '/'.join(gzipped_key.split('/')[:-1]) + '/'
-
-    archive_location = f"s3://{default_s3_bucket}/{gzipped_key}"
+        target_location = '/'.join(tar_gz_file_key.split('/')[:-1]) + '/'
+    
+    archive_location = f"s3://{default_s3_bucket}/{tar_gz_file_key}"
     
     file_entries = []
-
-    if DECOMPRESS_VERSION == 2:
-        # one step decompression - bash level script operations on the local disk
-        logger.info(f"Initiating execution of decompress_in_place({archive_location})")
-
-        # archive_script = str(PurePosixPath('scripts', _KGEA_ARCHIVER_SCRIPT))
-        dip_script = f"{dirname(abspath(__file__))}{sep}scripts{sep}{_KGEA_DIP_SCRIPT}"
-
-        logger.debug(f"Archive Script: ({str(dip_script)})")
-        
-        def output_parser(line: str):
-            """
-            :param line: bash script stdout line being parsed
-            """
-            if line.startswith(_DIP_OUTPUT_MARK):
-                line = line.replace(_DIP_OUTPUT_MARK, '')
-                file_name, file_type, size = line.split(',')
-                #
-                # TODO: code the needful in the _KGEA_DIP_SCRIPT
-                #       bash script, then parse it out...
-                #
-                file_entries.append({
-                    # TODO: refine to more specific types?
-                    "file_type": "KGX data file",
-                    "file_name": file_name,
-                    "file_size": size,
-                    "object_key": target_location + file_name,
-                    "s3_file_url": ''
-                })
-        try:
-            return_code = run_script(
-                script=dip_script,
-                args=(
-                    bucket,
-                    root,
-                    kg_id,
-                    version,
-                    subdirectory,
-                    archive_filename
-                ),
-                stdout_parser=output_parser
-            )
-            logger.info(
-                f"Finished running {_KGEA_DIP_SCRIPT}\n" +
-                f"\tto decompress {archive_location}, " +
-                f"with return code {str(return_code)}"
-            )
-        except Exception as e:
-            logger.error(f"decompress_in_place({archive_location}): exception {str(e)}")
-        
-        logger.info(f"Exiting decompress_in_place({archive_location})")
-
-    elif DECOMPRESS_VERSION == 1:
-        # one step decompression - use the tarfile library's ability
-        # to open gzip files transparently to avoid gzip+tar step
-        with smart_open.open(archive_location, 'rb', compression='disable') as fin:
-            with tarfile.open(fileobj=fin) as tf:
-                if traversal_func is not None:
-                    logger.debug('decompress_in_place(): traversing the archive with a custom traversal function')
-                    file_entries = traversal_func(tf, target_location)
-                else:
-                    for entry in tf:  # list each entry one by one
-                        fileobj = tf.extractfile(entry)
     
-                        # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
-                        unpacked_filename = basename(entry.name)
-    
-                        if fileobj is not None:  # not a directory
-                            s3_client().upload_fileobj(  # upload a new obj to s3
-                                Fileobj=io.BytesIO(fileobj.read()),
-                                Bucket=default_s3_bucket,  # target bucket, writing to
-                                Key=target_location + unpacked_filename
-                            )
-                            file_entries.append({
-                                "file_type": "KGX data file",  # TODO: refine to more specific types?
-                                "file_name": unpacked_filename,
-                                "file_size": entry.size,
-                                "object_key": target_location + unpacked_filename,
-                                "s3_file_url": '',
-                            })
-    else:
-        logger.error(f"decompress_in_place(): unimplemented code version {DECOMPRESS_VERSION}")
-        raise RuntimeError(f"decompress_in_place(): unimplemented code version {DECOMPRESS_VERSION}")
-
+    # one step decompression - use the tarfile library's ability
+    # to open gzip files transparently to avoid gzip+tar step
+    with smart_open.open(archive_location, 'rb', compression='disable') as fin:
+        with tarfile.open(fileobj=fin) as tf:
+            if traversal_func is not None:
+                logger.debug('decompress_in_place(): traversing the archive with a custom traversal function')
+                file_entries = traversal_func(tf, target_location)
+            else:
+                for entry in tf:  # list each entry one by one
+                    fileobj = tf.extractfile(entry)
+                    
+                    # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
+                    unpacked_filename = basename(entry.name)
+                    
+                    if fileobj is not None:  # not a directory
+                        s3_client().upload_fileobj(  # upload a new obj to s3
+                            Fileobj=io.BytesIO(fileobj.read()),
+                            Bucket=default_s3_bucket,  # target bucket, writing to
+                            Key=target_location + unpacked_filename
+                        )
+                        file_entries.append({
+                            "file_type": "KGX data file",  # TODO: refine to more specific types?
+                            "file_name": unpacked_filename,
+                            "file_size": entry.size,
+                            "object_key": target_location + unpacked_filename,
+                            "s3_file_url": '',
+                        })
     return file_entries
 
 
@@ -894,12 +905,14 @@ node_folder_pattern = re.compile('nodes/')  # a nodes file given where it's plac
 edge_file_pattern = re.compile('edge[s]?.tsv')  # an edge file by its own admission
 edge_folder_pattern = re.compile('edges/')  # an edges file given where it's placed
 metadata_file_pattern = re.compile(r'content_metadata\.json')
-# metadata_folder_pattern = re.compile('metadata/')
+metadata_folder_pattern = re.compile('metadata/')
 
 
 def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
     # TODO: implement strict
     """
+        ### DEPRECIATED - see decompress_data_archive() above.
+
     Decompress a gzip'd file which was uploaded to a given S3 bucket.
     If it contains a nodes or edges file, place them into their
     corresponding folders within the knowledge graph working directory.
@@ -942,8 +955,8 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
         :param entry_name:
         :return:
         """
-        return node_file_pattern.match(entry_name) is not None or node_folder_pattern.match(
-            entry_name) is not None
+        return node_file_pattern.match(entry_name) is not None or \
+               node_folder_pattern.match(entry_name) is not None
 
     # a tarfile entry is edge-y if it's packed inside an edges folder,
     # or has the word "edge" in it towards the end of the filename
@@ -952,15 +965,16 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
         :param entry_name:
         :return:
         """
-        return edge_file_pattern.match(entry_name) is not None or edge_folder_pattern.match(
-            entry_name) is not None
+        return edge_file_pattern.match(entry_name) is not None or \
+               edge_folder_pattern.match(entry_name) is not None
 
     def is_metadata(entry_name):
         """
         :param entry_name:
         :return:
         """
-        return metadata_file_pattern.match(entry_name) is not None  # we're strict about the filename for the metadata
+        return metadata_file_pattern.match(entry_name) is not None or \
+               edge_folder_pattern.match(entry_name) is not None
 
     def traversal_func_kgx(tf, location):
         """
