@@ -152,8 +152,10 @@ file_typed_object_key () {
 }
 
 # STEP 4 - for all archive files:
+echo "Processing all files in the archive:"
 for file_path in *;
 do
+  echo
   echo "File Path: ${file_path}"
 
   # File name may at the end of the file path
@@ -168,7 +170,7 @@ do
   echo "File Object Key: ${file_object_key}"
 
   # shellcheck disable=SC2012
-  file_size=$(ls -lh "${file_path}" | awk '{print  $5}')
+  file_size=$(ls -l "${file_path}" | awk '{print  $5}')
   echo "File Size: ${file_size}"
 
   # DON'T NEED RIGHT NOW.. BUT JUST KEEPING AROUND AS A CLUE ON HOW TO SPLIT A STRING IN BASH...
@@ -177,6 +179,7 @@ do
   #
   # STEP 4b - Upload the resulting files back up to the target S3 location
   #
+  echo
   echo "Uploading ${file_path} to ${file_object_key}"
   echo "${aws}" s3 cp "${aws_flags}" "${file_path}" "${file_object_key}"
   
