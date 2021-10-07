@@ -231,9 +231,10 @@ done
 
 #
 # STEP 7 - clean out the work directory
+echo
 echo "Deleting working directory ${workdir}"
 cd ..
-echo rm -Rf "${workdir}"
+rm -Rf "${workdir}"
 
 echo
 echo "Completed decompression-in-place of '${archive_object_key}'"

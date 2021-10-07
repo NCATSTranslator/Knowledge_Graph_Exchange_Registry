@@ -802,6 +802,7 @@ def decompress_data_archive(
         if line.startswith(_DIP_OUTPUT_MARK):
             line = line.replace(_DIP_OUTPUT_MARK, '')
             file_name, file_type, file_size, file_object_key = line.split(',')
+            logger.debug(f"DDA script file entry: {file_name}, {file_type}, {file_size}, {file_object_key}")
             file_entries.append({
                 "file_name": file_name,
                 "file_type": file_type,
