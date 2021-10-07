@@ -119,13 +119,13 @@ $aws s3 cp "${aws_flags}" "${archive_object_key}" .
 
 # STEP 2 - gunzip the archive
 gz_file=$(ls *.gz)  # hopefully, just one file?
-echo "${gunzip}" "${gz_file}"
-
-exit 100
+$gunzip "${gz_file}"
 
 # STEP 3 - extract the tarfile for identification and later uploading
 tar_file=$(ls *.tar)  # hopefully, just one file?
 echo "${tar}" xvf "${tar_file}"
+
+exit 100
 
 file_typed_object_key () {
   if [[ "${1}" =~ node[s]?.tsv ]];
