@@ -26,6 +26,8 @@ tar=$(which tar)
 #
 aws_flags=--quiet
 
+echo
+
 # AWS command (can be tweaked if problematic, e.g. under Windows?)
 if [[ "$OSTYPE" == "cygwin" ]]; then
         aws=$(which aws.cmd)
@@ -159,7 +161,10 @@ typed_file_object_key () {
 }
 
 # STEP 4 - for all archive files:
+
+echo
 echo "Processing all files in the archive:"
+
 for file_path in *;
 do
   echo
@@ -180,7 +185,7 @@ do
   fi
 
   # parse out the result of the typed_file_object_key()
-  IFS=',' readarray file_data <<< "${result}"
+  IFS=',' read -ra file_data <<< "${result}"
 
   file_object_key=${file_data[0]}
   echo "File Object Key: ${file_object_key}"
