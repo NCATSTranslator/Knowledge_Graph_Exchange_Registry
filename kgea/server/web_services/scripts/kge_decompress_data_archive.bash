@@ -10,6 +10,9 @@
 # Thus, the local drive must be large enough to accommodate
 # all extracted files of the contents of the downloaded archive.
 #
+# Support KGX File Format Types
+kgx_file_ext="tsv|jsonl"
+#
 echo
 echo "Executing ${0}"
 echo
@@ -30,7 +33,6 @@ tar=$(which tar)
 # the --quiet switch suppresses AWS command output. Might wish to control this external to this script?
 #
 aws_flags=--quiet
-
 
 # AWS command (can be tweaked if problematic, e.g. under Windows?)
 if [[ "$OSTYPE" == "cygwin" ]]; then
@@ -109,14 +111,13 @@ echo "File Set Key Path: ${file_set_key_path}"
 
 # Full S3 object key to the file set folder
 s3_uri="s3://${bucket}/${root_directory}/${file_set_key_path}"
-echo "S3 URI: ${s3_uri}"
+echo "Base S3 URI: ${s3_uri}"
 
 # Archive file to be extracted
 archive_object_key="${s3_uri}/${archive_filename}"
 
 echo
-echo "Begin decompression of '${archive_object_key}'"
-echo
+echo "Beginning decompression of '${archive_object_key}'"
 
 # To avoid collision in concurrent data operations across multiple graphs
 # use a timestamped directory, instead of a simple literal subdirectory name
@@ -144,7 +145,7 @@ $tar xvf "${tar_file}"
 rm "${tar_file}"
 
 typed_file_object_key () {
-  if [[ "${1}" =~ node[s]?.tsv ]];
+  if [[ "${1}" =~ node[s]?.${kgx_file_ext} ]];
   then
     file_type="nodes"
     file_object_key="nodes/${1}"
@@ -152,7 +153,7 @@ typed_file_object_key () {
   then
     file_type="nodes"
     file_object_key="${1}" ;
-  elif [[ "${1}" =~ edge[s]?.tsv ]];
+  elif [[ "${1}" =~ edge[s]?.${kgx_file_ext} ]];
   then
     file_type="edges"
     file_object_key="edges/${1}" ;
