@@ -43,63 +43,78 @@ usage () {
     echo "Usage:"
     echo
     echo "$0 <bucket> <root directory> <kg_id> <fileset version> <subdirectory> <archive_filename>"
+    echo
 #    exit -1  bash exits 0-255
     exit 1
 }
 
 if [[ -z "${1}" ]]; then
+    echo "Specify S3 bucket for operation!"
     usage
 else
     # KGE Bucket
     bucket="${1}"
+    echo "Bucket: ${bucket}"
 fi
 
 if [[ -z "${2}" ]]; then
+    echo "Specify root data directory in S3 bucket for operation!"
     usage
 else
     # Root directory of the KGE Knowledge Graphs
     root_directory="${2}"
+    echo "Root directory: ${root_directory}"
 fi
 
 if [[ -z "${3}" ]]; then
+    echo "Specify knowledge graph id for operation!"
     usage
 else
     # Specific Knowledge Graph Identifier
-    knowledge_graph=${3}
+    kg_id=${3}
+    echo "Knowledge Graph Id: ${kg_id}"
 fi
 
 if [[ -z "${4}" ]]; then
+    echo "Specify file set version for operation!"
     usage
 else
     # TODO: [perhaps need to validate proper SemVer format of file set version string here?
     # Specific File Set Version of interest for the Knowledge Graph
-    version=${4}
+    file_set_version=${4}
+    echo "File Set Version: ${file_set_version}"
 fi
 
 if [[ -z "${5}" ]]; then
+    echo "Specify target archive file name for operation!"
     usage
 else
     # Archive file name
     archive_filename="${5}"
+    echo "Archive file name: ${archive_filename}"
 fi
 
 # Folder of given versioned file set of the Knowledge Graph
-file_set="${knowledge_graph}/${version}"
+file_set_key="${kg_id}/${file_set_version}"
+echo "File Set Key: ${file_set_key}"
 
 # Full S3 object key to the file set folder
-s3="s3://${bucket}/${root_directory}/${file_set}"
+s3_uri="s3://${bucket}/${root_directory}/${file_set_key}"
+echo "S3 URI: ${s3_uri}"
 
 # Archive file to be extracted
-archive_object_key="${s3}/${archive_filename}"
+archive_object_key="${s3_uri}/${archive_filename}"
 
 echo
 echo "Begin decompression-in-place of '${archive_object_key}'"
 
 # To avoid collision in concurrent data operations across multiple graphs
 # use a timestamped directory, instead of a simple literal subdirectory name
-workdir=archive_$(date %s)
+workdir=archive_$(date +%s)
 mkdir "${workdir}"
 cd "${workdir}" || exit 3
+
+exit 100
 
 # STEP 1 - download the tar.gz archive to the local working directory
 echo "${aws}" s3 cp "${aws_flags}" "${archive_object_key}" .
