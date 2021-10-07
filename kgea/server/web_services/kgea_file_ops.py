@@ -63,12 +63,9 @@ default_s3_root_key = s3_config['archive-directory']
 # Probably will rarely change the name of these
 # scripts, but changed once already...
 _KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
-logger.debug(f"Archive Script: ({_KGEA_ARCHIVER_SCRIPT})")
 
 _KGEA_EDA_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_extract_data_archive.bash"
-logger.debug(f"Decompress-archive-in-place script Path: ({_KGEA_EDA_SCRIPT})")
-
-_DIP_OUTPUT_MARK = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
+_EDA_OUTPUT_DATA_PREFIX = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
 
 _KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
 
@@ -799,8 +796,8 @@ def extract_data_archive(
         """
         :param line: bash script stdout line being parsed
         """
-        if line.startswith(_DIP_OUTPUT_MARK):
-            line = line.replace(_DIP_OUTPUT_MARK, '')
+        if line.startswith(_EDA_OUTPUT_DATA_PREFIX):
+            line = line.replace(_EDA_OUTPUT_DATA_PREFIX, '')
             file_name, file_type, file_size, file_object_key = line.split(',')
             logger.debug(f"DDA script file entry: {file_name}, {file_type}, {file_size}, {file_object_key}")
             file_entries.append({
