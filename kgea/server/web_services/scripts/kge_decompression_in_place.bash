@@ -90,7 +90,7 @@ file_set="${knowledge_graph}/${version}"
 s3="s3://${bucket}/${root_directory}/${file_set}"
 
 # Archive file to be extracted
-archive_object_key=${s3}/${archive_filename}
+archive_object_key="${s3}/${archive_filename}"
 
 echo
 echo "Begin decompression-in-place of '${archive_object_key}'"
@@ -98,68 +98,82 @@ echo "Begin decompression-in-place of '${archive_object_key}'"
 # To avoid collision in concurrent data operations across multiple graphs
 # use a timestamped directory, instead of a simple literal subdirectory name
 workdir=archive_$(date %s)
+mkdir "${workdir}"
 cd "${workdir}" || exit 3
 
 # STEP 1 - download the tar.gz archive to the local working directory
-$aws s3 cp "${aws_flags}" "${archive_object_key}" .
+echo "${aws}" s3 cp "${aws_flags}" "${archive_object_key}" .
 
 # STEP 2 - gunzip the archive
 gz_file=$(ls *.gz)  # hopefully, just one file?
-$gunzip "${gz_file}"
+echo "${gunzip}" "${gz_file}"
 
 # STEP 3 - extract the tarfile for identification and later uploading
 tar_file=$(ls *.tar)  # hopefully, just one file?
-$tar xvf "${tar_file}"
+echo "${tar}" xvf "${tar_file}"
 
-parse_file () {
-  file_type=''
-  object_key="${1}/${2}"
-  # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
-  # unpacked_filename = basename(${1})
-  #
-  # if is_node_y (${1}):
-  #    file_type="node"
-  #    object_key = location + 'nodes/' + unpacked_filename
-  # elif is_edge_y(${1}):
-  #    file_type="edge"
-  #    object_key = location + 'edges/' + unpacked_filename
-  # elif is_metadata(${1}):
-  #    file_type="metadata"
-  #    object_key = location + unpacked_filename
-  # else:
-  #    file_type="unknown"
-  #    object_key = location + unpacked_filename
-  echo "${file_type},${object_key}"
+file_typed_object_key () {
+  if [[ "${1}" =~ node[s]?.tsv ]];
+  then
+    object_key="nodes/${1}"
+  elif [[ "${1}" =~ nodes/ ]];
+  then
+    object_key="${1}" ;
+  elif [[ "${1}" =~ edge[s]?.tsv ]];
+  then
+    object_key="edges/${1}" ;
+  elif [[ "${1}" =~ edges/ ]];
+  then
+    object_key="${1}" ;
+  elif [[ "${1}" =~ content_metadata\.json ]];
+  then
+    object_key="metadata/content_metadata.json" ;
+  elif [[ "${1}" =~ content_metadata\.json || "${1}" =~ metadata/ ]];
+  then
+    object_key="metadata/${1}" ;
+  else
+    object_key="${1}";
+  fi
+  echo "${object_key}"
 }
 
 # STEP 4 - for all archive files:
-for file_name in *;
+for file_path in *;
 do
+  echo "file_path: ${file_path}"
+
+  # File name may at the end of the file path
+  file_name=$(basename "${file_path}")
+
   #
-  # STEP 4a - parse_file() applies the logic of the traversal_func() to extracted file entries
+  # STEP 4a - file_typed_object_key() heuristically assigns
+  #           the object key for various file types
   #
-  file_type_n_key=$(parse_file "${s3}" "${file_name}")
-  IFS=',' read -ra file_data <<< "${file_type_n_key}"
-  
+  file_object_key=$(file_typed_object_key "${file_path}")
+  echo "file_object_key: ${file_object_key}"
+
+  # DON'T NEED RIGHT NOW.. BUT JUST KEEPING AROUND AS A CLUE ON HOW TO SPLIT A STRING IN BASH...
+  #  IFS=',' read -ra file_data <<< "${file_object_key}"
+
   #
   # STEP 4b - Upload the resulting files back up to the target S3 location
   #
-  echo "Uploading ${file_name} to ${file_data[1]}"
-  $aws s3 cp  ${aws_flags} "${file_name}" "${file_data[1]}"
+  echo "Uploading ${file_path} to ${file_object_key}"
+  echo "${aws}" s3 cp "${aws_flags}" "${file_path}" "${file_object_key}"
   
   #
   # STEP 4c - return the metadata about the uploaded (meta-)data files,
   #           back to the caller of the script, via STDOUT.
   # shellcheck disable=SC2012
-  file_size=$(ls -lh "${file_name}" | awk '{print  $5}')
-  echo "file_entry=${file_name},${file_size},${file_type_n_key}"
+  file_size=$(ls -lh "${file_path}" | awk '{print  $5}')
+  echo "file_entry=${file_name},${file_path},${file_size},${file_object_key}"
 done
 
 #
 # STEP 7 - clean out the work directory
 echo "Deleting working directory ${workdir}"
 cd ..  # remember where you were just now...
-rm -Rf "${workdir}"
+echo rm -Rf "${workdir}"
 
 echo
 echo "Completed decompression-in-place of '${archive_object_key}'"
