@@ -186,7 +186,7 @@ do
   echo "File Object Key: ${file_object_key}"
 
   file_type=${file_data[1]}
-  echo "File Type: ${file_type]}"
+  echo "File Type: ${file_type}"
 
   # shellcheck disable=SC2012
   # Get the size of the file
