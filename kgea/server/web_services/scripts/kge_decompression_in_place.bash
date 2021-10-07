@@ -109,6 +109,7 @@ archive_object_key="${s3_uri}/${archive_filename}"
 
 echo
 echo "Begin decompression-in-place of '${archive_object_key}'"
+echo
 
 # To avoid collision in concurrent data operations across multiple graphs
 # use a timestamped directory, instead of a simple literal subdirectory name
@@ -117,14 +118,17 @@ mkdir "${workdir}"
 cd "${workdir}" || exit 3
 
 # STEP 1 - download the tar.gz archive to the local working directory
+echo "Downloading ${archive_object_key}"
 $aws s3 cp "${aws_flags}" "${archive_object_key}" .
 
 # STEP 2 - gunzip the archive
 gz_file=$(ls *.gz)  # hopefully, just one file?
+echo "Decompressing '${gz_file}'"
 $gunzip "${gz_file}"
 
 # STEP 3 - extract the tarfile for identification and later uploading
 tar_file=$(ls *.tar)  # hopefully, just one file?
+echo "Extracting '${tar_file}'"
 $tar xvf "${tar_file}"
 rm "${tar_file}"
 
@@ -204,9 +208,8 @@ do
   #
   # STEP 4b - Upload the resulting files back up to the target S3 location
   #
-  echo
-  echo "Uploading tar archive file ${file_path} to ${file_object_uri}"
-  #$aws s3 cp "${aws_flags}" "${file_path}" "${file_object_uri}"
+  echo "Uploading tar archive file ${file_path} up to ${file_object_uri}"
+  $aws s3 cp "${aws_flags}" "${file_path}" "${file_object_uri}"
   
   #
   # STEP 4c - return the metadata about the uploaded (meta-)data files,
