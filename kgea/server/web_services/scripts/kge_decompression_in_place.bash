@@ -139,12 +139,10 @@ file_typed_object_key () {
   elif [[ "${1}" =~ edges/ ]];
   then
     object_key="${1}" ;
-  elif [[ "${1}" =~ content_metadata\.json ]];
-  then
-    object_key="metadata/content_metadata.json" ;
   elif [[ "${1}" =~ content_metadata\.json || "${1}" =~ metadata/ ]];
   then
-    # place the single(?) content metadata file into the root fileset directory
+    # place the singleton(?) content metadata file
+    # into the main versioned file set directory
     object_key="content_metadata.json" ;
   else
     # Otherwise, ignore the file
@@ -202,7 +200,7 @@ exit 100
 #
 # STEP 7 - clean out the work directory
 echo "Deleting working directory ${workdir}"
-cd ..  
+cd ..
 echo rm -Rf "${workdir}"
 
 echo
