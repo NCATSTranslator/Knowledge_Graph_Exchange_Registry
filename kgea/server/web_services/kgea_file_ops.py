@@ -113,6 +113,7 @@ def run_script(
         ) as proc:
             logger.info(f"run_script({script}) log:")
             for line in proc.stdout:
+                line = line.strip()
                 if stdout_parser:
                     stdout_parser(line)
                 logger.info(line)

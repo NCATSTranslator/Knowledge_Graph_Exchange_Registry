@@ -377,16 +377,26 @@ class KgeFileSet:
         ))
         return edge_files_keys
 
-    def get_archive_filenames(self):
+    def get_archive_file_keys(self):
         """
-
-        :return:
+        :return: S3 object keys
         """
-        # RMB 7-Oct-2021: getting file names, not the object_keys of those files
         archive_files_keys = list(filter(
-            lambda x: '.tar.gz' in x, self.get_data_file_names()
+            lambda x: '.tar.gz' in x, self.get_data_file_object_keys()
         ))
         return archive_files_keys
+    
+    def get_property_of_data_file_key(self, object_key: str, attribute: str):
+        """
+        :param object_key:
+        :param attribute:
+        
+        :return: the value of the property of the file identified by the object key; empty string otherwise
+        """
+        if object_key in self.data_files and attribute in self.data_files[object_key]:
+            return self.data_files[object_key][attribute]
+        else:
+            return ''
 
     def has(self, filetype):
         """
@@ -395,7 +405,7 @@ class KgeFileSet:
         :return:
         """
         if filetype is KgeFileType.KGE_ARCHIVE:
-            return len(self.get_archive_filenames()) > 0
+            return len(self.get_archive_file_keys()) > 0
         elif filetype is KgeFileType.KGE_NODES:
             return len(self.get_nodes()) > 0
         elif filetype is KgeFileType.KGE_EDGES:
@@ -1986,9 +1996,11 @@ class KgeArchiver:
             try:
                 logger.debug(
                     f"KgeArchiver task {task_id} unpacking incoming tar.gz archives: " +
-                    f"{file_set.get_archive_filenames()}")
+                    f"{file_set.get_archive_file_keys()}")
                 
-                for archive_filename in file_set.get_archive_filenames():
+                for archive_file_key in file_set.get_archive_file_keys():
+                    
+                    archive_filename = file_set.get_property_of_data_file_key(archive_file_key, 'file_name')
                     
                     logger.debug(f"Unpacking archive {archive_filename}")
                     
@@ -2007,10 +2019,11 @@ class KgeArchiver:
 
                     logger.debug(f"...finished! To fileset '{file_set.id()}', adding files:")
 
-                    # republish the file_set.yaml file to modify the archives in place
-                    # this is done as a side-effect onto S3 before the files are aggregated to the archive,
-                    # or are copied to the archive.
-                    file_set.remove_data_file(archive_filename)  # remove the archive from the file set
+                    # Republish the file_set.yaml file to modify the archives in place. This is done as a side-effect
+                    # onto S3, before the files are aggregated to the archive, or are copied to the archive.
+                    #
+                    # ...Remove the archive entry from the KgxFileSet
+                    file_set.remove_data_file(archive_file_key)
                     
                     # add the archive's files to the file set
                     for entry in archive_file_entries:
