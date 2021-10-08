@@ -144,28 +144,40 @@ echo
 $tar xvf "${tar_file}"
 rm "${tar_file}"
 
+
+# class KgeFileType(Enum):
+#    """
+#    KGE File types Enumerated - use numeric codes below
+#    """
+#    KGX_UNKNOWN = (0, "unknown", "unknown file type")
+#    KGX_CONTENT_METADATA_FILE = (1, "metadata", "KGX metadata file")
+#    KGX_DATA_FILE = (2, "data", "KGX data file")
+#    KGE_NODES = (3, "nodes", "KGX node data file")
+#    KGE_EDGES = (4, "edges", "KGX edge data file")
+#    KGE_ARCHIVE = (5, "archive", "KGE data archive")
+
 typed_file_object_key () {
   if [[ "${1}" =~ node[s]?.${kgx_file_ext} ]];
   then
-    file_type="nodes"
+    file_type=3
     file_object_key="nodes/${1}"
   elif [[ "${1}" =~ nodes/ ]];
   then
-    file_type="nodes"
+    file_type=3
     file_object_key="${1}" ;
   elif [[ "${1}" =~ edge[s]?.${kgx_file_ext} ]];
   then
-    file_type="edges"
+    file_type=4
     file_object_key="edges/${1}" ;
   elif [[ "${1}" =~ edges/ ]];
   then
-    file_type="edges"
+    file_type=4
     file_object_key="${1}" ;
   elif [[ "${1}" =~ content_metadata\.json || "${1}" =~ metadata/ ]];
   then
     # place the singleton(?) content metadata file
     # into the main versioned file set directory
-    file_type="metadata"
+    file_type=1
     file_object_key="content_metadata.json" ;
   else
     # Otherwise, ignore the file

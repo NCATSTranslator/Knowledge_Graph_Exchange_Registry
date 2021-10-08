@@ -209,13 +209,27 @@ class KgeFileType(Enum):
     """
     KGE File types Enumerated
     """
-    KGX_UNKNOWN = "unknown file type"
-    KGX_CONTENT_METADATA_FILE = "KGX metadata file"
-    KGX_DATA_FILE = "KGX data file"
-    KGE_ARCHIVE = "KGE data archive"
-    KGE_NODES = "KGX nodes"
-    KGE_EDGES = "KGX edges"
+    KGX_UNKNOWN = (0, "unknown", "unknown file type")
+    KGX_CONTENT_METADATA_FILE = (1, "metadata", "KGX metadata file")
+    KGX_DATA_FILE = (2, "data", "KGX data file")
+    KGE_NODES = (3, "nodes", "KGX node data file")
+    KGE_EDGES = (4, "edges", "KGX edge data file")
+    KGE_ARCHIVE = (5, "archive", "KGE data archive")
 
+    def __new__(cls, value, label: str, name: str):
+        obj = bytes.__new__(cls, [value])
+        obj._value_ = value
+        obj.label = label
+        obj._name_ = name
+        return obj
+
+    @classmethod
+    def lookup(cls, label):
+        """
+        Look up the Enum by label
+        :param label:
+        """
+        pass
 
 class KgeFileSet:
     """
@@ -684,7 +698,7 @@ class KgeFileSet:
                 original_name=name,
                 # TODO: populate with more complete file_set information here
                 # assigned_name="nodes.tsv",
-                # file_type="Nodes",
+                # file_type="Nodes",  # can use KgeFileType(3) indexed enum
                 # file_size=100,  # megabytes
                 # kgx_compliance_status="Validated",
                 # errors=list()
@@ -1916,35 +1930,35 @@ class KgeArchiver:
         return cls._the_archiver
     
     @staticmethod
-    def aggregate_to_archive(file_set: KgeFileSet, file_type: str, file_object_keys, match_function=lambda x: True):
+    def aggregate_to_archive(file_set: KgeFileSet, data_type: str, file_object_keys, match_function=lambda x: True):
         """
         Wraps file aggregator for a given file type.
         
         :param file_set:
-        :param file_type:
+        :param data_type:
         :param file_object_keys:
         :param match_function:
         """
-        print(file_set, file_type, file_object_keys)
+        print(file_set, data_type, file_object_keys)
 
-        file_type += ".tsv"
-        logger.info(f"Aggregating {file_type} files:")
+        data_type += ".tsv"
+        logger.info(f"Aggregating {data_type} files:")
 
         try:
             agg_path: str = aggregate_files(
                 target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
-                target_name=file_type,
+                target_name=data_type,
                 file_object_keys=file_object_keys,
                 match_function=match_function
             )
-            logger.info(f"{file_type} path: {agg_path}")
+            logger.info(f"{data_type} path: {agg_path}")
     
         except Exception as e:
             # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-            print_error_trace(f"{file_type} file aggregation failure! " + str(e))
+            print_error_trace(f"{data_type} file aggregation failure! " + str(e))
             raise e
 
-        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, file_type, 0, agg_path, '')
+        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, data_type, 0, agg_path, '')
     
     @staticmethod
     def copy_to_kge_archive(file_set: KgeFileSet, file_name: str):
@@ -2030,7 +2044,13 @@ class KgeArchiver:
                         # spread the entry across the add_data_file function,
                         # which will take all its values as arguments
                         logger.debug(f"\t{entry['file_name']}")
-                        file_set.add_data_file(**entry)
+                        file_set.add_data_file(
+                            file_name=entry["file_name"],
+                            file_type=KgeFileType(int(entry["file_type"])),
+                            file_size=int(entry["file_size"]),
+                            object_key=entry["object_key"],
+                            s3_file_url=entry["s3_file_url"]
+                        )
 
                     # rewrite the new file set file
                     fileset_metadata_file = file_set.generate_fileset_metadata_file()
@@ -2299,7 +2319,7 @@ class KgxValidator:
             # Collect the KGX data files names and metadata
             ###############################################
             input_files: List[str] = list()
-            file_type: Optional[KgeFileType] = None
+            file_type_opt: Optional[KgeFileType] = None
             input_format: Optional[str] = None
             input_compression: Optional[str] = None
 
@@ -2320,8 +2340,8 @@ class KgxValidator:
                 # TODO: we just take the first values encountered, but
                 #       we should probably guard against inconsistent
                 #       input format and compression somewhere upstream
-                if not file_type:
-                    file_type = entry["file_type"]
+                if not file_type_opt:
+                    file_type_opt = entry["file_type"]  # this should be a KgxFileType enum value?
                 if not input_format:
                     input_format = entry["input_format"]
                 if not input_compression:
@@ -2333,7 +2353,7 @@ class KgxValidator:
 
                 logger.debug(
                     f"KgxValidator() processing file '{file_name}' '{object_key}' " +
-                    f"of type '{file_type}', input format '{input_format}' " +
+                    f"of type '{file_type_opt.name}', input format '{input_format}' " +
                     f"and with compression '{input_compression}', "
                 )
 
@@ -2344,7 +2364,7 @@ class KgxValidator:
             ###################################
             # ...then, process them together...
             ###################################
-            if file_type == KgeFileType.KGX_DATA_FILE:
+            if file_type_opt == KgeFileType.KGX_DATA_FILE:
                 #
                 # Run validation of KGX knowledge graph data files here
                 #
@@ -2358,14 +2378,14 @@ class KgxValidator:
                 if validation_errors:
                     file_set.report_error(validation_errors)
 
-            elif file_type == KgeFileType.KGE_ARCHIVE:
+            elif file_type_opt == KgeFileType.KGE_ARCHIVE:
                 # TODO: perhaps need more work to properly dissect and
                 #       validate a KGX Data archive? Maybe need to extract it
                 #       then get the distinct files for processing? Or perhaps,
                 #       more direct processing is feasible (with the KGX Transformer?)
                 file_set.report_error("KGE Archive validation is not yet implemented?")
             else:
-                file_set.report_error(f"WARNING: Unknown KgeFileType{file_type} ... Ignoring?")
+                file_set.report_error(f"WARNING: Unexpected KgeFileType{file_type_opt.name} ... Ignoring?")
 
             compliance: str = ' not ' if file_set.errors else ' '
             logger.debug(
