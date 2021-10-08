@@ -205,7 +205,7 @@ def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
     return input_format, compression
 
 
-class KgeFileType(Enum):
+class KgeFileType(bytes, Enum):
     """
     KGE File types Enumerated
     """
@@ -2341,7 +2341,7 @@ class KgxValidator:
                 #       we should probably guard against inconsistent
                 #       input format and compression somewhere upstream
                 if not file_type_opt:
-                    file_type_opt = entry["file_type"]  # this should be a KgxFileType enum value?
+                    file_type_opt = entry["file_type"]  # this should be a KgeFileType enum value?
                 if not input_format:
                     input_format = entry["input_format"]
                 if not input_compression:
