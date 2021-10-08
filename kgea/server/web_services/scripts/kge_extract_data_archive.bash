@@ -110,7 +110,8 @@ file_set_key_path="${kg_id}/${file_set_version}"
 echo "File Set Key Path: ${file_set_key_path}"
 
 # Full S3 object key to the file set folder
-s3_uri="s3://${bucket}/${root_directory}/${file_set_key_path}"
+file_set_key_prefix="${root_directory}/${file_set_key_path}"
+s3_uri="s3://${bucket}/${file_set_key_prefix}"
 echo "Base S3 URI: ${s3_uri}"
 
 # Archive file to be extracted
@@ -156,7 +157,7 @@ rm "${tar_file}"
 #    KGE_EDGES = (4, "edges", "KGX edge data file")
 #    KGE_ARCHIVE = (5, "archive", "KGE data archive")
 
-typed_file_object_key () {
+typed_core_file_object_key () {
   if [[ "${1}" =~ node[s]?.${kgx_file_ext} ]];
   then
     file_type=3
@@ -206,17 +207,20 @@ do
   # STEP 4a - file_typed_object_key() heuristically assigns
   #           the object key for various file types
   #
-  result=$(typed_file_object_key "${file_path}")
+  result=$(typed_core_file_object_key "${file_path}")
   if [[ -z "${result}" ]]; then
     echo "File '${file_path}' is not a KGX graph (meta-)data file... ignored!"
     continue
   fi
 
-  # parse out the result of the typed_file_object_key()
+  # parse out the result of the typed_core_file_object_key()
   IFS=',' read -ra file_data <<< "${result}"
 
-  file_object_key=${file_data[0]}
-  echo "File Object Key: ${file_object_key}"
+  # the 'unique' file object key is just
+  # the variable part relating to file type
+  core_file_object_key=${file_data[0]}
+  echo "Core File Object Key: ${core_file_object_key}"
+
 
   file_type=${file_data[1]}
   echo "File Type: ${file_type}"
@@ -226,7 +230,10 @@ do
   file_size=$(ls -l "${file_path}" | awk '{print  $5}')
   echo "File Size: ${file_size}"
 
-  file_object_uri="${s3_uri}/${file_object_key}"
+  file_object_key="${file_set_key_prefix}/${core_file_object_key}"
+  echo "File Object Key: ${file_object_key}"
+
+  file_object_uri="${s3_uri}/${core_file_object_key}"
   echo "File Object URI: ${file_object_uri}"
 
   #

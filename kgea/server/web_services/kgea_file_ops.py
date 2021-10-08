@@ -788,8 +788,6 @@ def extract_data_archive(
         err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
         logger.error(err_msg)
         raise RuntimeError(f"extract_data_archive(): {err_msg}")
-
-    s3_uri = f"s3://${bucket}/${root_directory}/${kg_id}/${file_set_version}"
     
     file_entries: List[Dict[str, str]] = []
 
@@ -807,7 +805,7 @@ def extract_data_archive(
                 "file_type": file_type,
                 "file_size": str(file_size),
                 "object_key": file_object_key,
-                "s3_file_url": f"{s3_uri}/{file_object_key}"
+                "s3_file_url": f"s3://{bucket}/{file_object_key}"
             })
     try:
         return_code = run_script(
@@ -1046,7 +1044,7 @@ def aggregate_files(
 
     :param bucket:
     :param target_folder:
-    :param target_name:
+    :param target_name: target data file format(s)
     :param file_object_keys:
     :param match_function:
     :return:
@@ -1055,6 +1053,7 @@ def aggregate_files(
         return ''
 
     agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
+    logger.debug(f"agg_path: {agg_path}")
     with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
         file_object_keys = list(filter(match_function, file_object_keys))
         for index, file_object_key in enumerate(file_object_keys):

@@ -1939,10 +1939,13 @@ class KgeArchiver:
         :param file_object_keys:
         :param match_function:
         """
-        print(file_set, data_type, file_object_keys)
 
+        # TODO: what do we do if we want to aggregate more than just KGX TSV files?
         data_type += ".tsv"
-        logger.info(f"Aggregating {data_type} files:")
+        
+        key_list = "\n\t".join(file_object_keys)
+        logger.debug(f"Aggregating {data_type} files in File Set '{file_set.id()}'\n"
+                     f"\tcontaining object keys:\n\t{key_list}")
 
         try:
             agg_path: str = aggregate_files(
@@ -1951,7 +1954,7 @@ class KgeArchiver:
                 file_object_keys=file_object_keys,
                 match_function=match_function
             )
-            logger.info(f"{data_type} path: {agg_path}")
+            logger.debug(f"{data_type} path: {agg_path}")
     
         except Exception as e:
             # Can't be more specific than this 'cuz not sure what errors may be thrown here...
@@ -2052,8 +2055,12 @@ class KgeArchiver:
                             s3_file_url=entry["s3_file_url"]
                         )
 
+                    logger.debug("Generating new fileset.yaml metadata file...")
+                    
                     # rewrite the new file set file
                     fileset_metadata_file = file_set.generate_fileset_metadata_file()
+
+                    logger.debug("... then, adding the fileset.yaml to the KGE S3 repository")
                     
                     # TODO: is it helpful to store this object key somewhere in the KgeFileSet?
                     fileset_metadata_object_key = add_to_s3_repository(
@@ -2068,6 +2075,8 @@ class KgeArchiver:
                 print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
 
+            logger.debug("Aggregating nodes")
+            
             # 2. Aggregate each of all nodes and edges each
             #    into their respective files in the archive folder
             self.aggregate_to_archive(file_set, "nodes", file_set.get_nodes())
