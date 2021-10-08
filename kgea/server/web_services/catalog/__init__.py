@@ -377,13 +377,14 @@ class KgeFileSet:
         ))
         return edge_files_keys
 
-    def get_archive_files_keys(self):
+    def get_archive_filenames(self):
         """
 
         :return:
         """
+        # RMB 7-Oct-2021: getting file names, not the object_keys of those files
         archive_files_keys = list(filter(
-            lambda x: '.tar.gz' in x, self.get_data_file_object_keys()
+            lambda x: '.tar.gz' in x, self.get_data_file_names()
         ))
         return archive_files_keys
 
@@ -394,7 +395,7 @@ class KgeFileSet:
         :return:
         """
         if filetype is KgeFileType.KGE_ARCHIVE:
-            return len(self.get_archive_files_keys()) > 0
+            return len(self.get_archive_filenames()) > 0
         elif filetype is KgeFileType.KGE_NODES:
             return len(self.get_nodes()) > 0
         elif filetype is KgeFileType.KGE_EDGES:
@@ -1985,9 +1986,9 @@ class KgeArchiver:
             try:
                 logger.debug(
                     f"KgeArchiver task {task_id} unpacking incoming tar.gz archives: " +
-                    f"{file_set.get_archive_files_keys()}")
+                    f"{file_set.get_archive_filenames()}")
                 
-                for archive_filename in file_set.get_data_file_names():
+                for archive_filename in file_set.get_archive_filenames():
                     
                     logger.debug(f"Unpacking archive {archive_filename}")
                     
