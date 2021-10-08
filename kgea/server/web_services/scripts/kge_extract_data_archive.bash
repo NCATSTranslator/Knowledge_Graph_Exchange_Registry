@@ -221,7 +221,6 @@ do
   core_file_object_key=${file_data[0]}
   echo "Core File Object Key: ${core_file_object_key}"
 
-
   file_type=${file_data[1]}
   echo "File Type: ${file_type}"
 

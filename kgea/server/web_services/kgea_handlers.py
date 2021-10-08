@@ -494,7 +494,7 @@ async def _validate_and_set_up_archive_target(
         fileset_version: str,
         kgx_file_content: str,
         content_name: str
-) -> Tuple[Any, str, KgeFileType]:
+) -> Tuple[str, Any, str, KgeFileType]:
     """
 
     :param request:
@@ -574,7 +574,7 @@ async def _validate_and_set_up_archive_target(
     
     object_key = f"{file_set_location}{Path(content_name).stem}{path.splitext(content_name)[1]}"
     
-    return file_set_location, object_key, file_type
+    return content_name, file_set_location, object_key, file_type
 
 
 async def _initialize_upload_token(
@@ -587,16 +587,14 @@ async def _initialize_upload_token(
     """
     Set up Progress Indication Token mechanism
     """
-    file_set_location, object_key, file_type = \
+    content_name, file_set_location, object_key, file_type = \
         await _validate_and_set_up_archive_target(
             request, kg_id, fileset_version, kgx_file_content, content_name
         )
     
     logger.debug(
-        "_initialize_upload_token(): " +
-        "file_set_location == '" + file_set_location + "'" +
-        "object_key == '" + object_key + "'" +
-        "file_type == '" + str(file_type) + "')"
+        f"_initialize_upload_token(content_name={content_name}, file_set_location='{file_set_location}'," +
+        f"object_key='{object_key}', file_type='{str(file_type)}')"
     )
     
     with threading.Lock():

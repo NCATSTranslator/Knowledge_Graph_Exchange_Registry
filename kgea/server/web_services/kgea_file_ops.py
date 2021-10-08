@@ -795,7 +795,10 @@ def extract_data_archive(
         """
         :param line: bash script stdout line being parsed
         """
-        logger.debug(f"Entering output_parser(line: {line})!")
+        if not line.strip():
+            return   # empty line?
+        
+        # logger.debug(f"Entering output_parser(line: {line})!")
         if line.startswith(_EDA_OUTPUT_DATA_PREFIX):
             line = line.replace(_EDA_OUTPUT_DATA_PREFIX, '')
             file_name, file_type, file_size, file_object_key = line.split(',')
