@@ -119,9 +119,7 @@ async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
         
-        catalog = KnowledgeGraphCatalog.catalog().get_kg_entries(
-            ignore_without_filetype=KgeFileType.KGE_ARCHIVE
-        )
+        catalog = KnowledgeGraphCatalog.catalog().get_kg_entries()
 
     # but don't need to propagate the user session to the output
     response = web.json_response(catalog, status=200)
@@ -445,7 +443,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
                 f"publish_kge_file_set() errors: unknown '{fileset_version}' for knowledge graph '{kg_id}'?"
             )
             
-        if file_set.get_file_set_status() == KgeFileSetStatusCode.CREATED:
+        if file_set.get_fileset_status() == KgeFileSetStatusCode.CREATED:
             # Assume that it still needs to be processed
             logger.debug(f"\tPublishing fileset version '{fileset_version}' of graph '{kg_id}'")
             try:
@@ -453,7 +451,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             except Exception as exception:
                 logger.error(str(exception))
     
-        if file_set.get_file_set_status() == KgeFileSetStatusCode.ERROR:
+        if file_set.get_fileset_status() == KgeFileSetStatusCode.ERROR:
             await report_bad_request(
                 request,
                 f"publish_kge_file_set() errors: file set version '{fileset_version}' " +
@@ -466,7 +464,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             f"{SUBMISSION_CONFIRMATION}?" +
             f"kg_name={knowledge_graph.get_name()}&" +
             f"fileset_version={fileset_version}&" +
-            f"validated={str(file_set.get_file_set_status() == KgeFileSetStatusCode.VALIDATED)}",
+            f"validated={str(file_set.get_fileset_status() == KgeFileSetStatusCode.VALIDATED)}",
             active_session=True
         )
 

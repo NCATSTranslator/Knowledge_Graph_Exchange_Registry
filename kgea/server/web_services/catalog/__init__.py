@@ -231,6 +231,7 @@ class KgeFileType(bytes, Enum):
         """
         pass
 
+
 class KgeFileSet:
     """
     Class wrapping information about a specific released version of
@@ -295,6 +296,14 @@ class KgeFileSet:
     def __str__(self):
         return f"File set version '{self.fileset_version}' of graph '{self.kg_id}': {self.data_files}"
     
+    def is_validated(self) -> bool:
+        """
+        Predicate to test if a KGE File Set is fully validated.
+        
+        :return: True if fileset has given status
+        """
+        return self.status == KgeFileSetStatusCode.VALIDATED
+    
     def report_error(self, msg):
         """
         :param msg: single string message or list of string messages
@@ -308,7 +317,7 @@ class KgeFileSet:
             self.errors.extend(msg)
             self.status = KgeFileSetStatusCode.ERROR
 
-    def get_file_set_status(self):
+    def get_fileset_status(self):
         """
         :return: KgeFileSetStatusCode of the KGE File Set
         """
@@ -412,9 +421,10 @@ class KgeFileSet:
         else:
             return ''
 
-    def has(self, filetype):
+    def contains_file_of_type(self, filetype) -> bool:
         """
-
+        Predicate to test whether or not a KGE fileset contains an input data file of a given type.
+        
         :param filetype:
         :return:
         """
@@ -425,7 +435,7 @@ class KgeFileSet:
         elif filetype is KgeFileType.KGE_EDGES:
             return len(self.get_edges()) > 0
         else:
-            return None
+            return False
 
     # Note: content metadata file name is already normalized on S3 to 'content_metadata.json'
     def set_content_metadata_file(self, file_name: str, file_size: int, object_key: str, s3_file_url: str):
@@ -1364,10 +1374,11 @@ class KnowledgeGraphCatalog:
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
 
-    def get_kg_entries(self, ignore_without_filetype=None) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
+    def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
         """
-
-        :return:
+        Get KGE Knowledge Graph Entries.
+        
+        :return: dictionary catalog of knowledge graphs and their validated file set versions.
         """
         # TODO: see KgeFileSetEntry schema in the ~/kgea/api/kgea_api.yaml
         if not OVERRIDE and DEV_MODE:
@@ -1391,8 +1402,7 @@ class KnowledgeGraphCatalog:
                 # or a certain completion code. We do this now.
                 versions = knowledge_graph.get_version_names()
                 filtered_versions = [
-                    version for version in versions
-                    if knowledge_graph.get_file_set(version).has(filetype=ignore_without_filetype)
+                    version for version in versions if knowledge_graph.get_file_set(version).is_validated()
                 ]
                 catalog[kg_id] = dict()
                 catalog[kg_id]['name'] = knowledge_graph.get_name()
