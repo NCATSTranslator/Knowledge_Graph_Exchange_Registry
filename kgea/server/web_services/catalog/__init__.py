@@ -2015,9 +2015,11 @@ class KgeArchiver:
 
             logger.info(f"KgeArchiver worker {task_id} starting archive of {file_set.id()}")
             
-            # perhaps await a second before starting the work,
-            # to unblock co-routine responses in the main web application
-            await sleep(1)
+            # sleep briefly to yield to co-routine executed main web application code. Done several times below...
+            # 10 seconds to allow the user to go to home and get the KG catalog, before this task ties up the CPU?
+            # TODO: performance issue seems to result from execution of this code on servers with few CPU's?
+            #       Or is this a main loop blockage issue (which maybe needs to be resolved another way?)
+            await sleep(10)
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
@@ -2087,6 +2089,9 @@ class KgeArchiver:
 
             logger.debug("Aggregating nodes")
             
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
+            
             # 2. Aggregate each of all nodes and edges each
             #    into their respective files in the archive folder
             self.aggregate_to_archive(file_set, "nodes", file_set.get_nodes())
@@ -2097,6 +2102,9 @@ class KgeArchiver:
             self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
             self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
 
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
+            
             # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
             #    containing the aggregated nodes.tsv, edges.tsv, Appending `file_set_root_key`
             #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
@@ -2115,6 +2123,9 @@ class KgeArchiver:
 
             logger.debug("...File compression completed!")
 
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
+            
             # 5. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
             #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
             #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
@@ -2140,6 +2151,9 @@ class KgeArchiver:
                 print_error_trace("SHA1 hash sum computation failure! "+str(e))
                 raise e
 
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
+            
             # 6. KGX validation of KGE compliant archive.
             
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
