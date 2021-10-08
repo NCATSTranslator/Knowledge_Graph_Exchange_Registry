@@ -517,7 +517,7 @@ class KgeFileSet:
             entry = self.data_files.pop(object_key)
             print(entry)
             # Remove size of this file from file set aggregate size
-            self.size = self.size - entry['file_size']
+            self.size = self.size - int(entry['file_size'])
 
         except KeyError:
             logger.warning(
@@ -2010,20 +2010,20 @@ class KgeArchiver:
                     #
                     # archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     #
-                    archive_file_entries = \
+                    archive_file_entries: List[Dict[str, str]] = \
                         extract_data_archive(
                             kg_id=file_set.get_kg_id(),
                             file_set_version=file_set.get_fileset_version(),
                             archive_filename=archive_filename
                         )
 
-                    logger.debug(f"...finished! To fileset '{file_set.id()}', adding files:")
-
                     # Republish the file_set.yaml file to modify the archives in place. This is done as a side-effect
                     # onto S3, before the files are aggregated to the archive, or are copied to the archive.
                     #
                     # ...Remove the archive entry from the KgxFileSet
                     file_set.remove_data_file(archive_file_key)
+                    
+                    logger.debug(f"Adding {len(archive_file_entries)} files to fileset '{file_set.id()}':")
                     
                     # add the archive's files to the file set
                     for entry in archive_file_entries:

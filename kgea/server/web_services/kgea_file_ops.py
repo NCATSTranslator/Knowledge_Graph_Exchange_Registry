@@ -116,7 +116,7 @@ def run_script(
                 line = line.strip()
                 if stdout_parser:
                     stdout_parser(line)
-                logger.info(line)
+                logger.debug(line)
                 
     except RuntimeError:
         logger.error(f"run_script({script}) exception: {exc_info()}")
@@ -503,7 +503,7 @@ def object_folder_contents_size(
 
     total_size = 0
     for size in object_key_catalog.values():
-        total_size += size
+        total_size += int(size)
     
     return total_size
 
@@ -766,7 +766,7 @@ def extract_data_archive(
         archive_filename: str,
         bucket: str = default_s3_bucket,
         root_directory: str = default_s3_root_key
-):
+) -> List[Dict[str, str]]:
     """
     Decompress a tar.gz data archive file from a given S3 bucket, and upload back its internal files back.
     
@@ -791,12 +791,13 @@ def extract_data_archive(
 
     s3_uri = f"s3://${bucket}/${root_directory}/${kg_id}/${file_set_version}"
     
-    file_entries = []
+    file_entries: List[Dict[str, str]] = []
 
     def output_parser(line: str):
         """
         :param line: bash script stdout line being parsed
         """
+        logger.debug(f"Entering output_parser(line: {line})!")
         if line.startswith(_EDA_OUTPUT_DATA_PREFIX):
             line = line.replace(_EDA_OUTPUT_DATA_PREFIX, '')
             file_name, file_type, file_size, file_object_key = line.split(',')
@@ -804,7 +805,7 @@ def extract_data_archive(
             file_entries.append({
                 "file_name": file_name,
                 "file_type": file_type,
-                "file_size": file_size,
+                "file_size": str(file_size),
                 "object_key": file_object_key,
                 "s3_file_url": f"{s3_uri}/{file_object_key}"
             })

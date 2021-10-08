@@ -829,7 +829,7 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
                 fileset_version=tracker["fileset_version"],
                 file_type=tracker["file_type"],
                 file_name=content_name,
-                file_size=progress_monitor.get_file_size(),
+                file_size=int(progress_monitor.get_file_size()),
                 object_key=object_key,
                 s3_file_url=s3_file_url
             )
