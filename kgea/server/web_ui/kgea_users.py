@@ -260,7 +260,7 @@ async def _get_user_attributes(code: str) -> Dict:
     }
     logger.debug(
         f"_get_user_attributes(): user_attributes are:\n"
-        f"{pp.pprint({user_info})}")
+        f"{pp.pprint(user_info)}")
 
     return user_attributes
 
