@@ -14,17 +14,20 @@ TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 from sys import stderr
+
 from os import getenv
 from os.path import dirname, abspath
-from typing import Dict, Union, Set, List, Any, Optional, Tuple
-from string import punctuation
-from io import BytesIO, StringIO
-from datetime import date, datetime
-import logging
 
-import tempfile
+from typing import Dict, Union, Set, List, Any, Optional, Tuple
+from enum import Enum
+from string import Template, punctuation
+from datetime import date, datetime
+
+# TODO: maybe convert Catalog components to Python Dataclasses?
+# from dataclasses import dataclass
 
 import re
+
 import threading
 from asyncio import (
     create_task,
@@ -36,15 +39,10 @@ from asyncio import (
     run
 )
 
-# TODO: maybe convert Catalog components to Python Dataclasses?
-# from dataclasses import dataclass
-
-from enum import Enum
-from string import Template
+from io import BytesIO, StringIO
+import tempfile
 
 import json
-
-import smart_open
 from jsonschema import (
     ValidationError,
     SchemaError,
@@ -52,8 +50,6 @@ from jsonschema import (
 )
 
 import yaml
-from kgx.utils.kgx_utils import GraphEntityType
-
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
     from yaml.scanner import ScannerError
@@ -64,13 +60,16 @@ except ImportError:
 from github import Github
 from github.GithubException import UnknownObjectException, BadCredentialsException
 
+import smart_open
+
+from kgx.utils.kgx_utils import GraphEntityType
 from kgx.transformer import Transformer
 from kgx.validator import Validator
 
 from kgea.config import (
     get_app_config,
     PROVIDER_METADATA_FILE,
-    FILE_SET_METADATA_FILE
+    FILE_SET_METADATA_FILE, CONTENT_METADATA_FILE
 )
 
 from kgea.server.web_services.models import (
@@ -82,6 +81,7 @@ from kgea.server.web_services.models import (
 )
 
 from kgea.server.web_services.kgea_file_ops import (
+    default_s3_bucket,
     print_error_trace,
     get_default_date_stamp,
     get_object_location,
@@ -94,12 +94,13 @@ from kgea.server.web_services.kgea_file_ops import (
     copy_file,
     upload_file,
     random_alpha_string,
-    decompress_in_place,
-    object_key_exists
+    object_key_exists,
+    extract_data_archive
 )
 
 from kgea.server.web_services.sha_utils import sha1_manifest
 
+import logging
 logger = logging.getLogger(__name__)
 
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -111,19 +112,35 @@ CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
 
 def prepare_test(func):
     """
-    
+
     :param func:
     :return:
     """
+    
     def wrapper():
         """
-        
+
         :return:  function called
         """
         print("\n" + str(func) + " ----------------\n")
         return func()
+    
     return wrapper
 
+
+# Opaquely access the configuration dictionary
+_KGEA_APP_CONFIG = get_app_config()
+site_hostname = _KGEA_APP_CONFIG['site_hostname']
+
+Number_of_Archiver_Tasks = \
+    _KGEA_APP_CONFIG['Number_of_Archiver_Tasks'] if 'Number_of_Archiver_Tasks' in _KGEA_APP_CONFIG else 3
+
+Number_of_Validator_Tasks = \
+    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
+
+# TODO: operational parameter dependent configuration
+MAX_WAIT = 100  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
+MAX_QUEUE = 0  # amount of queueing until we stop pushing onto the queue. 0 for unlimited queue items
 
 #
 # Until we are confident about the KGE File Set publication
@@ -137,26 +154,12 @@ TRANSLATOR_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
 KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
 
-
-# Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
-
-Number_of_Archiver_Tasks = \
-    _KGEA_APP_CONFIG['Number_of_Archiver_Tasks'] if 'Number_of_Archiver_Tasks' in _KGEA_APP_CONFIG else 3
-
-Number_of_Validator_Tasks = \
-    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
-
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_provider_metadata.yaml')
 FILE_SET_METADATA_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_fileset_metadata.yaml')
 TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
-
-# TODO: operational parameter dependent configuration
-MAX_WAIT = 100  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
-MAX_QUEUE = 0  # amount of queueing until we stop pushing onto the queue. 0 for unlimited queue items
 
 
 def _populate_template(filename, **kwargs) -> str:
@@ -202,14 +205,31 @@ def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
     return input_format, compression
 
 
-class KgeFileType(Enum):
+class KgeFileType(bytes, Enum):
     """
     KGE File types Enumerated
     """
-    KGX_UNKNOWN = "unknown file type"
-    KGX_CONTENT_METADATA_FILE = "KGX metadata file"
-    KGX_DATA_FILE = "KGX data file"
-    KGE_ARCHIVE = "KGE data archive"
+    KGX_UNKNOWN = (0, "unknown", "unknown file type")
+    KGX_CONTENT_METADATA_FILE = (1, "metadata", "KGX metadata file")
+    KGX_DATA_FILE = (2, "data", "KGX data file")
+    KGE_NODES = (3, "nodes", "KGX node data file")
+    KGE_EDGES = (4, "edges", "KGX edge data file")
+    KGE_ARCHIVE = (5, "archive", "KGE data archive")
+
+    def __new__(cls, value, label: str, name: str):
+        obj = bytes.__new__(cls, [value])
+        obj._value_ = value
+        obj.label = label
+        obj._name_ = name
+        return obj
+
+    @classmethod
+    def lookup(cls, label):
+        """
+        Look up the Enum by label
+        :param label:
+        """
+        pass
 
 
 class KgeFileSet:
@@ -274,7 +294,15 @@ class KgeFileSet:
             self.status = KgeFileSetStatusCode.CREATED
 
     def __str__(self):
-        return f"File set version '{self.fileset_version}' of graph '{self.kg_id}'"
+        return f"File set version '{self.fileset_version}' of graph '{self.kg_id}': {self.data_files}"
+    
+    def is_validated(self) -> bool:
+        """
+        Predicate to test if a KGE File Set is fully validated.
+        
+        :return: True if fileset has given status
+        """
+        return self.status == KgeFileSetStatusCode.VALIDATED
     
     def report_error(self, msg):
         """
@@ -289,7 +317,7 @@ class KgeFileSet:
             self.errors.extend(msg)
             self.status = KgeFileSetStatusCode.ERROR
 
-    def get_file_set_status(self):
+    def get_fileset_status(self):
         """
         :return: KgeFileSetStatusCode of the KGE File Set
         """
@@ -358,7 +386,7 @@ class KgeFileSet:
         :return:
         """
         node_files_keys = list(filter(
-            lambda x: 'nodes/' or 'nodes.tsv' in x and not ('aggregates/' in x), self.get_data_file_object_keys()
+            lambda x: 'nodes/' in x or 'nodes.tsv' in x, self.get_data_file_object_keys()
         ))
         return node_files_keys
 
@@ -368,21 +396,48 @@ class KgeFileSet:
         :return:
         """
         edge_files_keys = list(filter(
-            lambda x: 'edges/' or 'edges.tsv' in x and not ('aggregates/' in x), self.get_data_file_object_keys()
+            lambda x: 'edges/' in x or 'edges.tsv' in x, self.get_data_file_object_keys()
         ))
         return edge_files_keys
 
-    def get_archive_files_keys(self):
+    def get_archive_file_keys(self):
         """
-
-        :return:
+        :return: S3 object keys
         """
         archive_files_keys = list(filter(
             lambda x: '.tar.gz' in x, self.get_data_file_object_keys()
         ))
         return archive_files_keys
+    
+    def get_property_of_data_file_key(self, object_key: str, attribute: str):
+        """
+        :param object_key:
+        :param attribute:
+        
+        :return: the value of the property of the file identified by the object key; empty string otherwise
+        """
+        if object_key in self.data_files and attribute in self.data_files[object_key]:
+            return self.data_files[object_key][attribute]
+        else:
+            return ''
 
-    # Note: content metadata file name is already normalized on S3 to 'content_metadata.yaml'
+    def contains_file_of_type(self, filetype) -> bool:
+        """
+        Predicate to test whether or not a KGE fileset contains an input data file of a given type.
+        
+        :param filetype:
+        :return:
+        """
+        if filetype is KgeFileType.KGE_ARCHIVE:
+            return len(self.get_archive_file_keys()) > 0
+        elif filetype is KgeFileType.KGE_NODES:
+            return len(self.get_nodes()) > 0
+        elif filetype is KgeFileType.KGE_EDGES:
+            return len(self.get_edges()) > 0
+        else:
+            return False
+
+    # Note: content metadata file name is already normalized on S3 to 'content_metadata.json'
     def set_content_metadata_file(self, file_name: str, file_size: int, object_key: str, s3_file_url: str):
         """
         Sets the metadata file identification for a KGE File Set
@@ -405,7 +460,7 @@ class KgeFileSet:
         self.add_file_size(file_size)
 
         content_metadata_file_text = load_s3_text_file(
-            bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            bucket_name=default_s3_bucket,
             object_name=object_key
         )
         # Must load the JSON into a Python dictionary for validation
@@ -483,7 +538,11 @@ class KgeFileSet:
         try:
             # TODO: need to be careful here with data file removal in case
             #       the file in question is still being actively validated?
-            details = self.data_files.pop(object_key)
+            entry = self.data_files.pop(object_key)
+            print(entry)
+            # Remove size of this file from file set aggregate size
+            self.size = self.size - int(entry['file_size'])
+
         except KeyError:
             logger.warning(
                 "File with object key '" + object_key + "' was not found in " +
@@ -532,7 +591,7 @@ class KgeFileSet:
         """
         # Signal that the KGE File Set is in a post-processing state
         self.status = KgeFileSetStatusCode.PROCESSING
-        
+
         try:
             # Publish a 'file_set.yaml' metadata file to the
             # versioned archive subdirectory containing the KGE File Set
@@ -609,7 +668,7 @@ class KgeFileSet:
             files += "- " + entry["file_name"]+"\n"
         try:
             fileset_metadata_yaml = _populate_template(
-                host=_KGEA_APP_CONFIG['site_hostname'],
+                host=site_hostname,
                 filename=FILE_SET_METADATA_TEMPLATE_FILE_PATH,
                 kg_id=self.kg_id,
                 biolink_model_release=self.biolink_model_release,
@@ -641,7 +700,7 @@ class KgeFileSet:
                 submitter_name=self.submitter_name,
                 submitter_email=self.submitter_email,
                 status=self.status,
-                size=self.size/1024**2  # aggregate file size in megabytes
+                size=self.size/1024**2  # aggregated file size in megabytes
             )
 
         file_set: List[KgeFile] = [
@@ -649,7 +708,7 @@ class KgeFileSet:
                 original_name=name,
                 # TODO: populate with more complete file_set information here
                 # assigned_name="nodes.tsv",
-                # file_type="Nodes",
+                # file_type="Nodes",  # can use KgeFileType(3) indexed enum
                 # file_size=100,  # megabytes
                 # kgx_compliance_status="Validated",
                 # errors=list()
@@ -736,23 +795,8 @@ class KgeKnowledgeGraph:
                 continue
             self.parameter[key] = self.sanitize(key, value)
 
-        # File Set Versions
+        # File Set Versions - none added upon KG creation
         self._file_set_versions: Dict[str, KgeFileSet] = dict()
-
-        #
-        # Knowledge Graph registration no longer
-        # automatically adds a new KGE File Set version
-        #
-        # Register an explicitly specified submitter-specified KGE File Set version
-        # Sanity check: we should probably not overwrite a KgeFileSet version if it already exists?
-        # if fileset_version and fileset_version not in self._file_set_versions:
-        #     self._file_set_versions[fileset_version] = KgeFileSet(
-        #         kg_id=self.kg_id,
-        #         fileset_version=fileset_version,
-        #         submitter_name=kwargs['submitter_name'],
-        #         submitter_email=kwargs['submitter_email']
-        #     )
-
         self._provider_metadata_object_key: Optional[str] = None
 
     _name_filter_table = None
@@ -890,7 +934,7 @@ class KgeKnowledgeGraph:
         """
         return _populate_template(
             filename=PROVIDER_METADATA_TEMPLATE_FILE_PATH,
-            host=_KGEA_APP_CONFIG['site_hostname'], kg_id=self.kg_id, **self.parameter
+            host=site_hostname, kg_id=self.kg_id, **self.parameter
         )
 
     def generate_translator_registry_entry(self) -> str:
@@ -900,7 +944,7 @@ class KgeKnowledgeGraph:
         """
         return _populate_template(
             filename=TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH,
-            host=_KGEA_APP_CONFIG['site_hostname'], kg_id=self.kg_id, **self.parameter
+            host=site_hostname, kg_id=self.kg_id, **self.parameter
         )
 
     def get_version_names(self) -> List[str]:
@@ -1029,8 +1073,8 @@ class KgeKnowledgeGraph:
     # # OK in case with multiple files (alternative would be, archives?). A bit redundant with just one file.
     # # TODO: convert into redirect approach with cross-origin scripting?
     # file_set_location, _ = with_version(func=get_object_location, version=self.fileset_version)(self.kg_id)
-    # kg_files = kg_files_in_location(
-    #     bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+    # kg_files = object_keys_in_location(
+    #     bucket_name=default_s3_bucket,
     #     object_location=file_set_location
     # )
     # pattern = Template('($FILES_LOCATION[0-9]+\/)').substitute(FILES_LOCATION=file_set_location)
@@ -1039,7 +1083,7 @@ class KgeKnowledgeGraph:
     #     map(
     #         lambda kg_file: [
     #             Path(kg_file).stem,
-    #             create_presigned_url(_KGEA_APP_CONFIG['aws']['s3']['bucket'], kg_file)
+    #             create_presigned_url(default_s3_bucket, kg_file)
     #         ],
     #         kg_listing))
     # # logger.info('access urls %s, KGs: %s', kg_urls, kg_listing)
@@ -1076,10 +1120,10 @@ class KgeKnowledgeGraph:
         return metadata
 
 
-class KgeArchiveCatalog:
+class KnowledgeGraphCatalog:
     """
-    Knowledge Graph Exchange (KGE) Temporary Registry for
-    tracking compilation and validation of complete KGE File Sets
+    Knowledge Graph Exchange (KGE) In Memory Catalog to manage compilation,
+     validation and user access of releases of KGX File Sets of Knowledge Graphs
     """
     _the_catalog = None
 
@@ -1090,12 +1134,13 @@ class KgeArchiveCatalog:
 
         # Initialize catalog with the metadata of all the existing KGE Archive (AWS S3 stored) KGE File Sets
         # archive_contents keys are the kg_id's, entries are the rest of the KGE File Set metadata
-        archive_contents: Dict = get_archive_contents(bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket'])
+        archive_contents: Dict = get_archive_contents(bucket_name=default_s3_bucket)
         for kg_id, entry in archive_contents.items():
             if self.is_complete_kg(kg_id, entry):
                 self.load_archive_entry(kg_id=kg_id, entry=entry)
 
-    def is_complete_kg(self, kg_id, entry) -> bool:
+    @staticmethod
+    def is_complete_kg(kg_id, entry) -> bool:
         """
         Verifies that an S3 KG entry (and all its file sets) are valid
         and complete for use by the front end application.
@@ -1112,12 +1157,12 @@ class KgeArchiveCatalog:
     @classmethod
     def catalog(cls):
         """
-        :return: singleton of KgeArchiveCatalog
+        :return: singleton of KnowledgeGraphCatalog
         """
         if not cls._the_catalog:
-            KgeArchiveCatalog._the_catalog = KgeArchiveCatalog()
+            KnowledgeGraphCatalog._the_catalog = KnowledgeGraphCatalog()
 
-        return KgeArchiveCatalog._the_catalog
+        return KnowledgeGraphCatalog._the_catalog
 
     def load_archive_entry(
             self,
@@ -1142,7 +1187,7 @@ class KgeArchiveCatalog:
         """
          Parse an KGE Archive entry for metadata
          to load into a KgeFileSet
-         for indexing in the KgeArchiveCatalog
+         for indexing in the KnowledgeGraphCatalog
         """
         if not (
             'metadata' in entry and
@@ -1308,7 +1353,6 @@ class KgeArchiveCatalog:
         else:
             # Found a matching KGE Knowledge Graph?
             file_set = knowledge_graph.get_file_set(fileset_version=fileset_version)
-
             # Add the current (meta-)data file to the KGE File Set
             # associated with this fileset_version of the graph.
             if file_type in [KgeFileType.KGX_DATA_FILE, KgeFileType.KGE_ARCHIVE]:
@@ -1332,8 +1376,9 @@ class KgeArchiveCatalog:
 
     def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
         """
-
-        :return:
+        Get KGE Knowledge Graph Entries.
+        
+        :return: dictionary catalog of knowledge graphs and their validated file set versions.
         """
         # TODO: see KgeFileSetEntry schema in the ~/kgea/api/kgea_api.yaml
         if not OVERRIDE and DEV_MODE:
@@ -1352,9 +1397,16 @@ class KgeArchiveCatalog:
             # The real content of the catalog
             catalog: Dict[str,  Dict[str, Union[str, List[str]]]] = dict()
             for kg_id, knowledge_graph in self._kge_knowledge_graph_catalog.items():
+
+                # We only want to show graphs that either satisfy the existence of a filetype,
+                # or a certain completion code. We do this now.
+                versions = knowledge_graph.get_version_names()
+                filtered_versions = [
+                    version for version in versions if knowledge_graph.get_file_set(version).is_validated()
+                ]
                 catalog[kg_id] = dict()
                 catalog[kg_id]['name'] = knowledge_graph.get_name()
-                catalog[kg_id]['versions'] = knowledge_graph.get_version_names()
+                catalog[kg_id]['versions'] = filtered_versions
 
         return catalog
 
@@ -1369,13 +1421,13 @@ def test_check_kgx_compliance():
 @prepare_test
 def test_get_catalog_entries():
     print("\ntest_get_catalog_entries() test output:\n", file=stderr)
-    catalog = KgeArchiveCatalog.catalog().get_kg_entries()
+    catalog = KnowledgeGraphCatalog.catalog().get_kg_entries()
     print(json.dumps(catalog, indent=4, sort_keys=True), file=stderr)
     return True
 
 
 _TEST_TSE_PARAMETERS = dict(
-    host=_KGEA_APP_CONFIG['site_hostname'],
+    host=site_hostname,
     kg_id="disney_small_world_graph",
     kg_name="Disneyland Small World Graph",
     kg_description="""Voyage along the Seven Seaways canal and behold a cast of
@@ -1427,7 +1479,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     kg_id = "disney_small_world_graph"
     date_stamp = "1964-04-22"
 
-    fs = KgeFileSet(
+    file_set = KgeFileSet(
         kg_id=kg_id,
         biolink_model_release="2.0.2",
         fileset_version=fileset_version,
@@ -1444,11 +1496,11 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     file_name = 'MickeyMouseFanClub_nodes.tsv'
     object_key = get_object_key(file_set_location, file_name)
     key = upload_file(
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        bucket=default_s3_bucket,
         object_key=object_key,
         source=test_file1
     )
-    fs.add_data_file(
+    file_set.add_data_file(
         object_key=key,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
@@ -1464,11 +1516,11 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     file_name = 'MinnieMouseFanClub_edges.tsv'
     object_key = get_object_key(file_set_location, file_name)
     key = upload_file(
-        bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+        bucket=default_s3_bucket,
         object_key=object_key,
         source=test_file2
     )
-    fs.add_data_file(
+    file_set.add_data_file(
         object_key=key,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
@@ -1503,11 +1555,11 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         with open(tempdir+'/'+tar_file_name, 'rb') as test_tarfile1:
             object_key = get_object_key(file_set_location, test_name['archive'])
             key = upload_file(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=object_key,
                 source=test_tarfile1
             )
-            fs.add_data_file(
+            file_set.add_data_file(
                 object_key=key,
                 file_type=KgeFileType.KGX_DATA_FILE,
                 file_name=test_name['archive'],
@@ -1515,7 +1567,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
                 s3_file_url=''
             )
 
-    return fs
+    return file_set
 
 
 @prepare_test
@@ -1567,7 +1619,7 @@ def add_to_s3_repository(
         data_bytes = text.encode('utf-8')
         object_key = get_object_key(file_set_location, file_name)
         upload_file(
-            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            bucket=default_s3_bucket,
             object_key=object_key,
             source=BytesIO(data_bytes)
         )
@@ -1793,15 +1845,6 @@ Knowledge Graph eXchange (KGX) tool kit validation of
 Knowledge Graph Exchange (KGE) File Sets located on AWS S3
 """
 
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
-
-# one could perhaps parameterize this in the _KGEA_APP_CONFIG
-_NUMBER_OF_KGX_VALIDATION_WORKER_TASKS = _KGEA_APP_CONFIG.setdefault("Number_of_KGX_Validation_Worker_Tasks", 3)
 # KGX Content Metadata Validator is a simply JSON Schema validation operation
 CONTENT_METADATA_SCHEMA_FILE = abspath(dirname(__file__) + '/content_metadata.schema.json')
 with open(CONTENT_METADATA_SCHEMA_FILE, mode='r', encoding='utf-8') as cms:
@@ -1809,9 +1852,8 @@ with open(CONTENT_METADATA_SCHEMA_FILE, mode='r', encoding='utf-8') as cms:
 
 
 # This first iteration only validates the JSON structure and property tags against the JSON schema
-# TODO: perhaps should also check the existence of
-#       Biolink node categories and predicates
-#       (using the Biolink Model Toolkit)?
+# TODO: perhaps should also check the existence of Biolink
+#       node categories and predicates (using the Biolink Model Toolkit)?
 def validate_content_metadata(content_metadata_file) -> List:
     """
     
@@ -1898,31 +1940,38 @@ class KgeArchiver:
         return cls._the_archiver
     
     @staticmethod
-    def aggregate_to_archive(file_set: KgeFileSet, file_type: str, file_object_keys):
+    def aggregate_to_archive(file_set: KgeFileSet, data_type: str, file_object_keys, match_function=lambda x: True):
         """
         Wraps file aggregator for a given file type.
         
         :param file_set:
-        :param file_type:
+        :param data_type:
         :param file_object_keys:
+        :param match_function:
         """
-        file_type += ".tsv"
-        logger.info(f"Aggregating {file_type} files:")
+
+        # TODO: what do we do if we want to aggregate more than just KGX TSV files?
+        data_type += ".tsv"
+        
+        key_list = "\n\t".join(file_object_keys)
+        logger.debug(f"Aggregating {data_type} files in File Set '{file_set.id()}'\n"
+                     f"\tcontaining object keys:\n\t{key_list}")
+
         try:
             agg_path: str = aggregate_files(
                 target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
-                target_name=file_type,
+                target_name=data_type,
                 file_object_keys=file_object_keys,
-                match_function=lambda x: file_type in x
+                match_function=match_function
             )
-            logger.info(f"{file_type} path: {agg_path}")
+            logger.debug(f"{data_type} path: {agg_path}")
     
         except Exception as e:
             # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-            print_error_trace(f"{file_type} file aggregation failure! " + str(e))
+            print_error_trace(f"{data_type} file aggregation failure! " + str(e))
             raise e
 
-        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, file_type, 0, agg_path, '')
+        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, data_type, 0, agg_path, '')
     
     @staticmethod
     def copy_to_kge_archive(file_set: KgeFileSet, file_name: str):
@@ -1964,42 +2013,104 @@ class KgeArchiver:
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
-            logger.info(f"KgeArchiver worker {task_id} starting archive of {str(file_set)}")
+            logger.info(f"KgeArchiver worker {task_id} starting archive of {file_set.id()}")
+            
+            # sleep briefly to yield to co-routine executed main web application code. Done several times below...
+            # 10 seconds to allow the user to go to home and get the KG catalog, before this task ties up the CPU?
+            # TODO: performance issue seems to result from execution of this code on servers with few CPU's?
+            #       Or is this a main loop blockage issue (which maybe needs to be resolved another way?)
+            await sleep(10)
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
-                logger.info(f"KgeArchiver task {task_id} unpacking archive:...")
-                for file_key in file_set.get_archive_files_keys():
-                    logger.info(f"\t{str(file_key)}")
-                    # returns entries that follow the KgeFileSetEntry Schema
-                    # decompresses the archive and sends files to s3
-                    archive_file_entries = decompress_in_place(file_key)
-                    logger.info(f"...finished! To fileset '{file_set.id()}', adding files:")
+                logger.debug(
+                    f"KgeArchiver task {task_id} unpacking incoming tar.gz archives: " +
+                    f"{file_set.get_archive_file_keys()}")
+                
+                for archive_file_key in file_set.get_archive_file_keys():
+                    
+                    archive_filename = file_set.get_property_of_data_file_key(archive_file_key, 'file_name')
+                    
+                    logger.debug(f"Unpacking archive {archive_filename}")
+                    
+                    #
+                    # RMB: 2021-10-07, we deprecated the RAM-based version of the 'decompress-in-place' operation,
+                    # moving instead towards the kge_extract_data_archive.bash harddisk-centric solution
+                    #
+                    # archive_file_entries = decompress_to_kgx(file_key, archive_location)
+                    #
+                    archive_file_entries: List[Dict[str, str]] = \
+                        extract_data_archive(
+                            kg_id=file_set.get_kg_id(),
+                            file_set_version=file_set.get_fileset_version(),
+                            archive_filename=archive_filename
+                        )
+
+                    # Republish the file_set.yaml file to modify the archives in place. This is done as a side-effect
+                    # onto S3, before the files are aggregated to the archive, or are copied to the archive.
+                    #
+                    # ...Remove the archive entry from the KgxFileSet
+                    file_set.remove_data_file(archive_file_key)
+                    
+                    logger.debug(f"Adding {len(archive_file_entries)} files to fileset '{file_set.id()}':")
+                    
+                    # add the archive's files to the file set
                     for entry in archive_file_entries:
                         # spread the entry across the add_data_file function,
                         # which will take all its values as arguments
-                        logger.info(f"\t{entry['file_name']}")
-                        file_set.add_data_file(**entry)
+                        logger.debug(f"\t{entry['file_name']}")
+                        file_set.add_data_file(
+                            file_name=entry["file_name"],
+                            file_type=KgeFileType(int(entry["file_type"])),
+                            file_size=int(entry["file_size"]),
+                            object_key=entry["object_key"],
+                            s3_file_url=entry["s3_file_url"]
+                        )
+
+                    logger.debug("Generating new fileset.yaml metadata file...")
+                    
+                    # rewrite the new file set file
+                    fileset_metadata_file = file_set.generate_fileset_metadata_file()
+
+                    logger.debug("... then, adding the fileset.yaml to the KGE S3 repository")
+                    
+                    # TODO: is it helpful to store this object key somewhere in the KgeFileSet?
+                    fileset_metadata_object_key = add_to_s3_repository(
+                        kg_id=file_set.kg_id,
+                        text=fileset_metadata_file,
+                        file_name=FILE_SET_METADATA_FILE,
+                        fileset_version=file_set.fileset_version
+                    )
 
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("Error while unpacking archive?: "+str(e))
+                print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
 
-            # 2. Aggregate each of all nodes and edges each into their respective files in the archive folder
+            logger.debug("Aggregating nodes")
+            
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
+            
+            # 2. Aggregate each of all nodes and edges each
+            #    into their respective files in the archive folder
             self.aggregate_to_archive(file_set, "nodes", file_set.get_nodes())
             self.aggregate_to_archive(file_set, "edges", file_set.get_edges())
 
             # 3. Copy over metadata files into the archive folder
-            self.copy_to_kge_archive(file_set, "provider.yaml")
-            self.copy_to_kge_archive(file_set, "file_set.yaml")
-            self.copy_to_kge_archive(file_set, "content_metadata.json")
+            self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
+            self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
+            self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
 
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
+            
             # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
-            #    containing the aggregated nodes.tsv, edges.tsv,
-            # Appending `file_set_root_key` with 'aggregates/' and 'archive/' to prevent multiple compress_fileset runs
-            # from compressing the previous compression (so the source of files is distinct from the target written to)
-            logger.info("Compressing total KGE file set...")
+            #    containing the aggregated nodes.tsv, edges.tsv, Appending `file_set_root_key`
+            #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
+            #    from compressing the previous compression (so the source of files is distinct
+            #    from the target to which it is written)
+            logger.debug("Compressing total KGE file set...")
             try:
                 s3_archive_key: str = compress_fileset(
                     kg_id=file_set.kg_id,
@@ -2010,14 +2121,17 @@ class KgeArchiver:
                 print_error_trace("File set compression failure! "+str(e))
                 raise e
 
-            logger.info("...File compression completed!")
+            logger.debug("...File compression completed!")
 
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
+            
             # 5. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
             #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
             #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
             #  the catalog loading, for communication back to the user as part of the catalog metadata
             #  (once the archiving and hash generation is completed...)
-            logger.info("Computing SHA1 hash sum...")
+            logger.debug("Computing SHA1 hash sum...")
             try:
                 # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format
                 # of whatever is being opened. If we let this happen, then the hash function would run over
@@ -2028,7 +2142,7 @@ class KgeArchiver:
                     sha1sum_value = sha1sum[archive_file_key.name]
                     sha1tsv = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
                     manifest_object_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/manifest/"
-                    sha1_s3_path = f"s3://{_KGEA_APP_CONFIG['aws']['s3']['bucket']}/{manifest_object_location}{sha1tsv}"
+                    sha1_s3_path = f"s3://{default_s3_bucket}/{manifest_object_location}{sha1tsv}"
                     with smart_open.open(sha1_s3_path, 'w') as sha1file:
                         sha1file.write(sha1sum_value)
 
@@ -2037,21 +2151,24 @@ class KgeArchiver:
                 print_error_trace("SHA1 hash sum computation failure! "+str(e))
                 raise e
 
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
+            
             # 6. KGX validation of KGE compliant archive.
             
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
             # TODO: need to managed multiple Biolink Model specific KGX validators
-            logger.info(
-                f"(Future) KgeArchiver worker {task_id} validation of of {str(file_set)} tar.gz archive..."
+            logger.debug(
+                f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive..."
             )
-            # validator: KgxValidator = KgeArchiveCatalog.catalog().get_validator()
+            # validator: KgxValidator = KnowledgeGraphCatalog.catalog().get_validator()
             # KgxValidator.validate(self)
             
             # Assume that the TAR.GZ archive of the
             # KGE File Set is validated by this point
             file_set.status = KgeFileSetStatusCode.VALIDATED
             
-            logger.info(f"KgeArchiver worker {task_id} finished archiving of {str(file_set)}")
+            logger.debug(f"KgeArchiver worker {task_id} finished archiving of {file_set.id()}")
 
             self._archiver_queue.task_done()
 
@@ -2110,13 +2227,13 @@ class KgeArchiver:
         """
         # Post the file set to the KgeArchiver task Queue for processing
         try:
-            logger.info("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
+            logger.debug("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
             self._archiver_queue.put_nowait(
                 file_set
             )
         except QueueFull:
             
-            logger.info("KgeArchiver.process(): work queue is full? Will sleep awhile...")
+            logger.debug("KgeArchiver.process(): work queue is full? Will sleep awhile...")
             await sleep(wait)
             try:
                 assert(waits < maxwait)
@@ -2235,7 +2352,7 @@ class KgxValidator:
             # Collect the KGX data files names and metadata
             ###############################################
             input_files: List[str] = list()
-            file_type: Optional[KgeFileType] = None
+            file_type_opt: Optional[KgeFileType] = None
             input_format: Optional[str] = None
             input_compression: Optional[str] = None
 
@@ -2256,8 +2373,8 @@ class KgxValidator:
                 # TODO: we just take the first values encountered, but
                 #       we should probably guard against inconsistent
                 #       input format and compression somewhere upstream
-                if not file_type:
-                    file_type = entry["file_type"]
+                if not file_type_opt:
+                    file_type_opt = entry["file_type"]  # this should be a KgeFileType enum value?
                 if not input_format:
                     input_format = entry["input_format"]
                 if not input_compression:
@@ -2267,9 +2384,9 @@ class KgxValidator:
                 object_key = entry["object_key"]
                 s3_file_url = entry["s3_file_url"]
 
-                logger.info(
+                logger.debug(
                     f"KgxValidator() processing file '{file_name}' '{object_key}' " +
-                    f"of type '{file_type}', input format '{input_format}' " +
+                    f"of type '{file_type_opt.name}', input format '{input_format}' " +
                     f"and with compression '{input_compression}', "
                 )
 
@@ -2280,7 +2397,7 @@ class KgxValidator:
             ###################################
             # ...then, process them together...
             ###################################
-            if file_type == KgeFileType.KGX_DATA_FILE:
+            if file_type_opt == KgeFileType.KGX_DATA_FILE:
                 #
                 # Run validation of KGX knowledge graph data files here
                 #
@@ -2294,17 +2411,17 @@ class KgxValidator:
                 if validation_errors:
                     file_set.report_error(validation_errors)
 
-            elif file_type == KgeFileType.KGE_ARCHIVE:
+            elif file_type_opt == KgeFileType.KGE_ARCHIVE:
                 # TODO: perhaps need more work to properly dissect and
                 #       validate a KGX Data archive? Maybe need to extract it
                 #       then get the distinct files for processing? Or perhaps,
                 #       more direct processing is feasible (with the KGX Transformer?)
                 file_set.report_error("KGE Archive validation is not yet implemented?")
             else:
-                file_set.report_error(f"WARNING: Unknown KgeFileType{file_type} ... Ignoring?")
+                file_set.report_error(f"WARNING: Unexpected KgeFileType{file_type_opt.name} ... Ignoring?")
 
             compliance: str = ' not ' if file_set.errors else ' '
-            logger.info(
+            logger.debug(
                 f"has finished processing. {str(file_set)} is" +
                 compliance + "KGX compliant"
             )
@@ -2328,7 +2445,7 @@ class KgxValidator:
         :return: (possibly empty) List of errors returned
         """
         logger.setLevel(logging.DEBUG)
-        logger.info(
+        logger.debug(
             "Entering KgxValidator.validate_data_file() with arguments:" +
             "\n\tfile set ID:" + str(file_set_id) +
             "\n\tinput files:" + str(input_files) +
@@ -2340,11 +2457,11 @@ class KgxValidator:
             # The putative KGX 'source' input files are currently sitting
             # at the end of S3 signed URLs for streaming into the validation.
 
-            logger.info("KgxValidator.validate_data_file(): creating the Transformer...")
+            logger.debug("KgxValidator.validate_data_file(): creating the Transformer...")
 
             transformer = Transformer(stream=True)
 
-            logger.info("KgxValidator.validate_data_file(): running the Transformer.transform...")
+            logger.debug("KgxValidator.validate_data_file(): running the Transformer.transform...")
 
             transformer.transform(
                 input_args={
@@ -2361,16 +2478,16 @@ class KgxValidator:
                 inspector=self.kgx_data_validator
             )
 
-            logger.info("KgxValidator.validate_data_file(): transform validate inspection complete: getting errors..")
+            logger.debug("KgxValidator.validate_data_file(): transform validation completed")
 
             errors: List[str] = self.kgx_data_validator.get_error_messages()
 
             if errors:
                 n = len(errors)
                 n = 9 if n >= 10 else n
-                logger.info("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
+                logger.error("Sample of errors seen:\n"+'\n'.join(errors[0:n]))
 
-            logger.info("KgxValidator.validate_data_file(): Exiting validate_file_set()")
+            logger.debug("KgxValidator.validate_data_file(): Exiting validate_file_set()")
 
             return errors
 
@@ -2391,7 +2508,7 @@ def test_stub_archiver() -> bool:
         :return:
         """
 
-        logger.info("\ntest_stub_archiver() startup of tasks\n")
+        logger.debug("\ntest_stub_archiver() startup of tasks\n")
 
         fs = prepare_test_file_set("1.0")
         await archiver.process(fs)
@@ -2407,7 +2524,7 @@ def test_stub_archiver() -> bool:
         # # Don't want to finish too quickly...
         # await sleep(30)
         #
-        # logger.info("\ntest_stub_archiver() shutdown now!\n")
+        # logger.debug("\ntest_stub_archiver() shutdown now!\n")
         # await archiver.shutdown_workers()
         
     run(archive_test())

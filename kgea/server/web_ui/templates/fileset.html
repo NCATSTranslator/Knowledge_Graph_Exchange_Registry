@@ -32,6 +32,37 @@
             biolink_model_release.value = selection.value;
             //window.alert("Selected Biolink Model Version: " + biolink_model_release.value);
         }
+
+        /* Reactivity */
+        // Cyclic Minimums
+        // - Ensure that the floor version of the next fileset being added does not precede the maximum fileset version published
+        // - The major version can only go to the miminum set by the maximum fileset version
+        // - The minor version can go to zero if the major version is greater than the minimum, else increment from previous minor version
+
+        // major and minor minimums
+        let major_min = "{{fileset_major_version}}"
+        let minor_min = "{{fileset_minor_version}}"
+
+        // Select the version input controls
+        major_version_input = document.getElementById('fileset_major_version')
+        minor_version_input = document.getElementById('fileset_minor_version')
+
+        // When the major version changes, check it before setting the new constraints on the minor version
+        major_version_input.addEventListener('change', e => {
+            const { value } = e.target;
+            if (value > major_min) {
+                // if the major value is greater than the minimum, the minor version can cycle to zero
+                minor_version_input.setAttribute('min', "0")
+            } else if (value === major_min) {
+                // if the major value is greater than the minimum, the minor version can cycle to zero
+                minor_version_input.setAttribute('min', minor_min)
+                // if the minor value is below the minimum, set it to the minimum
+                if (minor_version_input.value < minor_min) {
+                    minor_version_input.value = minor_min
+                }
+            }
+        });
+
     </script>
 {% endblock %}
 {% block body %}<body onload="LoadBiolinkReleases()">{% endblock %}
@@ -73,7 +104,7 @@
         <input id="fileset_major_version"
                name="fileset_major_version"
                type="number"
-               min="1" step="1"
+               min="{{fileset_major_version}}" step="1"
                value="{{fileset_major_version}}"
                size="2"
         />
@@ -81,7 +112,7 @@
         <input id="fileset_minor_version"
                name="fileset_minor_version"
                type="number"
-               min="0" step="1"
+               min="{{fileset_minor_version}}" step="1"
                value="{{fileset_minor_version}}"
                size="2"
         />

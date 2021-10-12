@@ -5,12 +5,13 @@
             integrity="sha512-uto9mlQzrs59VwILcLiRYeLKPPbS/bT71da/OEBYEwcdNUk8jYIy+D176RYoop1Da+f9mvkYrmj5MCLZWEtQuA=="
             crossorigin="anonymous"></script>
     <script>
+
         // empty catalog... needs to be retrieved from the back end
         let kgea_catalog = {};
         async function showVersions(selectObject) {
             let kg_id = selectObject.value;
             if(kg_id in kgea_catalog) {
-                let versions = kgea_catalog[kg_id].versions;
+                let versions = kgea_catalog[kg_id].versions.sort().reverse();
                 let version_options = '';  // '<option value="latest">Latest</option>'; // don't deal with 'latest' yet
                 versions.forEach((v,_) => {
                     version_options += '<option value="' + v + '">' + v + '</option>';
@@ -74,16 +75,18 @@
             // window.alert("ViewMetadata() URL: '" + metadata_url + "'");
 
             try {
+
                 let a = document.createElement('a');
                 a.href = metadata_url;
 
-                // we need to append the element to the DOM,
-                // otherwise it will not work in Firefox
+                //
+                // // we need to append the element to the DOM,
+                // // otherwise it will not work in Firefox
                 document.body.appendChild(a);
-
+                //
                 a.click();
-
-                // afterwards we remove the element again
+                //
+                // // afterwards we remove the element again
                 a.remove();
 
             } catch(e) {
@@ -179,13 +182,12 @@
 
                 // we need to append the element to the DOM,
                 // otherwise it will not work in Firefox
-                document.body.appendChild(a);
+                // document.body.appendChild(a);
+                //
                 a.click();
-
+                //
                 // afterwards we remove the element again
                 a.remove();
-
-                // console.log('HTTP response code:', r.status);
 
             } catch(e) {
                console.log('File download error:', e);
@@ -223,6 +225,13 @@
             $('#download').on('click', DownloadFile);
             $('#sha1hash').on('click', DownloadFile);
             $('#add_new_file_set').on('click', AddNewFileSet);
+            // function URLExists(url) {
+            //     const request = new XMLHttpRequest();
+            //     request.withCredentials = true;
+            //     request.open('HEAD', url, false);
+            //     request.send(null);
+            // }
+            // URLExists('http://www.mozilla.org');
 
         });
 

@@ -53,7 +53,7 @@ from .kgea_users import (
     authenticate_user,
     mock_user_attributes
 )
-from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
+from kgea.server.web_services.kgea_file_ops import get_default_date_stamp, get_fileset_versions_available
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -153,8 +153,10 @@ async def kge_client_authentication(request: web.Request):
 
         logger.debug(
             f"kge_client_authentication(): user_attributes are:\n" +
-            f"\tusername: {str(user_attributes['username'])}\n" +
-            f"\temail: {str(user_attributes['email'])}"
+            f"\t\tusername: {str(user_attributes['username'])}\n" +
+            f"\t\tname: {str(user_attributes['given_name'])} {str(user_attributes['family_name'])}\n" +
+            f"\t\temail: {str(user_attributes['email'])}\n" +
+            f"\t\trole: {str(user_attributes[KGE_USER_ROLE])}\n"
         )
 
         await initialize_user_session(request, user_attributes=user_attributes)
@@ -282,6 +284,16 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
         if not kg_id:
             await redirect(request, HOME_PAGE, active_session=True)
 
+        fileset_versions = get_fileset_versions_available(
+            bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']
+        )
+        # default case when a registered graph has no file versions
+        max_major, max_minor = 1, 0
+        if kg_id in fileset_versions and len(fileset_versions[kg_id]) > 0:  # if a registered graph does have file versions, increment from latest
+            maximum_version = max(float(el) for el in fileset_versions[kg_id])
+            max_major_str, max_minor_str = str(maximum_version).split('.')     # because "1.0" splits into ["1", "0"], and can be destructed
+            max_major, max_minor = int(max_major_str), int(max_minor_str) + 1  # increment minor version to prevent collision
+
         context = {
             "kg_id": kg_id,
             "kg_name": kg_name,
@@ -290,11 +302,8 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
             "submitter_email": session['email'],
 
             "biolink_model_releases": _biolink_model_releases,
-
-            # TODO: might be best to somehow look up "latest" KGE file set version,
-            #       increment it then send it to the form here?
-            "fileset_major_version": "1",
-            "fileset_minor_version": "0",
+            "fileset_major_version": max_major,
+            "fileset_minor_version": max_minor,
 
             "date_stamp": get_default_date_stamp(),
             

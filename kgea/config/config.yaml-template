@@ -12,12 +12,31 @@ aws:
   # EC2 instance profile to get at an EC2 role
   host_account: '<Host AWS Account Number>'
   guest_external_id: '<Guest-specified external identifier'
-  iam_role_name: '<Host-specified IAM Role name>'
   s3:
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
-    region: '<S3 bucket region>'  # even though S3 is global, the actual bucket endpoint may be regiospecific, i.e. us-east-1
     archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+    #
+    # although S3 is global, actual bucket endpoint may be regiospecific, i.e. us-east-1 and
+    # may be located in a different region from an EC2 instance running the application
+    #
+    region: '<S3 bucket region>'
+  #
+  # A second "remote" S3 repository, owned by another account,
+  # may be access by setting the following parameters
+  #
+  s3_remote:
+    host_account: '<Host AWS Account Number>'
+    guest_external_id: '<Guest-specified external identifier'
+    iam_role_name: '<remote role name>'
+    # Amazon S3 storage structure
+    bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+    archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+    #
+    # although S3 is global, actual bucket endpoint may be regiospecific, i.e. us-east-1 and
+    # may be located in a different region from an EC2 instance running the application
+    #
+    region: '<S3 bucket region>'
   cognito:
     # AWS Cognito OAuth2 transaction parameters
     # These parameters should match those set as 'app client' parameters in Cognito

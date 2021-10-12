@@ -1,7 +1,6 @@
 """
 Knowledge Graph Exchange Archive backend web service handlers.
 """
-import sys
 from os import getenv, path
 from pathlib import Path
 from typing import Dict, Tuple, Any
@@ -37,16 +36,12 @@ import asyncio
 #############################################################
 
 from kgea.config import (
-    get_app_config,
     CONTENT_METADATA_FILE,
-
     LANDING_PAGE,
-
     FILESET_REGISTRATION_FORM,
-    DATA_UNAVAILABLE,
-
     UPLOAD_FORM,
-    SUBMISSION_CONFIRMATION
+    SUBMISSION_CONFIRMATION,
+    DATA_UNAVAILABLE
 )
 
 from .kgea_session import (
@@ -59,8 +54,9 @@ from .kgea_session import (
 )
 
 from .kgea_file_ops import (
+    default_s3_bucket,
     create_presigned_url,
-    kg_files_in_location,
+    object_keys_for_fileset_version,
     get_object_location,
     with_version,
     object_key_exists,
@@ -72,11 +68,12 @@ from .kgea_file_ops import (
     get_pathless_file_size,
     get_url_file_size,
     upload_file,
-    upload_from_link
+    upload_from_link,
+    object_keys_in_location
 )
 
 from kgea.server.web_services.catalog import (
-    KgeArchiveCatalog,
+    KnowledgeGraphCatalog,
     KgeKnowledgeGraph,
     KgeFileSet, KgeFileType
 )
@@ -89,9 +86,6 @@ logger = logging.getLogger(__name__)
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
-
-# Opaquely access the configuration dictionary
-_KGEA_APP_CONFIG = get_app_config()
 
 # This is likely invariant almost forever unless new types of
 # KGX data files will eventually be added, i.e. 'attributes'(?)
@@ -124,7 +118,8 @@ async def get_kge_knowledge_graph_catalog(request: web.Request) -> web.Response:
     # Paranoia: can't see the catalog without being logged in a user session
     session = await get_session(request)
     if not session.empty:
-        catalog = KgeArchiveCatalog.catalog().get_kg_entries()
+        
+        catalog = KnowledgeGraphCatalog.catalog().get_kg_entries()
 
     # but don't need to propagate the user session to the output
     response = web.json_response(catalog, status=200)
@@ -148,7 +143,6 @@ async def register_kge_knowledge_graph(request: web.Request):
     :param request:
     :type request: web.Request
     """
-    print("Entering register_kge_knowledge_graph()")
     logger.debug("Entering register_kge_knowledge_graph()")
 
     session = await get_session(request)
@@ -224,7 +218,7 @@ async def register_kge_knowledge_graph(request: web.Request):
 
                 # Here we start to start to track a specific
                 # knowledge graph submission within KGE Archive
-                knowledge_graph = KgeArchiveCatalog.catalog().add_knowledge_graph(
+                knowledge_graph = KnowledgeGraphCatalog.catalog().add_knowledge_graph(
                     kg_id=kg_id,
                     kg_name=kg_name,
                     kg_description=kg_description,
@@ -277,7 +271,6 @@ async def register_kge_file_set(request: web.Request):
     :param request:
     :type request: web.Request
     """
-    print("Entering register_kge_file_set()")
     logger.debug("Entering register_kge_file_set()")
 
     session = await get_session(request)
@@ -348,7 +341,7 @@ async def register_kge_file_set(request: web.Request):
         )
 
         knowledge_graph: KgeKnowledgeGraph = \
-            KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+            KnowledgeGraphCatalog.catalog().get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             await report_not_found(
@@ -388,7 +381,8 @@ async def register_kge_file_set(request: web.Request):
                         submitter_email=submitter_email
                     )
 
-                print("knowledge_graph.add_file_set", knowledge_graph, file_set)
+                logger.debug(f"knowledge_graph.add_file_set({knowledge_graph.get_name()}.{file_set.id()})")
+                
                 # Add new versioned KGE File Set to the Catalog Knowledge Graph entry
                 knowledge_graph.add_file_set(fileset_version, file_set)
 
@@ -421,7 +415,6 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
     :param fileset_version: specific version of KGE File Set published for the specified Knowledge Graph Identifier
     :type fileset_version: str
     """
-    print("Entering publish_kge_file_set()")
     logger.debug("Entering publish_kge_file_set()")
 
     session = await get_session(request)
@@ -433,7 +426,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
                 "publish_kge_file_set(): knowledge graph id or file set version are null?"
             )
 
-        knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+        knowledge_graph: KgeKnowledgeGraph = KnowledgeGraphCatalog.catalog().get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             await report_not_found(
@@ -450,7 +443,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
                 f"publish_kge_file_set() errors: unknown '{fileset_version}' for knowledge graph '{kg_id}'?"
             )
             
-        if file_set.get_file_set_status() == KgeFileSetStatusCode.CREATED:
+        if file_set.get_fileset_status() == KgeFileSetStatusCode.CREATED:
             # Assume that it still needs to be processed
             logger.debug(f"\tPublishing fileset version '{fileset_version}' of graph '{kg_id}'")
             try:
@@ -458,7 +451,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             except Exception as exception:
                 logger.error(str(exception))
     
-        if file_set.get_file_set_status() == KgeFileSetStatusCode.ERROR:
+        if file_set.get_fileset_status() == KgeFileSetStatusCode.ERROR:
             await report_bad_request(
                 request,
                 f"publish_kge_file_set() errors: file set version '{fileset_version}' " +
@@ -471,7 +464,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             f"{SUBMISSION_CONFIRMATION}?" +
             f"kg_name={knowledge_graph.get_name()}&" +
             f"fileset_version={fileset_version}&" +
-            f"validated={str(file_set.get_file_set_status() == KgeFileSetStatusCode.VALIDATED)}",
+            f"validated={str(file_set.get_fileset_status() == KgeFileSetStatusCode.VALIDATED)}",
             active_session=True
         )
 
@@ -499,7 +492,7 @@ async def _validate_and_set_up_archive_target(
         fileset_version: str,
         kgx_file_content: str,
         content_name: str
-) -> Tuple[Any, str, KgeFileType]:
+) -> Tuple[str, Any, str, KgeFileType]:
     """
 
     :param request:
@@ -579,7 +572,7 @@ async def _validate_and_set_up_archive_target(
     
     object_key = f"{file_set_location}{Path(content_name).stem}{path.splitext(content_name)[1]}"
     
-    return file_set_location, object_key, file_type
+    return content_name, file_set_location, object_key, file_type
 
 
 async def _initialize_upload_token(
@@ -592,16 +585,14 @@ async def _initialize_upload_token(
     """
     Set up Progress Indication Token mechanism
     """
-    file_set_location, object_key, file_type = \
+    content_name, file_set_location, object_key, file_type = \
         await _validate_and_set_up_archive_target(
             request, kg_id, fileset_version, kgx_file_content, content_name
         )
     
     logger.debug(
-        "_initialize_upload_token(): " +
-        "file_set_location == '" + file_set_location + "'" +
-        "object_key == '" + object_key + "'" +
-        "file_type == '" + str(file_type) + "')"
+        f"_initialize_upload_token(content_name={content_name}, file_set_location='{file_set_location}'," +
+        f"object_key='{object_key}', file_type='{str(file_type)}')"
     )
     
     with threading.Lock():
@@ -624,7 +615,7 @@ async def _initialize_upload_token(
                 "active": True  # Upload/transfer cancelled when this value becomes 'False'?
             }
         
-        print('session upload token', token, _upload_tracker['upload'][token])
+        logger.debug(f"session upload token: '{token}' = '{_upload_tracker['upload'][token]}'")
         
         upload_token_object = UploadTokenObject(token)
         
@@ -751,6 +742,10 @@ class ProgressPercentage(object):
             raise RuntimeWarning("Transfer/upload was cancelled?")
         else:
             self._seen_so_far += bytes_amount
+            
+            if self._seen_so_far > self.transfer_tracker['end_position']:
+                self._seen_so_far = self.transfer_tracker['end_position']
+                
             self.transfer_tracker['current_position'] = self._seen_so_far
             t_now = time.time()
             dt = t_now-self.t0+0.001
@@ -797,7 +792,7 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
         try:
             object_key = get_object_key(tracker['file_set_location'], content_name)
             transfer_function(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=object_key,
                 source=source,
                 client=client,
@@ -811,11 +806,13 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
             logger.error(exc_msg)
             raise RuntimeError(exc_msg)
         
+        # TODO: could check for and unpack tar.gz archives here?
+        
         # Assuming success, the new file should be
         # added to into the file set in the Catalog.
         try:
             s3_file_url = create_presigned_url(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=object_key
             )
             
@@ -823,12 +820,12 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
             # identified by the 'kg_id', initiating or continuing a
             # the assembly process for the 'fileset_version' KGE file set.
             # May raise an Exception if something goes wrong.
-            KgeArchiveCatalog.catalog().add_to_kge_file_set(
+            KnowledgeGraphCatalog.catalog().add_to_kge_file_set(
                 kg_id=tracker["kg_id"],
                 fileset_version=tracker["fileset_version"],
                 file_type=tracker["file_type"],
                 file_name=content_name,
-                file_size=progress_monitor.get_file_size(),
+                file_size=int(progress_monitor.get_file_size()),
                 object_key=object_key,
                 s3_file_url=s3_file_url
             )
@@ -1065,7 +1062,7 @@ async def get_kge_file_set_metadata(request: web.Request, kg_id: str, fileset_ve
 
         logger.debug("...of file set version '" + fileset_version + "' for knowledge graph '" + kg_id + "'")
 
-        knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+        knowledge_graph: KgeKnowledgeGraph = KnowledgeGraphCatalog.catalog().get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             await report_not_found(
@@ -1131,7 +1128,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_ver
     session = await get_session(request)
     if not session.empty:
         
-        knowledge_graph: KgeKnowledgeGraph = KgeArchiveCatalog.catalog().get_knowledge_graph(kg_id)
+        knowledge_graph: KgeKnowledgeGraph = KnowledgeGraphCatalog.catalog().get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
             await report_not_found(
@@ -1144,10 +1141,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_ver
 
         content_metadata_file_key = file_set_location + CONTENT_METADATA_FILE
         
-        if not object_key_exists(
-                object_key=content_metadata_file_key,
-                bucket_name=_KGEA_APP_CONFIG['aws']['s3']['bucket']
-        ):
+        if not object_key_exists(object_key=content_metadata_file_key):
             if downloading:
                 await redirect(
                     request,
@@ -1162,10 +1156,10 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_ver
         # Current implementation of this handler triggers a
         # download of the KGX content metadata file, if available
         download_url = create_presigned_url(
-            bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+            bucket=default_s3_bucket,
             object_key=content_metadata_file_key
         )
-        print("kge_meta_knowledge_graph() download_url: '" + download_url + "'", file=sys.stderr)
+        logger.debug(f"kge_meta_knowledge_graph() download_url: '{download_url}'")
         if downloading:
             await download(request, download_url)
         else:
@@ -1210,25 +1204,22 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
 
         file_set_object_key, _ = with_version(get_object_location, fileset_version)(kg_id)
 
-        kg_files_for_version = kg_files_in_location(
-            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            file_set_object_key,
+        kg_files_for_version = object_keys_in_location(
+            default_s3_bucket,
+            file_set_object_key
         )
 
-        # TODO: I don't think that this code snippet is reliable now,
-        #       if the user uploads one or more tar.gz files
-        #       which are meant to be partial input data without metadata?
         maybe_archive = [
             kg_path for kg_path in kg_files_for_version
-            if ".tar.gz" in kg_path
+            if ".tar.gz" in kg_path and "archive/" in kg_path
         ]
 
-        if len(maybe_archive) == 1:
+        if len(maybe_archive) > 0:
             download_url = create_presigned_url(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=maybe_archive[0]
             )
-            print("download_kge_file_set_archive() download_url: '" + download_url + "'", file=sys.stderr)
+            logger.debug(f"download_kge_file_set_archive() download_url: '{download_url}'")
 
             await download(request, download_url)
         else:
@@ -1243,7 +1234,7 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
         await redirect(request, LANDING_PAGE)
 
 
-async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fileset_version):
+async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id: str, fileset_version: str):
     """Returns SHA1 hash of the current KGE File Set as a small text file.
 
     :param request:
@@ -1269,17 +1260,12 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fi
     session = await get_session(request)
     if not session.empty:
 
-        file_set_object_key, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
-
-        kg_files_for_version = kg_files_in_location(
-            _KGEA_APP_CONFIG['aws']['s3']['bucket'],
-            file_set_object_key,
-        )
-
-        maybe_sha1hash = [
-            kg_path for kg_path in kg_files_for_version
-            if "sha1.txt" in kg_path
-        ]
+        maybe_sha1hash, fileset_version = \
+            object_keys_for_fileset_version(
+                kg_id=kg_id,
+                fileset_version=fileset_version,
+                match_function=lambda x: "sha1.txt" in x
+            )
 
         sha1hash_file_key: str = ''
         if len(maybe_sha1hash) == 1:
@@ -1293,7 +1279,7 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id, fi
 
         if sha1hash_file_key:
             download_url = create_presigned_url(
-                bucket=_KGEA_APP_CONFIG['aws']['s3']['bucket'],
+                bucket=default_s3_bucket,
                 object_key=sha1hash_file_key
             )
     

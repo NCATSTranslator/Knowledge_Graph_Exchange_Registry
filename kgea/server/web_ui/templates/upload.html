@@ -44,6 +44,43 @@
     </style>
 
     <script type="text/javascript">
+
+// move to configuration
+const kgx_content_extensions = {
+    "metadata": ['json'],
+    "nodes": ['tsv'],
+    "edges": ['tsv'],
+    "archive": ['tgz', 'tar.gz', 'gz'],  // TODO: composite extensions
+}
+
+const isValidFileNameForKGXFileContent = function (kgx_file_content, content_name) {
+    const extension = content_name.split('.').pop();
+    console.log(kgx_content_extensions[kgx_file_content], extension)
+    return kgx_content_extensions[kgx_file_content].includes(extension);
+}
+
+function report_valid_content_extension(kgx_file_content, content_name) {
+    const extension = content_name.split('.').pop();
+    const valid = isValidFileNameForKGXFileContent(kgx_file_content, content_name);
+    if (valid === false) {
+         if (kgx_file_content === "metadata") {
+            console.warn("Non-JSON file attempted to be used with metadata file type.");
+            window.alert("You can't upload a non-JSON file for metadata. This file appears to be '"+ extension +"'.\n\nUse a different file.");
+        } else if (kgx_file_content === "nodes") {
+            console.warn("Non-TSV or JSONL file attempted to be used with nodes file type.");
+            window.alert("You can't upload a non-TSV or JSONL file for nodes. This file appears to be '"+ extension +"'.\n\nUse a different file.");
+        } else if (kgx_file_content === "edges") {
+            console.warn("Non-TSV or JSONL file attempted to be used with edges file type.");
+            window.alert("You can't upload a non-TSV or JSONL  file for edges. This file appears to be '"+ extension +"'.\n\nUse a different file.");
+        } else if (kgx_file_content === "archive") {
+            console.warn("Non-archive file attempted to be used with metadata file type.");
+            window.alert("You can't upload a non-archive file for metadata. This file appears to be '"+ extension +"'.\n\nUse a different file. (Check if your file is .tar.gz, NOT just .tar or .tgz!)");
+        }
+    }
+    return valid;
+}
+
+
 /* UI Elements */
 // Progress Bar //
 $("#ldBar").progressbar({
@@ -114,12 +151,12 @@ async function UploadFile(source) {
         return;
     }
 
-    if (kgx_file_content === "archive") {
-        window.alert(
-            "Sorry, KGX 'tar.gz' compressed archives are not " +
-            "yet fully handled in the interface (coming soon!)");
-        return;
-    }
+    // if (kgx_file_content === "archive") {
+    //     window.alert(
+    //         "Sorry, KGX 'tar.gz' compressed archives are not " +
+    //         "yet fully handled in the interface (coming soon!)");
+    //     return;
+    // }
 
     // Need to know where I am in the internet space...
     const url = new URL(window.location.href);
@@ -132,9 +169,9 @@ async function UploadFile(source) {
         let content_url = document.getElementById("content_url").value;
 
         if (content_url) {
-            if (content_name.split('.')[1] !== 'json' && kgx_file_content === 'metadata') {
-                console.warn("Non-JSON file attempted to be used with metadata file type.");
-                window.alert("You can't upload a non-JSON file for metadata. This file appears to be '"+ content_name.split('.')[1] +".\n\nUse a different file link.");
+            if (!isValidFileNameForKGXFileContent(kgx_file_content, content_name)) {
+                report_valid_content_extension(kgx_file_content, content_name);
+                return;
             } else {
 
                 console.log("Content URL being uploaded: '" + content_url + "')");
@@ -337,12 +374,8 @@ async function UploadFile(source) {
             // here, we protect against inadvertent the uploading
             // of a file for content metadata which is not json,
             // hence, is probably not the metadata?
-            if(
-                kgx_file_content === "metadata" &&
-                mime_type !== "application/json"
-            ) {
-                window.alert("You can't upload a non-JSON file for metadata." +
-                             " This file appears to be '"+ mime_type +"'.\n\nUse a different file.");
+            if (!isValidFileNameForKGXFileContent(kgx_file_content, content_name)) {
+                report_valid_content_extension(kgx_file_content, content_name);
                 return;
             }
 
@@ -528,6 +561,8 @@ function update_file_list(kgx_file_content, filename, status) {
         document.getElementById("uploaded_node_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
     } else if (kgx_file_content === "edges") {
         document.getElementById("uploaded_edge_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
+    } else if (kgx_file_content === "archive") {
+        document.getElementById("uploaded_archive_files").innerHTML += "<li>"+filename+" ("+status+")</li>"
     }
 }
 
@@ -654,7 +689,7 @@ function getSize(size) {
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
-                    (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'nodes' file.
+                    (*) Must be a valid KGX-compliant TSV formatted 'nodes' file.
                     Multiple files may be uploaded, but the first file should have a proper TSV header line at the top.
                 </span>
             </div>
@@ -664,26 +699,25 @@ function getSize(size) {
             <div class="tooltip">
                 <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
                 <span class="tooltiptext">
-                    (*) Must be valid (possibly 'gzip' compressed) KGX-compliant TSV formatted 'edges' file.
+                    (*) Must be a valid KGX-compliant TSV formatted 'edges' file.
                     Multiple files may be uploaded, but the first file should have a proper TSV header line at the top.
                 </span>
             </div>
             <p></p>
-                <!--
-                <input type="radio" id="archive" name="kgx_file_content" value="archive">
-                <label class="label" for="archive">KGX Archive</label>
-                <div class="tooltip">
-                    <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
-                    <span class="tooltiptext">
-                            If a KGX Archive is given, then the locally uploaded file,
-                            or a direct URL transfer from URL, is assumed to be a gzip'd
-                            compressed tar file with the name '<root file name>.tar.gz'
-                            containing one of each of both a KGX-compliant 'nodes.tsv'
-                            and 'edges.tsv' file for the knowledge graph, (preferrably!) with
-                            an associated KGX-compliant 'content_metadata.json' file.
-                    </span>
-                </div>
-                -->
+            <hr>
+            <input type="radio" id="archive" name="kgx_file_content" value="archive">
+            <label class="label" for="archive">Archive</label>
+            <div class="tooltip">
+                <img class="tooltip_target" src="/images/help-icon.png" width="12" height="12" alt="help"/>
+                <span class="tooltiptext">
+                        If a KGX Archive is given, then the locally uploaded file,
+                        or a direct URL transfer from URL, is assumed to be a gzip'd
+                        compressed tar file with the name 'root file name>.tar.gz'
+                        containing one of each of both a KGX-compliant 'nodes.tsv'
+                        and 'edges.tsv' file for the knowledge graph, (preferrably!) with
+                        an associated KGX-compliant 'content_metadata.json' file.
+                </span>
+            </div>
             <p></p>
         </td>
         <td colspan="2">
@@ -747,6 +781,8 @@ Uploading file, please don't navigate away from the page...</span>
             <ul id="uploaded_node_files"></ul>
             <b>Edges:</b><br>
             <ul id="uploaded_edge_files"></ul>
+            <b>Archives:</b><br>
+            <ul id="uploaded_archive_files"></ul>
         </td>
     </tr>
 </table>

@@ -1,10 +1,12 @@
 """
 KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cognito)
 """
-import pprint
 import sys
 from os import getenv
 from typing import Dict
+
+from pprint import PrettyPrinter
+
 import logging
 
 import json
@@ -23,6 +25,8 @@ from kgea.server.web_services.kgea_user_roles import (
 )
 
 logger = logging.getLogger(__name__)
+
+pp = PrettyPrinter(indent=4)
 
 # Master flag for simplified local development
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -70,6 +74,10 @@ def logout_url() -> str:
 
 
 def mock_user_attributes() -> Dict:
+    """
+
+    :return:
+    """
     # Stub implementation in DEV_MODE
     user_attributes: Dict = dict()
     user_attributes["preferred_username"] = 'translator'
@@ -79,7 +87,7 @@ def mock_user_attributes() -> Dict:
     user_attributes[KGE_USER_TEAM] = "SRI"
     user_attributes[KGE_USER_AFFILIATION] = "NCATS"
     user_attributes[KGE_USER_CONTACT_PI] = "self"
-    user_attributes[KGE_USER_ROLE] = DEFAULT_KGE_USER_ROLE
+    user_attributes[KGE_USER_ROLE] = "1"
     return user_attributes
 
 
@@ -211,20 +219,29 @@ async def _get_user_attributes(code: str) -> Dict:
             # HTTP/1.1 200 OK
             # Content-Type: application/json;charset=UTF-8
             # {
-            #    "sub": "248289761001",
-            #    "name": "Jane Doe",
-            #    "given_name": "Jane",
-            #    "family_name": "Doe",
-            #    "preferred_username": "j.doe",
-            #    "email": "janedoe@example.com"
+            #     website=www.starinformatics.com
+            #     email_verified=true
+            #     custom:User_Role=4
+            #     given_name=Richard
+            #     family_name=Bruskiewich
+            #     email=richard.bruskiewich@delphinai.com
+            #     username=rbruskiewich
             # }
             #
             if resp.status == 200:
                 data = await resp.text()
                 user_data: Dict = json.loads(data)
+                # logger.debug(
+                #     "_get_user_attributes(): user_info_url response, " +
+                #     "key=value data being loaded into user_attributes:"
+                # )
                 for key, value in user_data.items():
+                    # logger.debug(f"\t{key}={value}")
                     user_attributes[key] = value
                 if KGE_USER_ROLE not in user_attributes:
+                    logger.warning(
+                        f"User Attribute {KGE_USER_ROLE} not retrieved from Cognito '{user_info_url}' endpoint?"
+                    )
                     user_attributes[KGE_USER_ROLE] = DEFAULT_KGE_USER_ROLE
             else:
                 # Unexpected response code?
@@ -243,7 +260,7 @@ async def _get_user_attributes(code: str) -> Dict:
     }
     logger.debug(
         f"_get_user_attributes(): user_attributes are:\n"
-        f"{pprint.pp({user_info}, indent=4)}")
+        f"{pp.pprint({user_info})}")
 
     return user_attributes
 

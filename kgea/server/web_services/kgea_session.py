@@ -9,7 +9,7 @@ async def handler(request):
 """
 from os import getenv
 from typing import Dict
-import logging
+import pprint
 
 from uuid import uuid4
 
@@ -21,18 +21,17 @@ from aiohttp_session import AbstractStorage, setup, new_session, get_session, Se
 from multidict import MultiDict
 
 from kgea.config import get_app_config, HOME_PAGE
-
-# Master flag for simplified local development
 from kgea.server.web_services.catalog import KgeArchiver
-
 from kgea.server.web_services.kgea_user_roles import (
     KGE_USER_ROLE,
     DEFAULT_KGE_USER_ROLE
 )
 
-DEV_MODE = getenv('DEV_MODE', default=False)
-
+import logging
 logger = logging.getLogger(__name__)
+
+# Master flag for simplified local development
+DEV_MODE = getenv('DEV_MODE', default=False)
 
 
 class KgeaSession:
@@ -164,7 +163,8 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
         session['uid'] = uid
         
         if user_attributes:
-            session['username'] = user_attributes.setdefault("preferred_username", 'anonymous')
+            logger.debug(f"initialize_user_session(): user_attributes:\n{pprint.pp(user_attributes, indent=4)}")
+            session['username'] = user_attributes.setdefault("username", 'anonymous')
             session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
                               user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
@@ -175,6 +175,11 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
 
 
 def user_permitted(session: Session):
+    """
+
+    :param session:
+    :return:
+    """
     # Regular users have user role '0' hence not permitted?
     permitted = session.get('user_role') if 'user_role' in session else DEFAULT_KGE_USER_ROLE
     return not session.empty and permitted
