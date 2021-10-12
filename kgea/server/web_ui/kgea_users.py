@@ -233,8 +233,17 @@ async def _get_user_attributes(code: str) -> Dict:
                     "/oauth2/userinfo POST\n\tHTTP Status: " + str(resp.status) +
                     "\n\tResponse:" + errmsg
                 )
-
-    logger.debug(f"_get_user_attributes(): user_attributes are:\n{pprint.pp(user_attributes, indent=4)}")
+    user_info: Dict = {
+        'username': user_attributes['username'],
+        'custom:User_Role': user_attributes['custom:User_Role'],
+        'given_name': user_attributes['given_name'],
+        'family_name': user_attributes['family_name'],
+        'email': user_attributes['email'],
+        'website': user_attributes['website'],
+    }
+    logger.debug(
+        f"_get_user_attributes(): user_attributes are:\n"
+        f"{pprint.pp({user_info}, indent=4)}")
 
     return user_attributes
 

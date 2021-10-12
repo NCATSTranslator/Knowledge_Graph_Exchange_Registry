@@ -59,6 +59,7 @@ from kgea.server.web_services.kgea_file_ops import get_default_date_stamp
 DEV_MODE = getenv('DEV_MODE', default=False)
 
 logger = logging.getLogger(__name__)
+logger.setLevel('DEBUG')
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()
@@ -119,6 +120,9 @@ async def get_kge_home(request: web.Request) -> web.Response:
             "metadata_page": METADATA_PAGE,
             "fileset_registration_form": FILESET_REGISTRATION_FORM,
         }
+
+        logger.debug(f"get_kge_home(): user_role is set to '{context['user_role']}'")
+
         response = aiohttp_jinja2.render_template('home.html', request=request, context=context)
         return await with_session(request, response)
     else:

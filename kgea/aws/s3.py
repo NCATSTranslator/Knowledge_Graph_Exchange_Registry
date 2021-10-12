@@ -168,7 +168,7 @@ if __name__ == '__main__':
                 object_key = sys.argv[3] if len(sys.argv) >= 4 else filepath
                 upload_file(s3_client, s3_bucket_name, filepath, object_key)
             else:
-                print("\nMissing path to file to upload?")
+                print("\nMissing local path and/or target object key of file to upload?")
 
         elif s3_operation.upper() == 'LIST':
             list_files(s3_client, s3_bucket_name)
