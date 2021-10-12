@@ -571,7 +571,7 @@ if __name__ == '__main__':
             else:
                 helpdoc.usage(
                     err_msg="Missing S3 object key for file to download?",
-                    command=BATCH_DOWNLOAD,
+                    command=DOWNLOAD,
                     args={
                         "<object key>": "key of object to download",
                         "[<filename>]?":
