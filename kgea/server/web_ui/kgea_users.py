@@ -256,7 +256,7 @@ async def _get_user_attributes(code: str) -> Dict:
         'given_name': user_attributes['given_name'],
         'family_name': user_attributes['family_name'],
         'email': user_attributes['email'],
-        'website': user_attributes.setdefault(['website'], ''),
+        'website': user_attributes.setdefault('website', ''),
     }
     logger.debug(
         f"_get_user_attributes(): user_attributes are:\n"
