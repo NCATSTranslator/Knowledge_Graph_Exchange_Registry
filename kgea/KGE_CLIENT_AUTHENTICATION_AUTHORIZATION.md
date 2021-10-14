@@ -122,6 +122,14 @@ None initially configured. To be reviewed at a later date. Available options are
 - Custom message
 - Post authentication
 
+### Registering Users
+
+Although the KGE Archive "Cogito" subsystem was originally configured for user-initiated account registration, administrative registration of users is now the norm. There are several options: user-initiated but administratively vetted users; administrator registration of users one at a time using the dashboard; or batch loading of users (again, using the dashboard). 
+
+Batch loading is the preferred channel (see [user loading with CSV files](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-using-import-tool.html) for details). Note the requirement to set up a [service role with CloudWatch log permissions](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-using-import-tool-cli-cloudwatch-iam-role.html). Viewing the Cloud Watch logs is very helpful  for debugging user records being uploaded. The CSV file needs to have the exact CSV headers (download as noted). One "gotcha" to avoid in user record fields are spurious commas in the values of the fields (they tend to be parsed as CSV delimiters!). Note that some fields need to have a boolean values properly set even if not directly used in the authentication (i.e. **cognito:mfa_enabled**, **emailed_verified**, **phone_number_verified**).
+
+Note the
+
 ## Step 2 - Implement KGE Archive Web Site Login
 
 The [AWS Cognito procedure for creating a client app login](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-app-integration.html) is our initial guide here.
