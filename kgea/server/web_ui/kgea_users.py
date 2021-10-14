@@ -231,12 +231,12 @@ async def _get_user_attributes(code: str) -> Dict:
             if resp.status == 200:
                 data = await resp.text()
                 user_data: Dict = json.loads(data)
-                # logger.debug(
-                #     "_get_user_attributes(): user_info_url response, " +
-                #     "key=value data being loaded into user_attributes:"
-                # )
+                logger.debug(
+                    "_get_user_attributes(): user_info_url response, " +
+                    "key=value data being loaded into user_attributes:"
+                )
                 for key, value in user_data.items():
-                    # logger.debug(f"\t{key}={value}")
+                    logger.debug(f"\t{key}={value}")
                     user_attributes[key] = value
                 if KGE_USER_ROLE not in user_attributes:
                     logger.warning(
@@ -256,7 +256,7 @@ async def _get_user_attributes(code: str) -> Dict:
         'given_name': user_attributes['given_name'],
         'family_name': user_attributes['family_name'],
         'email': user_attributes['email'],
-        'website': user_attributes['website'],
+        'website': user_attributes.setdefault(['website'], ''),
     }
     logger.debug(
         f"_get_user_attributes(): user_attributes are:\n"
