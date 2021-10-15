@@ -385,9 +385,12 @@ class KgeFileSet:
         """
         :return:
         """
-        node_files_keys = list(filter(
-            lambda x: 'nodes/' in x or 'nodes.tsv' in x, self.get_data_file_object_keys()
-        ))
+        node_files_keys = list(
+            filter(
+                lambda x: 'nodes/' in x or 'nodes.tsv' in x,
+                self.get_data_file_object_keys()
+            )
+        )
         return node_files_keys
 
     def get_edges(self):
@@ -395,9 +398,12 @@ class KgeFileSet:
 
         :return:
         """
-        edge_files_keys = list(filter(
-            lambda x: 'edges/' in x or 'edges.tsv' in x, self.get_data_file_object_keys()
-        ))
+        edge_files_keys = list(
+            filter(
+                lambda x: 'edges/' in x or 'edges.tsv' in x,
+                self.get_data_file_object_keys()
+            )
+        )
         return edge_files_keys
 
     def get_archive_file_keys(self):
@@ -638,8 +644,6 @@ class KgeFileSet:
         :return: Populated fileset metadata YAML contents (as a string)
         """
         self.revisions = 'Creation'
-        # TODO: Maybe also add in the inventory of files here?
-        #       Perhaps this list needs to be fixed after archives are unpacked?
         files = ""
         for entry in self.data_files.values():
             files += "- " + entry["file_name"]+"\n"
@@ -1910,7 +1914,12 @@ class KgeArchiver:
         return cls._the_archiver
     
     @staticmethod
-    def aggregate_to_archive(file_set: KgeFileSet, data_type: str, file_object_keys, match_function=lambda x: True):
+    def aggregate_to_archive(
+            file_set: KgeFileSet,
+            data_type: str,
+            file_object_keys,
+            match_function=lambda x: True
+    ):
         """
         Wraps file aggregator for a given file type.
         
@@ -1988,7 +1997,7 @@ class KgeArchiver:
             # sleep briefly to yield to co-routine executed main web application code. Done several times below...
             # 10 seconds to allow the user to go to home and get the KG catalog, before this task ties up the CPU?
             # TODO: performance issue seems to result from execution of this code on servers with few CPU's?
-            #       Or is this a main loop blockage issue (which maybe needs to be resolved another way?)
+            #       Or is this a main loop blockage issue (which maybe needs to be resolved some other way?)
             await sleep(10)
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
@@ -2120,9 +2129,9 @@ class KgeArchiver:
                 with smart_open.open(s3_archive_key, 'rb', compression='disable') as archive_file_key:
                     sha1sum = sha1_manifest(archive_file_key)
                     sha1sum_value = sha1sum[archive_file_key.name]
-                    sha1tsv = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
+                    sha1file = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
                     manifest_object_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/manifest/"
-                    sha1_s3_path = f"s3://{default_s3_bucket}/{manifest_object_location}{sha1tsv}"
+                    sha1_s3_path = f"s3://{default_s3_bucket}/{manifest_object_location}{sha1file}"
                     with smart_open.open(sha1_s3_path, 'w') as sha1file:
                         sha1file.write(sha1sum_value)
 
@@ -2419,7 +2428,7 @@ class KgxValidator:
 
         :param file_set_id: name of the file set, generally a composite identifier of the kg_id plus fileset_version?
         :param input_files: list of file path strings pointing to files to be validated (could be a resolvable URL?)
-        :param input_format: currently restricted to 'tsv' (its default?) - should be consistent for all input_files
+        :param input_format: defaults to 'tsv' - needs to be be consistent for all input_files
         :param input_compression: currently expected to be 'tar.gz' or 'gz' - should be consistent for all input_files
         :return: (possibly empty) List of errors returned
         """
