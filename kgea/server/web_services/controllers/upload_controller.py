@@ -2,9 +2,9 @@ from aiohttp import web
 
 from ..kgea_handlers import (
     setup_kge_upload_context,
-    kge_transfer_from_url,
     get_kge_upload_status,
-    upload_kge_file,
+    kge_upload_file,
+    kge_transfer_from_url,
     cancel_kge_upload
 )
 
@@ -111,7 +111,7 @@ async def upload_file(
     :rtype: web.Response
 
     """
-    return await upload_kge_file(
+    return await kge_upload_file(
         request,
         upload_token=upload_token,
         uploaded_file=uploaded_file

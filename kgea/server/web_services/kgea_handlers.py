@@ -483,7 +483,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
 #     setup_kge_upload_context,
 #     kge_transfer_from_url,
 #     get_kge_upload_status,
-#     upload_kge_file
+#     kge_upload_file
 # )
 #############################################################
 async def _validate_and_set_up_file_upload_target(
@@ -817,6 +817,9 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
             # identified by the 'kg_id', initiating or continuing a
             # the assembly process for the 'fileset_version' KGE file set.
             # May raise an Exception if something goes wrong.
+            #
+            # Note: aside from general file "type" (i.e. metadata, nodes, edges, archive)
+            #       this operation is agnostic as to KGX file format and content.
             KnowledgeGraphCatalog.catalog().add_to_kge_file_set(
                 kg_id=tracker["kg_id"],
                 fileset_version=tracker["fileset_version"],
@@ -839,7 +842,7 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
     loop.run_in_executor(None, threaded_upload)
 
 
-async def upload_kge_file(
+async def kge_upload_file(
         request: web.Request,
         upload_token,
         uploaded_file
@@ -854,7 +857,7 @@ async def upload_kge_file(
     :type uploaded_file: blob
     :rtype: web.Response
     """
-    logger.debug("Entering upload_kge_file()")
+    logger.debug("Entering kge_upload_file()")
     
     session = await get_session(request)
     if user_permitted(session):

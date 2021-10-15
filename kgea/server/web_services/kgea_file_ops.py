@@ -645,7 +645,9 @@ def get_object_key(object_location, filename):
 
 
 def upload_file(bucket, object_key, source, client=s3_client(), config=None, callback=None):
-    """Upload a file to an S3 bucket
+    """
+    Upload a file to an S3 bucket. Note that this method is
+    totally agnostic as to specific (KGX) file format and content.
 
     :param bucket: Bucket to upload to
     :param object_key: target S3 object key of the file.
@@ -1270,7 +1272,8 @@ def upload_from_link(
         callback=None
 ):
     """
-    Transfers a file resource to S3 from a URL location.
+    Transfers a file resource to S3 from a URL location. Note that this
+    method is totally agnostic as to specific (KGX) file format and content.
 
     :param bucket: in S3
     :param object_key: of target S3 object
