@@ -154,7 +154,7 @@ def test_object_folder_contents_size(
 def test_create_presigned_url(test_bucket=TEST_BUCKET):
     try:
         # TODO: write tests
-        create_presigned_url(bucket=test_bucket, object_key=get_object_location(TEST_KG_ID))
+        create_presigned_url(object_key=get_object_location(TEST_KG_ID), bucket=test_bucket)
     except AssertionError as e:
         logger.error(e)
         assert False

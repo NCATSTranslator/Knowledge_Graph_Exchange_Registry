@@ -565,11 +565,11 @@ def get_fileset_versions_available(bucket_name):
 
 
 # TODO: clarify expiration time - default to 1 day (in seconds)
-def create_presigned_url(bucket, object_key, expiration=86400) -> Optional[str]:
+def create_presigned_url(object_key, bucket=default_s3_bucket, expiration=86400) -> Optional[str]:
     """Generate a pre-signed URL to share an S3 object
 
-    :param bucket: string
     :param object_key: string
+    :param bucket: string
     :param expiration: Time in seconds for the pre-signed URL to remain valid
     :return: Presigned URL as string. If error, returns None.
     """
@@ -807,8 +807,7 @@ def extract_data_archive(
                 "file_name": file_name,
                 "file_type": file_type,
                 "file_size": str(file_size),
-                "object_key": file_object_key,
-                "s3_file_url": f"s3://{bucket}/{file_object_key}"
+                "object_key": file_object_key
             })
     try:
         return_code = run_script(
@@ -894,8 +893,7 @@ def decompress_in_place(tar_gz_file_key, target_location=None, traversal_func=No
                             "file_type": "KGX data file",  # TODO: refine to more specific types?
                             "file_name": unpacked_filename,
                             "file_size": entry.size,
-                            "object_key": target_location + unpacked_filename,
-                            "s3_file_url": '',
+                            "object_key": target_location + unpacked_filename
                         })
     return file_entries
 
@@ -1026,8 +1024,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
                         "file_type": "KGX data file",  # TODO: refine to more specific types?
                         "file_name": unpacked_filename,
                         "file_size": entry.size,
-                        "object_key": object_key,
-                        "s3_file_url": '',
+                        "object_key": object_key
                     })
         logger.debug('traversal_func_kgx(): file entries: ', file_entries)
         return file_entries

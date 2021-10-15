@@ -486,7 +486,7 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
 #     upload_kge_file
 # )
 #############################################################
-async def _validate_and_set_up_archive_target(
+async def _validate_and_set_up_file_upload_target(
         request: web.Request,
         kg_id: str,
         fileset_version: str,
@@ -508,18 +508,18 @@ async def _validate_and_set_up_archive_target(
     # """
     if not kg_id:
         # must not be empty string
-        await report_bad_request(request, "_validate_and_set_up_archive_target(): empty Knowledge Graph Identifier?")
+        await report_bad_request(request, "_validate_and_set_up_file_upload_target(): empty Knowledge Graph Identifier?")
     
     if kgx_file_content not in KGX_FILE_CONTENT_TYPES:
         # must not be empty string
         await report_bad_request(
             request,
-            f"_validate_and_set_up_archive_target(): empty or invalid KGX file content type: '{kgx_file_content}'?"
+            f"_validate_and_set_up_file_upload_target(): empty or invalid KGX file content type: '{kgx_file_content}'?"
         )
     
     if not content_name:
         # must not be empty string
-        await report_bad_request(request, "_validate_and_set_up_archive_target(): empty Content Name?")
+        await report_bad_request(request, "_validate_and_set_up_file_upload_target(): empty Content Name?")
     
     # """
     # END Error Handling
@@ -555,11 +555,6 @@ async def _validate_and_set_up_archive_target(
         content_name = CONTENT_METADATA_FILE
     
     elif kgx_file_content == "archive":
-        # TODO this is tricky.. not yet sure how to handle an archive
-        #      with respect to properly persisting it in the S3 bucket...
-        #      Leave it in the kg_id 'root' version folder for now?
-        #
-        # The archive may has metadata too, but the data's the main thing.
         file_type = KgeFileType.KGE_ARCHIVE
     
     # we modify the filename so that they can be validated by KGX natively by tar.gz
@@ -586,7 +581,7 @@ async def _initialize_upload_token(
     Set up Progress Indication Token mechanism
     """
     content_name, file_set_location, object_key, file_type = \
-        await _validate_and_set_up_archive_target(
+        await _validate_and_set_up_file_upload_target(
             request, kg_id, fileset_version, kgx_file_content, content_name
         )
     
@@ -648,11 +643,11 @@ async def setup_kge_upload_context(
     Configure file upload context (for a progress monitored multi-part upload.
 
     :param request:
-    :param kg_id:
-    :param fileset_version:
-    :param kgx_file_content:
-    :param content_name:
-    :return:
+    :param kg_id: identifier of the knowledge graph
+    :param fileset_version: specific file set version for the knowledge graph
+    :param kgx_file_content: type of content being uploaded: metadata, nodes, edges, archive
+    :param content_name: name of the file
+    :return: tracking token for upload (indexes created back end tracker monitoring details created about the upload)
     """
     logger.debug("Entering setup_kge_upload_context()")
     
@@ -806,15 +801,17 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
             logger.error(exc_msg)
             raise RuntimeError(exc_msg)
         
-        # TODO: could check for and unpack tar.gz archives here?
+        # TODO: we could check for and unpack tar.gz archives here, rather than in the KgxArchiver.worker() task?
         
         # Assuming success, the new file should be
         # added to into the file set in the Catalog.
+        # TODO: this sc_file_url has an expiration time associated with it. How does this impact the system?
+        #       How is this later used? Should it rather be generated "just-in-time", when it is needed?
         try:
-            s3_file_url = create_presigned_url(
-                bucket=default_s3_bucket,
-                object_key=object_key
-            )
+            #
+            # RMB (15-Oct-2021): Deprecating long term persistence of the s3_file_url in the file set
+            #
+            # s3_file_url = create_presigned_url(object_key=object_key)
             
             # This action adds a file to the given knowledge graph,
             # identified by the 'kg_id', initiating or continuing a
@@ -826,8 +823,7 @@ def threaded_file_transfer(filename, tracker, transfer_function, source):
                 file_type=tracker["file_type"],
                 file_name=content_name,
                 file_size=int(progress_monitor.get_file_size()),
-                object_key=object_key,
-                s3_file_url=s3_file_url
+                object_key=object_key
             )
         
         except Exception as exc:
@@ -1155,10 +1151,7 @@ async def kge_meta_knowledge_graph(request: web.Request, kg_id: str, fileset_ver
 
         # Current implementation of this handler triggers a
         # download of the KGX content metadata file, if available
-        download_url = create_presigned_url(
-            bucket=default_s3_bucket,
-            object_key=content_metadata_file_key
-        )
+        download_url = create_presigned_url(object_key=content_metadata_file_key)
         logger.debug(f"kge_meta_knowledge_graph() download_url: '{download_url}'")
         if downloading:
             await download(request, download_url)
@@ -1215,10 +1208,7 @@ async def download_kge_file_set_archive(request: web.Request, kg_id, fileset_ver
         ]
 
         if len(maybe_archive) > 0:
-            download_url = create_presigned_url(
-                bucket=default_s3_bucket,
-                object_key=maybe_archive[0]
-            )
+            download_url = create_presigned_url(object_key=maybe_archive[0])
             logger.debug(f"download_kge_file_set_archive() download_url: '{download_url}'")
 
             await download(request, download_url)
@@ -1278,10 +1268,7 @@ async def download_kge_file_set_archive_sha1hash(request: web.Request, kg_id: st
             )
 
         if sha1hash_file_key:
-            download_url = create_presigned_url(
-                bucket=default_s3_bucket,
-                object_key=sha1hash_file_key
-            )
+            download_url = create_presigned_url(object_key=sha1hash_file_key)
     
             await download(request, download_url)
 

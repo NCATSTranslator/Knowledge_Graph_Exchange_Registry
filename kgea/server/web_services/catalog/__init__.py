@@ -95,7 +95,7 @@ from kgea.server.web_services.kgea_file_ops import (
     upload_file,
     random_alpha_string,
     object_key_exists,
-    extract_data_archive
+    extract_data_archive, create_presigned_url
 )
 
 from kgea.server.web_services.sha_utils import sha1_manifest
@@ -438,20 +438,23 @@ class KgeFileSet:
             return False
 
     # Note: content metadata file name is already normalized on S3 to 'content_metadata.json'
-    def set_content_metadata_file(self, file_name: str, file_size: int, object_key: str, s3_file_url: str):
+    def set_content_metadata_file(
+            self,
+            file_name: str,
+            file_size: int,
+            object_key: str
+    ):
         """
         Sets the metadata file identification for a KGE File Set
         :param file_name: original name of metadata file.
         :param file_size: size of metadata file (as number of bytes).
         :param object_key:
-        :param s3_file_url:
         :return: None
         """
         self.content_metadata = {
             "file_name": file_name,
             "file_size": file_size,
             "object_key": object_key,
-            "s3_file_url": s3_file_url,
             "kgx_compliant": False,  # until proven True...
             "errors": []
         }
@@ -480,8 +483,7 @@ class KgeFileSet:
             file_type: KgeFileType,
             file_name: str,
             file_size: int,
-            object_key: str,
-            s3_file_url: str
+            object_key: str
     ):
         """
         Adds a (meta-)data file to this current of KGE File Set.
@@ -490,7 +492,6 @@ class KgeFileSet:
         :param file_name: to add to the KGE File Set
         :param file_size: number of bytes in the file
         :param object_key: of the file in AWS S3
-        :param s3_file_url: current S3 pre-signed data access url
 
         :return: None
         """
@@ -509,7 +510,6 @@ class KgeFileSet:
             "file_size": file_size,
             "input_format": input_format,
             "input_compression": input_compression,
-            "s3_file_url": s3_file_url,
             "kgx_compliant": False,  # until proven True...
             "errors": []
         }
@@ -568,7 +568,6 @@ class KgeFileSet:
                 # "input_format": input_format,
                 # "input_compression": input_compression,
                 # "size": -1,  # how can I measure this here?
-                # "s3_file_url": s3_file_url,
                 # TODO: this could be hazardous to assume True here?
                 #       It would be better to track KGX compliance
                 #       status somewhere in persisted Archive metadata.
@@ -1328,8 +1327,7 @@ class KnowledgeGraphCatalog:
             file_type: KgeFileType,
             file_name: str,
             file_size: int,
-            object_key: str,
-            s3_file_url: str
+            object_key: str
     ):
         """
         This method adds the given input file to a local catalog of recently
@@ -1343,7 +1341,6 @@ class KnowledgeGraphCatalog:
         :param file_name: name of the file
         :param file_size: size of the file (number of bytes)
         :param object_key: AWS S3 object key of the file
-        :param s3_file_url: currently active pre-signed url to access the file
         :return: None
         """
         knowledge_graph = self.get_knowledge_graph(kg_id)
@@ -1360,16 +1357,14 @@ class KnowledgeGraphCatalog:
                     object_key=object_key,
                     file_type=file_type,
                     file_name=file_name,
-                    file_size=file_size,
-                    s3_file_url=s3_file_url
+                    file_size=file_size
                 )
 
             elif file_type == KgeFileType.KGX_CONTENT_METADATA_FILE:
                 file_set.set_content_metadata_file(
                     file_name=file_name,
                     file_size=file_size,
-                    object_key=object_key,
-                    s3_file_url=s3_file_url
+                    object_key=object_key
                 )
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
@@ -1504,8 +1499,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         object_key=key,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
-        file_size=size,
-        s3_file_url=''
+        file_size=size
     )
     test_file1.close()
 
@@ -1524,8 +1518,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
         object_key=key,
         file_type=KgeFileType.KGX_DATA_FILE,
         file_name=file_name,
-        file_size=size,
-        s3_file_url=''
+        file_size=size
     )
     test_file2.close()
 
@@ -1563,8 +1556,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
                 object_key=key,
                 file_type=KgeFileType.KGX_DATA_FILE,
                 file_name=test_name['archive'],
-                file_size=999,
-                s3_file_url=''
+                file_size=999
             )
 
     return file_set
@@ -1971,7 +1963,7 @@ class KgeArchiver:
             print_error_trace(f"{data_type} file aggregation failure! " + str(e))
             raise e
 
-        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, data_type, 0, agg_path, '')
+        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, data_type, 0, agg_path)
     
     @staticmethod
     def copy_to_kge_archive(file_set: KgeFileSet, file_name: str):
@@ -2063,8 +2055,7 @@ class KgeArchiver:
                             file_name=entry["file_name"],
                             file_type=KgeFileType(int(entry["file_type"])),
                             file_size=int(entry["file_size"]),
-                            object_key=entry["object_key"],
-                            s3_file_url=entry["s3_file_url"]
+                            object_key=entry["object_key"]
                         )
 
                     logger.debug("Generating new fileset.yaml metadata file...")
@@ -2075,7 +2066,8 @@ class KgeArchiver:
                     logger.debug("... then, adding the fileset.yaml to the KGE S3 repository")
                     
                     # TODO: is it helpful to store this object key somewhere in the KgeFileSet?
-                    fileset_metadata_object_key = add_to_s3_repository(
+                    # fileset_metadata_object_key = \
+                    add_to_s3_repository(
                         kg_id=file_set.kg_id,
                         text=fileset_metadata_file,
                         file_name=FILE_SET_METADATA_FILE,
@@ -2368,7 +2360,6 @@ class KgxValidator:
                 # "kgx_compliant": bool
                 #
                 # "object_key": str
-                # "s3_file_url": str
                 #
                 # TODO: we just take the first values encountered, but
                 #       we should probably guard against inconsistent
@@ -2382,7 +2373,6 @@ class KgxValidator:
 
                 file_name = entry["file_name"]
                 object_key = entry["object_key"]
-                s3_file_url = entry["s3_file_url"]
 
                 logger.debug(
                     f"KgxValidator() processing file '{file_name}' '{object_key}' " +
@@ -2392,6 +2382,7 @@ class KgxValidator:
 
                 # The file to be processed should currently be
                 # a resource accessible from this S3 authenticated URL?
+                s3_file_url = create_presigned_url(object_key=object_key)
                 input_files.append(s3_file_url)
 
             ###################################
