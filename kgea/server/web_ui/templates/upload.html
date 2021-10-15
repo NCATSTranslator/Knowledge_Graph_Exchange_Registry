@@ -48,9 +48,9 @@
 // move to configuration
 const kgx_content_extensions = {
     "metadata": ['json'],
-    "nodes": ['tsv'],
-    "edges": ['tsv'],
-    "archive": ['tgz', 'tar.gz', 'gz'],  // TODO: composite extensions
+    "nodes": ['tsv','jsonl'],
+    "edges": ['tsv','jsonl'],
+    "archive": ['tgz', 'tar.gz', 'gz'],  // TODO: composite extensions; Note: check if 'tgz' is actually supported?
 }
 
 const isValidFileNameForKGXFileContent = function (kgx_file_content, content_name) {
@@ -59,22 +59,26 @@ const isValidFileNameForKGXFileContent = function (kgx_file_content, content_nam
     return kgx_content_extensions[kgx_file_content].includes(extension);
 }
 
-function report_valid_content_extension(kgx_file_content, content_name) {
+function is_valid_content_extension(kgx_file_content, content_name) {
     const extension = content_name.split('.').pop();
     const valid = isValidFileNameForKGXFileContent(kgx_file_content, content_name);
     if (valid === false) {
          if (kgx_file_content === "metadata") {
             console.warn("Non-JSON file attempted to be used with metadata file type.");
-            window.alert("You can't upload a non-JSON file for metadata. This file appears to be '"+ extension +"'.\n\nUse a different file.");
+            window.alert("You can't upload a non-JSON file for metadata. This file appears to be '" +
+                          extension +"'.\n\nUse a proper (KGX generated) content metadata json file.");
         } else if (kgx_file_content === "nodes") {
-            console.warn("Non-TSV or JSONL file attempted to be used with nodes file type.");
-            window.alert("You can't upload a non-TSV or JSONL file for nodes. This file appears to be '"+ extension +"'.\n\nUse a different file.");
+            console.warn("Unsupported KGX file format used for the nodes file.");
+            window.alert("This file appears to be of type '" + extension +
+                         "'.\n\nPlease use a supported KGX file format: '"+kgx_content_extensions['nodes']+"'");
         } else if (kgx_file_content === "edges") {
-            console.warn("Non-TSV or JSONL file attempted to be used with edges file type.");
-            window.alert("You can't upload a non-TSV or JSONL  file for edges. This file appears to be '"+ extension +"'.\n\nUse a different file.");
+            console.warn("Unsupported KGX file format used for the edges file.");
+            window.alert("This file appears to be of type '"+ extension +
+                         "'.\n\nPlease use a supported KGX file format: '"+kgx_content_extensions['edges']+"'");
         } else if (kgx_file_content === "archive") {
-            console.warn("Non-archive file attempted to be used with metadata file type.");
-            window.alert("You can't upload a non-archive file for metadata. This file appears to be '"+ extension +"'.\n\nUse a different file. (Check if your file is .tar.gz, NOT just .tar or .tgz!)");
+            console.warn("Non-archive file specified for archive.");
+            window.alert("You can't upload a non-archive file for metadata. This file appears to be '"+ extension +
+                         "'.\n\nUse '"+kgx_content_extensions['archive']+"' (note:  not just a 'tar' file)");
         }
     }
     return valid;
@@ -169,8 +173,8 @@ async function UploadFile(source) {
         let content_url = document.getElementById("content_url").value;
 
         if (content_url) {
-            if (!isValidFileNameForKGXFileContent(kgx_file_content, content_name)) {
-                report_valid_content_extension(kgx_file_content, content_name);
+            // here, we protect against inadvertent the uploading of a file with an invalid content type
+            if (!is_valid_content_extension(kgx_file_content, content_name)) {
                 return;
             } else {
 
@@ -371,11 +375,8 @@ async function UploadFile(source) {
 
         if (uploaded_file) {
 
-            // here, we protect against inadvertent the uploading
-            // of a file for content metadata which is not json,
-            // hence, is probably not the metadata?
-            if (!isValidFileNameForKGXFileContent(kgx_file_content, content_name)) {
-                report_valid_content_extension(kgx_file_content, content_name);
+            // here, we protect against inadvertent the uploading of a file with an invalid content type
+            if (!is_valid_content_extension(kgx_file_content, content_name)) {
                 return;
             }
 
