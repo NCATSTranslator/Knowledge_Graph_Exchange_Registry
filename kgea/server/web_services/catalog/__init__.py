@@ -591,30 +591,7 @@ class KgeFileSet:
         # Signal that the KGE File Set is in a post-processing state
         self.status = KgeFileSetStatusCode.PROCESSING
 
-        try:
-            # Publish a 'file_set.yaml' metadata file to the
-            # versioned archive subdirectory containing the KGE File Set
-            fileset_metadata_file = self.generate_fileset_metadata_file()
-            fileset_metadata_object_key = add_to_s3_repository(
-                kg_id=self.kg_id,
-                text=fileset_metadata_file,
-                file_name=FILE_SET_METADATA_FILE,
-                fileset_version=self.fileset_version
-            )
-            if fileset_metadata_object_key:
-                logger.info(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
-            else:
-                msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
-                      f"' file for KGE File Set version '{self.fileset_version}" + \
-                      f"' of knowledge graph '{self.kg_id}" + \
-                      "' not successfully posted to the Archive?"
-                self.report_error(msg)
-                return
-            
-        except Exception as exception:
-            msg = f"publish(): {self.kg_id} {self.fileset_version} {str(exception)}"
-            self.report_error(msg)
-            return
+        # Publication of the file_set.yaml is deferred to the KgeArchiver.worker() task
 
         try:
             archiver: KgeArchiver = KgeArchiver.get_archiver()
@@ -662,6 +639,7 @@ class KgeFileSet:
         """
         self.revisions = 'Creation'
         # TODO: Maybe also add in the inventory of files here?
+        #       Perhaps this list needs to be fixed after archives are unpacked?
         files = ""
         for entry in self.data_files.values():
             files += "- " + entry["file_name"]+"\n"
@@ -2037,16 +2015,13 @@ class KgeArchiver:
                             file_set_version=file_set.get_fileset_version(),
                             archive_filename=archive_filename
                         )
-
-                    # Republish the file_set.yaml file to modify the archives in place. This is done as a side-effect
-                    # onto S3, before the files are aggregated to the archive, or are copied to the archive.
                     #
-                    # ...Remove the archive entry from the KgxFileSet
+                    # ...Remove the archive entry from the KgxFileSet...
                     file_set.remove_data_file(archive_file_key)
                     
                     logger.debug(f"Adding {len(archive_file_entries)} files to fileset '{file_set.id()}':")
                     
-                    # add the archive's files to the file set
+                    # ...but add in the archive's files to the file set
                     for entry in archive_file_entries:
                         # spread the entry across the add_data_file function,
                         # which will take all its values as arguments
@@ -2058,26 +2033,39 @@ class KgeArchiver:
                             object_key=entry["object_key"]
                         )
 
-                    logger.debug("Generating new fileset.yaml metadata file...")
-                    
-                    # rewrite the new file set file
-                    fileset_metadata_file = file_set.generate_fileset_metadata_file()
-
-                    logger.debug("... then, adding the fileset.yaml to the KGE S3 repository")
-                    
-                    # TODO: is it helpful to store this object key somewhere in the KgeFileSet?
-                    # fileset_metadata_object_key = \
-                    add_to_s3_repository(
-                        kg_id=file_set.kg_id,
-                        text=fileset_metadata_file,
-                        file_name=FILE_SET_METADATA_FILE,
-                        fileset_version=file_set.fileset_version
-                    )
-
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
                 print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
+
+            logger.debug("Create and add the fileset.yaml to the KGE S3 repository")
+
+            try:
+                # Publish a 'file_set.yaml' metadata file to the
+                # versioned archive subdirectory containing the KGE File Set
+
+                fileset_metadata_file = file_set.generate_fileset_metadata_file()
+                fileset_metadata_object_key = add_to_s3_repository(
+                    kg_id=file_set.kg_id,
+                    text=fileset_metadata_file,
+                    file_name=FILE_SET_METADATA_FILE,
+                    fileset_version=file_set.fileset_version
+                )
+                if fileset_metadata_object_key:
+                    logger.info(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
+                else:
+                    msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
+                          f"' file for KGE File Set version '{file_set.fileset_version}" + \
+                          f"' of knowledge graph '{file_set.kg_id}" + \
+                          "' not successfully posted to the Archive?"
+                    file_set.report_error(msg)
+                    raise RuntimeError(msg)
+
+            except Exception as exc:
+                msg = f"publish(): {file_set.kg_id} {file_set.fileset_version} {str(exc)}"
+                file_set.report_error(msg)
+                print_error_trace(msg)
+                raise RuntimeError(msg)
 
             logger.debug("Aggregating nodes")
             
