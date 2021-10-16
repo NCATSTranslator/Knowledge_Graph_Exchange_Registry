@@ -84,8 +84,11 @@ tarfile="${knowledge_graph}_${version}.tar"
 # echo s3 archive root = ${s3}
 # echo archive = "${s3}/${tarfile.gz}"
 
+# Probably not flexible with respect to KGX file types - explicitly enumerated - but given that this list is just
+# used to loop through the file types but ignores missing files, this should be all right (just not easily extensible)
 output=( "provider.yaml" "file_set.yaml" "content_metadata.json" \
-         "nodes.tsv" "edges.tsv" "nodes/nodes.tsv" "edges/edges.tsv")
+         "nodes.tsv" "edges.tsv" "nodes/nodes.tsv" "edges/edges.tsv" \
+         "nodes.jsonl" "edges.jsonl" "nodes/nodes.jsonl" "edges/edges.jsonl")
 
 # iterate over files
 echo

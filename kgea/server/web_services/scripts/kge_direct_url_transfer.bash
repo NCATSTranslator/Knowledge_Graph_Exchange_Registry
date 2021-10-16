@@ -3,6 +3,8 @@
 # Shell script for *nix command line driven
 # Direct Transfer of a URL defined web resource, to AWS S3
 #
+# Note that script is generally agnostic with respect to KGX file type being transferred.
+#
 curl=$(which curl)
 #aws_flags=--quiet
 aws_flags=
