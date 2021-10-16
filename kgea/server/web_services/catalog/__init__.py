@@ -162,16 +162,16 @@ TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
 
 # Recognized KGX file format extensions
-KgxFilExt = "tsv|jsonl"
+KgxFileExt = "tsv|jsonl"
 
 # KgxFFP == Kgx File Format Pattern
-KgxFFP = re.compile(fr"(?P<filext>{KgxFilExt})", flags=re.RegexFlag.IGNORECASE)
+KgxFFP = re.compile(fr"(?P<filext>{KgxFileExt})", flags=re.RegexFlag.IGNORECASE)
 
 # KgxNodeFFP == Kgx Nodes File Format Pattern
-KgxNodeFFP = re.compile(fr"(?P<filext>nodes\.({KgxFilExt}))", flags=re.RegexFlag.IGNORECASE)
+KgxNodeFFP = re.compile(fr"(?P<filetype>nodes\.({KgxFileExt}))", flags=re.RegexFlag.IGNORECASE)
 
 # KgxEdgeFFP == Kgx Edges File Format Pattern
-KgxEdgeFFP = re.compile(fr"(?P<filext>edges\.({KgxFilExt}))", flags=re.RegexFlag.IGNORECASE)
+KgxEdgeFFP = re.compile(fr"(?P<filetype>edges\.({KgxFileExt}))", flags=re.RegexFlag.IGNORECASE)
 
 
 def _populate_template(filename, **kwargs) -> str:
