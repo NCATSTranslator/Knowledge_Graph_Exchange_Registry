@@ -1954,7 +1954,7 @@ class KgeArchiver:
                 elif input_format != m['filext']:
                     raise RuntimeError(f"aggregate_to_archive(): cannot have mixed KGX formats in'{key_list}'!")
         if input_format:
-            kgx_file_type += input_format
+            kgx_file_type += f".{input_format}"
         else:
             # Default to KGX TSV format? Is this a risky assumption?
             kgx_file_type += ".tsv"
