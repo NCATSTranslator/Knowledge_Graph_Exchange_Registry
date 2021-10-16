@@ -161,6 +161,18 @@ FILE_SET_METADATA_TEMPLATE_FILE_PATH = \
 TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
     abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
 
+# Recognized KGX file format extensions
+KgxFilExt = "tsv|jsonl"
+
+# KgxFFP == Kgx File Format Pattern
+KgxFFP = re.compile(fr"(?P<filext>{KgxFilExt})", flags=re.RegexFlag.IGNORECASE)
+
+# KgxNodeFFP == Kgx Nodes File Format Pattern
+KgxNodeFFP = re.compile(fr"(?P<filext>nodes\.({KgxFilExt}))", flags=re.RegexFlag.IGNORECASE)
+
+# KgxEdgeFFP == Kgx Edges File Format Pattern
+KgxEdgeFFP = re.compile(fr"(?P<filext>edges\.({KgxFilExt}))", flags=re.RegexFlag.IGNORECASE)
+
 
 def _populate_template(filename, **kwargs) -> str:
     """
@@ -184,17 +196,19 @@ def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
     :return: Tuple of input_format, compression
     """
     part = file_name.split('.')
-    if 'tsv' in part:
-        input_format = 'tsv'
-    else:
-        input_format = ''
 
-    if 'tar' in part:
+    input_format = ''
+    for w in part:
+        m = KgxFFP.match(w)
+        if m:
+            input_format = m['filext']
+
+    if 'tar' in part[-2]:
         archive = 'tar'
     else:
         archive = None
 
-    if 'gz' in part:
+    if 'gz' in part[-1]:
         compression = ''
         if archive:
             compression = archive + "."
@@ -387,7 +401,7 @@ class KgeFileSet:
         """
         node_files_keys = list(
             filter(
-                lambda x: 'nodes/' in x or 'nodes.tsv' in x,
+                lambda x: 'nodes/' in x or KgxNodeFFP.search(x),
                 self.get_data_file_object_keys()
             )
         )
@@ -400,7 +414,7 @@ class KgeFileSet:
         """
         edge_files_keys = list(
             filter(
-                lambda x: 'edges/' in x or 'edges.tsv' in x,
+                lambda x: 'edges/' in x or KgxEdgeFFP.search(x),
                 self.get_data_file_object_keys()
             )
         )
@@ -687,7 +701,7 @@ class KgeFileSet:
         file_set: List[KgeFile] = [
             KgeFile(
                 original_name=name,
-                # TODO: populate with more complete file_set information here
+                # TODO: how can we populate this with more complete file_set information here?
                 # assigned_name="nodes.tsv",
                 # file_type="Nodes",  # can use KgeFileType(3) indexed enum
                 # file_size=100,  # megabytes
@@ -1916,41 +1930,51 @@ class KgeArchiver:
     @staticmethod
     def aggregate_to_archive(
             file_set: KgeFileSet,
-            data_type: str,
-            file_object_keys,
-            match_function=lambda x: True
+            kgx_file_type: str,
+            file_object_keys
     ):
         """
         Wraps file aggregator for a given file type.
         
-        :param file_set:
-        :param data_type:
-        :param file_object_keys:
-        :param match_function:
+        :param file_set: KGE File Set metadata object
+        :param kgx_file_type: the core file type to be aggregated (i.e. nodes or edges)
+        :param file_object_keys: list of S3 object keys of files to be aggregated
         """
-
-        # TODO: what do we do if we want to aggregate more than just KGX TSV files?
-        data_type += ".tsv"
-        
         key_list = "\n\t".join(file_object_keys)
-        logger.debug(f"Aggregating {data_type} files in File Set '{file_set.id()}'\n"
-                     f"\tcontaining object keys:\n\t{key_list}")
 
+        # Sanity check: in this release, KGX file formats
+        # of aggregated files all need to be identical
+        input_format = ''
+        for fok in file_object_keys:
+            part = fok.split('.')
+            m = KgxFFP.match(part[-1])
+            if m:
+                if not input_format:
+                    input_format = m['filext']
+                elif input_format != m['filext']:
+                    raise RuntimeError(f"aggregate_to_archive(): cannot have mixed KGX formats in'{key_list}'!")
+        if input_format:
+            kgx_file_type += input_format
+        else:
+            # Default to KGX TSV format? Is this a risky assumption?
+            kgx_file_type += ".tsv"
+
+        logger.debug(f"Aggregating {kgx_file_type} files in KGE File Set '{file_set.id()}'\n"
+                     f"\tcontaining KGX {input_format} formatted object keys:\n\t{key_list}")
         try:
             agg_path: str = aggregate_files(
                 target_folder=f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/archive",
-                target_name=data_type,
-                file_object_keys=file_object_keys,
-                match_function=match_function
+                target_name=kgx_file_type,
+                file_object_keys=file_object_keys
             )
-            logger.debug(f"{data_type} path: {agg_path}")
+            logger.debug(f"{kgx_file_type} path: {agg_path}")
     
         except Exception as e:
             # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-            print_error_trace(f"{data_type} file aggregation failure! " + str(e))
+            print_error_trace(f"{kgx_file_type} file aggregation failure! " + str(e))
             raise e
 
-        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, data_type, 0, agg_path)
+        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, kgx_file_type, 0, agg_path)
     
     @staticmethod
     def copy_to_kge_archive(file_set: KgeFileSet, file_name: str):
@@ -2083,8 +2107,16 @@ class KgeArchiver:
             
             # 2. Aggregate each of all nodes and edges each
             #    into their respective files in the archive folder
-            self.aggregate_to_archive(file_set, "nodes", file_set.get_nodes())
-            self.aggregate_to_archive(file_set, "edges", file_set.get_edges())
+            self.aggregate_to_archive(
+                file_set=file_set,
+                kgx_file_type="nodes",
+                file_object_keys=file_set.get_nodes()
+            )
+            self.aggregate_to_archive(
+                file_set=file_set,
+                kgx_file_type="edges",
+                file_object_keys=file_set.get_edges()
+            )
 
             # 3. Copy over metadata files into the archive folder
             self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
@@ -2095,7 +2127,7 @@ class KgeArchiver:
             await sleep(0.001)
             
             # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
-            #    containing the aggregated nodes.tsv, edges.tsv, Appending `file_set_root_key`
+            #    containing the aggregated kgx nodes and edges files, Appending `file_set_root_key`
             #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
             #    from compressing the previous compression (so the source of files is distinct
             #    from the target to which it is written)
@@ -2420,7 +2452,7 @@ class KgxValidator:
             self,
             file_set_id: str,
             input_files: List[str],
-            input_format: str = 'tsv',
+            input_format: str,
             input_compression: Optional[str] = None
     ) -> List:
         """
@@ -2428,7 +2460,7 @@ class KgxValidator:
 
         :param file_set_id: name of the file set, generally a composite identifier of the kg_id plus fileset_version?
         :param input_files: list of file path strings pointing to files to be validated (could be a resolvable URL?)
-        :param input_format: defaults to 'tsv' - needs to be be consistent for all input_files
+        :param input_format: KGX file format (file extension) ... needs to be be consistent for all input_files
         :param input_compression: currently expected to be 'tar.gz' or 'gz' - should be consistent for all input_files
         :return: (possibly empty) List of errors returned
         """
