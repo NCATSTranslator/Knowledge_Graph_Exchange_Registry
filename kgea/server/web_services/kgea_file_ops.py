@@ -786,10 +786,13 @@ def extract_data_archive(
     # one step decompression - bash level script operations on the local disk
     logger.debug(f"Initiating execution of extract_data_archive({archive_filename})")
     
-    if 'tar.gz' not in archive_filename:
+    if not archive_filename.endswith('.tar.gz'):
         err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
         logger.error(err_msg)
         raise RuntimeError(f"extract_data_archive(): {err_msg}")
+
+    part = archive_filename.split('.')
+    archive_filename = '.'.join(part[:-2])
     
     file_entries: List[Dict[str, str]] = []
 
@@ -823,12 +826,12 @@ def extract_data_archive(
             ),
             stdout_parser=output_parser
         )
-        logger.debug(f"Completed extract_data_archive({archive_filename}), with return code {str(return_code)}")
+        logger.debug(f"Completed extract_data_archive({archive_filename}.tar.gz), with return code {str(return_code)}")
         
     except Exception as e:
-        logger.error(f"decompress_in_place({archive_filename}): exception {str(e)}")
+        logger.error(f"decompress_in_place({archive_filename}.tar.gz): exception {str(e)}")
     
-    logger.debug(f"Exiting decompress_in_place({archive_filename})")
+    logger.debug(f"Exiting decompress_in_place({archive_filename}.tar.gz)")
 
     return file_entries
 

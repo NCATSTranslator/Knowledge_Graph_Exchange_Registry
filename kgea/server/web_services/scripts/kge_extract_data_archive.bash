@@ -102,7 +102,7 @@ if [[ -z "${5}" ]]; then
 else
     # Archive file name
     archive_filename="${5}"
-    echo "Archive file name: ${archive_filename}"
+    echo "Archive file name: ${archive_filename}.tar.gz"
 fi
 
 # Folder of given versioned file set of the Knowledge Graph
@@ -115,7 +115,7 @@ s3_uri="s3://${bucket}/${file_set_key_prefix}"
 echo "Base S3 URI: ${s3_uri}"
 
 # Archive file to be extracted
-archive_object_key="${s3_uri}/${archive_filename}"
+archive_object_key="${s3_uri}/${archive_filename}.tar.gz"
 
 echo
 echo "Beginning extraction of '${archive_object_key}'"
@@ -216,9 +216,10 @@ do
   # parse out the result of the typed_core_file_object_key()
   IFS=',' read -ra file_data <<< "${result}"
 
-  # the 'unique' file object key is just
-  # the variable part relating to file type
-  core_file_object_key=${file_data[0]}
+  # the 'unique' file object key is just the variable part relating to file type
+  # We prefix the names of the copied files with the archive name to avoid
+  # name collisions with files previously posted from other sources, to S3
+  core_file_object_key="${archive_filename}_${file_data[0]}"
   echo "Core File Object Key: ${core_file_object_key}"
 
   file_type=${file_data[1]}
