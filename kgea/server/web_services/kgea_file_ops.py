@@ -14,6 +14,8 @@ from os import getenv
 from os.path import sep, splitext, basename, dirname, abspath
 import io
 
+from pprint import PrettyPrinter
+
 import random
 
 import re
@@ -47,6 +49,8 @@ from kgea.config import (
 )
 
 logger = logging.getLogger(__name__)
+
+pp = PrettyPrinter(indent=4, stream=stderr)
 
 # Master flag for local development, usually when code is not run inside an EC2 server
 DEV_MODE = getenv('DEV_MODE', default=False)
@@ -548,8 +552,8 @@ def get_fileset_versions_available(bucket_name):
             kg_ids_with_versions_pattern.match(kg_file).group(1),
             kg_ids_with_versions_pattern.match(kg_file).group(2)
         ) for kg_file in all_kge_archive_files if kg_ids_with_versions_pattern.match(kg_file) is not None)
-    
-    logger.debug(kg_ids, version_kg_pairs)
+
+    pp.pprint({"Knowledge Graphs": kg_ids, "File Set Versions": version_kg_pairs})
 
     for key, group in itertools.groupby(version_kg_pairs, lambda x: x[0]):
         versions_per_kg[key] = []
@@ -977,8 +981,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
         :param entry_name:
         :return:
         """
-        return metadata_file_pattern.match(entry_name) is not None or \
-               edge_folder_pattern.match(entry_name) is not None
+        return metadata_file_pattern.match(entry_name) is not None or edge_folder_pattern.match(entry_name) is not None
 
     def traversal_func_kgx(tf, location):
         """
@@ -987,17 +990,18 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
         :param location:
         :return:
         """
-        logger.debug('traversal_func_kgx(): Begin traversing across the archive for nodes and edge files', tf)
+        logger.debug(f"traversal_func_kgx(): Begin traversing across the archive for nodes and edge files'{tf}'")
+
         file_entries = []
         for entry in tf:  # list each entry one by one
             
-            logger.debug('traversal_func_kgx(): Traversing entry', entry)
+            logger.debug(f"traversal_func_kgx(): Traversing entry'{entry}'")
 
             object_key = location  # if not strict else None
             
             fileobj = tf.extractfile(entry)
 
-            logger.debug('traversal_func_kgx(): Entry file object', fileobj)
+            logger.debug(f"traversal_func_kgx(): Entry file object '{fileobj}'")
 
             if fileobj is not None:  # not a directory
                 
@@ -1013,7 +1017,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
                 else:
                     object_key = location + unpacked_filename
 
-                logger.debug('traversal_func_kgx(): Object key will be', object_key)
+                logger.debug(f"traversal_func_kgx(): Object key will be '{object_key}'")
 
                 if object_key is not None:
                     
@@ -1031,7 +1035,9 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
                         "file_size": entry.size,
                         "object_key": object_key
                     })
-        logger.debug('traversal_func_kgx(): file entries: ', file_entries)
+
+        logger.debug(f"traversal_func_kgx(): file entries: '{file_entries}'")
+
         return file_entries
 
     return decompress_in_place(gzipped_key, location, traversal_func_kgx)
@@ -1122,7 +1128,7 @@ def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') ->
         if mode == 'text':
             data_string = data_bytes.decode('utf-8')
     except Exception as e:
-        logger.error('ERROR: _load_s3_text_file(): ' + str(e))
+        logger.error(f"ERROR: _load_s3_text_file('{str(e)}')")
 
     return data_string
 
