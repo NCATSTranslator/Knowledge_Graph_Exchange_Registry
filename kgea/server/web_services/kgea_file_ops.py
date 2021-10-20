@@ -105,7 +105,7 @@ def run_script(
     cmd.append(script)
     cmd.extend(args)
     
-    logger.debug(f"run_script(cmd: '{cmd}'")
+    logger.debug(f"run_script(cmd: '{cmd}')")
     try:
         with Popen(
                 args=cmd,

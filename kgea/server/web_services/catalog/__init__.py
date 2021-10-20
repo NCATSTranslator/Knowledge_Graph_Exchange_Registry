@@ -133,10 +133,10 @@ _KGEA_APP_CONFIG = get_app_config()
 site_hostname = _KGEA_APP_CONFIG['site_hostname']
 
 Number_of_Archiver_Tasks = \
-    _KGEA_APP_CONFIG['Number_of_Archiver_Tasks'] if 'Number_of_Archiver_Tasks' in _KGEA_APP_CONFIG else 3
+    _KGEA_APP_CONFIG['Number_of_Archiver_Tasks'] if 'Number_of_Archiver_Tasks' in _KGEA_APP_CONFIG else 1
 
 Number_of_Validator_Tasks = \
-    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 3
+    _KGEA_APP_CONFIG['Number_of_Validator_Tasks'] if 'Number_of_Validator_Tasks' in _KGEA_APP_CONFIG else 1
 
 # TODO: operational parameter dependent configuration
 MAX_WAIT = 100  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
@@ -615,7 +615,9 @@ class KgeFileSet:
 
         try:
             archiver: KgeArchiver = KgeArchiver.get_archiver()
-            archiver.create_workers(1)  # add worker capacity
+
+            # We create all our workers once, in the KgeArchiver constructor now.
+            # archiver.create_workers(1)  # add worker capacity
             
             # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
             await archiver.process(self)
@@ -905,8 +907,8 @@ class KgeKnowledgeGraph:
         :return: KgeFileSet entry tracking for data files in the KGE File Set
         """
         if fileset_version not in self._file_set_versions:
-            logger.warning("KgeKnowledgeGraph.get_file_set(): KGE File Set version '"
-                           + fileset_version + "' unknown for Knowledge Graph '" + self.kg_id + "'?")
+            # logger.warning("KgeKnowledgeGraph.get_file_set(): KGE File Set version '"
+            #                + fileset_version + "' unknown for Knowledge Graph '" + self.kg_id + "'?")
             return None
 
         return self._file_set_versions[fileset_version]
@@ -1342,10 +1344,13 @@ class KnowledgeGraphCatalog:
         knowledge_graph = self.get_knowledge_graph(kg_id)
 
         if not knowledge_graph:
-            raise RuntimeError("KGE File Set '" + kg_id + "' is unknown?")
+            raise RuntimeError("add_to_kge_file_set(): Knowledge Graph '" + kg_id + "' is unknown?")
         else:
             # Found a matching KGE Knowledge Graph?
             file_set = knowledge_graph.get_file_set(fileset_version=fileset_version)
+            if not file_set:
+                raise RuntimeError("add_to_kge_file_set(): File Set version '" + fileset_version + "' is unknown?")
+
             # Add the current (meta-)data file to the KGE File Set
             # associated with this fileset_version of the graph.
             if file_type in [KgeFileType.KGX_DATA_FILE, KgeFileType.KGE_ARCHIVE]:
@@ -1904,13 +1909,23 @@ class KgeArchiver:
     """
     KGE Archive building wrapper.
     """
-
-    def __init__(self, max_tasks=Number_of_Archiver_Tasks, max_queue=MAX_QUEUE, max_wait=MAX_WAIT):
+    #
+    # we leave the Queue open ended now...
+    #
+    # def __init__(self, max_tasks=Number_of_Archiver_Tasks, max_queue=MAX_QUEUE, max_wait=MAX_WAIT):
+    def __init__(self, max_tasks=Number_of_Archiver_Tasks, max_wait=MAX_WAIT):
         """
         Constructor for a single archiver task wrapper.
         """
-        self._archiver_queue: Queue = Queue(maxsize=max_queue)
+        #  we won't worry about queue size in this application
+        #  unless informed otherwise by our use cases...
+        # self._archiver_queue: Queue = Queue(maxsize=max_queue)
+        self._archiver_queue: Queue = Queue()  # unlimited queue size
         self._archiver_worker: List[Task] = list()
+
+        # we hard code the creation of KgeArchiver tasks here, not later
+        for i in range(0, max_tasks):
+            self._archiver_worker.append(create_task(self.worker()))
 
         self.max_tasks: int = max_tasks
         self.max_wait: int = max_wait
@@ -2026,11 +2041,10 @@ class KgeArchiver:
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
-                logger.debug(
-                    f"KgeArchiver task {task_id} unpacking incoming tar.gz archives: " +
-                    f"{file_set.get_archive_file_keys()}")
+                archive_file_key_list = file_set.get_archive_file_keys()
+                logger.debug(f"KgeArchiver task {task_id} unpacking incoming tar.gz archives: {archive_file_key_list}")
                 
-                for archive_file_key in file_set.get_archive_file_keys():
+                for archive_file_key in archive_file_key_list:
                     
                     archive_filename = file_set.get_property_of_data_file_key(archive_file_key, 'file_name')
                     
@@ -2038,7 +2052,7 @@ class KgeArchiver:
                     
                     #
                     # RMB: 2021-10-07, we deprecated the RAM-based version of the 'decompress-in-place' operation,
-                    # moving instead towards the kge_extract_data_archive.bash harddisk-centric solution
+                    # moving instead towards the kge_extract_data_archive.bash hard disk-centric solution
                     #
                     # archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     #
@@ -2193,29 +2207,32 @@ class KgeArchiver:
 
             self._archiver_queue.task_done()
 
-    def create_workers(self, worker_count):
-        """
-        Initializes Archiver tasks if not yet running
-         and less than Number_of_Archiver_Tasks.
-        """
-        assert(worker_count > -1)
-
-        worker_additions: int = 0
-        if worker_count + len(self._archiver_worker) < self.max_tasks:
-            worker_additions = worker_count
-        elif worker_count + len(self._archiver_worker) >= self.max_tasks:
-            # the sum of WC and len of workers could be greater either because len of workers is greater,
-            # or both are lesser but the sum of both is greater
-
-            # if the length is already greater then we want to do nothing
-            if len(self._archiver_worker) >= self.max_tasks:
-                raise Warning('Max Workers')
-            else:
-                # max out workers up to the limit, which is the number of additions required to make the limit
-                worker_additions = self.max_tasks - len(self._archiver_worker)
-
-        for i in range(0, worker_additions):
-            self._archiver_worker.append(create_task(self.worker()))
+    #
+    # DEPRECATED: "creative" management of KgeArchiver tasks. K.I.S.S.
+    #
+    # def create_workers(self, worker_count):
+    #     """
+    #     Initializes Archiver tasks if not yet running
+    #      and less than Number_of_Archiver_Tasks.
+    #     """
+    #     assert(worker_count > -1)
+    #
+    #     worker_additions: int = 0
+    #     if worker_count + len(self._archiver_worker) < self.max_tasks:
+    #         worker_additions = worker_count
+    #     elif worker_count + len(self._archiver_worker) >= self.max_tasks:
+    #         # the sum of WC and len of workers could be greater either because len of workers is greater,
+    #         # or both are lesser but the sum of both is greater
+    #
+    #         # if the length is already greater then we want to do nothing
+    #         if len(self._archiver_worker) >= self.max_tasks:
+    #             raise Warning('Max Workers')
+    #         else:
+    #             # max out workers up to the limit, which is the number of additions required to make the limit
+    #             worker_additions = self.max_tasks - len(self._archiver_worker)
+    #
+    #     for i in range(0, worker_additions):
+    #         self._archiver_worker.append(create_task(self.worker()))
 
     async def shutdown_workers(self):
         """
@@ -2532,7 +2549,9 @@ def test_stub_archiver() -> bool:
 
         fs = prepare_test_file_set("1.0")
         await archiver.process(fs)
-        archiver.create_workers(2)
+
+        # We create all our workers in the KgeArchiver() constructor
+        # archiver.create_workers(2)
 
         # fs = test_file_set("1.1")
         # await archiver.process(fs)
