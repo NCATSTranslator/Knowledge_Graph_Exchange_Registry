@@ -30,11 +30,15 @@ if [[ ! -f ${aws} ]]; then
   exit 2
 fi
 
+sha1sum=$(which sha1sum)
+# echo "sha1sum = ${sha1sum}"
+
 usage () {
     echo
     echo "Usage:"
     echo
     echo "${0} <KGE Bucket> <KGE Root Directory> <Knowledge Graph Identifier> <File Set Version>"
+    echo
 #    exit -1  bash exits 0-255
     exit 1
 }
@@ -75,14 +79,18 @@ echo "Beginning creation of tar.gz archive for file set version '$version' of '$
 file_set="${knowledge_graph}/${version}"
 
 # Full S3 object key to the file set folder
-s3="s3://${kge_bucket}/${kge_root_directory}/${file_set}/archive"
+s3_fileset="s3://${kge_bucket}/${kge_root_directory}/${file_set}"
+s3_archive="${s3_fileset}/archive"
+
+# Root file name
+fileset_name="${knowledge_graph}_${version}"
 
 # File Set tar archive
-tarfile="${knowledge_graph}_${version}.tar"
+tarfile="${fileset_name}.tar"
 
-# echo Knowledge Graph File Set = $knowledge_graph $version
-# echo s3 archive root = ${s3}
-# echo archive = "${s3}/${tarfile.gz}"
+# echo "Knowledge Graph File Set = $knowledge_graph $version"
+# echo "s3 archive root = ${s3_archive}"
+# echo "archive = ${s3_archive}/${tarfile.gz}"
 
 # Probably not flexible with respect to KGX file types - explicitly enumerated - but given that this list is just
 # used to loop through the file types but ignores missing files, this should be all right (just not easily extensible)
@@ -92,12 +100,12 @@ output=( "provider.yaml" "file_set.yaml" "content_metadata.json" \
 
 # iterate over files
 echo
-echo Retrieve and tar files:
+echo "Retrieve and tar files:"
 
 # shellcheck disable=SC2068
 for file in ${output[@]};
 do
-  $aws s3 cp ${aws_flags} "${s3}/${file}" .
+  $aws s3 cp ${aws_flags} "${s3_archive}/${file}" .
   if [ $? -eq 0 ] && [ -f "${file}" ]; then
      echo -n "- ${file}..."
      # use `rf` for tar to create if not exists,
@@ -111,19 +119,30 @@ do
 done
 
 ## after archiving all of the files, compress them
-echo Running ${gzip}
+echo "Running ${gzip}"
 $gzip "${tarfile}"
 
-## copy the new archive file to s3
-echo Uploading "${s3}/${tarfile}.gz" archive
-$aws s3 cp  ${aws_flags} "${tarfile}.gz" "$s3/${tarfile}.gz"
+## copy the new tar.gz archive file to s3
+tgz="${tarfile}.gz"
+s3_tgz="${s3_archive}/${tgz}"
+echo "Uploading ${s3_tgz} archive"
+$aws s3 cp  ${aws_flags}  "${tgz}" "${s3_tgz}"
 
-## cleanup the local copy of the tar.gz file
-echo "Deleting ${tarfile}.gz"
-rm "${tarfile}.gz"
+## Generate SHA1 sum of archive and upload to file set manifest in S3
+s3_manifest="${s3_fileset}/manifest"
+sha1file="${fileset_name}.sha1.txt"
+s3_sha1file="${s3_manifest}/${sha1file}"
+echo "Generating '${sha1file}' from '${tgz}'"
+$sha1sum "${tgz}" >"${sha1file}"
+# echo "Uploading to '${s3_sha1file}'"
+$aws s3 cp  ${aws_flags} "${sha1file}" "${s3_sha1file}"
+
+## cleanup the local copy of the tar.gz and sha1 hash files
+echo "Deleting ${tgz} and ${sha1file}"
+rm "${tgz}" "${sha1file}"
 
 echo
-echo "Done creating tar.gz archive for file set version '${version}' of '${knowledge_graph}'"
+echo "Done creating tar.gz archive and SHA1 hash for file set version '${version}' of '${knowledge_graph}'"
 
 # signal of success to other processes
 exit 0;

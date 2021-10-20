@@ -2162,33 +2162,37 @@ class KgeArchiver:
             # take a quick rest, to give other co-routines a chance?
             await sleep(0.001)
             
-            # 5. Compute the SHA1 hash sum for the resulting archive file. Hmm... since we are adding the
-            #  file_set.yaml file to the archive, it would not really help to embed the hash sum into the fileset
-            #  yaml itself, but we can store it in an extra small text file (e.g. sha1.txt?) and read it in during
-            #  the catalog loading, for communication back to the user as part of the catalog metadata
-            #  (once the archiving and hash generation is completed...)
-            logger.debug("Computing SHA1 hash sum...")
-            try:
-                # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format
-                # of whatever is being opened. If we let this happen, then the hash function would run over
-                # a decompressed buffer; not the compressed file/buffer that we expect our users to use when
-                # they download and validate the archive.
-                with smart_open.open(s3_archive_key, 'rb', compression='disable') as archive_file_key:
-                    sha1sum = sha1_manifest(archive_file_key)
-                    sha1sum_value = sha1sum[archive_file_key.name]
-                    sha1file = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
-                    manifest_object_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/manifest/"
-                    sha1_s3_path = f"s3://{default_s3_bucket}/{manifest_object_location}{sha1file}"
-                    with smart_open.open(sha1_s3_path, 'w') as sha1file:
-                        sha1file.write(sha1sum_value)
+            # 5. Compute the SHA1 hash sum for the resulting archive file.
 
-            except Exception as e:
-                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("SHA1 hash sum computation failure! "+str(e))
-                raise e
+            # DEPRECATED LOCAL CODE: SHA1 hash creation now run in the bash CLI of the compress_fileset() method above.
 
-            # take a quick rest, to give other co-routines a chance?
-            await sleep(0.001)
+            # #  Hmm... since we are adding the file_set.yaml file to the archive, it would not
+            # #  really help to embed the hash sum into the fileset yaml itself, but we can store
+            # #  it in an extra small text file (e.g. sha1.txt?) and read it in during the catalog
+            # #  loading, for communication back to the user as part of the catalog metadata
+            # #  (once the archiving and hash generation is completed...)
+            # logger.debug("Computing SHA1 hash sum...")
+            # try:
+            #     # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format
+            #     # of whatever is being opened. If we let this happen, then the hash function would run over
+            #     # a decompressed buffer; not the compressed file/buffer that we expect our users to use when
+            #     # they download and validate the archive.
+            #     with smart_open.open(s3_archive_key, 'rb', compression='disable') as archive_file_key:
+            #         sha1sum = sha1_manifest(archive_file_key)
+            #         sha1sum_value = sha1sum[archive_file_key.name]
+            #         sha1file = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
+            #         manifest_object_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/manifest/"
+            #         sha1_s3_path = f"s3://{default_s3_bucket}/{manifest_object_location}{sha1file}"
+            #         with smart_open.open(sha1_s3_path, 'w') as sha1file:
+            #             sha1file.write(sha1sum_value)
+            #
+            # except Exception as e:
+            #     # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+            #     print_error_trace("SHA1 hash sum computation failure! "+str(e))
+            #     raise e
+            #
+            # # take a quick rest, to give other co-routines a chance?
+            # await sleep(0.001)
             
             # 6. KGX validation of KGE compliant archive.
             
