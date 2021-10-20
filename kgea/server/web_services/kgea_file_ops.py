@@ -86,7 +86,7 @@ def print_error_trace(err_msg: str):
 #############################################
 # General Utility Functions for this Module #
 #############################################
-def run_script(
+async def run_script(
         script,
         args: Tuple = (),
         # env: Optional = None
@@ -734,7 +734,7 @@ def upload_file_multipart(
     return object_key
 
 
-def compress_fileset(
+async def compress_fileset(
         kg_id,
         version,
         bucket=default_s3_bucket,
@@ -752,7 +752,7 @@ def compress_fileset(
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
 
     try:
-        return_code = run_script(
+        return_code = await run_script(
             script=_KGEA_ARCHIVER_SCRIPT,
             args=(bucket, root, kg_id, version)
         )
@@ -766,7 +766,7 @@ def compress_fileset(
     return s3_archive_key
 
 
-def extract_data_archive(
+async def extract_data_archive(
         kg_id: str,
         file_set_version: str,
         archive_filename: str,
@@ -819,7 +819,7 @@ def extract_data_archive(
                 "object_key": file_object_key
             })
     try:
-        return_code = run_script(
+        return_code = await run_script(
             script=_KGEA_EDA_SCRIPT,
             args=(
                 bucket,

@@ -414,7 +414,7 @@ def test_copy_file():
 
 async def test_compress_fileset():
     try:
-        s3_archive_key: str = compress_fileset(
+        s3_archive_key: str = await compress_fileset(
             kg_id=TEST_KG_ID,
             version=TEST_FS_VERSION,
             bucket=TEST_BUCKET,

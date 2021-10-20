@@ -95,7 +95,8 @@ from kgea.server.web_services.kgea_file_ops import (
     upload_file,
     random_alpha_string,
     object_key_exists,
-    extract_data_archive, create_presigned_url
+    extract_data_archive,
+    create_presigned_url
 )
 
 from kgea.server.web_services.sha_utils import sha1_manifest
@@ -2057,7 +2058,7 @@ class KgeArchiver:
                     # archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     #
                     archive_file_entries: List[Dict[str, str]] = \
-                        extract_data_archive(
+                        await extract_data_archive(
                             kg_id=file_set.get_kg_id(),
                             file_set_version=file_set.get_fileset_version(),
                             archive_filename=archive_filename
@@ -2147,7 +2148,7 @@ class KgeArchiver:
             #    from the target to which it is written)
             logger.debug("Compressing total KGE file set...")
             try:
-                s3_archive_key: str = compress_fileset(
+                s3_archive_key: str = await compress_fileset(
                     kg_id=file_set.kg_id,
                     version=file_set.fileset_version
                 )
