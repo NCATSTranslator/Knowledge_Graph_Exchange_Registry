@@ -118,7 +118,7 @@ def _load_app_config() -> dict:
 # Here, we centralize the various application web endpoints #
 #############################################################
 
-BACKEND_PATH = 'archive/'
+BACKEND_PATH = 'api/'
 if DEV_MODE:
     # Development Mode for local testing
 

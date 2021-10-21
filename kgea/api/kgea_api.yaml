@@ -24,7 +24,7 @@ info:
     team:
     - "SRI"
 servers:
-  - url: "http://localhost:8080/archive"
+  - url: "http://localhost:8080/api"
     description: "Localhost URL for server, to be proxied to the real internet"
 externalDocs:
   description: >-

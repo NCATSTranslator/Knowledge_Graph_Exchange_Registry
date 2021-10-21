@@ -21,21 +21,21 @@
 #     # server http://localhost:8094 fail_timeout=0;
 # }
 #
-# upstream kge_archive {
+# upstream kge_api {
 #     # This is the docker-compose.yaml service name of the KGE Archive
 #     # backend web services, hosted in a dockerized container.
 #
-#     server http://localhost:8080/archive fail_timeout=0;
+#     server http://localhost:8080/api fail_timeout=0;
 #
 #     # Load balancing?
 #
 #     # I don't know whether additional backend processes are
 #     # needed and could be run for the KGE Archive back end?
 #
-#     # server http://localhost:8081/archive fail_timeout=0;
-#     # server http://localhost:8082/archive fail_timeout=0;
-#     # server http://localhost:8083/archive fail_timeout=0;
-#     # server http://localhost:8084/archive fail_timeout=0;
+#     # server http://localhost:8081/api fail_timeout=0;
+#     # server http://localhost:8082/api fail_timeout=0;
+#     # server http://localhost:8083/api fail_timeout=0;
+#     # server http://localhost:8084/api fail_timeout=0;
 # }
 
 server {
@@ -66,7 +66,7 @@ server {
         proxy_pass http://localhost:8090;
     }
 
-    location /archive {
+    location /api {
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_redirect off;
@@ -77,9 +77,22 @@ server {
         send_timeout 15m;
 
         # Uncomment if and when corresponding 'upstream' block is needed
-        # proxy_pass http://kge_archive;
+        # proxy_pass http://kge_api;
 
-        proxy_pass http://localhost:8080/archive;
+        proxy_pass http://localhost:8080/api;
+    }
+
+    location /archiver {
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_redirect off;
+        proxy_buffering off;
+        proxy_read_timeout 15m;
+        proxy_connect_timeout 15m;
+        proxy_send_timeout 15m;
+        send_timeout 15m;
+
+        proxy_pass http://localhost:8100;
     }
 
     location /favicon.ico {

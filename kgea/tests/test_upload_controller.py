@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import pytest
+from kgea.config import BACKEND_PATH
 
 
 async def test_get_upload_status(client):
@@ -14,7 +15,7 @@ async def test_get_upload_status(client):
     }
     response = await client.request(
         method='GET',
-        path='/archive/upload/progress',
+        path=f'/{BACKEND_PATH}upload/progress',
         headers=headers,
         params=params,
         )
@@ -35,7 +36,7 @@ async def test_setup_upload_context(client):
     }
     response = await client.request(
         method='GET',
-        path='/archive/upload',
+        path=f'/{BACKEND_PATH}upload',
         headers=headers,
         params=params,
         )
@@ -57,7 +58,7 @@ async def test_transfer_from_url(client):
     }
     response = await client.request(
         method='GET',
-        path='/archive/transfer',
+        path=f'/{BACKEND_PATH}transfer',
         headers=headers,
         params=params,
         )
@@ -77,7 +78,7 @@ async def test_upload_file(client):
     }
     response = await client.request(
         method='POST',
-        path='/archive/upload',
+        path=f'/{BACKEND_PATH}upload',
         headers=headers,
         json=body,
         )
