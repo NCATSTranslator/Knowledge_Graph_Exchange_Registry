@@ -9,7 +9,7 @@ Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biol
 """
 from sys import stderr, exc_info
 from typing import Union, List, Tuple, Dict, Optional
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE
 from os import getenv
 from os.path import sep, splitext, basename, dirname, abspath
 import io
@@ -32,6 +32,8 @@ from pathlib import Path
 import tarfile
 
 from validators import ValidationFailure, url as valid_url
+
+from kgea.server import run_script
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -81,52 +83,6 @@ def print_error_trace(err_msg: str):
     logger.error(err_msg)
     exc_type, exc_value, exc_traceback = exc_info()
     traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
-
-
-#############################################
-# General Utility Functions for this Module #
-#############################################
-async def run_script(
-        script,
-        args: Tuple = (),
-        # env: Optional = None
-        stdout_parser=None
-) -> int:
-    """
-    Run a given script in the background, with
-     specified arguments and environment variables.
-
-    :param script: full OS path to the executable script.
-    :param args: command line arguments for the script
-    :param stdout_parser: (optional) single string argument function to parse lines piped back from stdout of the script
-    :return: return code of the script
-    """
-    cmd: List = list()
-    cmd.append(script)
-    cmd.extend(args)
-    
-    logger.debug(f"run_script(cmd: '{cmd}')")
-    try:
-        with Popen(
-                args=cmd,
-                # env=env,
-                bufsize=1,
-                universal_newlines=True,
-                stdout=PIPE,
-                stderr=STDOUT
-        ) as proc:
-            logger.info(f"run_script({script}) log:")
-            for line in proc.stdout:
-                line = line.strip()
-                if stdout_parser:
-                    stdout_parser(line)
-                logger.debug(line)
-                
-    except RuntimeError:
-        logger.error(f"run_script({script}) exception: {exc_info()}")
-        return -1
-    
-    return proc.returncode
 
 
 # https://www.askpython.com/python/examples/generate-random-strings-in-python

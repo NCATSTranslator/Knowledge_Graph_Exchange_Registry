@@ -89,5 +89,3 @@ def main():
     web.run_app(make_app(), port=8090)
 
     KgeaSession.close_global_session()
-
-

@@ -1,5 +1,5 @@
 """
-Knowledge Graph Archive back end Web Services component
+Knowledge Graph Exchange back end Web Services component
 """
 from os import path
 import connexion

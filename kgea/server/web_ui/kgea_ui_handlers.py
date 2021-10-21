@@ -409,7 +409,11 @@ async def get_kge_data_unavailable(request: web.Request) -> web.Response:
         if not fileset_version:
             missing.append("fileset_version")
         if missing:
-            await report_bad_request(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
+            missing_args = ", ".join(missing)
+            await report_bad_request(
+                request,
+                f"get_kge_file_upload_form() - missing parameter(s): {missing_args}"
+            )
             
         context = {
             "kg_name": kg_name,
