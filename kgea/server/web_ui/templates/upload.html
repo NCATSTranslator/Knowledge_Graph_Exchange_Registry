@@ -188,7 +188,9 @@ async function UploadFile(source) {
                 document.getElementById("done_uploading").disabled = true;
                 document.getElementById("content_from_url").disabled = true;
                 document.getElementById("content_from_local_file").disabled = true;
-                transfer_in_progress = true;
+
+                // we don't set the transfer_in_progress here... Rather, wait until progress monitoring starts
+                // transfer_in_progress = true;
 
                 document.getElementById('percentage_link').style.display = "inline-block";
                 document.getElementById('spinner-text_link').style.display = "inline-block";
