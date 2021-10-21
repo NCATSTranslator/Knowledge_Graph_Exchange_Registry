@@ -756,7 +756,7 @@ _num_s3_threads = 16
 _s3_transfer_cfg = Config(signature_version='s3v4', max_pool_connections=_num_s3_threads)
 
 
-def threaded_file_transfer(filename, tracker, transfer_function, source):
+async def threaded_file_transfer(filename, tracker, transfer_function, source):
     """
 
     :param filename:
@@ -877,7 +877,7 @@ async def kge_upload_file(
                 tracker['status'] = KgeUploadProgressStatusCode.ERROR
                 raise e
 
-        threaded_file_transfer(
+        await threaded_file_transfer(
             filename=uploaded_file.filename,
             tracker=tracker,
             transfer_function=_upload_file,
@@ -945,7 +945,7 @@ async def kge_transfer_from_url(
                 tracker['status'] = KgeUploadProgressStatusCode.ERROR
                 raise e
 
-        threaded_file_transfer(
+        await threaded_file_transfer(
             filename=content_name,
             tracker=tracker,
             transfer_function=_upload_from_link,
@@ -970,6 +970,10 @@ def abort_upload(upload_token: str):
     :return:
     """
     global _upload_tracker
+
+    if upload_token not in _upload_tracker['upload']:
+        logger.error(f"abort_upload(): unrecognized token {upload_token}")
+        return
 
     _upload_tracker['upload'][upload_token]['active'] = False
     
