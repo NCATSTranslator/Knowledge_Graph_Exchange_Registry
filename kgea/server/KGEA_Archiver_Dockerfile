@@ -13,9 +13,9 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 
 COPY ./kgea/__init__.py /usr/src/app/kgea/
 COPY ./kgea/aws/*.py /usr/src/app/kgea/aws/
-COPY ./kgea/config/* /usr/src/app/kgea/config/
+COPY ./kgea/config /usr/src/app/kgea/
 COPY ./kgea/server/__init__.py /usr/src/app/kgea/server/
-COPY ./kgea/server/archiver/*.py /usr/src/app/kgea/server/archiver/
+COPY ./kgea/server/archiver /usr/src/app/kgea/server/
 
 EXPOSE 8100
 
