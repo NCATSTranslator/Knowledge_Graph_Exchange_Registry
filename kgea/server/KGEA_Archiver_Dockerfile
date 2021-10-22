@@ -1,6 +1,6 @@
 FROM python:3.8
 
-RUN mkdir -p /usr/src/app/kgea/server/archiver
+RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y build-essential git python3-lxml
@@ -11,13 +11,11 @@ RUN python -m pip install --upgrade pip && python -m pip install wheel
 COPY archiver_requirements.txt  /usr/src/app/requirements.txt
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
-COPY kgea/__init__.py /usr/src/app/kgea/
-COPY kgea/aws/*.py /usr/src/app/kgea/aws/
-COPY kgea/config/ /usr/src/app/kgea/config/
-COPY kgea/server/__init__.py /usr/src/app/kgea/server/
-COPY kgea/server/archiver/ /usr/src/app/kgea/server/archiver/
-
-RUN ls -la ./kgea/*
+COPY kgea/__init__.py ./kgea/
+COPY kgea/aws/*.py ./kgea/aws/
+COPY kgea/config/ ./kgea/config/
+COPY kgea/server/__init__.py ./kgea/server/
+COPY kgea/server/archiver/ ./kgea/server/archiver/
 
 EXPOSE 8100
 
