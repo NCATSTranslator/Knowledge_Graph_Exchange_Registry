@@ -3,10 +3,11 @@ from uuid import uuid4
 
 from aiohttp import web
 
-from kgea.server.web_services.catalog import KgeFileSet
 from kgea.server.archiver.kge_archiver_util import KgeArchiver
 
 import logging
+
+from kgea.server.catalog import KgeFileSet
 
 logger = logging.getLogger(__name__)
 

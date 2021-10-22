@@ -17,14 +17,14 @@ from kgea.aws.assume_role import aws_config
 
 from kgea.server import print_error_trace, run_script
 
-from kgea.server.web_services.catalog import (
+from kgea.server.catalog import (
     KgeFileSet,
     KgxFFP,
     KgeFileType,
     add_to_s3_repository
 )
 
-from kgea.server.web_services.kgea_file_ops import (
+from kgea.server.kgea_file_ops import (
     object_key_exists,
     copy_file,
     create_presigned_url

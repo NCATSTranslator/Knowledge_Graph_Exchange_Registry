@@ -4,9 +4,9 @@ from typing import List
 
 from kgea.server.archiver import KgeArchiver
 from kgea.server.archiver.kge_archiver_util import compress_fileset, logger
-from kgea.server.web_services.catalog import prepare_test_file_set
-from kgea.tests import TEST_KG_ID, TEST_FS_VERSION, TEST_BUCKET
-from kgea.tests.unit.test_kgea_file_ops import logger
+from kgea.server.catalog import prepare_test_file_set
+from kgea.server.tests import TEST_KG_ID, TEST_FS_VERSION, TEST_BUCKET
+from kgea.server.tests.unit.test_kgea_file_ops import logger
 
 
 async def test_compress_fileset():

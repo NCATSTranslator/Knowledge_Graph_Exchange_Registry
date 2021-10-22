@@ -1,8 +1,7 @@
 # coding: utf-8
-import json
-from typing import Dict
 
 import pytest
+from kgea.config import BACKEND_PATH
 
 
 async def test_get_knowledge_graph_catalog(client):
@@ -15,7 +14,7 @@ async def test_get_knowledge_graph_catalog(client):
     }
     response = await client.request(
         method='GET',
-        path='/archive/catalog',
+        path=f'/{BACKEND_PATH}catalog',
         headers=headers,
         )
     assert response.status == 200, 'Response body is : ' + (await response.read()).decode('utf-8')
@@ -30,7 +29,9 @@ async def test_publish_file_set(client):
     }
     response = await client.request(
         method='GET',
-        path='/archive/publish/{kg_id}/{fileset_version}'.format(kg_id='kg_id_example', fileset_version='fileset_version_example'),
+        path='/{path}publish/{kg_id}/{fileset_version}'.format(
+            path=BACKEND_PATH, kg_id='kg_id_example', fileset_version='fileset_version_example'
+        ),
         headers=headers,
         )
     assert response.status == 200, 'Response body is : ' + (await response.read()).decode('utf-8')
@@ -42,15 +43,14 @@ async def test_register_file_set(client):
 
     Register core metadata for a distinctly versioned file set of a KGE Knowledge Graph
     """
-    test_file_registration: Dict = dict()
-    body = json.dumps(test_file_registration)
+    body = "web_services.RegisterFileSetRequestBody()"
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
     }
     response = await client.request(
         method='POST',
-        path='/archive/register/fileset',
+        path=f'/{BACKEND_PATH}register/fileset',
         headers=headers,
         json=body,
         )
@@ -63,15 +63,14 @@ async def test_register_knowledge_graph(client):
 
     Register core metadata for a distinct KGE Knowledge Graph
     """
-    test_kg_registration: Dict = dict()
-    body = json.dumps(test_kg_registration)
+    body = "web_services.RegisterGraphRequestBody()"
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
     }
     response = await client.request(
         method='POST',
-        path='/archive/register/graph',
+        path=f'/{BACKEND_PATH}register/graph',
         headers=headers,
         json=body,
         )

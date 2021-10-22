@@ -7,8 +7,6 @@ from typing import Tuple, List
 from subprocess import Popen, PIPE, STDOUT
 import logging
 
-from kgea.server.web_services.kgea_file_ops import logger
-
 logger = logging.getLogger(__name__)
 
 

@@ -53,7 +53,7 @@ from .kgea_session import (
     report_not_found
 )
 
-from .kgea_file_ops import (
+from kgea.server.kgea_file_ops import (
     default_s3_bucket,
     create_presigned_url,
     object_keys_for_fileset_version,
@@ -72,7 +72,7 @@ from .kgea_file_ops import (
     object_keys_in_location
 )
 
-from kgea.server.web_services.catalog import (
+from kgea.server.catalog import (
     KnowledgeGraphCatalog,
     KgeKnowledgeGraph,
     KgeFileSet, KgeFileType

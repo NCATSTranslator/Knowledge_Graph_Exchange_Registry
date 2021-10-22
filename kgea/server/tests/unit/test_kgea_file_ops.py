@@ -14,7 +14,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 
 from kgea.aws.assume_role import aws_config, AssumeRole
-from kgea.tests import (
+from kgea.server.tests import (
     TEST_BUCKET,
     
     TEST_KG_ID,
@@ -36,7 +36,7 @@ from kgea.tests import (
     TEST_HUGE_FILE_RESOURCE_URL,
 )
 
-from kgea.server.web_services.kgea_file_ops import (
+from kgea.server.kgea_file_ops import (
     upload_from_link, get_url_file_size, get_archive_contents, object_keys_in_location, get_object_key,
     upload_file, with_version, get_object_location, upload_file_multipart,
     create_presigned_url, get_fileset_versions_available, random_alpha_string,

@@ -7,18 +7,12 @@ import connexion
 
 @pytest.fixture
 def client(loop, aiohttp_client):
-    """
-
-    :param loop:
-    :param aiohttp_client:
-    :return:
-    """
     logging.getLogger('connexion.operation').setLevel('ERROR')
     options = {
         "swagger_ui": True
         }
-    specification_dir = os.path.join(os.path.dirname(__file__), '../kgea/server',
-                                     'web_services',
+    specification_dir = os.path.join(os.path.dirname(__file__), '../..',
+                                     'archiver',
                                      'openapi')
     app = connexion.AioHttpApp(__name__, specification_dir=specification_dir,
                                options=options)

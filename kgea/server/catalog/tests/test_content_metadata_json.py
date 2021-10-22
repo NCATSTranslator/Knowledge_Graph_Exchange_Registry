@@ -5,7 +5,7 @@ import pytest
 import re
 import json
 
-from kgea.server.web_services.catalog import CONTENT_METADATA_SCHEMA, validate_content_metadata
+from kgea.server.catalog import validate_content_metadata
 
 source_regex = r"^((https?://\w(\w|\.|\-|\/)+)|(\w|\.)+:)?(\w|\.|\-)+"
 

@@ -18,13 +18,13 @@ from collections.abc import AsyncIterable
 import boto3
 from botocore.exceptions import ClientError
 
-from .kgea_file_ops import (
+from kgea.server.kgea_file_ops import (
     get_object_location,
     object_keys_in_location,
     with_version
 )
 
-from kgea.server.web_services.kgea_file_ops import s3_client
+from kgea.server.kgea_file_ops import s3_client
 
 
 from .kgea_session import KgeaSession

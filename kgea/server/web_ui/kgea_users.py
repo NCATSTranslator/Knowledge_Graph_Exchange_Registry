@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from kgea.config import get_app_config
 from kgea.server.web_services.kgea_session import KgeaSession
-from kgea.server.web_services.kgea_user_roles import (
+from kgea.server.kgea_user_roles import (
     KGE_USER_TEAM,
     KGE_USER_AFFILIATION,
     KGE_USER_CONTACT_PI,

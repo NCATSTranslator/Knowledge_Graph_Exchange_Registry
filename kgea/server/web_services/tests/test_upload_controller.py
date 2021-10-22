@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import pytest
+from kgea.config import BACKEND_PATH
 
 
 async def test_get_upload_status(client):
@@ -14,7 +15,7 @@ async def test_get_upload_status(client):
     }
     response = await client.request(
         method='GET',
-        path='/archive/upload/progress',
+        path=f'/{BACKEND_PATH}upload/progress',
         headers=headers,
         params=params,
         )
@@ -24,20 +25,40 @@ async def test_get_upload_status(client):
 async def test_setup_upload_context(client):
     """Test case for setup_upload_context
 
-    Configure upload context for a specific file of a KGE File Set.
+    Configure form upload context for a specific file of a KGE File Set.
     """
     params = [('kg_id', 'kg_id_example'),
                     ('fileset_version', 'fileset_version_example'),
                     ('kgx_file_content', 'kgx_file_content_example'),
-                    ('upload_mode', 'upload_mode_example'),
-                    ('content_name', 'content_name_example'),
-                    ('content_url', 'content_url_example')]
+                    ('content_name', 'content_name_example')]
     headers = { 
         'Accept': 'application/json',
     }
     response = await client.request(
         method='GET',
-        path='/archive/upload',
+        path=f'/{BACKEND_PATH}upload',
+        headers=headers,
+        params=params,
+        )
+    assert response.status == 200, 'Response body is : ' + (await response.read()).decode('utf-8')
+
+
+async def test_transfer_from_url(client):
+    """Test case for transfer_from_url
+
+    Trigger direct URL file transfer of a specific file of a KGE File Set.
+    """
+    params = [('kg_id', 'kg_id_example'),
+                    ('fileset_version', 'fileset_version_example'),
+                    ('kgx_file_content', 'kgx_file_content_example'),
+                    ('content_url', 'content_url_example'),
+                    ('content_name', 'content_name_example')]
+    headers = { 
+        'Accept': 'application/json',
+    }
+    response = await client.request(
+        method='GET',
+        path=f'/{BACKEND_PATH}transfer',
         headers=headers,
         params=params,
         )
@@ -50,14 +71,14 @@ async def test_upload_file(client):
 
     Uploading of a specified file from a local computer.
     """
-    body = web_services.UploadRequestBody()
+    body = "web_services.UploadRequestBody()"
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'multipart/form-data',
     }
     response = await client.request(
         method='POST',
-        path='/archive/upload',
+        path=f'/{BACKEND_PATH}upload',
         headers=headers,
         json=body,
         )

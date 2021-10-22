@@ -6,19 +6,16 @@ from os import getenv, remove
 from os.path import isfile
 from pytest import mark
 
-from botocore.config import Config
-
-from kgea.aws.assume_role import aws_config, AssumeRole
 from kgea.aws.s3 import copy, s3_client, upload_file, list_files, delete_object, remote_copy, download_file
-from kgea.server.web_services.kgea_file_ops import object_key_exists
-from kgea.tests import (
+from kgea.server.kgea_file_ops import object_key_exists
+from kgea.server.tests import (
     TEST_BUCKET_2,
     TEST_BUCKET,
     TEST_SMALL_FILE,
     TEST_SMALL_FILE_PATH,
     TEST_SMALL_FILE_KEY
 )
-from kgea.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file, get_remote_client
+from kgea.server.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file, get_remote_client
 
 import logging
 logger = logging.getLogger(__name__)

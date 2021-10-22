@@ -6,7 +6,7 @@ from kgea.server.archiver.models.base_model_ import Model
 from kgea.server.archiver.models.kge_file import KgeFile
 from kgea.server.archiver.models.kge_file_set_status_code import KgeFileSetStatusCode
 from kgea.server.archiver import util
-from kgea.server.web_services.catalog import KgeFileSet
+from kgea.server.catalog import KgeFileSet
 
 
 class KgeArchivedFileSet(Model):

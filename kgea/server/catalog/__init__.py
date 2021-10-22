@@ -70,7 +70,7 @@ from kgea.server.web_services.models import (
     KgeFileSetMetadata
 )
 
-from kgea.server.web_services.kgea_file_ops import (
+from kgea.server.kgea_file_ops import (
     default_s3_bucket,
     get_default_date_stamp,
     get_object_location,

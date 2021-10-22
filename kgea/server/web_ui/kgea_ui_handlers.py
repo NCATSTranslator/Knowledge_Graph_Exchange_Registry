@@ -35,7 +35,7 @@ from kgea.config import (
     get_meta_knowledge_graph_url,
     BACKEND
 )
-from kgea.server.web_services.catalog import get_biolink_model_releases
+from kgea.server.catalog import get_biolink_model_releases
 from kgea.server.web_services.kgea_session import (
     initialize_user_session,
     user_permitted,
@@ -43,7 +43,7 @@ from kgea.server.web_services.kgea_session import (
     with_session,
     report_bad_request
 )
-from kgea.server.web_services.kgea_user_roles import (
+from kgea.server.kgea_user_roles import (
     KGE_USER_ROLE,
     DEFAULT_KGE_USER_ROLE
 )
@@ -53,7 +53,7 @@ from .kgea_users import (
     authenticate_user,
     mock_user_attributes
 )
-from kgea.server.web_services.kgea_file_ops import get_default_date_stamp, get_fileset_versions_available
+from kgea.server.kgea_file_ops import get_default_date_stamp, get_fileset_versions_available
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)
