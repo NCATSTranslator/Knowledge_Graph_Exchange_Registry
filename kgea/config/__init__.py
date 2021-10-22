@@ -61,14 +61,21 @@ def _load_app_config() -> dict:
                         "Missing mandatory aws.s3 'bucket', 'region' and/or 'archive-directory' "
                         " attribute in the 'aws.s3' section of the '~/kgea/config/config.yaml' configuration file."
                     )
-                if 'host_account' not in config['aws'] or \
+                if 'access_key_id' not in config['aws'] or \
+                   'secret_access_key' not in config['aws'] or \
+                   'default_region_name' not in config['aws'] or \
+                   'host_account' not in config['aws'] or \
                    'guest_external_id' not in config['aws'] or \
                    'iam_role_name' not in config['aws']:
                     logging.warning(
-                        "Missing aws 'host_account', 'guest_external_id' and/or 'iam_role_name' attributes" +
+                        "Missing AWS 'access_key_id', 'secret_access_key', 'default_region_name'" +
+                        " 'host_account', 'guest_external_id' and/or 'iam_role_name' attributes" +
                         " in the '~/kgea/config/config.yaml' configuration file. Assume that you are running" +
                         " within an EC2 instance (configured with a suitable instance profile role)."
                     )
+                    config['aws']['access_key_id'] = None
+                    config['aws']['secret_access_key'] = None
+                    config['aws']['default_region_name'] = None
                     config['aws']['host_account'] = None
                     config['aws']['guest_external_id'] = None
                     config['aws']['iam_role_name'] = None

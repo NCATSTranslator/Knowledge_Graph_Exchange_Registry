@@ -126,43 +126,79 @@ NOTE: 'Development' deployments may rely on the existence of local .aws credenti
 
 To configure the proper running of the Archive, a configuration file must be set up. It must be located in the `kgea/config` subdirectory of the project and be based on the `config.yaml-template` YAML project configuration template located at that location.  To apply a specific site configuration, make a copy of the template, rename it to simply `config.yaml` (without the `-template` suffix) then fill out the required deployment site-specific configuration parameters (comments provided in the template file).
 
-The configuration file sets the target AWS S3 storage bucket name and user AWS Cognito authentication parameters. It also can contain (optional) AWS credential configuration (optional if another mode of [AWS Configuration](#amazon-web-services-configuration) is used):
+The configuration file sets the target AWS S3 storage bucket name and user AWS Cognito authentication parameters. It also can contain AWS `access_key_id` and `secret_access_key` credentials (mainly for local development testing but optional if another 'production' mode of [AWS Configuration](#amazon-web-services-configuration) is used):
 
 ```yaml
 # the actual base URL of a deployed KGE Archive site
 # should also be set as the base URI in the configuration
 # of the 'redirect_uri' of the AWS Cognito User Pool app
-site_hostname: 'https://kgea.translator.ncats.io'
+site_hostname: 'https://archive.translator.ncats.io'
+
+# For KGEA code only: can be set to any of the usual logging levels: CRITICAL to NOTSET
+log_level: debug
 
 aws:
+  #
+  # Optional local core boto3 aws credentials
+  # (if inferred from inside a running EC2 with a profile)
+  #
+  access_key_id: ''
+  secret_access_key: ''
+  default_region_name: ''
+  #
+  # optional 'assume-role' access parameters
+  # Note the EC2 instances generally use the
+  # EC2 instance profile to get at an EC2 role
+  #
   host_account: '<Host AWS Account Number>'
+  iam_role_name: '<remote role name>'
   guest_external_id: '<Guest-specified external identifier'
-  iam_role_name: '<Host-specified IAM Role name>'
+  #
+  cognito:
+    # AWS Cognito OAuth2 transaction parameters
+    # These parameters should match those set as 'app client' parameters in Cognito
+    # i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
+    user-pool-id: '<Cognito User Pool Id>'
+    host:      '<AWS Cognito URL>'
+    client_id: '<myClientid>'          # get from AWS Cognito User Pool app
+    client_secret: '<myClientSecret>'  # get from value set in the AWS Cognito User Pool app
+    site_uri:  '<myArchiveSiteURL>'    # get from AWS Cognito User Pool app
+    login_callback:  '/oauth2callback'
   s3:
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
     archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
-    
-    # AWS Cognito OAuth2 transaction parameters
-    # These parameters should match those set as 'app client' parameters in Cognito
-    # i.e. in the  Dashboard at https://console.aws.amazon.com/cognito/users/
-  cognito:
-    host:      '<AWS Cognito URL>'
-    client_id: '<myClientid>'     # get from AWS Cognito User Pool app
-    client_secret: '<myClientSecret>'     # get from value set in the AWS Cognito User Pool app
-    site_uri:  '<myArchiveSiteURL>' # get from AWS Cognito User Pool app
-    login_callback:  '/oauth2callback'
+    #
+    # although S3 is global, actual bucket endpoint may be regiospecific, i.e. us-east-1 and
+    # may be located in a different region from an EC2 instance running the application
+    #
+    region: '<S3 bucket region>'
+  #
+  # A second "remote" S3 repository, owned by another account,
+  # may be access by setting the following parameters
+  #
+  s3_remote:
+    # Amazon S3 storage structure
+    bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
+    archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets
+    #
+    # although S3 is global, actual bucket endpoint may be regiospecific, i.e. us-east-1 and
+    # may be located in a different region from an EC2 instance running the application
+    #
+    region: '<S3 bucket region>'
 
 github:
     token: ''
 
 # Uncomment and set this configuration tag value to override
-# hardcoded default of 3 KGX validation worker tasks
-# No_KGX_Validation_Worker_Tasks: 3
+# hardcoded default number of KGX Archiver and/or (KGX) Validator worker tasks
+# Number_of_Archiver_Tasks: 1
+# Number_of_Validator_Tasks: 1
 
-# This parameter is automatically set by the system when
-# EncryptedCookieStorage serves for user session management 
+# This parameter is automatically created by the system and written back into this file.
+# EncryptedCookieStorage uses this "Fernat" key to configure user session management.
 # secret_key: ''
+
 ```
 
 Now when you run the Archive application, this file will be read in, and the specified AWS access parameters used to connect to S3 (and other required AWS operations). NOTE: `config.yaml` is in `.gitignore`, but its template is not. 

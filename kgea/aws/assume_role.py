@@ -59,6 +59,12 @@ class AssumeRole:
         try:
             # assert (validate_session_configuration())
             # assert (validate_client_configuration("sts"))
+            if aws_config['access_key_id'] and aws_config['secret_access_key']:
+                boto3.setup_default_session(
+                    aws_access_key_id=aws_config['access_key_id'],
+                    aws_secret_access_key=aws_config['secret_access_key'],
+                    region_name=aws_config['default_region_name'],
+                )
             self.sts_client = boto3.client("sts")
         except Exception as ex:
             print('ERROR: AWS STS configuration failed to load')
