@@ -126,6 +126,7 @@ def _load_app_config() -> dict:
 #############################################################
 
 BACKEND_PATH = 'api/'
+ARCHIVER_PATH = 'archiver/'
 if DEV_MODE:
     # Development Mode for local testing
 
@@ -134,44 +135,52 @@ if DEV_MODE:
 
     # Point to http://localhost:8080 for backend archive web service endpoints
     BACKEND = "http://localhost:8080/" + BACKEND_PATH
+
+    ARCHIVER = "http://localhost:8100/" + ARCHIVER_PATH
 else:
     # Production NGINX resolves relative paths otherwise?
     FRONTEND = "/"
     BACKEND = FRONTEND + BACKEND_PATH
+    ARCHIVER = FRONTEND + ARCHIVER_PATH
 
 ##################################################
 # Frontend Web Service Endpoints - all GET calls #
 ##################################################
 
 LANDING_PAGE = FRONTEND
-HOME_PAGE = FRONTEND + "home"
-GRAPH_REGISTRATION_FORM = FRONTEND + "register/graph"
-FILESET_REGISTRATION_FORM = FRONTEND + "register/fileset"
-METADATA_PAGE = FRONTEND + "metadata"
-UPLOAD_FORM = FRONTEND + "upload"
-SUBMISSION_CONFIRMATION = FRONTEND + "submitted"
-DATA_UNAVAILABLE = FRONTEND + "unavailable"
+HOME_PAGE = f"{FRONTEND}home"
+GRAPH_REGISTRATION_FORM = f"{FRONTEND}register/graph"
+FILESET_REGISTRATION_FORM = f"{FRONTEND}register/fileset"
+METADATA_PAGE = f"{FRONTEND}metadata"
+UPLOAD_FORM = f"{FRONTEND}upload"
+SUBMISSION_CONFIRMATION = f"{FRONTEND}submitted"
+DATA_UNAVAILABLE = f"{FRONTEND}unavailable"
 
 #################################
 # Backend Web Service Endpoints #
 #################################
 
 # catalog controller
-GET_KNOWLEDGE_GRAPH_CATALOG = BACKEND + "catalog"  # GET
-REGISTER_KNOWLEDGE_GRAPH = BACKEND + "register/graph"  # POST
-REGISTER_FILESET = BACKEND + "register/fileset"  # POST
-PUBLISH_FILE_SET = BACKEND + "publish"  # GET
+GET_KNOWLEDGE_GRAPH_CATALOG = f"{BACKEND}catalog"  # GET
+REGISTER_KNOWLEDGE_GRAPH = f"{BACKEND}register/graph"  # POST
+REGISTER_FILESET = f"{BACKEND}register/fileset"  # POST
+PUBLISH_FILE_SET = f"{BACKEND}publish"  # GET
 
 # upload controller
-SETUP_UPLOAD_CONTEXT = BACKEND + "upload"  # GET
-UPLOAD_FILE = BACKEND + "upload"  # POST
-DIRECT_URL_TRANSFER = BACKEND + "upload/url"  # GET
-CANCEL_UPLOAD = BACKEND + "upload/cancel"  # DELETE
+SETUP_UPLOAD_CONTEXT = f"{BACKEND}upload"  # GET
+UPLOAD_FILE = f"{BACKEND}upload"  # POST
+DIRECT_URL_TRANSFER = f"{BACKEND}upload/url"  # GET
+CANCEL_UPLOAD = f"{BACKEND}upload/cancel"  # DELETE
 
-GET_UPLOAD_STATUS = BACKEND + "upload/progress"  # GET
+GET_UPLOAD_STATUS = f"{BACKEND}upload/progress"  # GET
+
+##################################
+# Archiver Web Service Endpoints #
+##################################
+PROCESS_FILESET = f"{ARCHIVER}process"
+GET_FILESET_PROCESSING_STATUS = f"{ARCHIVER}status"
 
 
-# content controllers
 def _versioned_backend_target_url(kg_id: str, kg_version: str, target: str):
     return BACKEND + kg_id + "/" + kg_version + "/" + target  # GET
 

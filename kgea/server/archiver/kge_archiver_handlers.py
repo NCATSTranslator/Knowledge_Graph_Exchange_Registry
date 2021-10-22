@@ -4,7 +4,7 @@ from uuid import uuid4
 from aiohttp import web
 
 from kgea.server.web_services.catalog import KgeFileSet
-from kgea.server.archiver.kge_archiver_util import compress_fileset, KgeArchiver
+from kgea.server.archiver.kge_archiver_util import KgeArchiver
 
 import logging
 
@@ -16,9 +16,8 @@ async def process_kge_fileset(request: web.Request) -> web.Response:
 
     Posts a KGE File Set for post-processing after upload.
 
-    :param body:
-    :type body: dict | bytes
-
+    :param request:
+    :type request: web.Request
     """
     data = await request.post()
 
@@ -57,6 +56,8 @@ async def get_kge_fileset_processing_status(request: web.Request, process_token:
 
     Poll the status of a given post-processing task.
 
+    :param request:
+    :type request: web.Request
     :param process_token: Process token associated with a KGE File Set post-processing task.
     :type process_token: str
 

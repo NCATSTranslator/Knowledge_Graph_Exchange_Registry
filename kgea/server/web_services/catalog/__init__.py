@@ -42,6 +42,8 @@ from jsonschema import (
 
 import yaml
 
+from kgea.server.web_services import KgeaSession
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
     from yaml.scanner import ScannerError
@@ -57,7 +59,7 @@ from kgx.validator import Validator
 from kgea.config import (
     get_app_config,
     PROVIDER_METADATA_FILE,
-    FILE_SET_METADATA_FILE
+    FILE_SET_METADATA_FILE, PROCESS_FILESET
 )
 
 from kgea.server.web_services.models import (
@@ -79,6 +81,8 @@ from kgea.server.web_services.kgea_file_ops import (
     upload_file,
     random_alpha_string
 )
+
+from kgea.server.archiver.models import ProcessFileSetBody, KgeArchivedFileSet
 
 import logging
 logger = logging.getLogger(__name__)
@@ -586,7 +590,16 @@ class KgeFileSet:
         # Publication of the file_set.yaml is delegated
         # to the kgea.server.archiver subprocess
 
-        # TODO: POST the KgeFileSet 'self' data to the kgea.server.archiver web service
+        # POST the KgeFileSet 'self' data to the kgea.server.archiver web service
+        fileset: KgeArchivedFileSet = KgeArchivedFileSet.load(self)
+        process_file_set_body: ProcessFileSetBody = ProcessFileSetBody(kg_id=self.kg_id, fileset=fileset)
+        async with KgeaSession.get_global_session().post(
+                PROCESS_FILESET,
+                json=process_file_set_body.to_json()) as response:
+            print(f"Status: {response.status}", )
+            print(f"Content-type: {response.headers['content-type']}")
+            result = await response.json()
+            print(f"Result: {result}")
             
     async def confirm_kgx_data_file_set_validation(self):
         """

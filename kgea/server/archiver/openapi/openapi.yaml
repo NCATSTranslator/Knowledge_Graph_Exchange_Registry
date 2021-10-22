@@ -27,7 +27,7 @@ externalDocs:
   url: https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry
 servers:
 - description: Localhost URL for server, to be proxied to the real internet
-  url: http://localhost:8100/api
+  url: http://localhost:8100/archiver
 tags:
 - description: Designates a NCATS Biomedical Data Translator component API
   name: translator

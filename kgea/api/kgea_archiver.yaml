@@ -122,11 +122,11 @@ components:
         kg_id:
           type: string
         fileset:
-          $ref: '#/components/schemas/KgeFileSet'
+          $ref: '#/components/schemas/KgeFileSetMetadata'
       required:
       - kg_id
       - fileset
-    KgeFileSet:
+    KgeFileSetMetadata:
       description: >-
         Metadata including content metadata and the inventory of
         associated files, for a specific version of KGE File Set.
