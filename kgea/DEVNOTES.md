@@ -48,7 +48,7 @@ Whenever a change is made to the project OpenAPI yaml file, it is a good idea to
 
 ## Generating Code
 
-A custom project script [generate-kge-server.bash](../scripts/generate-kge-server.bash) calls a locally mirrored copy of the [OpenAPI Generator Script](../scripts/openapi-generator-cli.bash). Running the `openapi-generator-cli.bash` the first time downloads the required OpenAPI code generator JAR file to the same directory as the script. 
+A custom project script [generate-kge-server.bash](../scripts/generate-web-server.bash) calls a locally mirrored copy of the [OpenAPI Generator Script](../scripts/openapi-generator-cli.bash). Running the `openapi-generator-cli.bash` the first time downloads the required OpenAPI code generator JAR file to the same directory as the script. 
 
 The output is something like:
 

@@ -1,0 +1,234 @@
+openapi: 3.0.1
+info:
+  version: 1.0.0
+  title: >-
+    OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archiver worker process
+    which post-processes KGE File Sets which have been uploaded.
+    Although this API is SmartAPI compliant, it will not normally be visible
+    in the Translator SmartAPI Registry since it is mainly meant to be
+    only accessed internally by the KGE Archiver back end.
+  description: >-
+    OpenAPI for the NCATS Biomedical Translator
+    Knowledge Graph Exchange Archiver Post-Processor
+  license:
+    name: MIT 2.0
+    url: https://en.wikipedia.org/wiki/MIT_License
+  termsOfService: https://ncats.nih.gov/translator
+  contact:
+    name: "Richard Bruskiewich"
+    x-role: "responsible developer"
+    email: "richard.bruskiewich@delphinai.com"
+    x-id: "https://github.com/RichardBruskiewich"
+  x-translator:
+    component: "SRI service"
+    team:
+    - "SRI"
+servers:
+  - url: "http://localhost:8100/api"
+    description: "Localhost URL for server, to be proxied to the real internet"
+externalDocs:
+  description: >-
+    Documentation for the NCATS Biomedical Translator
+    Knowledge Graph Exchange (KGE) Archiver Post-Processor
+  url: "https://github.com/NCATSTranslator/Knowledge_Graph_Exchange_Registry"
+tags:
+  - name: translator
+    description: Designates a NCATS Biomedical Data Translator component API
+  - name: kge
+    description: Designates a Translator Knowledge Graph eXchange (KGE) Archive API
+  - name: archiver
+    description: Endpoints to access the post-processor archiver
+paths:
+  /process:
+    post:
+      description: >-
+        Posts a KGE File Set for post-processing after upload.
+      tags:
+        - archiver
+      summary: Posts a KGE File Set for post-processing after upload.
+      operationId: process_fileset
+      requestBody:
+        $ref: '#/components/requestBodies/ProcessFileSetBody'
+      responses:
+        '201':
+          description:  >-
+            Task to post-process new KGE File Set successfully submitted.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. Request is invalid according to this OpenAPI
+            schema OR a specific parameter is believed to be invalid somehow
+            (or not just recognized).
+          content:
+            application/json:
+              schema:
+                type: string
+  /status:
+    get:
+      description: >-
+        Poll the status of a given post-processing task.
+      parameters:
+        - name: process_token
+          in: query
+          description: >-
+            Process token associated with a KGE File Set post-processing task.
+          required: true
+          schema:
+            type: string
+      tags:
+        - upload
+      summary: Get the progress of post-processing of a KGE File Set.
+      operationId: get_processing_status
+      responses:
+        '200':
+          description: Details about the status of a KGE File Set post-processing operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusToken'
+        '404':
+          description: >-
+            Specified upload token is unknown.
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: >-
+            Bad request. Request is invalid according to this
+            OpenAPI schema OR a specific parameter is believed
+            to be invalid somehow (or just not recognized).
+          content:
+            application/json:
+              schema:
+                type: string
+components:
+  requestBodies:
+    ProcessFileSetBody:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/ProcessFileSetBody'
+      required: true
+  schemas:
+    ProcessFileSetBody:
+      type: object
+      description: >-
+        Versioned KGE File Set registration metadata.
+      properties:
+        kg_id:
+          type: string
+        fileset:
+          $ref: '#/components/schemas/KgeFileSet'
+      required:
+      - kg_id
+      - fileset
+    KgeFileSet:
+      description: >-
+        Metadata including content metadata and the inventory of
+        associated files, for a specific version of KGE File Set.
+      type: object
+      properties:
+        biolink_model_release:
+          description: >-
+            Biolink Model released associated with the file set.
+          type: string
+          example: "2.5.0"
+        fileset_version:
+          description: >-
+            Version identifier of the file set.
+          type: string
+          example: "1.0"
+        status:
+          $ref: '#/components/schemas/KgeFileSetStatusCode'
+          example: "Validated"
+        files:
+          description: >-
+            Annotated list of files within a given file set.
+          type: array
+          items:
+            $ref: '#/components/schemas/KgeFile'
+        size:
+          description: approximate aggregate size of data files in the file set (megabytes)
+          type: number
+          format: float
+    StatusToken:
+      description: >-
+        Token tracking the status of post-processing of a KGE File Set.
+      type: object
+      properties:
+        status_token:
+          description: >-
+            Token tracking the status of post-processing of a KGE File Set.
+          type: string
+        status:
+          description: >-
+            Code for status of post-processing of a KGE File Set.
+          $ref: '#/components/schemas/ProcessStatusCode'
+      required:
+        - status_token
+        - status
+      additionalProperties: false
+    ProcessStatusCode:
+      description: >-
+        Code for status of upload or direct URL
+        transfer progress for a given file.
+      type: string
+      enum:
+        - Ongoing
+        - Completed
+        - Error
+    KgeFileSetStatusCode:
+      description: >-
+        Code for status of processing for a KGE File Set.
+      type: string
+      enum:
+        - Created
+        - Loaded
+        - Processing
+        - Validated
+        - Error
+    KgeFile:
+      description: >-
+        Annotated file in a KGE File Set.
+      type: object
+      properties:
+        original_name:
+          description: original name of file (as uploaded)
+          type: string
+        assigned_name:
+          description: assigned name of file (by archive, for export)
+          type: string
+        file_type:
+          description: >-
+            Designates if the file is (content or file set) meta-, node or edge data
+          type: string
+        file_size:
+          description: size of file in megabytes
+          type: number
+          format: float
+        kgx_compliance_status:
+          $ref: '#/components/schemas/KgxCompliance'
+        errors:
+          description: if 'non-compliant' file, list of error messags
+          type: array
+          items:
+            type: string
+      required:
+        - original_name
+        - assigned_name
+        - file_type
+        - file_size
+        - kgx_compliance_status
+      additionalProperties: false
+    KgxCompliance:
+      description: >-
+        KGX compliance status of a specific KGE File.
+      type: string
+      enum:
+        - Assessing
+        - Compliant
+        - Non-Compliant

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Script to (re-)generate the KGE Server, whenever the
-# underlying api/kgea_api.yaml specification is modified.
+# Script to (re-)generate the KGE 'Archiver' API, whenever the
+# underlying api/kgea_archiver.yaml specification is modified.
 #
 
 # Note: the generator CLI parser does NOT properly parse spaces
@@ -9,13 +9,13 @@
 # Use underscores or hyphens. You've been warned...
 #
 echo
-NAME="kge-archive"
+NAME="kgea-archiver"
 echo "Project name: "$NAME
 
 SERVER_TARGET=python-aiohttp
 echo "Target server type: "$SERVER_TARGET
 
-DESCRIPTION="NCATS_Knowledge_Graph_Exchange_Archive_Web_Services"
+DESCRIPTION="NCATS_Translator_Knowledge_Graph_Exchange_Archiver"
 echo "Project description: "$DESCRIPTION
 echo
 
@@ -34,8 +34,7 @@ SRC=./kgea
 echo "Project source code: "$SRC
 
 API=$SRC/api
-#SPECIFICATION=$API/trapi.yaml
-SPECIFICATION=$API/kgea_api.yaml
+SPECIFICATION=$API/kgea_archiver.yaml
 echo "Target OpenAPI: "$SPECIFICATION
 
 # Server code placed in its own KGEA subdirectory?
@@ -43,7 +42,7 @@ MODULE="server"
 OUTPUT=$SRC/$MODULE
 echo "Generated "$MODULE" code: "$OUTPUT
 
-PACKAGE="web_services"
+PACKAGE="archiver"
 echo "Root package name: "$PACKAGE
 
 #
@@ -71,7 +70,7 @@ $CODE_GEN_CLI generate \
    -g $SERVER_TARGET \
    -i $SPECIFICATION \
    -o $OUTPUT \
-   --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,packageName=$PACKAGE,projectVersion=$VERSION,featureCORS=true
+   --additional-properties=projectName=$NAME,projectDescription=$DESCRIPTION,moduleName=$MODULE,packageName=$PACKAGE,projectVersion=$VERSION
 
 #
 # After code generation, the package.json has been overwritten again,

@@ -586,7 +586,7 @@ class KgeFileSet:
         # Publication of the file_set.yaml is delegated
         # to the kgea.server.archiver subprocess
 
-        # TODO: call the kgea.server.archiver here
+        # TODO: POST the KgeFileSet 'self' data to the kgea.server.archiver web service
             
     async def confirm_kgx_data_file_set_validation(self):
         """
