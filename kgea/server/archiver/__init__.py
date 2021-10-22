@@ -1,46 +1,21 @@
-"""
-Knowledge Graph Exchange File Set Archiver process
-"""
-import asyncio
-import logging
-from aiohttp import web
-
-from .kge_archiver_handlers import kge_archiver
-from .kge_archiver_util import KgeArchiver
-
-logging.basicConfig(level=logging.DEBUG)
-
-
-async def make_app():
-    """
-
-    :return:
-    """
-    app = web.Application()
-
-    app.router.add_get('/process', kge_archiver)
-
-    return app
+import os
+import connexion
 
 
 def main():
-    """
-    Main application entry point.
-    """
-    web.run_app(make_app(), port=8100)
+    options = {
+        "swagger_ui": True
+        }
+    specification_dir = os.path.join(os.path.dirname(__file__), 'openapi')
+    app = connexion.AioHttpApp(__name__, specification_dir=specification_dir, options=options)
+    app.add_api('openapi.yaml',
+                arguments={'title': 'OpenAPI for the Biomedical Translator Knowledge Graph EXchange Archiver'
+                                    ' worker process which post-processes KGE File Sets which have been uploaded.'
+                                    ' Although this API is SmartAPI compliant, it will not normally be visible'
+                                    ' in the Translator SmartAPI Registry since it is mainly meant to be only'
+                                    ' accessed internally by the KGE Archiver back end.'
+                           },
+                pythonic_params=True,
+                pass_context_arg_name='request')
 
-    # The main event_loop is already closed in the web.run_app() so I retrieve a new one?
-    loop = asyncio.get_event_loop()
-
-    # Close the KgeArchiver worker tasks
-    loop.run_until_complete(KgeArchiver.get_archiver().shutdown_workers())
-
-    # Close the KgxValidator worker tasks
-    # TODO: This code is commented out until the KgxValidator implementation is revisited
-    # loop.run_until_complete(KgxValidator.shutdown_tasks())
-
-    # see https://docs.aiohttp.org/en/v3.7.4.post0/client_advanced.html#graceful-shutdown
-    # Zero-sleep to allow underlying connections to close
-    loop.run_until_complete(asyncio.sleep(0))
-
-    loop.close()
+    app.run(port=8100)

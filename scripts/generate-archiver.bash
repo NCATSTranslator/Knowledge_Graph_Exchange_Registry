@@ -27,7 +27,7 @@ PROJECT=`pwd`
 
 SCRIPTS=$PROJECT/scripts
 #echo "Scripts are here: "$SCRIPTS
-CODE_GEN_CLI=$SCRIPTS/openapi-generator-cli.sh
+CODE_GEN_CLI=$SCRIPTS/openapi-generator-cli.bash
 
 # define source code as relative path from scripts
 SRC=./kgea

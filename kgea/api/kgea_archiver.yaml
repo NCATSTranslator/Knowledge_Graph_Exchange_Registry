@@ -79,7 +79,7 @@ paths:
           schema:
             type: string
       tags:
-        - upload
+        - archiver
       summary: Get the progress of post-processing of a KGE File Set.
       operationId: get_processing_status
       responses:

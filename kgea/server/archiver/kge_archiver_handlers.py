@@ -11,17 +11,27 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def kge_archiver(request: web.Request) -> web.Response:
+async def process_kge_fileset(request: web.Request) -> web.Response:
+    """Posts a KGE File Set for post-processing after upload.
 
-    kg_id = request.query.get('kg_id', default='')
+    Posts a KGE File Set for post-processing after upload.
+
+    :param body:
+    :type body: dict | bytes
+
+    """
+    data = await request.post()
+
+    kg_id = data.get('kg_id', default='')
     if not kg_id:
-        err_msg = "kge_archiver(): missing the knowledge graph 'kg_id'"
+        err_msg = "kge_archiver(): missing the knowledge graph 'kg_id' POST parameter"
         logger.error(err_msg)
         raise web.HTTPBadRequest(reason=err_msg)
 
-    fileset_version = request.query.get('fileset_version', default='')
-    if not fileset_version:
-        err_msg = "kge_archiver(): missing 'fileset_version'"
+    # TODO: How do I really access the file set here?
+    fileset = data.get('fileset', default='')
+    if not fileset:
+        err_msg = "kge_archiver(): missing 'fileset' POST parameter"
         logger.error(err_msg)
         raise web.HTTPBadRequest(reason=err_msg)
 
@@ -37,6 +47,19 @@ async def kge_archiver(request: web.Request) -> web.Response:
         file_set.report_error(msg)
 
     # Need something to track the activity here?
-    archive_token = uuid4().hex
+    process_token = uuid4().hex
 
-    return web.json_response(text='{"archive_token": "'+archive_token+'"}')
+    return web.json_response(text='{"archive_token": "'+process_token+'"}')
+
+
+async def get_kge_fileset_processing_status(request: web.Request, process_token: str) -> web.Response:
+    """Get the progress of post-processing of a KGE File Set.
+
+    Poll the status of a given post-processing task.
+
+    :param process_token: Process token associated with a KGE File Set post-processing task.
+    :type process_token: str
+
+    """
+    # TODO: Stub...Implement me!
+    return web.json_response(text='{"process_token": "' + process_token + '"}')

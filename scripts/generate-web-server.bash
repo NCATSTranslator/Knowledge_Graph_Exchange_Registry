@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Script to (re-)generate the primaryKGE Archive web services, whenever the
+# Script to (re-)generate the primary KGE Archive web services, whenever the
 # underlying api/kgea_api.yaml specification is modified.
 #
 
@@ -27,7 +27,7 @@ PROJECT=`pwd`
 
 SCRIPTS=$PROJECT/scripts
 #echo "Scripts are here: "$SCRIPTS
-CODE_GEN_CLI=$SCRIPTS/openapi-generator-cli.sh
+CODE_GEN_CLI=$SCRIPTS/openapi-generator-cli.bash
 
 # define source code as relative path from scripts
 SRC=./kgea
