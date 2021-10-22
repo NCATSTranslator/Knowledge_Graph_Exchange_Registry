@@ -3,6 +3,7 @@ from typing import List, Dict, Optional
 from os.path import sep, dirname, abspath
 
 from kgx.transformer import Transformer
+from kgx.utils.kgx_utils import GraphEntityType
 from kgx.validator import Validator
 
 from kgea.config import (
@@ -14,11 +15,12 @@ from kgea.config import (
 from kgea.aws.assume_role import aws_config
 
 from kgea.server import print_error_trace, run_script
+
 from kgea.server.web_services.catalog import (
-    KgeFileSet, KgxFFP,
+    KgeFileSet,
+    KgxFFP,
     KgeFileType,
-    add_to_s3_repository,
-    ProgressMonitor
+    add_to_s3_repository
 )
 
 from kgea.server.web_services.kgea_file_ops import (
@@ -27,6 +29,7 @@ from kgea.server.web_services.kgea_file_ops import (
     copy_file,
     create_presigned_url
 )
+
 from kgea.server.web_services.models import KgeFileSetStatusCode
 
 import logging
@@ -50,6 +53,112 @@ Number_of_Validator_Tasks = \
 
 # TODO: operational parameter dependent configuration
 MAX_WAIT = 100  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
+
+
+async def compress_fileset(
+        kg_id,
+        version,
+        bucket=default_s3_bucket,
+        root=default_s3_root_key
+) -> str:
+    """
+    :param kg_id:
+    :param version:
+    :param bucket:
+    :param root:
+    :return:
+    """
+    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
+
+    logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
+
+    try:
+        return_code = await run_script(
+            script=_KGEA_ARCHIVER_SCRIPT,
+            args=(bucket, root, kg_id, version)
+        )
+        logger.info(f"Finished archive script build {s3_archive_key}, return code: {str(return_code)}")
+
+    except Exception as e:
+        logger.error(f"compress_fileset({s3_archive_key}) exception: {str(e)}")
+
+    logger.info(f"Exiting compress_fileset({s3_archive_key})")
+
+    return s3_archive_key
+
+
+async def extract_data_archive(
+        kg_id: str,
+        file_set_version: str,
+        archive_filename: str,
+        bucket: str = default_s3_bucket,
+        root_directory: str = default_s3_root_key
+) -> List[Dict[str, str]]:
+    """
+    Decompress a tar.gz data archive file from a given S3 bucket, and upload back its internal files back.
+
+    Version 1.0 - decompress_in_place() below used Smart_Open... not scalable
+    Version 2.0 - this version uses an external bash shell script to perform this operation...
+
+    :param kg_id: knowledge graph identifier to which the archive belongs
+    :param file_set_version: file set version to which the archive belongs
+    :param archive_filename: base name of the tar.gz archive to be decompressed
+    :param bucket: in S3
+    :param root_directory: KGE data folder in the bucket
+
+    :return: list of file entries
+    """
+    # one step decompression - bash level script operations on the local disk
+    logger.debug(f"Initiating execution of extract_data_archive({archive_filename})")
+
+    if not archive_filename.endswith('.tar.gz'):
+        err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
+        logger.error(err_msg)
+        raise RuntimeError(f"extract_data_archive(): {err_msg}")
+
+    part = archive_filename.split('.')
+    archive_filename = '.'.join(part[:-2])
+
+    file_entries: List[Dict[str, str]] = []
+
+    def output_parser(line: str):
+        """
+        :param line: bash script stdout line being parsed
+        """
+        if not line.strip():
+            return   # empty line?
+
+        # logger.debug(f"Entering output_parser(line: {line})!")
+        if line.startswith(_EDA_OUTPUT_DATA_PREFIX):
+            line = line.replace(_EDA_OUTPUT_DATA_PREFIX, '')
+            file_name, file_type, file_size, file_object_key = line.split(',')
+            logger.debug(f"DDA script file entry: {file_name}, {file_type}, {file_size}, {file_object_key}")
+            file_entries.append({
+                "file_name": file_name,
+                "file_type": file_type,
+                "file_size": str(file_size),
+                "object_key": file_object_key
+            })
+    try:
+        return_code = await run_script(
+            script=_KGEA_EDA_SCRIPT,
+            args=(
+                bucket,
+                root_directory,
+                kg_id,
+                file_set_version,
+                archive_filename
+            ),
+            stdout_parser=output_parser
+        )
+        logger.debug(f"Completed extract_data_archive({archive_filename}.tar.gz), with return code {str(return_code)}")
+
+    except Exception as e:
+        logger.error(f"decompress_in_place({archive_filename}.tar.gz): exception {str(e)}")
+
+    logger.debug(f"Exiting decompress_in_place({archive_filename}.tar.gz)")
+
+    return file_entries
 
 
 class KgeArchiver:
@@ -183,7 +292,7 @@ class KgeArchiver:
             # 10 seconds to allow the user to go to home and get the KG catalog, before this task ties up the CPU?
             # TODO: performance issue seems to result from execution of this code on servers with few CPU's?
             #       Or is this a main loop blockage issue (which maybe needs to be resolved some other way?)
-            await sleep(10)
+            await sleep(0.001)
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
@@ -230,6 +339,9 @@ class KgeArchiver:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
                 print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
+
+            # take a quick rest, to give other co-routines a chance?
+            await sleep(0.001)
 
             logger.debug("Create and add the fileset.yaml to the KGE S3 repository")
 
@@ -308,36 +420,8 @@ class KgeArchiver:
             await sleep(0.001)
 
             # 5. Compute the SHA1 hash sum for the resulting archive file.
-
-            # DEPRECATED LOCAL CODE: SHA1 hash creation now run in the bash CLI of the compress_fileset() method above.
-
-            # #  Hmm... since we are adding the file_set.yaml file to the archive, it would not
-            # #  really help to embed the hash sum into the fileset yaml itself, but we can store
-            # #  it in an extra small text file (e.g. sha1.txt?) and read it in during the catalog
-            # #  loading, for communication back to the user as part of the catalog metadata
-            # #  (once the archiving and hash generation is completed...)
-            # logger.debug("Computing SHA1 hash sum...")
-            # try:
-            #     # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format
-            #     # of whatever is being opened. If we let this happen, then the hash function would run over
-            #     # a decompressed buffer; not the compressed file/buffer that we expect our users to use when
-            #     # they download and validate the archive.
-            #     with smart_open.open(s3_archive_key, 'rb', compression='disable') as archive_file_key:
-            #         sha1sum = sha1_manifest(archive_file_key)
-            #         sha1sum_value = sha1sum[archive_file_key.name]
-            #         sha1file = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
-            #         manifest_object_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/manifest/"
-            #         sha1_s3_path = f"s3://{default_s3_bucket}/{manifest_object_location}{sha1file}"
-            #         with smart_open.open(sha1_s3_path, 'w') as sha1file:
-            #             sha1file.write(sha1sum_value)
-            #
-            # except Exception as e:
-            #     # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-            #     print_error_trace("SHA1 hash sum computation failure! "+str(e))
-            #     raise e
-            #
-            # # take a quick rest, to give other co-routines a chance?
-            # await sleep(0.001)
+            #    DEPRECATED LOCAL CODE: SHA1 hash creation now run in the
+            #    bash CLI of the compress_fileset() method above.
 
             # 6. KGX validation of KGE compliant archive.
 
@@ -357,33 +441,6 @@ class KgeArchiver:
 
             self._archiver_queue.task_done()
 
-    #
-    # DEPRECATED: "creative" management of KgeArchiver tasks. K.I.S.S.
-    #
-    # def create_workers(self, worker_count):
-    #     """
-    #     Initializes Archiver tasks if not yet running
-    #      and less than Number_of_Archiver_Tasks.
-    #     """
-    #     assert(worker_count > -1)
-    #
-    #     worker_additions: int = 0
-    #     if worker_count + len(self._archiver_worker) < self.max_tasks:
-    #         worker_additions = worker_count
-    #     elif worker_count + len(self._archiver_worker) >= self.max_tasks:
-    #         # the sum of WC and len of workers could be greater either because len of workers is greater,
-    #         # or both are lesser but the sum of both is greater
-    #
-    #         # if the length is already greater then we want to do nothing
-    #         if len(self._archiver_worker) >= self.max_tasks:
-    #             raise Warning('Max Workers')
-    #         else:
-    #             # max out workers up to the limit, which is the number of additions required to make the limit
-    #             worker_additions = self.max_tasks - len(self._archiver_worker)
-    #
-    #     for i in range(0, worker_additions):
-    #         self._archiver_worker.append(create_task(self.worker()))
-
     async def shutdown_workers(self):
         """
         Shut down the background KGE Archive processing.
@@ -402,41 +459,40 @@ class KgeArchiver:
             msg = "KgeArchiver() worker shutdown exception: " + str(exc)
             logger.error(msg)
 
-    async def process(self, file_set: KgeFileSet, wait=10, waits=0, maxwait=MAX_WAIT):
+    async def process(self, file_set: KgeFileSet):
         """
         This method posts a KgeFileSet to the KgeArchiver for processing.
-
-        :param maxwait:
-        :param waits:
-        :param wait:
         :param file_set: KgeFileSet.
-
-        :return: None
         """
         # Post the file set to the KgeArchiver task Queue for processing
-        try:
-            logger.debug("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
-            self._archiver_queue.put_nowait(
-                file_set
-            )
-        except QueueFull:
+        logger.debug("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
+        self._archiver_queue.put_nowait(file_set)
 
-            logger.debug("KgeArchiver.process(): work queue is full? Will sleep awhile...")
-            await sleep(wait)
-            try:
-                assert(waits < maxwait)
-                waits += 1
-                await self.process(file_set, wait, waits, maxwait)
-            except (AssertionError, TimeoutError):
-                raise TimeoutError
-            #
-            # it's unclear to me why this
-            # try block should finally return 'False'
-            #
-            # finally:
-            #     return False
 
-        return True
+class ProgressMonitor:
+    """
+    ProgressMonitor
+    """
+
+    # TODO: how do we best track the validation here?
+    #       We start by simply counting the nodes and edges
+    #       and periodically reporting to debug logger.
+    def __init__(self):
+        self._node_count = 0
+        self._edge_count = 0
+
+    def __call__(self, entity_type: GraphEntityType, rec: List):
+        logger.setLevel(logging.DEBUG)
+        if entity_type == GraphEntityType.EDGE:
+            self._edge_count += 1
+            if self._edge_count % 100000 == 0:
+                logger.info(str(self._edge_count) + " edges processed so far...")
+        elif entity_type == GraphEntityType.NODE:
+            self._node_count += 1
+            if self._node_count % 10000 == 0:
+                logger.info(str(self._node_count) + " nodes processed so far...")
+        else:
+            logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
 
 class KgxValidator:
@@ -680,109 +736,3 @@ class KgxValidator:
 
         else:
             return ["Missing file name inputs for validation?"]
-
-
-async def compress_fileset(
-        kg_id,
-        version,
-        bucket=default_s3_bucket,
-        root=default_s3_root_key
-) -> str:
-    """
-    :param kg_id:
-    :param version:
-    :param bucket:
-    :param root:
-    :return:
-    """
-    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
-
-    logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
-
-    try:
-        return_code = await run_script(
-            script=_KGEA_ARCHIVER_SCRIPT,
-            args=(bucket, root, kg_id, version)
-        )
-        logger.info(f"Finished archive script build {s3_archive_key}, return code: {str(return_code)}")
-
-    except Exception as e:
-        logger.error(f"compress_fileset({s3_archive_key}) exception: {str(e)}")
-
-    logger.info(f"Exiting compress_fileset({s3_archive_key})")
-
-    return s3_archive_key
-
-
-async def extract_data_archive(
-        kg_id: str,
-        file_set_version: str,
-        archive_filename: str,
-        bucket: str = default_s3_bucket,
-        root_directory: str = default_s3_root_key
-) -> List[Dict[str, str]]:
-    """
-    Decompress a tar.gz data archive file from a given S3 bucket, and upload back its internal files back.
-
-    Version 1.0 - decompress_in_place() below used Smart_Open... not scalable
-    Version 2.0 - this version uses an external bash shell script to perform this operation...
-
-    :param kg_id: knowledge graph identifier to which the archive belongs
-    :param file_set_version: file set version to which the archive belongs
-    :param archive_filename: base name of the tar.gz archive to be decompressed
-    :param bucket: in S3
-    :param root_directory: KGE data folder in the bucket
-
-    :return: list of file entries
-    """
-    # one step decompression - bash level script operations on the local disk
-    logger.debug(f"Initiating execution of extract_data_archive({archive_filename})")
-
-    if not archive_filename.endswith('.tar.gz'):
-        err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
-        logger.error(err_msg)
-        raise RuntimeError(f"extract_data_archive(): {err_msg}")
-
-    part = archive_filename.split('.')
-    archive_filename = '.'.join(part[:-2])
-
-    file_entries: List[Dict[str, str]] = []
-
-    def output_parser(line: str):
-        """
-        :param line: bash script stdout line being parsed
-        """
-        if not line.strip():
-            return   # empty line?
-
-        # logger.debug(f"Entering output_parser(line: {line})!")
-        if line.startswith(_EDA_OUTPUT_DATA_PREFIX):
-            line = line.replace(_EDA_OUTPUT_DATA_PREFIX, '')
-            file_name, file_type, file_size, file_object_key = line.split(',')
-            logger.debug(f"DDA script file entry: {file_name}, {file_type}, {file_size}, {file_object_key}")
-            file_entries.append({
-                "file_name": file_name,
-                "file_type": file_type,
-                "file_size": str(file_size),
-                "object_key": file_object_key
-            })
-    try:
-        return_code = await run_script(
-            script=_KGEA_EDA_SCRIPT,
-            args=(
-                bucket,
-                root_directory,
-                kg_id,
-                file_set_version,
-                archive_filename
-            ),
-            stdout_parser=output_parser
-        )
-        logger.debug(f"Completed extract_data_archive({archive_filename}.tar.gz), with return code {str(return_code)}")
-
-    except Exception as e:
-        logger.error(f"decompress_in_place({archive_filename}.tar.gz): exception {str(e)}")
-
-    logger.debug(f"Exiting decompress_in_place({archive_filename}.tar.gz)")
-
-    return file_entries

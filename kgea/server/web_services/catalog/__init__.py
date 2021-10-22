@@ -42,7 +42,6 @@ from jsonschema import (
 
 import yaml
 
-from kgea.server.archiver.kge_archiver_util import KgeArchiver
 from kgea.server.archiver.tests.test_archiver import test_stub_archiver
 
 try:
@@ -55,7 +54,6 @@ except ImportError:
 from github import Github
 from github.GithubException import UnknownObjectException, BadCredentialsException
 
-from kgx.utils.kgx_utils import GraphEntityType
 from kgx.validator import Validator
 
 from kgea.config import (
@@ -579,34 +577,18 @@ class KgeFileSet:
     async def publish(self):
         """
         After a file_set is uploaded, publish file set in the Archive
-        after post-processing the file set including generation of the
+        after post-processing the file set, including generation of the
         file set 'tar.gz' archive for for KGX validation then downloading.
         
-        Also sets the file set KgeFileSetStatusCode.
-
-        :return: True if successful; False otherwise
+        Also sets the file set KgeFileSetStatusCode to PROCESSING.
         """
         # Signal that the KGE File Set is in a post-processing state
         self.status = KgeFileSetStatusCode.PROCESSING
 
-        # Publication of the file_set.yaml is deferred to the KgeArchiver.worker() task
+        # Publication of the file_set.yaml is delegated
+        # to the kgea.server.archiver subprocess
 
-        try:
-            archiver: KgeArchiver = KgeArchiver.get_archiver()
-
-            # We create all our workers once, in the KgeArchiver constructor now.
-            # archiver.create_workers(1)  # add worker capacity
-            
-            # Assemble a standard KGX Fileset tar.gz archive, with computed SHA1 hash sum
-            await archiver.process(self)
-        
-        except TimeoutError:
-            msg = "publish(): archiver.process() signalled TimeoutError"
-            self.report_error(msg)
-        
-        except Exception as error:
-            msg = f"publish(): {str(error)}"
-            self.report_error(msg)
+        # TODO: call the kgea.server.archiver here
             
     async def confirm_kgx_data_file_set_validation(self):
         """
@@ -1855,32 +1837,6 @@ def get_default_model_version():
     """
     semver = Validator.get_default_model_version()
     return semver.split('.')
-
-
-class ProgressMonitor:
-    """
-    ProgressMonitor
-    """
-    
-    # TODO: how do we best track the validation here?
-    #       We start by simply counting the nodes and edges
-    #       and periodically reporting to debug logger.
-    def __init__(self):
-        self._node_count = 0
-        self._edge_count = 0
-
-    def __call__(self, entity_type: GraphEntityType, rec: List):
-        logger.setLevel(logging.DEBUG)
-        if entity_type == GraphEntityType.EDGE:
-            self._edge_count += 1
-            if self._edge_count % 100000 == 0:
-                logger.info(str(self._edge_count) + " edges processed so far...")
-        elif entity_type == GraphEntityType.NODE:
-            self._node_count += 1
-            if self._node_count % 10000 == 0:
-                logger.info(str(self._node_count) + " nodes processed so far...")
-        else:
-            logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
 
 """

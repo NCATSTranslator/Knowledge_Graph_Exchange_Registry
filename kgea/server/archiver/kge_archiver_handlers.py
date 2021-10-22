@@ -1,8 +1,13 @@
+from typing import Optional
+from uuid import uuid4
+
 from aiohttp import web
 
-from kgea.server.archiver.kge_archiver_util import compress_fileset
+from kgea.server.web_services.catalog import KgeFileSet
+from kgea.server.archiver.kge_archiver_util import compress_fileset, KgeArchiver
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,6 +25,18 @@ async def kge_archiver(request: web.Request) -> web.Response:
         logger.error(err_msg)
         raise web.HTTPBadRequest(reason=err_msg)
 
-    s3_archive_key = await compress_fileset(kg_id, fileset_version)
+    file_set: Optional[KgeFileSet] = None
 
-    return web.json_response(text='{"s3_archive_key": "'+s3_archive_key+'"}')
+    try:
+        # Assemble a standard KGX Fileset archive ('tar.gz') with a computed SHA1 hash sum
+        archiver: KgeArchiver = KgeArchiver.get_archiver()
+        await archiver.process(file_set)
+
+    except Exception as error:
+        msg = f"kge_archiver(): {str(error)}"
+        file_set.report_error(msg)
+
+    # Need something to track the activity here?
+    archive_token = uuid4().hex
+
+    return web.json_response(text='{"archive_token": "'+archive_token+'"}')
