@@ -17,6 +17,13 @@ COPY kgea/config/ ./kgea/config/
 COPY kgea/server/__init__.py ./kgea/server/
 COPY kgea/server/archiver/ ./kgea/server/archiver/
 
+# install the latest AWS CLI inside the container
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; \
+    unzip awscliv2.zip; ./aws/install; aws --version
+
+# Ensure that archiver script is executable
+RUN chmod uga+x /usr/src/app/kgea/server/archiver/scripts/*.bash
+
 EXPOSE 8100
 
 ENTRYPOINT ["python"]
