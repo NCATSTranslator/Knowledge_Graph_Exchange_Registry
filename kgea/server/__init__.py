@@ -1,10 +1,13 @@
 #####################################################
 # General Utility Functions for the various servers #
 #####################################################
-from sys import exc_info
+import traceback
+from sys import exc_info, stderr
 from typing import Tuple, List
 from subprocess import Popen, PIPE, STDOUT
 import logging
+
+from kgea.server.web_services.kgea_file_ops import logger
 
 logger = logging.getLogger(__name__)
 
@@ -52,3 +55,12 @@ async def run_script(
         return -1
 
     return proc.returncode
+
+
+def print_error_trace(err_msg: str):
+    """
+    Print Error Exception stack
+    """
+    logger.error(err_msg)
+    exc_type, exc_value, exc_traceback = exc_info()
+    traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)

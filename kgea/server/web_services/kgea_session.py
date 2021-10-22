@@ -21,7 +21,7 @@ from aiohttp_session import AbstractStorage, setup, new_session, get_session, Se
 from multidict import MultiDict
 
 from kgea.config import get_app_config, HOME_PAGE
-from kgea.server.web_services.catalog import KgeArchiver
+from kgea.server.archiver.kge_archiver_util import KgeArchiver
 from kgea.server.web_services.kgea_user_roles import (
     KGE_USER_ROLE,
     DEFAULT_KGE_USER_ROLE
@@ -129,13 +129,6 @@ class KgeaSession:
         
         # Close the global Client Session
         loop.run_until_complete(cls._close_kgea_global_session())
-        
-        # Close the KgeArchiver worker tasks
-        loop.run_until_complete(KgeArchiver.get_archiver().shutdown_workers())
-        
-        # Close the KgxValidator worker tasks
-        # TODO: This code is commented out until the KgxValidator implementation is revisited
-        # loop.run_until_complete(KgxValidator.shutdown_tasks())
         
         # see https://docs.aiohttp.org/en/v3.7.4.post0/client_advanced.html#graceful-shutdown
         # Zero-sleep to allow underlying connections to close

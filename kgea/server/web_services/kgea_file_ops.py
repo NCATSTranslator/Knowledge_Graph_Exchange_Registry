@@ -7,7 +7,7 @@ o  Web server optimization (e.g. NGINX / WSGI / web application parameters)
 o  Test the system (both manually, by visual inspection of uploads)
 Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biolink-kg
 """
-from sys import stderr, exc_info
+from sys import stderr
 from typing import Union, List, Tuple, Dict, Optional
 from subprocess import Popen, PIPE
 from os import getenv
@@ -21,7 +21,6 @@ import random
 import re
 import itertools
 
-import traceback
 import logging
 
 import requests
@@ -70,19 +69,7 @@ default_s3_root_key = s3_config['archive-directory']
 # scripts, but changed once already...
 _KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
 
-_KGEA_EDA_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_extract_data_archive.bash"
-_EDA_OUTPUT_DATA_PREFIX = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
-
 _KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
-
-
-def print_error_trace(err_msg: str):
-    """
-    Print Error Exception stack
-    """
-    logger.error(err_msg)
-    exc_type, exc_value, exc_traceback = exc_info()
-    traceback.print_exception(exc_type, exc_value, exc_traceback, file=stderr)
 
 
 # https://www.askpython.com/python/examples/generate-random-strings-in-python
@@ -690,120 +677,14 @@ def upload_file_multipart(
     return object_key
 
 
-async def compress_fileset(
-        kg_id,
-        version,
-        bucket=default_s3_bucket,
-        root=default_s3_root_key
-) -> str:
-    """
-    :param kg_id:
-    :param version:
-    :param bucket:
-    :param root:
-    :return:
-    """
-    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
-
-    logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
-
-    try:
-        return_code = await run_script(
-            script=_KGEA_ARCHIVER_SCRIPT,
-            args=(bucket, root, kg_id, version)
-        )
-        logger.info(f"Finished archive script build {s3_archive_key}, return code: {str(return_code)}")
-        
-    except Exception as e:
-        logger.error(f"compress_fileset({s3_archive_key}) exception: {str(e)}")
-
-    logger.info(f"Exiting compress_fileset({s3_archive_key})")
-    
-    return s3_archive_key
-
-
-async def extract_data_archive(
-        kg_id: str,
-        file_set_version: str,
-        archive_filename: str,
-        bucket: str = default_s3_bucket,
-        root_directory: str = default_s3_root_key
-) -> List[Dict[str, str]]:
-    """
-    Decompress a tar.gz data archive file from a given S3 bucket, and upload back its internal files back.
-    
-    Version 1.0 - decompress_in_place() below used Smart_Open... not scalable
-    Version 2.0 - this version uses an external bash shell script to perform this operation...
-
-    :param kg_id: knowledge graph identifier to which the archive belongs
-    :param file_set_version: file set version to which the archive belongs
-    :param archive_filename: base name of the tar.gz archive to be decompressed
-    :param bucket: in S3
-    :param root_directory: KGE data folder in the bucket
-    
-    :return: list of file entries
-    """
-    # one step decompression - bash level script operations on the local disk
-    logger.debug(f"Initiating execution of extract_data_archive({archive_filename})")
-    
-    if not archive_filename.endswith('.tar.gz'):
-        err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
-        logger.error(err_msg)
-        raise RuntimeError(f"extract_data_archive(): {err_msg}")
-
-    part = archive_filename.split('.')
-    archive_filename = '.'.join(part[:-2])
-    
-    file_entries: List[Dict[str, str]] = []
-
-    def output_parser(line: str):
-        """
-        :param line: bash script stdout line being parsed
-        """
-        if not line.strip():
-            return   # empty line?
-        
-        # logger.debug(f"Entering output_parser(line: {line})!")
-        if line.startswith(_EDA_OUTPUT_DATA_PREFIX):
-            line = line.replace(_EDA_OUTPUT_DATA_PREFIX, '')
-            file_name, file_type, file_size, file_object_key = line.split(',')
-            logger.debug(f"DDA script file entry: {file_name}, {file_type}, {file_size}, {file_object_key}")
-            file_entries.append({
-                "file_name": file_name,
-                "file_type": file_type,
-                "file_size": str(file_size),
-                "object_key": file_object_key
-            })
-    try:
-        return_code = await run_script(
-            script=_KGEA_EDA_SCRIPT,
-            args=(
-                bucket,
-                root_directory,
-                kg_id,
-                file_set_version,
-                archive_filename
-            ),
-            stdout_parser=output_parser
-        )
-        logger.debug(f"Completed extract_data_archive({archive_filename}.tar.gz), with return code {str(return_code)}")
-        
-    except Exception as e:
-        logger.error(f"decompress_in_place({archive_filename}.tar.gz): exception {str(e)}")
-    
-    logger.debug(f"Exiting decompress_in_place({archive_filename}.tar.gz)")
-
-    return file_entries
-
-
 def decompress_in_place(tar_gz_file_key, target_location=None, traversal_func=None):
     """
-    ### DEPRECIATED - see extract_data_archive() above.
+    ### DEPRECIATED - see extract_data_archive() in the archiver server utils.
     
     Decompress a gzipped file from within a given S3 bucket.
 
     Version 1.0 - this version used Smart_Open... not scalable
-    Version 2.0 - extract_data_archive above uses an external bash shell script to perform this operation...
+    Version 2.0 - extract_data_archive() uses an external bash shell script to perform this operation...
 
     Can take a custom location to stop the unpacking from being in
     the location of the gzipped file, but instead done somewhere else.
@@ -919,8 +800,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
         :param entry_name:
         :return:
         """
-        return node_file_pattern.match(entry_name) is not None or \
-               node_folder_pattern.match(entry_name) is not None
+        return node_file_pattern.match(entry_name) is not None or node_folder_pattern.match(entry_name) is not None
 
     # a tarfile entry is edge-y if it's packed inside an edges folder,
     # or has the word "edge" in it towards the end of the filename
@@ -929,8 +809,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
         :param entry_name:
         :return:
         """
-        return edge_file_pattern.match(entry_name) is not None or \
-               edge_folder_pattern.match(entry_name) is not None
+        return edge_file_pattern.match(entry_name) is not None or edge_folder_pattern.match(entry_name) is not None
 
     def is_metadata(entry_name):
         """

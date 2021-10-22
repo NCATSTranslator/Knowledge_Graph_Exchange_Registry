@@ -38,12 +38,13 @@ from kgea.tests import (
 
 from kgea.server.web_services.kgea_file_ops import (
     upload_from_link, get_url_file_size, get_archive_contents, aggregate_files,
-    print_error_trace, compress_fileset, object_keys_in_location, get_object_key,
+    object_keys_in_location, get_object_key,
     upload_file, with_version, get_object_location, upload_file_multipart,
     create_presigned_url, get_fileset_versions_available, random_alpha_string,
     s3_client, location_available, copy_file, object_key_exists,
     object_keys_for_fileset_version, object_folder_contents_size
 )
+from kgea.server import print_error_trace
 
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
@@ -407,22 +408,6 @@ def test_copy_file():
         
         assert (not object_key_exists(object_key=testdir))
         
-    except Exception as e:
-        logger.error(e)
-        assert False
-
-
-async def test_compress_fileset():
-    try:
-        s3_archive_key: str = await compress_fileset(
-            kg_id=TEST_KG_ID,
-            version=TEST_FS_VERSION,
-            bucket=TEST_BUCKET,
-            root='kge-data'
-        )
-        logger.info(f"test_compress_fileset(): s3_archive_key == {s3_archive_key}")
-        assert (s3_archive_key == f"s3://{TEST_BUCKET}/kge-data/{TEST_KG_ID}/{TEST_FS_VERSION}"
-                                  f"/archive/{TEST_KG_ID + '_' + TEST_FS_VERSION}.tar.gz")
     except Exception as e:
         logger.error(e)
         assert False
