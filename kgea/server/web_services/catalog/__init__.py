@@ -42,8 +42,6 @@ from jsonschema import (
 
 import yaml
 
-from kgea.server.archiver.tests.test_archiver import test_stub_archiver
-
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
     from yaml.scanner import ScannerError
@@ -1867,24 +1865,6 @@ def test_contents_metadata_validator():
     return not errors
 
 
-# TODO: more complete KGX validator test
-def test_kgx_data_validator():
-    """
-    
-    :return:
-    """
-    print("\ntest_contents_data_validator() test output:\n", file=stderr)
-
-    # with open(SAMPLE_META_KNOWLEDGE_GRAPH_FILE, mode='r', encoding='utf-8') as smkg:
-    #     mkg_json = json.load(smkg)
-
-    errors: List[str] = []  # validate_content_metadata(mkg_json)
-
-    if errors:
-        logger.error("test_contents_data_validator() errors: " + str(errors))
-    return not errors
-
-
 def run_test(test_func):
     """
     Wrapper to run a test.
@@ -1927,23 +1907,10 @@ if __name__ == '__main__':
         # assert (test_add_to_archive())
         # assert (test_create_translator_registry_entry())
         # assert (test_add_to_github())
-
+        # run_test(test_contents_metadata_validator)
+        # test_get_biolink_releases()
         # assert (test_get_catalog_entries())
         #
-        # print("all KGE Archive Catalog tests passed")
-        #
-        print("KgeArchiver unit tests")
-        #
-        # Just a test of the basic KgeArchiver queue/task
-        run_test(test_stub_archiver)
-        #
-        # print("KgxValidator unit tests")
-        #
-        # run_test(test_contents_metadata_validator)
-        # run_test(test_kgx_data_validator)
-
-        # test_get_biolink_releases()
-
         print("Catalog package module tests completed?")
 
     # if CLEAN_TESTS:

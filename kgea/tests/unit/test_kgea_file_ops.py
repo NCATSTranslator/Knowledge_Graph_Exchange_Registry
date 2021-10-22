@@ -37,13 +37,13 @@ from kgea.tests import (
 )
 
 from kgea.server.web_services.kgea_file_ops import (
-    upload_from_link, get_url_file_size, get_archive_contents, aggregate_files,
-    object_keys_in_location, get_object_key,
+    upload_from_link, get_url_file_size, get_archive_contents, object_keys_in_location, get_object_key,
     upload_file, with_version, get_object_location, upload_file_multipart,
     create_presigned_url, get_fileset_versions_available, random_alpha_string,
     s3_client, location_available, copy_file, object_key_exists,
     object_keys_for_fileset_version, object_folder_contents_size
 )
+from kgea.server.archiver.kge_archiver_util import aggregate_files
 from kgea.server import print_error_trace
 
 logger = logging.getLogger(__name__)

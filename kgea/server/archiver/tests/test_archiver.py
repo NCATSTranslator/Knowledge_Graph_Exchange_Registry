@@ -1,4 +1,6 @@
 from asyncio import run
+from sys import stderr
+from typing import List
 
 from kgea.server.archiver import KgeArchiver
 from kgea.server.archiver.kge_archiver_util import compress_fileset, logger
@@ -59,3 +61,18 @@ def test_stub_archiver() -> bool:
 
     run(archive_test())
     return True
+
+
+# TODO: more complete KGX validator test
+def test_kgx_data_validator():
+    """
+
+    :return:
+    """
+    print("\ntest_kgx_data_validator() test output:\n", file=stderr)
+
+    errors: List[str] = []  # validate_content_metadata(mkg_json)
+
+    if errors:
+        logger.error("test_contents_data_validator() errors: " + str(errors))
+    return not errors

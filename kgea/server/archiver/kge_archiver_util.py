@@ -2,6 +2,7 @@ from asyncio import Queue, Task, create_task, sleep, gather, QueueFull
 from typing import List, Dict, Optional
 from os.path import sep, dirname, abspath
 
+import smart_open
 from kgx.transformer import Transformer
 from kgx.utils.kgx_utils import GraphEntityType
 from kgx.validator import Validator
@@ -24,7 +25,6 @@ from kgea.server.web_services.catalog import (
 )
 
 from kgea.server.web_services.kgea_file_ops import (
-    aggregate_files,
     object_key_exists,
     copy_file,
     create_presigned_url
@@ -53,6 +53,41 @@ Number_of_Validator_Tasks = \
 
 # TODO: operational parameter dependent configuration
 MAX_WAIT = 100  # number of iterations until we stop pushing onto the queue. -1 for unlimited waits
+
+
+def aggregate_files(
+        target_folder,
+        target_name,
+        file_object_keys,
+        bucket=default_s3_bucket,
+        match_function=lambda x: True
+) -> str:
+    """
+    Aggregates files matching a match_function.
+
+    :param bucket:
+    :param target_folder:
+    :param target_name: target data file format(s)
+    :param file_object_keys:
+    :param match_function:
+    :return:
+    """
+    if not file_object_keys:
+        return ''
+
+    agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
+    logger.debug(f"agg_path: {agg_path}")
+    with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
+        file_object_keys = list(filter(match_function, file_object_keys))
+        for index, file_object_key in enumerate(file_object_keys):
+            target_key_uri = f"s3://{bucket}/{file_object_key}"
+            with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
+                for line in subfile:
+                    aggregated_file.write(line)
+                if index < (len(file_object_keys) - 1):  # only add newline if it isn't the last file. -1 for zero index
+                    aggregated_file.write("\n")
+
+    return agg_path
 
 
 async def compress_fileset(

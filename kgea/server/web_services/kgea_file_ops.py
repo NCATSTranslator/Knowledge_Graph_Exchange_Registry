@@ -11,7 +11,7 @@ from sys import stderr
 from typing import Union, List, Tuple, Dict, Optional
 from subprocess import Popen, PIPE
 from os import getenv
-from os.path import sep, splitext, basename, dirname, abspath
+from os.path import sep, splitext, dirname, abspath
 import io
 
 from pprint import PrettyPrinter
@@ -24,15 +24,11 @@ import itertools
 import logging
 
 import requests
-import smart_open
 from datetime import datetime
 
 from pathlib import Path
-import tarfile
 
 from validators import ValidationFailure, url as valid_url
-
-from kgea.server import run_script
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -675,242 +671,6 @@ def upload_file_multipart(
         callback=callback
     )
     return object_key
-
-
-def decompress_in_place(tar_gz_file_key, target_location=None, traversal_func=None):
-    """
-    ### DEPRECIATED - see extract_data_archive() in the archiver server utils.
-    
-    Decompress a gzipped file from within a given S3 bucket.
-
-    Version 1.0 - this version used Smart_Open... not scalable
-    Version 2.0 - extract_data_archive() uses an external bash shell script to perform this operation...
-
-    Can take a custom location to stop the unpacking from being in
-    the location of the gzipped file, but instead done somewhere else.
-
-    Can take a traversal function to customize the distribution
-    of unpacked files into different folders.
-
-    :param tar_gz_file_key: The S3 key for the gzipped archive
-    :param target_location: The location to which to unpack (not necessarily the root folder of the gzipped file)
-    :param traversal_func: Optional
-    :return:
-    """
-    
-    if target_location[-1] != '/':
-        raise Warning(
-            "decompress_to_kgx(): the target location given doesn't terminate in a separator, " +
-            f" instead {target_location[-1]}." +
-            "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair."
-        )
-    
-    if '.gz' not in tar_gz_file_key:
-        raise Exception('decompress_in_place(): Gzipped key cannot be a GZIP file! (' + str(tar_gz_file_key) + ')')
-    
-    if target_location is None:
-        target_location = '/'.join(tar_gz_file_key.split('/')[:-1]) + '/'
-    
-    archive_location = f"s3://{default_s3_bucket}/{tar_gz_file_key}"
-    
-    file_entries = []
-    
-    # one step decompression - use the tarfile library's ability
-    # to open gzip files transparently to avoid gzip+tar step
-    with smart_open.open(archive_location, 'rb', compression='disable') as fin:
-        with tarfile.open(fileobj=fin) as tf:
-            if traversal_func is not None:
-                logger.debug('decompress_in_place(): traversing the archive with a custom traversal function')
-                file_entries = traversal_func(tf, target_location)
-            else:
-                for entry in tf:  # list each entry one by one
-                    fileobj = tf.extractfile(entry)
-                    
-                    # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
-                    unpacked_filename = basename(entry.name)
-                    
-                    if fileobj is not None:  # not a directory
-                        s3_client().upload_fileobj(  # upload a new obj to s3
-                            Fileobj=io.BytesIO(fileobj.read()),
-                            Bucket=default_s3_bucket,  # target bucket, writing to
-                            Key=target_location + unpacked_filename
-                        )
-                        file_entries.append({
-                            "file_type": "KGX data file",  # TODO: refine to more specific types?
-                            "file_name": unpacked_filename,
-                            "file_size": entry.size,
-                            "object_key": target_location + unpacked_filename
-                        })
-    return file_entries
-
-
-# KGE filename regex patterns pre-compiled
-node_file_pattern = re.compile('node[s]?.tsv')  # a node file by its own admission
-node_folder_pattern = re.compile('nodes/')  # a nodes file given where it's placed
-edge_file_pattern = re.compile('edge[s]?.tsv')  # an edge file by its own admission
-edge_folder_pattern = re.compile('edges/')  # an edges file given where it's placed
-metadata_file_pattern = re.compile(r'content_metadata\.json')
-metadata_folder_pattern = re.compile('metadata/')
-
-
-def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
-    # TODO: implement strict
-    """
-        ### DEPRECIATED - see extract_data_archive() above.
-
-    Decompress a gzip'd file which was uploaded to a given S3 bucket.
-    If it contains a nodes or edges file, place them into their
-    corresponding folders within the knowledge graph working directory.
-
-    For instance:
-    - if the tarfile has a file `./nodes/kgx-1.tsv`, it goes into the nodes/ folder. Similarly with edges.
-    - if the tarfile has a file `node.tsv`, it goes into the nodes/ folder. Similarly with edges.
-    - if the tarfile has a file `metadata/content.json`, it fails to upload the file as metadata.
-    - if the tarfile has a file `metadata/content_metadata.json`, it goes into the metadata/ folder(?)
-
-    For anything else, if `strict` is False, then these other files are  uploaded to the key given by `location`.
-
-    If `strict` is true, only node, edge or metadata files are added to this `location`, modulo the conventions above.
-
-    This decompression function is used as a way of standardizing the uploaded archives into KGX graphs. When used
-    strictly, it should help ensure that only KGX-validatable data occupies the final archive. When used un-strictly,
-    it allows for a loose conception of archives that lets them be not necessarily validatable by KGX. This notion
-    is preferred in the case where an archive's data is useful, but still needs to work towards being KGX-compliant.
-
-    :param gzipped_key: The S3 key for the gzipped archive
-    :param location: The location to unpack onto (not necessarily the root folder of the gzipped file)
-    :param strict:
-    :param prefix:
-    :return:
-    """
-
-    if location[-1] != '/':
-        raise Warning(
-            f"decompress_to_kgx(): the location given doesn't terminate in a separator, instead {location[-1]}." +
-            "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair."
-        )
-
-    logger.debug('decompress_to_kgx(): Decompress the archive as if it is a KGX file')
-
-    # check for node-yness or edge-yness
-    # a tarfile entry is node-y if it's packed inside a nodes folder,
-    # or has the word "node" in it towards the end of the filename
-    def is_node_y(entry_name):
-        """
-        :param entry_name:
-        :return:
-        """
-        return node_file_pattern.match(entry_name) is not None or node_folder_pattern.match(entry_name) is not None
-
-    # a tarfile entry is edge-y if it's packed inside an edges folder,
-    # or has the word "edge" in it towards the end of the filename
-    def is_edge_y(entry_name):
-        """
-        :param entry_name:
-        :return:
-        """
-        return edge_file_pattern.match(entry_name) is not None or edge_folder_pattern.match(entry_name) is not None
-
-    def is_metadata(entry_name):
-        """
-        :param entry_name:
-        :return:
-        """
-        return metadata_file_pattern.match(entry_name) is not None or edge_folder_pattern.match(entry_name) is not None
-
-    def traversal_func_kgx(tf, location):
-        """
-
-        :param tf:
-        :param location:
-        :return:
-        """
-        logger.debug(f"traversal_func_kgx(): Begin traversing across the archive for nodes and edge files'{tf}'")
-
-        file_entries = []
-        for entry in tf:  # list each entry one by one
-            
-            logger.debug(f"traversal_func_kgx(): Traversing entry'{entry}'")
-
-            object_key = location  # if not strict else None
-            
-            fileobj = tf.extractfile(entry)
-
-            logger.debug(f"traversal_func_kgx(): Entry file object '{fileobj}'")
-
-            if fileobj is not None:  # not a directory
-                
-                pre_name = entry.name
-                unpacked_filename = basename(pre_name)
-
-                logger.debug(f"traversal_func_kgx(): Entry names: {pre_name}, {unpacked_filename}")
-                
-                if is_node_y(pre_name):
-                    object_key = location + 'nodes/' + unpacked_filename
-                elif is_edge_y(pre_name):
-                    object_key = location + 'edges/' + unpacked_filename
-                else:
-                    object_key = location + unpacked_filename
-
-                logger.debug(f"traversal_func_kgx(): Object key will be '{object_key}'")
-
-                if object_key is not None:
-                    
-                    logger.debug(f"traversal_func_kgx(): uploading entry into '{object_key}'")
-
-                    s3_client().upload_fileobj(  # upload a new obj to s3
-                        Fileobj=io.BytesIO(fileobj.read()),
-                        Bucket=default_s3_bucket,  # target bucket, writing to
-                        Key=object_key  # TODO was this a bug before? (when it was location + unpacked_filename)
-                    )
-
-                    file_entries.append({
-                        "file_type": "KGX data file",  # TODO: refine to more specific types?
-                        "file_name": unpacked_filename,
-                        "file_size": entry.size,
-                        "object_key": object_key
-                    })
-
-        logger.debug(f"traversal_func_kgx(): file entries: '{file_entries}'")
-
-        return file_entries
-
-    return decompress_in_place(gzipped_key, location, traversal_func_kgx)
-
-
-def aggregate_files(
-        target_folder,
-        target_name,
-        file_object_keys,
-        bucket=default_s3_bucket,
-        match_function=lambda x: True
-) -> str:
-    """
-    Aggregates files matching a match_function.
-
-    :param bucket:
-    :param target_folder:
-    :param target_name: target data file format(s)
-    :param file_object_keys:
-    :param match_function:
-    :return:
-    """
-    if not file_object_keys:
-        return ''
-
-    agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
-    logger.debug(f"agg_path: {agg_path}")
-    with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
-        file_object_keys = list(filter(match_function, file_object_keys))
-        for index, file_object_key in enumerate(file_object_keys):
-            target_key_uri = f"s3://{bucket}/{file_object_key}"
-            with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
-                for line in subfile:
-                    aggregated_file.write(line)
-                if index < (len(file_object_keys) - 1):  # only add newline if it isn't the last file. -1 for zero index
-                    aggregated_file.write("\n")
-
-    return agg_path
 
 
 def copy_file(
