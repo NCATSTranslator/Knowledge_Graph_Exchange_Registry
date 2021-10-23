@@ -8,7 +8,7 @@ RUN python -m pip install --upgrade pip && python -m pip install wheel
 
 # Copy over requirements and defined dependencies independent of the rest of the
 # code base, so that they are not repeatedly installed when the code changes
-COPY archiver_requirements.txt  /usr/src/app/requirements.txt
+COPY requirements.txt  /usr/src/app/requirements.txt
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
 # We selectively copy the project into the image
