@@ -14,8 +14,8 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 COPY kgea/__init__.py ./kgea/
 COPY kgea/aws/*.py ./kgea/aws/
 COPY kgea/config/ ./kgea/config/
-COPY kgea/catalog/ ./kgea/catalog/
-COPY kgea/server/__init__.py ./kgea/server/
+COPY kgea/server/*.py ./kgea/server/
+COPY kgea/server/catalog/ ./kgea/catalog/
 COPY kgea/server/archiver/ ./kgea/server/archiver/
 
 # install the latest AWS CLI inside the container
