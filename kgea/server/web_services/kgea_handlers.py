@@ -44,7 +44,7 @@ from kgea.config import (
     DATA_UNAVAILABLE
 )
 
-from .kgea_session import (
+from kgea.server.kgea_session import (
     user_permitted,
     redirect,
     download,

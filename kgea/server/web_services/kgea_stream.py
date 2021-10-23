@@ -27,7 +27,7 @@ from kgea.server.kgea_file_ops import (
 from kgea.server.kgea_file_ops import s3_client
 
 
-from .kgea_session import KgeaSession
+from kgea.server.kgea_session import KgeaSession
 
 # Master flag for local development runs bypassing authentication and other production processes
 DEV_MODE = getenv('DEV_MODE', default=False)

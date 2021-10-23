@@ -42,7 +42,7 @@ from jsonschema import (
 
 import yaml
 
-from kgea.server.web_services import KgeaSession
+from kgea.server.kgea_session import KgeaSession
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper

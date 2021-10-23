@@ -6,7 +6,7 @@ import connexion
 from connexion.apps import aiohttp_app
 import aiohttp_cors
 
-from kgea.server.web_services.kgea_session import KgeaSession
+from kgea.server.kgea_session import KgeaSession
 import logging
 
 aiohttp_app.logger = logging.getLogger(__name__)

@@ -15,7 +15,7 @@ COPY kgea/__init__.py ./kgea/
 COPY kgea/aws/*.py ./kgea/aws/
 COPY kgea/config/ ./kgea/config/
 COPY kgea/server/*.py ./kgea/server/
-COPY kgea/server/catalog/ ./kgea/catalog/
+COPY kgea/server/catalog/ ./kgea/server/catalog/
 COPY kgea/server/archiver/ ./kgea/server/archiver/
 
 # install the latest AWS CLI inside the container

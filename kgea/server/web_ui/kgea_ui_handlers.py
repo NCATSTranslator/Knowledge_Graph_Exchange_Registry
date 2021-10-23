@@ -36,7 +36,7 @@ from kgea.config import (
     BACKEND
 )
 from kgea.server.catalog import get_biolink_model_releases
-from kgea.server.web_services.kgea_session import (
+from kgea.server.kgea_session import (
     initialize_user_session,
     user_permitted,
     redirect,

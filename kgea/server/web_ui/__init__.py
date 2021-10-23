@@ -4,7 +4,7 @@ KGE Web User Interface Application Code package.
 from os import getenv, path
 import logging
 
-from kgea.server.web_services.kgea_session import KgeaSession
+from kgea.server.kgea_session import KgeaSession
 
 import jinja2
 import aiohttp_jinja2
