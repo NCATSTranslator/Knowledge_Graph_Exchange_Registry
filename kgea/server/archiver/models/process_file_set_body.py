@@ -4,13 +4,13 @@ Process File Set Body
 from typing import List
 
 from kgea.server.archiver.models.base_model_ import Model
-from kgea.server.archiver.models.kge_archived_file_set import KgeArchivedFileSet
+from kgea.server.archiver.models.kge_file_set_to_archive import KgeFileSetToArchive
 from kgea.server.archiver import util
 
 
 class ProcessFileSetBody(Model):
     
-    def __init__(self, kg_id: str = None,  fileset: KgeArchivedFileSet = None):
+    def __init__(self, kg_id: str = None, fileset: KgeFileSetToArchive = None):
         """ProcessFileSetBody - a model defined in OpenAPI
 
         :param kg_id: The Knowledge Graph Identifier submitted by this ProcessFileSetBody.
@@ -18,7 +18,7 @@ class ProcessFileSetBody(Model):
         """
         self.openapi_types = {
             'kg_id': str,
-            'fileset': KgeArchivedFileSet
+            'fileset': KgeFileSetToArchive
         }
 
         self.attribute_map = {

@@ -82,7 +82,7 @@ from kgea.server.kgea_file_ops import (
     random_alpha_string
 )
 
-from kgea.server.archiver.models import ProcessFileSetBody, KgeArchivedFileSet
+from kgea.server.archiver.models import ProcessFileSetBody, KgeFileSetToArchive
 
 import logging
 logger = logging.getLogger(__name__)
@@ -573,6 +573,12 @@ class KgeFileSet:
                 # "errors": []
             }
 
+    def create_kge_fileset_to_archive(self):
+        fileset_to_archive: Optional[KgeFileSetToArchive] = None
+        # TODO: load the KgeArchivedFileSet selecting metadata from the full KgeFileSet
+        # return fileset_to_archive
+        raise NotImplemented("create_kge_fileset_to_archive(): Implement me!")
+
     ##########################################
     # KGE FileSet Publication to the Archive #
     ##########################################
@@ -591,8 +597,8 @@ class KgeFileSet:
         # to the kgea.server.archiver subprocess
 
         # POST the KgeFileSet 'self' data to the kgea.server.archiver web service
-        fileset: KgeArchivedFileSet = KgeArchivedFileSet.load(self)
-        process_file_set_body: ProcessFileSetBody = ProcessFileSetBody(kg_id=self.kg_id, fileset=fileset)
+        fileset_to_archive: KgeFileSetToArchive = self.create_kge_fileset_to_archive()
+        process_file_set_body: ProcessFileSetBody = ProcessFileSetBody(kg_id=self.kg_id, fileset=fileset_to_archive)
         async with KgeaSession.get_global_session().post(
                 PROCESS_FILESET,
                 json=process_file_set_body.to_json()) as response:
