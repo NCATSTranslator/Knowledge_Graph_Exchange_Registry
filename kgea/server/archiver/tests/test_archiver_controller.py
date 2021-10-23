@@ -4,7 +4,7 @@ import pytest
 import json
 from aiohttp import web
 
-from archiver.models.process_file_set_body import ProcessFileSetBody
+from kgea.server.archiver.models.process_file_set_body import ProcessFileSetBody
 
 
 @pytest.mark.skip("application/x-www-form-urlencoded not supported by Connexion")
@@ -13,7 +13,7 @@ async def test_process_fileset(client):
 
     Posts a KGE File Set for post-processing after upload.
     """
-    body = archiver.ProcessFileSetBody()
+    body = ProcessFileSetBody()
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -25,6 +25,7 @@ async def test_process_fileset(client):
         json=body,
         )
     assert response.status == 200, 'Response body is : ' + (await response.read()).decode('utf-8')
+
 
 async def test_get_processing_status(client):
     """Test case for get_processing_status

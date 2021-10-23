@@ -11,12 +11,17 @@ RUN python -m pip install --upgrade pip && python -m pip install wheel
 COPY archiver_requirements.txt  /usr/src/app/requirements.txt
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
+# We selectively copy the project into the image
+# so as not to bloat it with unused code
 COPY kgea/__init__.py ./kgea/
 COPY kgea/aws/*.py ./kgea/aws/
 COPY kgea/config/ ./kgea/config/
 COPY kgea/server/*.py ./kgea/server/
 COPY kgea/server/catalog/ ./kgea/server/catalog/
 COPY kgea/server/archiver/ ./kgea/server/archiver/
+COPY kgea/server/web_services/util.py ./kgea/server/web_services/
+COPY kgea/server/web_services/typing_utils.py ./kgea/server/web_services/
+COPY kgea/server/web_services/models/ ./kgea/server/web_services/models/
 
 # install the latest AWS CLI inside the container
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; \

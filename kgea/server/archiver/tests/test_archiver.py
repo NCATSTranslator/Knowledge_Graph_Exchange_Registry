@@ -2,7 +2,7 @@ from asyncio import run
 from sys import stderr
 from typing import List
 
-from kgea.server.archiver import KgeArchiver
+from kgea.server.archiver.kge_archiver_util import KgeArchiver
 from kgea.server.archiver.kge_archiver_util import compress_fileset, logger
 from kgea.server.catalog import prepare_test_file_set
 from kgea.server.tests import TEST_KG_ID, TEST_FS_VERSION, TEST_BUCKET

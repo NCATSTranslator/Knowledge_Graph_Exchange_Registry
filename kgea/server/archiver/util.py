@@ -2,7 +2,7 @@ import datetime
 
 import typing
 from typing import Union
-from archiver import typing_utils
+from kgea.server.archiver import typing_utils
 
 T = typing.TypeVar('T')
 Class = typing.Type[T]
