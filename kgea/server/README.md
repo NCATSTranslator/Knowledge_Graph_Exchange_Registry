@@ -21,13 +21,13 @@ python3 -m archiver
 and open your browser to here:
 
 ```
-http://localhost:8080/api/ui/
+http://localhost:8080/archiver/ui/
 ```
 
 Your OpenAPI definition lives here:
 
 ```
-http://localhost:8080/api/openapi.json
+http://localhost:8080/archiver/openapi.json
 ```
 
 To launch the integration tests, use pytest:

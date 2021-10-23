@@ -118,24 +118,22 @@ components:
         kg_id:
           type: string
         fileset:
-          $ref: '#/components/schemas/KgeFileSet'
+          type: string
       required:
       - fileset
       - kg_id
       type: object
-    KgeFileSet:
+    KgeFileSetMetadata:
       description: Metadata including content metadata and the inventory of associated
         files, for a specific version of KGE File Set.
       properties:
         biolink_model_release:
           description: Biolink Model released associated with the file set.
           example: 2.5.0
-          title: biolink_model_release
           type: string
         fileset_version:
           description: Version identifier of the file set.
           example: "1.0"
-          title: fileset_version
           type: string
         status:
           $ref: '#/components/schemas/KgeFileSetStatusCode'
@@ -143,14 +141,11 @@ components:
           description: Annotated list of files within a given file set.
           items:
             $ref: '#/components/schemas/KgeFile'
-          title: files
           type: array
         size:
           description: approximate aggregate size of data files in the file set (megabytes)
           format: float
-          title: size
           type: number
-      title: KgeFileSet
       type: object
     StatusToken:
       additionalProperties: false

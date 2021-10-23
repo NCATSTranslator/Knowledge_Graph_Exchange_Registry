@@ -24,7 +24,7 @@ info:
     team:
     - "SRI"
 servers:
-  - url: "http://localhost:8100/api"
+  - url: "http://localhost:8100/archiver"
     description: "Localhost URL for server, to be proxied to the real internet"
 externalDocs:
   description: >-
@@ -122,7 +122,11 @@ components:
         kg_id:
           type: string
         fileset:
-          $ref: '#/components/schemas/KgeFileSetMetadata'
+          # It would be nice to model KGE File Set metadata in a more fine-grained manner
+          # but it seems as if the OpenAPI code generator can't handle hierarchical schemata,
+          # so we simply store the metadata here as a JSON formatted string
+          # $ref: '#/components/schemas/KgeFileSetMetadata'
+          type: string
       required:
       - kg_id
       - fileset
