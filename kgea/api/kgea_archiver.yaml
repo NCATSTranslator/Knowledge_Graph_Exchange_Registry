@@ -226,3 +226,11 @@ components:
         - Processing
         - Validated
         - Error
+    KgxCompliance:
+      description: >-
+        KGX compliance status of a specific KGE File.
+      type: string
+      enum:
+        - Assessing
+        - Compliant
+        - Non-Compliant

@@ -121,16 +121,14 @@ components:
         biolink_model_release: 2.0.2
         size: 6.0274563
         files:
-        - kgx_compliance_status: '{}'
-          file_type: file_type
+        - file_type: file_type
           original_name: original_name
           assigned_name: assigned_name
           file_size: 0.8008282
           errors:
           - errors
           - errors
-        - kgx_compliance_status: '{}'
-          file_type: file_type
+        - file_type: file_type
           original_name: original_name
           assigned_name: assigned_name
           file_size: 0.8008282
@@ -176,7 +174,6 @@ components:
       additionalProperties: false
       description: Annotated file in a KGE File Set.
       example:
-        kgx_compliance_status: '{}'
         file_type: file_type
         original_name: original_name
         assigned_name: assigned_name
@@ -255,4 +252,12 @@ components:
       - Validated
       - Error
       title: KgeFileSetStatusCode
+      type: string
+    KgxCompliance:
+      description: KGX compliance status of a specific KGE File.
+      enum:
+      - Assessing
+      - Compliant
+      - Non-Compliant
+      title: KgxCompliance
       type: string
