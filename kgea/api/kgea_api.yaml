@@ -761,6 +761,7 @@ components:
         - Ongoing
         - Completed
         - Error
+      example: 'Completed'
     KgeFileSetStatusCode:
       description: >-
         Code for status of processing for a KGE File Set.
@@ -771,6 +772,7 @@ components:
         - Processing
         - Validated
         - Error
+      example: 'Validated'
     KgeFile:
       description: >-
         Annotated file in a KGE File Set.
@@ -812,6 +814,7 @@ components:
         - Assessing
         - Compliant
         - Non-Compliant
+      example: 'Compliant'
     UploadTokenObject:
       description: >-
         Upload token associated with a file for uploading into a KGE File Set.

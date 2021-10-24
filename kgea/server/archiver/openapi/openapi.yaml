@@ -118,7 +118,7 @@ components:
       example:
         fileset_version: "1.0"
         date_stamp: 2000-01-23
-        biolink_model_release: 2.0.2
+        biolink_model_release: 2.5.0
         size: 6.0274563
         files:
         - file_type: file_type
@@ -140,7 +140,7 @@ components:
       properties:
         biolink_model_release:
           description: Biolink Model released associated with the file set.
-          example: 2.0.2
+          example: 2.5.0
           type: string
         fileset_version:
           description: Version identifier of the file set.
