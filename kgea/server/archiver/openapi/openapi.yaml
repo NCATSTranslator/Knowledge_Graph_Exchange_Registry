@@ -177,6 +177,7 @@ components:
         file_type: file_type
         original_name: original_name
         assigned_name: assigned_name
+        kgx_compliance_status: Compliant
         file_size: 0.8008282
         errors:
         - errors
