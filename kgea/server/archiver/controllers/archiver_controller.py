@@ -1,17 +1,21 @@
 from aiohttp import web
 
 from kgea.server.archiver.kge_archiver_handlers import process_kge_fileset, get_kge_fileset_processing_status
+from kgea.server.archiver.models.kge_file_set_metadata import KgeFileSetMetadata
 
 
-async def process_fileset(request: web.Request) -> web.Response:
+async def process_fileset(request: web.Request, body) -> web.Response:
     """Posts a KGE File Set for post-processing after upload.
 
     Posts a KGE File Set for post-processing after upload.
 
     :param request:
     :type request: web.Request
+    :param body:
+    :type body: dict | bytes
 
     """
+    body = KgeFileSetMetadata.from_dict(body)
     return await process_kge_fileset(request)
 
 
