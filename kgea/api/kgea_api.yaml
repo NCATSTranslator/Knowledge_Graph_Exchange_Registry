@@ -793,7 +793,7 @@ components:
         kgx_compliance_status:
           $ref: '#/components/schemas/KgxCompliance'
         errors:
-          description: if 'non-compliant' file, list of error messags
+          description: if 'non-compliant' file, list of error messages
           type: array
           items:
             type: string

@@ -573,11 +573,14 @@ class KgeFileSet:
                 # "errors": []
             }
 
-    def create_kge_fileset_to_archive(self):
-        fileset_to_archive: Optional[KgeFileSetToArchive] = None
-        # TODO: load the KgeArchivedFileSet selecting metadata from the full KgeFileSet
-        # return fileset_to_archive
-        raise NotImplemented("create_kge_fileset_to_archive(): Implement me!")
+    @classmethod
+    def load(cls, data):
+        """
+        Loads in selected metadata of a KgeFileSet from a response data dictionary
+        """
+        # TODO: this simpleminded Constructor approach won't likely work...
+        fileset: KgeFileSet = KgeFileSet(**data)
+        return fileset
 
     ##########################################
     # KGE FileSet Publication to the Archive #
@@ -597,11 +600,10 @@ class KgeFileSet:
         # to the kgea.server.archiver subprocess
 
         # POST the KgeFileSet 'self' data to the kgea.server.archiver web service
-        fileset_to_archive: KgeFileSetToArchive = self.create_kge_fileset_to_archive()
-        process_file_set_body: ProcessFileSetBody = ProcessFileSetBody(kg_id=self.kg_id, fileset=fileset_to_archive)
         async with KgeaSession.get_global_session().post(
                 PROCESS_FILESET,
-                json=process_file_set_body.to_json()) as response:
+                json=self.to_json()
+        ) as response:
             print(f"Status: {response.status}", )
             print(f"Content-type: {response.headers['content-type']}")
             result = await response.json()
@@ -703,6 +705,9 @@ class KgeFileSet:
         :return:
         """
         self.size += file_size
+
+    def to_json(self):
+        pass
 
 
 class KgeKnowledgeGraph:

@@ -1,6 +1,7 @@
 from asyncio import Queue, Task, create_task, sleep, gather, QueueFull
 from typing import List, Dict, Optional
 from os.path import sep, dirname, abspath
+from uuid import uuid4
 
 import smart_open
 from kgx.transformer import Transformer
@@ -386,23 +387,23 @@ class KgeArchiver:
 
                 fileset_metadata_file = file_set.generate_fileset_metadata_file()
                 fileset_metadata_object_key = add_to_s3_repository(
-                    kg_id=file_set.kg_id,
+                    kg_id=file_set.get_kg_id(),
                     text=fileset_metadata_file,
                     file_name=FILE_SET_METADATA_FILE,
-                    fileset_version=file_set.fileset_version
+                    fileset_version=file_set.get_fileset_version()
                 )
                 if fileset_metadata_object_key:
                     logger.info(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
                 else:
                     msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
-                          f"' file for KGE File Set version '{file_set.fileset_version}" + \
-                          f"' of knowledge graph '{file_set.kg_id}" + \
+                          f"' file for KGE File Set version '{file_set.get_fileset_version()}" + \
+                          f"' of knowledge graph '{file_set.get_kg_id()}" + \
                           "' not successfully posted to the Archive?"
                     file_set.report_error(msg)
                     raise RuntimeError(msg)
 
             except Exception as exc:
-                msg = f"publish(): {file_set.kg_id} {file_set.fileset_version} {str(exc)}"
+                msg = f"publish(): {file_set.get_kg_id()} {file_set.get_fileset_version()} {str(exc)}"
                 file_set.report_error(msg)
                 print_error_trace(msg)
                 raise RuntimeError(msg)
@@ -441,8 +442,8 @@ class KgeArchiver:
             logger.debug("Compressing total KGE file set...")
             try:
                 s3_archive_key: str = await compress_fileset(
-                    kg_id=file_set.kg_id,
-                    version=file_set.fileset_version
+                    kg_id=file_set.get_kg_id(),
+                    version=file_set.get_fileset_version()
                 )
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
@@ -494,7 +495,7 @@ class KgeArchiver:
             msg = "KgeArchiver() worker shutdown exception: " + str(exc)
             logger.error(msg)
 
-    async def process(self, file_set: KgeFileSet):
+    async def process(self, file_set: KgeFileSet) -> str:
         """
         This method posts a KgeFileSet to the KgeArchiver for processing.
         :param file_set: KgeFileSet.
@@ -502,6 +503,11 @@ class KgeArchiver:
         # Post the file set to the KgeArchiver task Queue for processing
         logger.debug("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
         self._archiver_queue.put_nowait(file_set)
+
+        # TODO: Need something more to track the post-processing activity here?
+        process_token = uuid4().hex
+
+        return process_token
 
 
 class ProgressMonitor:

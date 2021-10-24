@@ -48,7 +48,7 @@ paths:
       summary: Posts a KGE File Set for post-processing after upload.
       operationId: process_fileset
       requestBody:
-        $ref: '#/components/requestBodies/ProcessFileSetBody'
+        $ref: '#/components/requestBodies/ProcessKgeFileSetBody'
       responses:
         '201':
           description:  >-
@@ -107,29 +107,13 @@ paths:
                 type: string
 components:
   requestBodies:
-    ProcessFileSetBody:
+    ProcessKgeFileSetBody:
       content:
-        application/x-www-form-urlencoded:
+        application/json:
           schema:
-            $ref: '#/components/schemas/ProcessFileSetBody'
+            $ref: '#/components/schemas/KgeFileSetMetadata'
       required: true
   schemas:
-    ProcessFileSetBody:
-      type: object
-      description: >-
-        Versioned KGE File Set registration metadata.
-      properties:
-        kg_id:
-          type: string
-        fileset:
-          # It would be nice to model KGE File Set metadata in a more fine-grained manner
-          # but it seems as if the OpenAPI code generator can't handle hierarchical schemata,
-          # so we simply store the metadata here as a JSON formatted string
-          # $ref: '#/components/schemas/KgeFileSetMetadata'
-          type: string
-      required:
-      - kg_id
-      - fileset
     KgeFileSetMetadata:
       description: >-
         Metadata including content metadata and the inventory of
@@ -140,15 +124,29 @@ components:
           description: >-
             Biolink Model released associated with the file set.
           type: string
-          example: "2.5.0"
+          example: "2.0.2"
         fileset_version:
           description: >-
             Version identifier of the file set.
           type: string
           example: "1.0"
+        date_stamp:
+          description: >-
+            Date stamp of the file set.
+          type: string
+          format: date
+        submitter_name:
+          description: >-
+            Name of the submitter of the KGE FileSet
+          type: string
+          example: "John Smith"
+        submitter_email:
+          description: >-
+            Email address for the submitter.
+          type: string
+          example: "jsmith@knowledge.org"
         status:
           $ref: '#/components/schemas/KgeFileSetStatusCode'
-          example: "Validated"
         files:
           description: >-
             Annotated list of files within a given file set.
@@ -159,6 +157,39 @@ components:
           description: approximate aggregate size of data files in the file set (megabytes)
           type: number
           format: float
+    KgeFile:
+      description: >-
+        Annotated file in a KGE File Set.
+      type: object
+      properties:
+        original_name:
+          description: original name of file (as uploaded)
+          type: string
+        assigned_name:
+          description: assigned name of file (by archive, for export)
+          type: string
+        file_type:
+          description: >-
+            Designates if the file is (content or file set) meta-, node or edge data
+          type: string
+        file_size:
+          description: size of file in megabytes
+          type: number
+          format: float
+        kgx_compliance_status:
+          $ref: '#/components/schemas/KgxCompliance'
+        errors:
+          description: if 'non-compliant' file, list of error messages
+          type: array
+          items:
+            type: string
+      required:
+        - original_name
+        - assigned_name
+        - file_type
+        - file_size
+        - kgx_compliance_status
+      additionalProperties: false
     StatusToken:
       description: >-
         Token tracking the status of post-processing of a KGE File Set.
@@ -195,44 +226,3 @@ components:
         - Processing
         - Validated
         - Error
-    KgeFile:
-      description: >-
-        Annotated file in a KGE File Set.
-      type: object
-      properties:
-        original_name:
-          description: original name of file (as uploaded)
-          type: string
-        assigned_name:
-          description: assigned name of file (by archive, for export)
-          type: string
-        file_type:
-          description: >-
-            Designates if the file is (content or file set) meta-, node or edge data
-          type: string
-        file_size:
-          description: size of file in megabytes
-          type: number
-          format: float
-        kgx_compliance_status:
-          $ref: '#/components/schemas/KgxCompliance'
-        errors:
-          description: if 'non-compliant' file, list of error messags
-          type: array
-          items:
-            type: string
-      required:
-        - original_name
-        - assigned_name
-        - file_type
-        - file_size
-        - kgx_compliance_status
-      additionalProperties: false
-    KgxCompliance:
-      description: >-
-        KGX compliance status of a specific KGE File.
-      type: string
-      enum:
-        - Assessing
-        - Compliant
-        - Non-Compliant
