@@ -124,7 +124,7 @@ components:
           description: >-
             Biolink Model released associated with the file set.
           type: string
-          example: "2.0.2"
+          example: "2.5.0"
         fileset_version:
           description: >-
             Version identifier of the file set.
@@ -178,6 +178,7 @@ components:
           format: float
         kgx_compliance_status:
           $ref: '#/components/schemas/KgxCompliance'
+          example: 'Compliant'
         errors:
           description: if 'non-compliant' file, list of error messages
           type: array
