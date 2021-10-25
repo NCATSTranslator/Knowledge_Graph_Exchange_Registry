@@ -320,9 +320,12 @@ class KgeArchiver:
             task_id = len(self._archiver_worker)
 
         while True:
-            file_set: KgeFileSet = await self._archiver_queue.get()
+            process_token, file_set = await self._archiver_queue.get()
 
-            logger.info(f"KgeArchiver worker {task_id} starting archive of {file_set.id()}")
+            logger.info(
+                f"KgeArchiver worker {task_id} starting archive of " +
+                f"{file_set.id()} with process_token '{process_token}'"
+            )
 
             # sleep briefly to yield to co-routine executed main web application code. Done several times below...
             # 10 seconds to allow the user to go to home and get the KG catalog, before this task ties up the CPU?
@@ -501,11 +504,15 @@ class KgeArchiver:
         :param file_set: KgeFileSet.
         """
         # Post the file set to the KgeArchiver task Queue for processing
-        logger.debug("KgeArchiver.process(): adding '"+file_set.id()+"' to archiver work queue")
-        self._archiver_queue.put_nowait(file_set)
 
         # TODO: Need something more to track the post-processing activity here?
         process_token = uuid4().hex
+
+        logger.debug(
+            f"KgeArchiver.process(): adding '{file_set.id()}' " +
+            f"to archiver work queue, with process token '{process_token}'"
+        )
+        self._archiver_queue.put_nowait((process_token, file_set)) # sending a 2-tuple as an item
 
         return process_token
 

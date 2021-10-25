@@ -4,6 +4,7 @@ Archiver service API handlers
 
 from aiohttp import web
 
+from kgea.server.archiver.models import KgeFileSetMetadata
 from kgea.server.archiver.kge_archiver_util import KgeArchiver
 
 import logging
@@ -14,16 +15,18 @@ from kgea.server.kgea_session import report_bad_request
 logger = logging.getLogger(__name__)
 
 
-async def process_kge_fileset(request: web.Request) -> web.Response:
+async def process_kge_fileset(request: web.Request, body: KgeFileSetMetadata) -> web.Response:
     """Posts a KGE File Set for post-processing after upload.
 
     Posts a KGE File Set for post-processing after upload.
 
     :param request: includes the KGE File Set in the POST body, for processing.
     :type request: web.Request
+    :param body: Metadata of the KGE File Set to be post-processed.
+    :type body: KgeFileSetMetadata
+
     """
-    data = await request.post()
-    file_set: KgeFileSet = KgeFileSet.load(data=data)
+    file_set: KgeFileSet = KgeFileSet.load(metadata=body)
 
     process_token: str = ''
     try:

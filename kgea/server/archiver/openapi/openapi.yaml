@@ -61,7 +61,7 @@ paths:
       summary: Posts a KGE File Set for post-processing after upload.
       tags:
       - archiver
-      x-openapi-router-controller: kgea.server.archiver.controllers.archiver_controller
+      x-openapi-router-controller: archiver.controllers.archiver_controller
       x-codegen-request-body-name: body
   /status:
     get:
@@ -102,7 +102,7 @@ paths:
       summary: Get the progress of post-processing of a KGE File Set.
       tags:
       - archiver
-      x-openapi-router-controller: kgea.server.archiver.controllers.archiver_controller
+      x-openapi-router-controller: archiver.controllers.archiver_controller
 components:
   requestBodies:
     ProcessKgeFileSetBody:
@@ -119,24 +119,27 @@ components:
         fileset_version: "1.0"
         date_stamp: 2000-01-23
         biolink_model_release: 2.5.0
-        size: 6.0274563
+        size: 0.8008282
         files:
-        - file_type: file_type
+        - kgx_compliance_status: Compliant
+          file_type: nodes
           original_name: original_name
           assigned_name: assigned_name
-          file_size: 0.8008282
+          file_size: 10.5
           errors:
           - errors
           - errors
-        - file_type: file_type
+        - kgx_compliance_status: Compliant
+          file_type: nodes
           original_name: original_name
           assigned_name: assigned_name
-          file_size: 0.8008282
+          file_size: 10.5
           errors:
           - errors
           - errors
         submitter_name: John Smith
         submitter_email: jsmith@knowledge.org
+        status: Validated
       properties:
         biolink_model_release:
           description: Biolink Model released associated with the file set.
@@ -174,11 +177,11 @@ components:
       additionalProperties: false
       description: Annotated file in a KGE File Set.
       example:
-        file_type: file_type
+        kgx_compliance_status: Compliant
+        file_type: nodes
         original_name: original_name
         assigned_name: assigned_name
-        kgx_compliance_status: Compliant
-        file_size: 0.8008282
+        file_size: 10.5
         errors:
         - errors
         - errors
@@ -194,10 +197,12 @@ components:
         file_type:
           description: Designates if the file is (content or file set) meta-, node
             or edge data
+          example: nodes
           title: file_type
           type: string
         file_size:
           description: size of file in megabytes
+          example: 10.5
           format: float
           title: file_size
           type: number
@@ -252,6 +257,7 @@ components:
       - Processing
       - Validated
       - Error
+      example: Validated
       title: KgeFileSetStatusCode
       type: string
     KgxCompliance:
@@ -260,5 +266,6 @@ components:
       - Assessing
       - Compliant
       - Non-Compliant
+      example: Compliant
       title: KgxCompliance
       type: string

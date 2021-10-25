@@ -172,13 +172,14 @@ components:
           description: >-
             Designates if the file is (content or file set) meta-, node or edge data
           type: string
+          example: nodes
         file_size:
           description: size of file in megabytes
           type: number
           format: float
+          example: 10.5
         kgx_compliance_status:
           $ref: '#/components/schemas/KgxCompliance'
-          example: 'Compliant'
         errors:
           description: if 'non-compliant' file, list of error messages
           type: array
@@ -227,6 +228,7 @@ components:
         - Processing
         - Validated
         - Error
+      example: Validated
     KgxCompliance:
       description: >-
         KGX compliance status of a specific KGE File.
@@ -235,3 +237,4 @@ components:
         - Assessing
         - Compliant
         - Non-Compliant
+      example: Compliant

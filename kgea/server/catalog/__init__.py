@@ -82,8 +82,6 @@ from kgea.server.kgea_file_ops import (
     random_alpha_string
 )
 
-from kgea.server.archiver.models import ProcessFileSetBody, KgeFileSetToArchive
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -574,12 +572,23 @@ class KgeFileSet:
             }
 
     @classmethod
-    def load(cls, data):
+    def load(cls, metadata: KgeFileSetMetadata):
         """
         Loads in selected metadata of a KgeFileSet from a response data dictionary
         """
+        {
+            'biolink_model_release': str,
+            'fileset_version': str,
+            'date_stamp': date,
+            'submitter_name': str,
+            'submitter_email': str,
+            'status': KgeFileSetStatusCode,
+            'files': List[KgeFile],
+            'size': float,
+            'contents': MetaKnowledgeGraph
+        }
         # TODO: this simpleminded Constructor approach won't likely work...
-        fileset: KgeFileSet = KgeFileSet(**data)
+        fileset: KgeFileSet = KgeFileSet(**metadata)
         return fileset
 
     ##########################################

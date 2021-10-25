@@ -1,7 +1,7 @@
 # coding: utf-8
 
-from kgea.server.web_services.models.base_model_ import Model
-from kgea.server.web_services import util
+from kgea.server.archiver.models.base_model_ import Model
+from kgea.server.archiver import util
 
 
 class KgeFileSetStatusCode(Model):

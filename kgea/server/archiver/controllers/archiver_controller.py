@@ -16,7 +16,7 @@ async def process_fileset(request: web.Request, body) -> web.Response:
 
     """
     body = KgeFileSetMetadata.from_dict(body)
-    return await process_kge_fileset(request)
+    return await process_kge_fileset(request, body)
 
 
 async def get_processing_status(request: web.Request, process_token: str) -> web.Response:

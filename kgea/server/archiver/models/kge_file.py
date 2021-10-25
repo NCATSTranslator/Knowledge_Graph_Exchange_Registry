@@ -184,7 +184,7 @@ class KgeFile(Model):
     def errors(self):
         """Gets the errors of this KgeFile.
 
-        if 'non-compliant' file, list of error messags
+        if 'non-compliant' file, list of error messages
 
         :return: The errors of this KgeFile.
         :rtype: List[str]
@@ -195,7 +195,7 @@ class KgeFile(Model):
     def errors(self, errors):
         """Sets the errors of this KgeFile.
 
-        if 'non-compliant' file, list of error messags
+        if 'non-compliant' file, list of error messages
 
         :param errors: The errors of this KgeFile.
         :type errors: List[str]
