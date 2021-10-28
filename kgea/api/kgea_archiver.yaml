@@ -120,14 +120,13 @@ components:
         associated files, for a specific version of KGE File Set.
       type: object
       properties:
-        biolink_model_release:
+        kg_id:
           description: >-
-            Biolink Model released associated with the file set.
+            Knowledge Graph identifier.
           type: string
-          example: "2.5.0"
         fileset_version:
           description: >-
-            Version identifier of the file set.
+            Semantic versioning of the version of the KGX File Set of the given knowledge graph.
           type: string
           example: "1.0"
         date_stamp:
@@ -145,6 +144,11 @@ components:
             Email address for the submitter.
           type: string
           example: "jsmith@knowledge.org"
+        biolink_model_release:
+          description: >-
+            Biolink Model released associated with the file set.
+          type: string
+          example: "2.5.0"
         status:
           $ref: '#/components/schemas/KgeFileSetStatusCode'
         files:
@@ -162,35 +166,23 @@ components:
         Annotated file in a KGE File Set.
       type: object
       properties:
-        original_name:
-          description: original name of file (as uploaded)
-          type: string
-        assigned_name:
-          description: assigned name of file (by archive, for export)
-          type: string
         file_type:
           description: >-
-            Designates if the file is (content or file set) meta-, node or edge data
+            Designates if the file is (content, provider or fileset) meta-, node or edge data
           type: string
           example: nodes
+        file_name:
+          description: name of file
+          type: string
         file_size:
           description: size of file in megabytes
           type: number
           format: float
           example: 10.5
-        kgx_compliance_status:
-          $ref: '#/components/schemas/KgxCompliance'
-        errors:
-          description: if 'non-compliant' file, list of error messages
-          type: array
-          items:
-            type: string
       required:
-        - original_name
-        - assigned_name
         - file_type
+        - file_name
         - file_size
-        - kgx_compliance_status
       additionalProperties: false
     StatusToken:
       description: >-
@@ -229,12 +221,3 @@ components:
         - Validated
         - Error
       example: Validated
-    KgxCompliance:
-      description: >-
-        KGX compliance status of a specific KGE File.
-      type: string
-      enum:
-        - Assessing
-        - Compliant
-        - Non-Compliant
-      example: Compliant

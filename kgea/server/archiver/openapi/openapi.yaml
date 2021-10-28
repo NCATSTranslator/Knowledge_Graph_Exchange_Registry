@@ -121,32 +121,23 @@ components:
         biolink_model_release: 2.5.0
         size: 0.8008282
         files:
-        - kgx_compliance_status: Compliant
-          file_type: nodes
-          original_name: original_name
-          assigned_name: assigned_name
+        - file_type: nodes
+          file_name: file_name
           file_size: 10.5
-          errors:
-          - errors
-          - errors
-        - kgx_compliance_status: Compliant
-          file_type: nodes
-          original_name: original_name
-          assigned_name: assigned_name
+        - file_type: nodes
+          file_name: file_name
           file_size: 10.5
-          errors:
-          - errors
-          - errors
+        kg_id: kg_id
         submitter_name: John Smith
         submitter_email: jsmith@knowledge.org
         status: Validated
       properties:
-        biolink_model_release:
-          description: Biolink Model released associated with the file set.
-          example: 2.5.0
+        kg_id:
+          description: Knowledge Graph identifier.
           type: string
         fileset_version:
-          description: Version identifier of the file set.
+          description: Semantic versioning of the version of the KGX File Set of the
+            given knowledge graph.
           example: "1.0"
           type: string
         date_stamp:
@@ -160,6 +151,10 @@ components:
         submitter_email:
           description: Email address for the submitter.
           example: jsmith@knowledge.org
+          type: string
+        biolink_model_release:
+          description: Biolink Model released associated with the file set.
+          example: 2.5.0
           type: string
         status:
           $ref: '#/components/schemas/KgeFileSetStatusCode'
@@ -177,28 +172,19 @@ components:
       additionalProperties: false
       description: Annotated file in a KGE File Set.
       example:
-        kgx_compliance_status: Compliant
         file_type: nodes
-        original_name: original_name
-        assigned_name: assigned_name
+        file_name: file_name
         file_size: 10.5
-        errors:
-        - errors
-        - errors
       properties:
-        original_name:
-          description: original name of file (as uploaded)
-          title: original_name
-          type: string
-        assigned_name:
-          description: assigned name of file (by archive, for export)
-          title: assigned_name
-          type: string
         file_type:
-          description: Designates if the file is (content or file set) meta-, node
-            or edge data
+          description: Designates if the file is (content, provider or fileset) meta-,
+            node or edge data
           example: nodes
           title: file_type
+          type: string
+        file_name:
+          description: name of file
+          title: file_name
           type: string
         file_size:
           description: size of file in megabytes
@@ -206,20 +192,10 @@ components:
           format: float
           title: file_size
           type: number
-        kgx_compliance_status:
-          $ref: '#/components/schemas/KgxCompliance'
-        errors:
-          description: if 'non-compliant' file, list of error messages
-          items:
-            type: string
-          title: errors
-          type: array
       required:
-      - assigned_name
+      - file_name
       - file_size
       - file_type
-      - kgx_compliance_status
-      - original_name
       title: KgeFile
       type: object
     StatusToken:
@@ -259,13 +235,4 @@ components:
       - Error
       example: Validated
       title: KgeFileSetStatusCode
-      type: string
-    KgxCompliance:
-      description: KGX compliance status of a specific KGE File.
-      enum:
-      - Assessing
-      - Compliant
-      - Non-Compliant
-      example: Compliant
-      title: KgxCompliance
       type: string

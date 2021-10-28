@@ -1,9 +1,8 @@
 # coding: utf-8
 
-from typing import List
+from datetime import date, datetime
 
 from kgea.server.archiver.models.base_model_ import Model
-from kgea.server.archiver.models.kgx_compliance import KgxCompliance
 from kgea.server.archiver import util
 
 
@@ -13,40 +12,28 @@ class KgeFile(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, original_name: str=None, assigned_name: str=None, file_type: str=None, file_size: float=None, kgx_compliance_status: KgxCompliance=None, errors: List[str]=None):
+    def __init__(self, file_type: str=None, file_name: str=None, file_size: float=None):
         """KgeFile - a model defined in OpenAPI
 
-        :param original_name: The original_name of this KgeFile.
-        :param assigned_name: The assigned_name of this KgeFile.
         :param file_type: The file_type of this KgeFile.
+        :param file_name: The file_name of this KgeFile.
         :param file_size: The file_size of this KgeFile.
-        :param kgx_compliance_status: The kgx_compliance_status of this KgeFile.
-        :param errors: The errors of this KgeFile.
         """
         self.openapi_types = {
-            'original_name': str,
-            'assigned_name': str,
             'file_type': str,
-            'file_size': float,
-            'kgx_compliance_status': KgxCompliance,
-            'errors': List[str]
+            'file_name': str,
+            'file_size': float
         }
 
         self.attribute_map = {
-            'original_name': 'original_name',
-            'assigned_name': 'assigned_name',
             'file_type': 'file_type',
-            'file_size': 'file_size',
-            'kgx_compliance_status': 'kgx_compliance_status',
-            'errors': 'errors'
+            'file_name': 'file_name',
+            'file_size': 'file_size'
         }
 
-        self._original_name = original_name
-        self._assigned_name = assigned_name
         self._file_type = file_type
+        self._file_name = file_name
         self._file_size = file_size
-        self._kgx_compliance_status = kgx_compliance_status
-        self._errors = errors
 
     @classmethod
     def from_dict(cls, dikt: dict) -> 'KgeFile':
@@ -58,60 +45,10 @@ class KgeFile(Model):
         return util.deserialize_model(dikt, cls)
 
     @property
-    def original_name(self):
-        """Gets the original_name of this KgeFile.
-
-        original name of file (as uploaded)
-
-        :return: The original_name of this KgeFile.
-        :rtype: str
-        """
-        return self._original_name
-
-    @original_name.setter
-    def original_name(self, original_name):
-        """Sets the original_name of this KgeFile.
-
-        original name of file (as uploaded)
-
-        :param original_name: The original_name of this KgeFile.
-        :type original_name: str
-        """
-        if original_name is None:
-            raise ValueError("Invalid value for `original_name`, must not be `None`")
-
-        self._original_name = original_name
-
-    @property
-    def assigned_name(self):
-        """Gets the assigned_name of this KgeFile.
-
-        assigned name of file (by archive, for export)
-
-        :return: The assigned_name of this KgeFile.
-        :rtype: str
-        """
-        return self._assigned_name
-
-    @assigned_name.setter
-    def assigned_name(self, assigned_name):
-        """Sets the assigned_name of this KgeFile.
-
-        assigned name of file (by archive, for export)
-
-        :param assigned_name: The assigned_name of this KgeFile.
-        :type assigned_name: str
-        """
-        if assigned_name is None:
-            raise ValueError("Invalid value for `assigned_name`, must not be `None`")
-
-        self._assigned_name = assigned_name
-
-    @property
     def file_type(self):
         """Gets the file_type of this KgeFile.
 
-        Designates if the file is (content or file set) meta-, node or edge data
+        Designates if the file is (content, provider or fileset) meta-, node or edge data
 
         :return: The file_type of this KgeFile.
         :rtype: str
@@ -122,7 +59,7 @@ class KgeFile(Model):
     def file_type(self, file_type):
         """Sets the file_type of this KgeFile.
 
-        Designates if the file is (content or file set) meta-, node or edge data
+        Designates if the file is (content, provider or fileset) meta-, node or edge data
 
         :param file_type: The file_type of this KgeFile.
         :type file_type: str
@@ -131,6 +68,31 @@ class KgeFile(Model):
             raise ValueError("Invalid value for `file_type`, must not be `None`")
 
         self._file_type = file_type
+
+    @property
+    def file_name(self):
+        """Gets the file_name of this KgeFile.
+
+        name of file
+
+        :return: The file_name of this KgeFile.
+        :rtype: str
+        """
+        return self._file_name
+
+    @file_name.setter
+    def file_name(self, file_name):
+        """Sets the file_name of this KgeFile.
+
+        name of file
+
+        :param file_name: The file_name of this KgeFile.
+        :type file_name: str
+        """
+        if file_name is None:
+            raise ValueError("Invalid value for `file_name`, must not be `None`")
+
+        self._file_name = file_name
 
     @property
     def file_size(self):
@@ -156,49 +118,3 @@ class KgeFile(Model):
             raise ValueError("Invalid value for `file_size`, must not be `None`")
 
         self._file_size = file_size
-
-    @property
-    def kgx_compliance_status(self):
-        """Gets the kgx_compliance_status of this KgeFile.
-
-
-        :return: The kgx_compliance_status of this KgeFile.
-        :rtype: KgxCompliance
-        """
-        return self._kgx_compliance_status
-
-    @kgx_compliance_status.setter
-    def kgx_compliance_status(self, kgx_compliance_status):
-        """Sets the kgx_compliance_status of this KgeFile.
-
-
-        :param kgx_compliance_status: The kgx_compliance_status of this KgeFile.
-        :type kgx_compliance_status: KgxCompliance
-        """
-        if kgx_compliance_status is None:
-            raise ValueError("Invalid value for `kgx_compliance_status`, must not be `None`")
-
-        self._kgx_compliance_status = kgx_compliance_status
-
-    @property
-    def errors(self):
-        """Gets the errors of this KgeFile.
-
-        if 'non-compliant' file, list of error messages
-
-        :return: The errors of this KgeFile.
-        :rtype: List[str]
-        """
-        return self._errors
-
-    @errors.setter
-    def errors(self, errors):
-        """Sets the errors of this KgeFile.
-
-        if 'non-compliant' file, list of error messages
-
-        :param errors: The errors of this KgeFile.
-        :type errors: List[str]
-        """
-
-        self._errors = errors

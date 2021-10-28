@@ -31,21 +31,21 @@ def _load_kge_file_set(metadata: KgeFileSetMetadata):
     )
     for entry in metadata.files:
         # self.data_files[object_key] = { <<<<<<<
-        #     "object_key": object_key,<<<<<<<
-        #     "file_type": file_type,  <<<<<<<
-        #     "file_name": file_name,  <<<<<<<
-        #     "file_size": file_size,  <<<<<<<
-        #     "input_format": input_format,
-        #     "input_compression": input_compression,
-        #     "kgx_compliant": False,  # until proven True...
+        #     "object_key": object_key,<<<< infer this from the metadata.kg_id, metadata.fileset_version and file_name
+        #     "file_type": file_type,  <<<< **
+        #     "file_name": file_name,  <<<< **
+        #     "file_size": file_size,  <<<< **
+        #     "input_format": input_format, <<< infer from the file name file extension?
+        #     "input_compression": input_compression, <<<<<<< infer from the file name file extension?
+        #     "kgx_compliant": True,  # until proven otherwise...
         #     "errors": []
         # }
-        fileset.add_data_file(
-            file_type: KgeFileType,
-                file_name=entry,
-                file_size: int,
-                object_key: str
-        ):
+        # fileset.add_data_file(
+        #     file_type: KgeFileType,
+        #         file_name=entry,
+        #         file_size: int,
+        #         object_key: str
+        # ):
         pass
     return fileset
 
