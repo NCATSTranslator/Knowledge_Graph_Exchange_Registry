@@ -61,7 +61,7 @@ paths:
       summary: Posts a KGE File Set for post-processing after upload.
       tags:
       - archiver
-      x-openapi-router-controller: kgea.servers.archiver.controllers.archiver_controller
+      x-openapi-router-controller: kgea.server.archiver.controllers.archiver_controller
       x-codegen-request-body-name: body
   /status:
     get:
@@ -102,7 +102,7 @@ paths:
       summary: Get the progress of post-processing of a KGE File Set.
       tags:
       - archiver
-      x-openapi-router-controller: kgea.servers.archiver.controllers.archiver_controller
+      x-openapi-router-controller: kgea.server.archiver.controllers.archiver_controller
 components:
   requestBodies:
     ProcessKgeFileSetBody:
