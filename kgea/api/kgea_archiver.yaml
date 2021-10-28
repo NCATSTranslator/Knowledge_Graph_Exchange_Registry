@@ -187,10 +187,9 @@ components:
           description: name of file
           type: string
         file_size:
-          description: size of file in megabytes
-          type: number
-          format: float
-          example: 10.5
+          description: size of file in bytes
+          type: integer
+          example: 120000000
       required:
         - file_type
         - file_name
