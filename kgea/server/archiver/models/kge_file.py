@@ -15,7 +15,7 @@ class KgeFile(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, file_type: KgeFileType=None, file_name: str=None, file_size: float=None):
+    def __init__(self, file_type: KgeFileType=None, file_name: str=None, file_size: int=None):
         """KgeFile - a model defined in OpenAPI
 
         :param file_type: The file_type of this KgeFile.
@@ -25,7 +25,7 @@ class KgeFile(Model):
         self.openapi_types = {
             'file_type': KgeFileType,
             'file_name': str,
-            'file_size': float
+            'file_size': int
         }
 
         self.attribute_map = {
@@ -99,10 +99,10 @@ class KgeFile(Model):
     def file_size(self):
         """Gets the file_size of this KgeFile.
 
-        size of file in megabytes
+        size of file in bytes
 
         :return: The file_size of this KgeFile.
-        :rtype: float
+        :rtype: int
         """
         return self._file_size
 
@@ -110,10 +110,10 @@ class KgeFile(Model):
     def file_size(self, file_size):
         """Sets the file_size of this KgeFile.
 
-        size of file in megabytes
+        size of file in bytes
 
         :param file_size: The file_size of this KgeFile.
-        :type file_size: float
+        :type file_size: int
         """
         if file_size is None:
             raise ValueError("Invalid value for `file_size`, must not be `None`")

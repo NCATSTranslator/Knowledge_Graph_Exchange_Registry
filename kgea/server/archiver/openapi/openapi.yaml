@@ -123,10 +123,10 @@ components:
         files:
         - file_type: NODES
           file_name: file_name
-          file_size: 10.5
+          file_size: 120000000
         - file_type: NODES
           file_name: file_name
-          file_size: 10.5
+          file_size: 120000000
         kg_id: kg_id
         submitter_name: John Smith
         submitter_email: jsmith@knowledge.org
@@ -186,7 +186,7 @@ components:
       example:
         file_type: NODES
         file_name: file_name
-        file_size: 10.5
+        file_size: 120000000
       properties:
         file_type:
           $ref: '#/components/schemas/KgeFileType'
@@ -195,11 +195,10 @@ components:
           title: file_name
           type: string
         file_size:
-          description: size of file in megabytes
-          example: 10.5
-          format: float
+          description: size of file in bytes
+          example: 120000000
           title: file_size
-          type: number
+          type: integer
       required:
       - file_name
       - file_size
