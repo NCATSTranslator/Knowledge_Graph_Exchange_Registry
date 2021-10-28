@@ -161,6 +161,18 @@ components:
           description: approximate aggregate size of data files in the file set (megabytes)
           type: number
           format: float
+    KgeFileType:
+      description: >-
+        KGE File classifications.
+      type: string
+      enum:
+        - UNKNOWN
+        - CONTENT_METADATA_FILE
+        - DATA_FILE
+        - NODES
+        - EDGES
+        - ARCHIVE
+      example: NODES
     KgeFile:
       description: >-
         Annotated file in a KGE File Set.
@@ -168,9 +180,9 @@ components:
       properties:
         file_type:
           description: >-
-            Designates if the file is (content, provider or fileset) meta-, node or edge data
-          type: string
-          example: nodes
+            Used to designate the type of file: mainly (content,
+            provider or fileset) meta-, node or edge data.
+          $ref: '#/components/schemas/KgeFileType'
         file_name:
           description: name of file
           type: string

@@ -533,11 +533,11 @@ async def _validate_and_set_up_file_upload_target(
     
     file_set_location, assigned_version = with_version(func=get_object_location, version=fileset_version)(kg_id)
     
-    file_type: KgeFileType = KgeFileType.KGX_UNKNOWN
+    file_type: KgeFileType = KgeFileType.UNKNOWN
     
     if kgx_file_content in ['nodes', 'edges']:
         file_set_location = with_subfolder(location=file_set_location, subfolder=kgx_file_content)
-        file_type = KgeFileType.KGX_DATA_FILE
+        file_type = KgeFileType.DATA_FILE
     
     elif kgx_file_content == "metadata":
         
@@ -548,14 +548,14 @@ async def _validate_and_set_up_file_upload_target(
         #       MIME type of the File object? See https://developer.mozilla.org/en-US/docs/Web/API/File
         
         # metadata stays in the kg_id 'root' version folder
-        file_type = KgeFileType.KGX_CONTENT_METADATA_FILE
+        file_type = KgeFileType.CONTENT_METADATA_FILE
         
         # We coerce the content metadata file name
         # into a standard name, during transfer to S3
         content_name = CONTENT_METADATA_FILE
     
     elif kgx_file_content == "archive":
-        file_type = KgeFileType.KGE_ARCHIVE
+        file_type = KgeFileType.ARCHIVE
     
     # we modify the filename so that they can be validated by KGX natively by tar.gz
     if kgx_file_content in ['nodes', 'edges']:

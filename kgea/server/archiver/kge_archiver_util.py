@@ -21,8 +21,7 @@ from kgea.server import print_error_trace, run_script
 from kgea.server.catalog import (
     KgeFileSet,
     KgxFFP,
-    KgeFileType,
-    add_to_s3_repository
+    add_to_s3_repository, KgeFileType
 )
 
 from kgea.server.kgea_file_ops import (
@@ -281,7 +280,7 @@ class KgeArchiver:
             print_error_trace(f"{kgx_file_type} file aggregation failure! " + str(e))
             raise e
 
-        file_set.add_data_file(KgeFileType.KGX_DATA_FILE, kgx_file_type, 0, agg_path)
+        file_set.add_data_file(KgeFileType.DATA_FILE, kgx_file_type, 0, agg_path)
 
     @staticmethod
     def copy_to_kge_archive(file_set: KgeFileSet, file_name: str):
@@ -688,7 +687,7 @@ class KgxValidator:
             ###################################
             # ...then, process them together...
             ###################################
-            if file_type_opt == KgeFileType.KGX_DATA_FILE:
+            if file_type_opt == KgeFileType.DATA_FILE:
                 #
                 # Run validation of KGX knowledge graph data files here
                 #
@@ -702,7 +701,7 @@ class KgxValidator:
                 if validation_errors:
                     file_set.report_error(validation_errors)
 
-            elif file_type_opt == KgeFileType.KGE_ARCHIVE:
+            elif file_type_opt == KgeFileType.ARCHIVE:
                 # TODO: perhaps need more work to properly dissect and
                 #       validate a KGX Data archive? Maybe need to extract it
                 #       then get the distinct files for processing? Or perhaps,

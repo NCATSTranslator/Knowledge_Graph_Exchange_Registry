@@ -9,7 +9,7 @@ from kgea.server.archiver.kge_archiver_util import KgeArchiver
 
 import logging
 
-from kgea.server.catalog import KgeFileSet
+from kgea.server.catalog import KgeFileType, KgeFileSet
 from kgea.server.kgea_session import report_bad_request
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ def _load_kge_file_set(metadata: KgeFileSetMetadata):
     Loads in selected metadata of a KgeFileSet from a response data dictionary
     """
     fileset: KgeFileSet = KgeFileSet(
-        kg_id='',
+        kg_id=metadata.kg_id,
         fileset_version=metadata.fileset_version,
         biolink_model_release=metadata.biolink_model_release,
         date_stamp=metadata.date_stamp.strftime('%Y-%m-%d'),
@@ -30,23 +30,17 @@ def _load_kge_file_set(metadata: KgeFileSetMetadata):
         status=metadata.status
     )
     for entry in metadata.files:
-        # self.data_files[object_key] = { <<<<<<<
-        #     "object_key": object_key,<<<< infer this from the metadata.kg_id, metadata.fileset_version and file_name
-        #     "file_type": file_type,  <<<< **
-        #     "file_name": file_name,  <<<< **
-        #     "file_size": file_size,  <<<< **
-        #     "input_format": input_format, <<< infer from the file name file extension?
-        #     "input_compression": input_compression, <<<<<<< infer from the file name file extension?
-        #     "kgx_compliant": True,  # until proven otherwise...
-        #     "errors": []
-        # }
-        # fileset.add_data_file(
-        #     file_type: KgeFileType,
-        #         file_name=entry,
-        #         file_size: int,
-        #         object_key: str
-        # ):
-        pass
+        file_name = entry.file_name
+        object_key = f"{metadata.kg_id}/{metadata.fileset_version}/{file_name}"
+        file_type = KgeFileType[entry.file_type]
+        file_size = int(entry.file_size * 1024 ** 2)
+        fileset.add_data_file(
+            object_key=object_key,
+            file_type=file_type,
+            file_name=file_name,
+            file_size=file_size
+        )
+
     return fileset
 
 

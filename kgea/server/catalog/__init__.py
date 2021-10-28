@@ -13,13 +13,13 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
+from enum import Enum
 from sys import stderr
 
 from os import getenv
 from os.path import dirname, abspath
 
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
-from enum import Enum
 from string import Template, punctuation
 from datetime import date, datetime
 
@@ -132,11 +132,11 @@ KGE_SMARTAPI_DIRECTORY = "kgea/server/tests/output"
 BIOLINK_GITHUB_REPO = 'biolink/biolink-model'
 
 PROVIDER_METADATA_TEMPLATE_FILE_PATH = \
-    abspath(dirname(__file__) + '/../../../api/kge_provider_metadata.yaml')
+    abspath(dirname(__file__) + '/../../api/kge_provider_metadata.yaml')
 FILE_SET_METADATA_TEMPLATE_FILE_PATH = \
-    abspath(dirname(__file__) + '/../../../api/kge_fileset_metadata.yaml')
+    abspath(dirname(__file__) + '/../../api/kge_fileset_metadata.yaml')
 TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = \
-    abspath(dirname(__file__) + '/../../../api/kge_smartapi_entry.yaml')
+    abspath(dirname(__file__) + '/../../api/kge_smartapi_entry.yaml')
 
 # Recognized KGX file format extensions
 KgxFileExt = "tsv|jsonl"
@@ -196,31 +196,16 @@ def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
     return input_format, compression
 
 
-class KgeFileType(bytes, Enum):
+class KgeFileType(Enum):
     """
     KGE File types Enumerated
     """
-    KGX_UNKNOWN = (0, "unknown", "unknown file type")
-    KGX_CONTENT_METADATA_FILE = (1, "metadata", "KGX metadata file")
-    KGX_DATA_FILE = (2, "data", "KGX data file")
-    KGE_NODES = (3, "nodes", "KGX node data file")
-    KGE_EDGES = (4, "edges", "KGX edge data file")
-    KGE_ARCHIVE = (5, "archive", "KGE data archive")
-
-    def __new__(cls, value, label: str, name: str):
-        obj = bytes.__new__(cls, [value])
-        obj._value_ = value
-        obj.label = label
-        obj._name_ = name
-        return obj
-
-    @classmethod
-    def lookup(cls, label):
-        """
-        Look up the Enum by label
-        :param label:
-        """
-        pass
+    UNKNOWN = 0
+    CONTENT_METADATA_FILE = 1
+    DATA_FILE = 2
+    NODES = 3
+    EDGES = 4
+    ARCHIVE = 5
 
 
 class KgeFileSet:
@@ -424,11 +409,11 @@ class KgeFileSet:
         :param filetype:
         :return:
         """
-        if filetype is KgeFileType.KGE_ARCHIVE:
+        if filetype is KgeFileType.ARCHIVE:
             return len(self.get_archive_file_keys()) > 0
-        elif filetype is KgeFileType.KGE_NODES:
+        elif filetype is KgeFileType.NODES:
             return len(self.get_nodes()) > 0
-        elif filetype is KgeFileType.KGE_EDGES:
+        elif filetype is KgeFileType.EDGES:
             return len(self.get_edges()) > 0
         else:
             return False
@@ -1324,7 +1309,7 @@ class KnowledgeGraphCatalog:
 
             # Add the current (meta-)data file to the KGE File Set
             # associated with this fileset_version of the graph.
-            if file_type in [KgeFileType.KGX_DATA_FILE, KgeFileType.KGE_ARCHIVE]:
+            if file_type in [KgeFileType.DATA_FILE, KgeFileType.ARCHIVE]:
                 file_set.add_data_file(
                     object_key=object_key,
                     file_type=file_type,
@@ -1332,7 +1317,7 @@ class KnowledgeGraphCatalog:
                     file_size=file_size
                 )
 
-            elif file_type == KgeFileType.KGX_CONTENT_METADATA_FILE:
+            elif file_type == KgeFileType.CONTENT_METADATA_FILE:
                 file_set.set_content_metadata_file(
                     file_name=file_name,
                     file_size=file_size,
@@ -1469,7 +1454,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     )
     file_set.add_data_file(
         object_key=key,
-        file_type=KgeFileType.KGX_DATA_FILE,
+        file_type=KgeFileType.DATA_FILE,
         file_name=file_name,
         file_size=size
     )
@@ -1488,7 +1473,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
     )
     file_set.add_data_file(
         object_key=key,
-        file_type=KgeFileType.KGX_DATA_FILE,
+        file_type=KgeFileType.DATA_FILE,
         file_name=file_name,
         file_size=size
     )
@@ -1526,7 +1511,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
             )
             file_set.add_data_file(
                 object_key=key,
-                file_type=KgeFileType.KGX_DATA_FILE,
+                file_type=KgeFileType.DATA_FILE,
                 file_name=test_name['archive'],
                 file_size=999
             )
