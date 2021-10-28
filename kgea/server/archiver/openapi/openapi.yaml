@@ -121,10 +121,10 @@ components:
         biolink_model_release: 2.5.0
         size: 0.8008282
         files:
-        - file_type: nodes
+        - file_type: NODES
           file_name: file_name
           file_size: 10.5
-        - file_type: nodes
+        - file_type: NODES
           file_name: file_name
           file_size: 10.5
         kg_id: kg_id
@@ -168,20 +168,28 @@ components:
           format: float
           type: number
       type: object
+    KgeFileType:
+      description: KGE File classifications.
+      enum:
+      - UNKNOWN
+      - CONTENT_METADATA_FILE
+      - DATA_FILE
+      - NODES
+      - EDGES
+      - ARCHIVE
+      example: NODES
+      title: KgeFileType
+      type: string
     KgeFile:
       additionalProperties: false
       description: Annotated file in a KGE File Set.
       example:
-        file_type: nodes
+        file_type: NODES
         file_name: file_name
         file_size: 10.5
       properties:
         file_type:
-          description: Designates if the file is (content, provider or fileset) meta-,
-            node or edge data
-          example: nodes
-          title: file_type
-          type: string
+          $ref: '#/components/schemas/KgeFileType'
         file_name:
           description: name of file
           title: file_name

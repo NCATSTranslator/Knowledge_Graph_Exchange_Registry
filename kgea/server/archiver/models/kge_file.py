@@ -2,7 +2,10 @@
 
 from datetime import date, datetime
 
+from typing import List, Dict, Type
+
 from kgea.server.archiver.models.base_model_ import Model
+from kgea.server.archiver.models.kge_file_type import KgeFileType
 from kgea.server.archiver import util
 
 
@@ -12,7 +15,7 @@ class KgeFile(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, file_type: str=None, file_name: str=None, file_size: float=None):
+    def __init__(self, file_type: KgeFileType=None, file_name: str=None, file_size: float=None):
         """KgeFile - a model defined in OpenAPI
 
         :param file_type: The file_type of this KgeFile.
@@ -20,7 +23,7 @@ class KgeFile(Model):
         :param file_size: The file_size of this KgeFile.
         """
         self.openapi_types = {
-            'file_type': str,
+            'file_type': KgeFileType,
             'file_name': str,
             'file_size': float
         }
@@ -48,10 +51,9 @@ class KgeFile(Model):
     def file_type(self):
         """Gets the file_type of this KgeFile.
 
-        Designates if the file is (content, provider or fileset) meta-, node or edge data
 
         :return: The file_type of this KgeFile.
-        :rtype: str
+        :rtype: KgeFileType
         """
         return self._file_type
 
@@ -59,10 +61,9 @@ class KgeFile(Model):
     def file_type(self, file_type):
         """Sets the file_type of this KgeFile.
 
-        Designates if the file is (content, provider or fileset) meta-, node or edge data
 
         :param file_type: The file_type of this KgeFile.
-        :type file_type: str
+        :type file_type: KgeFileType
         """
         if file_type is None:
             raise ValueError("Invalid value for `file_type`, must not be `None`")
