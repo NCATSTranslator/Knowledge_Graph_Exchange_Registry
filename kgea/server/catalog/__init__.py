@@ -180,12 +180,12 @@ def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
         if m:
             input_format = m['filext']
 
-    if 'tar' in part[-2]:
+    if len(part) >= 3 and 'tar' in part[-2]:
         archive = 'tar'
     else:
         archive = None
 
-    if 'gz' in part[-1]:
+    if len(part) >= 2 and 'gz' in part[-1]:
         compression = ''
         if archive:
             compression = archive + "."
