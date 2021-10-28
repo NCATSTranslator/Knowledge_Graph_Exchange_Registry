@@ -59,7 +59,8 @@ from kgx.validator import Validator
 from kgea.config import (
     get_app_config,
     PROVIDER_METADATA_FILE,
-    FILE_SET_METADATA_FILE, PROCESS_FILESET
+    FILE_SET_METADATA_FILE,
+    PROCESS_FILESET
 )
 
 from kgea.server.web_services.models import (
@@ -237,6 +238,7 @@ class KgeFileSet:
             size: int = -1,
             revisions: str = 'creation',
             date_stamp: str = get_default_date_stamp(),
+            status: KgeFileSetStatusCode = KgeFileSetStatusCode.CREATED,
             archive_record: bool = False
     ):
         """
@@ -273,15 +275,13 @@ class KgeFileSet:
         # no errors to start
         self.errors: List[str] = list()
 
-        self.status: KgeFileSetStatusCode
+        self.status: KgeFileSetStatusCode = status
 
         if archive_record:
             # File Set read in from the Archive
             # TODO: how need verify that an archived KGE File Set is truly KGX compliant?
             # self.status = KgeFileSetStatusCode.LOADED
             self.status = KgeFileSetStatusCode.VALIDATED
-        else:
-            self.status = KgeFileSetStatusCode.CREATED
 
     def __str__(self):
         return f"File set version '{self.fileset_version}' of graph '{self.kg_id}': {self.data_files}"
@@ -570,26 +570,6 @@ class KgeFileSet:
                 "kgx_compliant": True,
                 # "errors": []
             }
-
-    @classmethod
-    def load(cls, metadata: KgeFileSetMetadata):
-        """
-        Loads in selected metadata of a KgeFileSet from a response data dictionary
-        """
-        {
-            'biolink_model_release': str,
-            'fileset_version': str,
-            'date_stamp': date,
-            'submitter_name': str,
-            'submitter_email': str,
-            'status': KgeFileSetStatusCode,
-            'files': List[KgeFile],
-            'size': float,
-            'contents': MetaKnowledgeGraph
-        }
-        # TODO: this simpleminded Constructor approach won't likely work...
-        fileset: KgeFileSet = KgeFileSet(**metadata)
-        return fileset
 
     ##########################################
     # KGE FileSet Publication to the Archive #

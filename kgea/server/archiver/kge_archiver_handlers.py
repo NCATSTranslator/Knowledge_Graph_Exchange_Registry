@@ -15,18 +15,53 @@ from kgea.server.kgea_session import report_bad_request
 logger = logging.getLogger(__name__)
 
 
-async def process_kge_fileset(request: web.Request, body: KgeFileSetMetadata) -> web.Response:
+def _load_kge_file_set(metadata: KgeFileSetMetadata):
+    """
+    Loads in selected metadata of a KgeFileSet from a response data dictionary
+    """
+    fileset: KgeFileSet = KgeFileSet(
+        kg_id='',
+        fileset_version=metadata.fileset_version,
+        biolink_model_release=metadata.biolink_model_release,
+        date_stamp=metadata.date_stamp.strftime('%Y-%m-%d'),
+        submitter_name=metadata.submitter_name,
+        submitter_email=metadata.submitter_email,
+        size=int(metadata.size * 1024 ** 2),
+        status=metadata.status
+    )
+    for entry in metadata.files:
+        # self.data_files[object_key] = { <<<<<<<
+        #     "object_key": object_key,<<<<<<<
+        #     "file_type": file_type,  <<<<<<<
+        #     "file_name": file_name,  <<<<<<<
+        #     "file_size": file_size,  <<<<<<<
+        #     "input_format": input_format,
+        #     "input_compression": input_compression,
+        #     "kgx_compliant": False,  # until proven True...
+        #     "errors": []
+        # }
+        fileset.add_data_file(
+            file_type: KgeFileType,
+                file_name=entry,
+                file_size: int,
+                object_key: str
+        ):
+        pass
+    return fileset
+
+
+async def process_kge_fileset(request: web.Request, metadata: KgeFileSetMetadata) -> web.Response:
     """Posts a KGE File Set for post-processing after upload.
 
     Posts a KGE File Set for post-processing after upload.
 
     :param request: includes the KGE File Set in the POST body, for processing.
     :type request: web.Request
-    :param body: Metadata of the KGE File Set to be post-processed.
-    :type body: KgeFileSetMetadata
+    :param metadata: Metadata of the KGE File Set to be post-processed.
+    :type metadata: KgeFileSetMetadata
 
     """
-    file_set: KgeFileSet = KgeFileSet.load(metadata=body)
+    file_set: KgeFileSet = _load_kge_file_set(metadata=metadata)
 
     process_token: str = ''
     try:
