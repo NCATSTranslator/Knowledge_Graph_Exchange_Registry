@@ -33,7 +33,7 @@ def _load_kge_file_set(metadata: KgeFileSetMetadata):
         file_name = entry.file_name
         object_key = f"{metadata.kg_id}/{metadata.fileset_version}/{file_name}"
         file_type = KgeFileType[entry.file_type]
-        file_size = int(entry.file_size * 1024 ** 2)
+        file_size = entry.file_size
         fileset.add_data_file(
             object_key=object_key,
             file_type=file_type,
