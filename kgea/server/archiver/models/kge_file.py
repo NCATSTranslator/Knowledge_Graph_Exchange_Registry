@@ -1,9 +1,5 @@
 # coding: utf-8
 
-from datetime import date, datetime
-
-from typing import List, Dict, Type
-
 from kgea.server.archiver.models.base_model_ import Model
 from kgea.server.archiver.models.kge_file_type import KgeFileType
 from kgea.server.archiver import util
