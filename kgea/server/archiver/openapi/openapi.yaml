@@ -121,11 +121,11 @@ components:
         biolink_model_release: 2.5.0
         size: 0.8008282
         files:
-        - file_type: NODES
-          file_name: file_name
+        - object_key: gtopdb/nodes.tsv
+          file_type: NODES
           file_size: 120000000
-        - file_type: NODES
-          file_name: file_name
+        - object_key: gtopdb/nodes.tsv
+          file_type: NODES
           file_size: 120000000
         kg_id: kg_id
         submitter_name: John Smith
@@ -184,25 +184,26 @@ components:
       additionalProperties: false
       description: Annotated file in a KGE File Set.
       example:
+        object_key: gtopdb/nodes.tsv
         file_type: NODES
-        file_name: file_name
         file_size: 120000000
       properties:
+        object_key:
+          description: S3 object key (KGE File Set relative path) of the file
+          example: gtopdb/nodes.tsv
+          title: object_key
+          type: string
         file_type:
           $ref: '#/components/schemas/KgeFileType'
-        file_name:
-          description: name of file
-          title: file_name
-          type: string
         file_size:
           description: size of file in bytes
           example: 120000000
           title: file_size
           type: integer
       required:
-      - file_name
       - file_size
       - file_type
+      - object_key
       title: KgeFile
       type: object
     StatusToken:

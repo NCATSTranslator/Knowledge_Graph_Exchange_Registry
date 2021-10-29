@@ -15,27 +15,27 @@ class KgeFile(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, file_type: KgeFileType=None, file_name: str=None, file_size: int=None):
+    def __init__(self, object_key: str=None, file_type: KgeFileType=None, file_size: int=None):
         """KgeFile - a model defined in OpenAPI
 
+        :param object_key: The object_key of this KgeFile.
         :param file_type: The file_type of this KgeFile.
-        :param file_name: The file_name of this KgeFile.
         :param file_size: The file_size of this KgeFile.
         """
         self.openapi_types = {
+            'object_key': str,
             'file_type': KgeFileType,
-            'file_name': str,
             'file_size': int
         }
 
         self.attribute_map = {
+            'object_key': 'object_key',
             'file_type': 'file_type',
-            'file_name': 'file_name',
             'file_size': 'file_size'
         }
 
+        self._object_key = object_key
         self._file_type = file_type
-        self._file_name = file_name
         self._file_size = file_size
 
     @classmethod
@@ -46,6 +46,31 @@ class KgeFile(Model):
         :return: The KgeFile of this KgeFile.
         """
         return util.deserialize_model(dikt, cls)
+
+    @property
+    def object_key(self):
+        """Gets the object_key of this KgeFile.
+
+        S3 object key (KGE File Set relative path) of the file
+
+        :return: The object_key of this KgeFile.
+        :rtype: str
+        """
+        return self._object_key
+
+    @object_key.setter
+    def object_key(self, object_key):
+        """Sets the object_key of this KgeFile.
+
+        S3 object key (KGE File Set relative path) of the file
+
+        :param object_key: The object_key of this KgeFile.
+        :type object_key: str
+        """
+        if object_key is None:
+            raise ValueError("Invalid value for `object_key`, must not be `None`")
+
+        self._object_key = object_key
 
     @property
     def file_type(self):
@@ -69,31 +94,6 @@ class KgeFile(Model):
             raise ValueError("Invalid value for `file_type`, must not be `None`")
 
         self._file_type = file_type
-
-    @property
-    def file_name(self):
-        """Gets the file_name of this KgeFile.
-
-        name of file
-
-        :return: The file_name of this KgeFile.
-        :rtype: str
-        """
-        return self._file_name
-
-    @file_name.setter
-    def file_name(self, file_name):
-        """Sets the file_name of this KgeFile.
-
-        name of file
-
-        :param file_name: The file_name of this KgeFile.
-        :type file_name: str
-        """
-        if file_name is None:
-            raise ValueError("Invalid value for `file_name`, must not be `None`")
-
-        self._file_name = file_name
 
     @property
     def file_size(self):
