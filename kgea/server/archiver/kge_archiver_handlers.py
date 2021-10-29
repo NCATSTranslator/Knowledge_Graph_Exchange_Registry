@@ -1,6 +1,7 @@
 """
 Archiver service API handlers
 """
+from pathlib import PurePosixPath
 
 from aiohttp import web
 
@@ -30,12 +31,12 @@ def _load_kge_file_set(metadata: KgeFileSetMetadata):
         status=metadata.status
     )
     for entry in metadata.files:
-        file_name = entry.file_name
-        object_key = f"{metadata.kg_id}/{metadata.fileset_version}/{file_name}"
+        full_object_key = f"{metadata.kg_id}/{metadata.fileset_version}/{entry.object_key}"
+        file_name = PurePosixPath(entry.object_key).name
         file_type = KgeFileType[entry.file_type]
         file_size = entry.file_size
         fileset.add_data_file(
-            object_key=object_key,
+            object_key=full_object_key,
             file_type=file_type,
             file_name=file_name,
             file_size=file_size
