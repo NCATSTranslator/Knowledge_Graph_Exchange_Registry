@@ -34,6 +34,7 @@ from io import BytesIO, StringIO
 import tempfile
 
 import json
+
 from jsonschema import (
     ValidationError,
     SchemaError,
@@ -681,7 +682,33 @@ class KgeFileSet:
         self.size += file_size
 
     def to_json(self):
-        pass
+        """
+        Convert KGX File Set to JSON
+        """
+        file_set_obj = {
+          "kg_id": self.kg_id,
+          "fileset_version": self.fileset_version,
+          "date_stamp": self.date_stamp,
+          "submitter_name": self.submitter_name,
+          "submitter_email": self.submitter_email,
+          "biolink_model_release": self.biolink_model_release,
+          "status": self.status,
+          "size": self.size
+        }
+        
+        file_list = list()
+        for object_key in self.get_data_file_object_keys():
+            file_entry = self.data_files[object_key]
+            file_entry = {
+              "object_key": object_key,
+              "file_type": file_entry["file_type"].name,
+              "file_size": file_entry["file_size"]
+            }
+            file_list.append(file_entry)
+        file_set_obj["files"] = file_list
+        
+        json_string = json.dumps(file_set_obj,indent=4)
+        return json_string
 
 
 class KgeKnowledgeGraph:
