@@ -1,6 +1,7 @@
 """
 Archiver service API handlers
 """
+import json
 from os import getenv
 from pathlib import PurePosixPath
 
@@ -35,7 +36,7 @@ def _load_kge_file_set(metadata: KgeFileSetMetadata):
         status=metadata.status
     )
     for entry in metadata.files:
-        full_object_key = f"{metadata.kg_id}/{metadata.fileset_version}/{entry.object_key}"
+        full_object_key = entry.object_key
         file_name = PurePosixPath(entry.object_key).name
         file_type = KgeFileType[entry.file_type]
         file_size = entry.file_size
@@ -73,7 +74,9 @@ async def process_kge_fileset(request: web.Request, metadata: KgeFileSetMetadata
             msg = f"kge_archiver(): {str(error)}"
             await report_bad_request(request, msg)
     else:
-        logger.debug(f"Stub Archiver processing KGX File Set:\n{file_set.to_json()}")
+        
+        json_string = json.dumps(file_set.to_json_obj(), indent=4)
+        logger.debug(f"Stub Archiver processing KGX File Set:\n{json_string}")
         process_token = 'testing-1-2-3'
         
     return web.json_response(text='{"process_token": "'+process_token+'"}')

@@ -574,10 +574,15 @@ class KgeFileSet:
         # Publication of the file_set.yaml is delegated
         # to the kgea.server.archiver subprocess
 
+        fileset_payload = self.to_json_obj()
+        
+        payload_string = json.dumps(fileset_payload, indent=4)
+        logger.debug(f"KGX File Set payload:\n{payload_string}")
+        
         # POST the KgeFileSet 'self' data to the kgea.server.archiver web service
         async with KgeaSession.get_global_session().post(
                 PROCESS_FILESET,
-                json=self.to_json()
+                json=fileset_payload
         ) as response:
             print(f"Status: {response.status}", )
             print(f"Content-type: {response.headers['content-type']}")
@@ -681,9 +686,9 @@ class KgeFileSet:
         """
         self.size += file_size
 
-    def to_json(self):
+    def to_json_obj(self):
         """
-        Convert KGX File Set to JSON
+        Convert KGX File Set to full JSON-like object for serialization
         """
         file_set_obj = {
           "kg_id": self.kg_id,
@@ -707,8 +712,7 @@ class KgeFileSet:
             file_list.append(file_entry)
         file_set_obj["files"] = file_list
         
-        json_string = json.dumps(file_set_obj,indent=4)
-        return json_string
+        return file_set_obj
 
 
 class KgeKnowledgeGraph:
