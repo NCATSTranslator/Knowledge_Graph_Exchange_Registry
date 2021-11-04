@@ -119,7 +119,7 @@ components:
         fileset_version: "1.0"
         date_stamp: 2000-01-23
         biolink_model_release: 2.5.0
-        size: 0.8008282
+        size: 120000000
         files:
         - object_key: gtopdb/nodes.tsv
           file_type: NODES
@@ -164,9 +164,9 @@ components:
             $ref: '#/components/schemas/KgeFile'
           type: array
         size:
-          description: approximate aggregate size of data files in the file set (megabytes)
-          format: float
-          type: number
+          description: approximate aggregate size of data files in the file set (bytes)
+          example: 120000000
+          type: integer
       type: object
     KgeFileType:
       description: KGE File classifications.

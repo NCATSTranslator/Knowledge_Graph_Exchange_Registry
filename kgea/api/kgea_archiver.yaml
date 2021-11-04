@@ -158,9 +158,9 @@ components:
           items:
             $ref: '#/components/schemas/KgeFile'
         size:
-          description: approximate aggregate size of data files in the file set (megabytes)
-          type: number
-          format: float
+          description: approximate aggregate size of data files in the file set (bytes)
+          type: integer
+          example: 120000000
     KgeFileType:
       description: >-
         KGE File classifications.

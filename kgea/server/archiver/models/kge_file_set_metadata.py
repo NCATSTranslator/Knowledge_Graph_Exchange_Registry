@@ -16,7 +16,7 @@ class KgeFileSetMetadata(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, kg_id: str=None, fileset_version: str=None, date_stamp: date=None, submitter_name: str=None, submitter_email: str=None, biolink_model_release: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, size: float=None):
+    def __init__(self, kg_id: str=None, fileset_version: str=None, date_stamp: date=None, submitter_name: str=None, submitter_email: str=None, biolink_model_release: str=None, status: KgeFileSetStatusCode=None, files: List[KgeFile]=None, size: int=None):
         """KgeFileSetMetadata - a model defined in OpenAPI
 
         :param kg_id: The kg_id of this KgeFileSetMetadata.
@@ -38,7 +38,7 @@ class KgeFileSetMetadata(Model):
             'biolink_model_release': str,
             'status': KgeFileSetStatusCode,
             'files': List[KgeFile],
-            'size': float
+            'size': int
         }
 
         self.attribute_map = {
@@ -258,10 +258,10 @@ class KgeFileSetMetadata(Model):
     def size(self):
         """Gets the size of this KgeFileSetMetadata.
 
-        approximate aggregate size of data files in the file set (megabytes)
+        approximate aggregate size of data files in the file set (bytes)
 
         :return: The size of this KgeFileSetMetadata.
-        :rtype: float
+        :rtype: int
         """
         return self._size
 
@@ -269,10 +269,10 @@ class KgeFileSetMetadata(Model):
     def size(self, size):
         """Sets the size of this KgeFileSetMetadata.
 
-        approximate aggregate size of data files in the file set (megabytes)
+        approximate aggregate size of data files in the file set (bytes)
 
         :param size: The size of this KgeFileSetMetadata.
-        :type size: float
+        :type size: int
         """
 
         self._size = size
