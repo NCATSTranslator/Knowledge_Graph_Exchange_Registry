@@ -17,5 +17,5 @@ async def set_process_status(process_token: str, status: ProcessStatusCode):
 
 def get_process_status(process_token: str) -> ProcessStatusCode:
     if not process_token:
-        return ProcessStatusCode.ERROR
-    return _process_status[process_token]
+        return ProcessStatusCode.UNKNOWN
+    return _process_status.setdefault(process_token, ProcessStatusCode.UNKNOWN)

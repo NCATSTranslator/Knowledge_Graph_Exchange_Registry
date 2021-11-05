@@ -279,7 +279,7 @@ class KgeArchiver:
 
         except Exception as e:
             # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-            print_error_trace(f"{kgx_file_type} file aggregation failure! " + str(e))
+            print_error_trace(f"'{kgx_file_type}' file aggregation failure - " + str(e))
             raise e
 
         file_set.add_data_file(KgeFileType.DATA_FILE, kgx_file_type, 0, agg_path)
@@ -322,6 +322,9 @@ class KgeArchiver:
 
         while True:
             process_token, file_set = await self._archiver_queue.get()
+
+            # We need to signal a worker non-fatal local processing failure
+            abort = False
 
             logger.info(
                 f"KgeArchiver worker {task_id} starting archive of " +
@@ -377,123 +380,133 @@ class KgeArchiver:
 
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                await set_process_status(process_token, ProcessStatusCode.ERROR)
                 print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
-                raise e
+                abort = True
 
-            # take a quick rest, to give other co-routines a chance?
-            await sleep(0.001)
+            if not abort:
+                # take a quick rest, to give other co-routines a chance?
+                await sleep(0.001)
 
-            logger.debug("Create and add the fileset.yaml to the KGE S3 repository")
+                logger.debug("Create and add the fileset.yaml to the KGE S3 repository")
 
-            try:
-                # Publish a 'file_set.yaml' metadata file to the
-                # versioned archive subdirectory containing the KGE File Set
+                try:
+                    # Publish a 'file_set.yaml' metadata file to the
+                    # versioned archive subdirectory containing the KGE File Set
 
-                fileset_metadata_file = file_set.generate_fileset_metadata_file()
-                fileset_metadata_object_key = add_to_s3_repository(
-                    kg_id=file_set.get_kg_id(),
-                    text=fileset_metadata_file,
-                    file_name=FILE_SET_METADATA_FILE,
-                    fileset_version=file_set.get_fileset_version()
-                )
-                if fileset_metadata_object_key:
-                    logger.info(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
-                else:
-                    msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
-                          f"' file for KGE File Set version '{file_set.get_fileset_version()}" + \
-                          f"' of knowledge graph '{file_set.get_kg_id()}" + \
-                          "' not successfully posted to the Archive?"
+                    fileset_metadata_file = file_set.generate_fileset_metadata_file()
+                    fileset_metadata_object_key = add_to_s3_repository(
+                        kg_id=file_set.get_kg_id(),
+                        text=fileset_metadata_file,
+                        file_name=FILE_SET_METADATA_FILE,
+                        fileset_version=file_set.get_fileset_version()
+                    )
+                    if fileset_metadata_object_key:
+                        logger.info(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
+                    else:
+                        msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
+                              f"' file for KGE File Set version '{file_set.get_fileset_version()}" + \
+                              f"' of knowledge graph '{file_set.get_kg_id()}" + \
+                              "' not successfully posted to the Archive?"
+                        file_set.report_error(msg)
+                        abort = True
+
+                except Exception as exc:
+                    msg = f"publish(): {file_set.get_kg_id()} {file_set.get_fileset_version()} {str(exc)}"
                     file_set.report_error(msg)
-                    raise RuntimeError(msg)
+                    print_error_trace(msg)
+                    abort = True
 
-            except Exception as exc:
-                await set_process_status(process_token, ProcessStatusCode.ERROR)
-                msg = f"publish(): {file_set.get_kg_id()} {file_set.get_fileset_version()} {str(exc)}"
-                file_set.report_error(msg)
-                print_error_trace(msg)
-                raise RuntimeError(msg)
+            if not abort:
 
-            logger.debug("Aggregating nodes")
+                logger.debug("Aggregating data to archive")
 
-            # take a quick rest, to give other co-routines a chance?
-            await sleep(0.001)
+                # take a quick rest, to give other co-routines a chance?
+                await sleep(0.001)
 
-            try:
-                # 2. Aggregate each of all nodes and edges each
-                #    into their respective files in the archive folder
-                self.aggregate_to_archive(
-                    file_set=file_set,
-                    kgx_file_type="nodes",
-                    file_object_keys=file_set.get_nodes()
+                try:
+                    # 2. Aggregate each of all nodes and edges each
+                    #    into their respective files in the archive folder
+                    self.aggregate_to_archive(
+                        file_set=file_set,
+                        kgx_file_type="nodes",
+                        file_object_keys=file_set.get_nodes()
+                    )
+                    self.aggregate_to_archive(
+                        file_set=file_set,
+                        kgx_file_type="edges",
+                        file_object_keys=file_set.get_edges()
+                    )
+                except Exception as e:
+                    print_error_trace("KgeArchiver.worker(): aggregating files to archive - " + str(e))
+                    abort = True
+
+            if not abort:
+
+                logger.debug("Copying over metadata to archive")
+
+                try:
+                    # 3. Copy over metadata files into the archive folder
+                    self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
+                    self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
+                    self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
+                except Exception as e:
+                    print_error_trace("KgeArchiver.worker(): Error while copying metadata files to archive?: " + str(e))
+                    abort = True
+
+            if not abort:
+
+                # take a quick rest, to give other co-routines a chance?
+                await sleep(0.001)
+
+                # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file containing the
+                #    aggregated kgx nodes, edges and metadata files. Computer SHA1 hash on the file.
+
+                logger.debug("Compressing total KGE file set...")
+
+                try:
+                    s3_archive_key: str = await compress_fileset(
+                        kg_id=file_set.get_kg_id(),
+                        version=file_set.get_fileset_version()
+                    )
+                except Exception as e:
+                    # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                    print_error_trace("File set compression failure! "+str(e))
+                    abort = True
+
+                logger.debug("...File compression completed!")
+
+            if not abort:
+
+                # take a quick rest, to give other co-routines a chance?
+                await sleep(0.001)
+
+                # 5. KGX validation of KGE compliant archive.
+                logger.debug(
+                    f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive..."
                 )
-                self.aggregate_to_archive(
-                    file_set=file_set,
-                    kgx_file_type="edges",
-                    file_object_keys=file_set.get_edges()
-                )
-            except Exception as e:
+
+                # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
+                # TODO: need to managed multiple Biolink Model-specific KGX validators
+
+                # try:
+                #     validator: KgxValidator = KnowledgeGraphCatalog.catalog().get_validator()
+                #     KgxValidator.validate(self)
+                # except Exception as e:
+                #     # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                #     print_error_trace("File set validation failure! "+str(e))
+                #     abort = True
+
+                # Assume that the TAR.GZ archive of the
+                # KGE File Set is validated by this point
+                # TODO: need to fix propagation of file set validation status (now hiding behind 'Archiver' process?)
+                file_set.status = KgeFileSetStatusCode.VALIDATED
+
+            if not abort:
+                logger.debug(f"KgeArchiver worker {task_id} finished archiving of {file_set.id()}")
+                await set_process_status(process_token, ProcessStatusCode.COMPLETED)
+            else:
+                logger.error(f"Failed KgeArchiver worker {task_id} archiving of {file_set.id()}")
                 await set_process_status(process_token, ProcessStatusCode.ERROR)
-                print_error_trace("KgeArchiver.worker(): aggregating files to archive?: " + str(e))
-                raise e
-
-            try:
-                # 3. Copy over metadata files into the archive folder
-                self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
-                self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
-                self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
-            except Exception as e:
-                await set_process_status(process_token, ProcessStatusCode.ERROR)
-                print_error_trace("KgeArchiver.worker(): Error while copying metadata files to archive?: " + str(e))
-                raise e
-
-            # take a quick rest, to give other co-routines a chance?
-            await sleep(0.001)
-
-            # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
-            #    containing the aggregated kgx nodes and edges files, Appending `file_set_root_key`
-            #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
-            #    from compressing the previous compression (so the source of files is distinct
-            #    from the target to which it is written)
-            logger.debug("Compressing total KGE file set...")
-            try:
-                s3_archive_key: str = await compress_fileset(
-                    kg_id=file_set.get_kg_id(),
-                    version=file_set.get_fileset_version()
-                )
-            except Exception as e:
-                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                await set_process_status(process_token, ProcessStatusCode.ERROR)
-                print_error_trace("File set compression failure! "+str(e))
-                raise e
-
-            logger.debug("...File compression completed!")
-
-            # take a quick rest, to give other co-routines a chance?
-            await sleep(0.001)
-
-            # 5. Compute the SHA1 hash sum for the resulting archive file.
-            #    DEPRECATED LOCAL CODE: SHA1 hash creation now run in the
-            #    bash CLI of the compress_fileset() method above.
-
-            # 6. KGX validation of KGE compliant archive.
-
-            # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
-            # TODO: need to managed multiple Biolink Model-specific KGX validators
-            logger.debug(
-                f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive..."
-            )
-            # validator: KgxValidator = KnowledgeGraphCatalog.catalog().get_validator()
-            # KgxValidator.validate(self)
-
-            # Assume that the TAR.GZ archive of the
-            # KGE File Set is validated by this point
-            # TODO: need to fix propagation of file set validation status (now hiding behind 'Archiver' process?)
-            file_set.status = KgeFileSetStatusCode.VALIDATED
-
-            logger.debug(f"KgeArchiver worker {task_id} finished archiving of {file_set.id()}")
-
-            await set_process_status(process_token, ProcessStatusCode.COMPLETED)
 
             self._archiver_queue.task_done()
 
@@ -518,7 +531,9 @@ class KgeArchiver:
     async def process(self, file_set: KgeFileSet, process_token: str) -> str:
         """
         This method posts a KgeFileSet to the KgeArchiver for processing.
+
         :param file_set: KgeFileSet.
+        :param process_token: str.
         """
         # Post the file set to the KgeArchiver task Queue for processing
         logger.debug(
