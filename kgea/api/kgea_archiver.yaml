@@ -222,6 +222,7 @@ components:
         - Ongoing
         - Completed
         - Error
+        - Unknown
     KgeFileSetStatusCode:
       description: >-
         Code for status of processing for a KGE File Set.

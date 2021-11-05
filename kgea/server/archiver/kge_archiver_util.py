@@ -17,6 +17,8 @@ from kgea.config import (
 from kgea.aws.assume_role import aws_config
 
 from kgea.server import print_error_trace, run_script
+from kgea.server.archiver.kge_archiver_status import set_process_status
+from kgea.server.archiver.models import ProcessStatusCode
 
 from kgea.server.catalog import (
     KgeFileSet,
@@ -375,6 +377,7 @@ class KgeArchiver:
 
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                await set_process_status(process_token, ProcessStatusCode.ERROR)
                 print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
 
@@ -405,6 +408,7 @@ class KgeArchiver:
                     raise RuntimeError(msg)
 
             except Exception as exc:
+                await set_process_status(process_token, ProcessStatusCode.ERROR)
                 msg = f"publish(): {file_set.get_kg_id()} {file_set.get_fileset_version()} {str(exc)}"
                 file_set.report_error(msg)
                 print_error_trace(msg)
@@ -415,23 +419,33 @@ class KgeArchiver:
             # take a quick rest, to give other co-routines a chance?
             await sleep(0.001)
 
-            # 2. Aggregate each of all nodes and edges each
-            #    into their respective files in the archive folder
-            self.aggregate_to_archive(
-                file_set=file_set,
-                kgx_file_type="nodes",
-                file_object_keys=file_set.get_nodes()
-            )
-            self.aggregate_to_archive(
-                file_set=file_set,
-                kgx_file_type="edges",
-                file_object_keys=file_set.get_edges()
-            )
+            try:
+                # 2. Aggregate each of all nodes and edges each
+                #    into their respective files in the archive folder
+                self.aggregate_to_archive(
+                    file_set=file_set,
+                    kgx_file_type="nodes",
+                    file_object_keys=file_set.get_nodes()
+                )
+                self.aggregate_to_archive(
+                    file_set=file_set,
+                    kgx_file_type="edges",
+                    file_object_keys=file_set.get_edges()
+                )
+            except Exception as e:
+                await set_process_status(process_token, ProcessStatusCode.ERROR)
+                print_error_trace("KgeArchiver.worker(): aggregating files to archive?: " + str(e))
+                raise e
 
-            # 3. Copy over metadata files into the archive folder
-            self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
-            self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
-            self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
+            try:
+                # 3. Copy over metadata files into the archive folder
+                self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
+                self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
+                self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
+            except Exception as e:
+                await set_process_status(process_token, ProcessStatusCode.ERROR)
+                print_error_trace("KgeArchiver.worker(): Error while copying metadata files to archive?: " + str(e))
+                raise e
 
             # take a quick rest, to give other co-routines a chance?
             await sleep(0.001)
@@ -449,6 +463,7 @@ class KgeArchiver:
                 )
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
+                await set_process_status(process_token, ProcessStatusCode.ERROR)
                 print_error_trace("File set compression failure! "+str(e))
                 raise e
 
@@ -464,7 +479,7 @@ class KgeArchiver:
             # 6. KGX validation of KGE compliant archive.
 
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
-            # TODO: need to managed multiple Biolink Model specific KGX validators
+            # TODO: need to managed multiple Biolink Model-specific KGX validators
             logger.debug(
                 f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive..."
             )
@@ -473,9 +488,12 @@ class KgeArchiver:
 
             # Assume that the TAR.GZ archive of the
             # KGE File Set is validated by this point
+            # TODO: need to fix propagation of file set validation status (now hiding behind 'Archiver' process?)
             file_set.status = KgeFileSetStatusCode.VALIDATED
 
             logger.debug(f"KgeArchiver worker {task_id} finished archiving of {file_set.id()}")
+
+            await set_process_status(process_token, ProcessStatusCode.COMPLETED)
 
             self._archiver_queue.task_done()
 
@@ -497,16 +515,12 @@ class KgeArchiver:
             msg = "KgeArchiver() worker shutdown exception: " + str(exc)
             logger.error(msg)
 
-    async def process(self, file_set: KgeFileSet) -> str:
+    async def process(self, file_set: KgeFileSet, process_token: str) -> str:
         """
         This method posts a KgeFileSet to the KgeArchiver for processing.
         :param file_set: KgeFileSet.
         """
         # Post the file set to the KgeArchiver task Queue for processing
-
-        # TODO: Need something more to track the post-processing activity here?
-        process_token = uuid4().hex
-
         logger.debug(
             f"KgeArchiver.process(): adding '{file_set.id()}' " +
             f"to archiver work queue, with process token '{process_token}'"

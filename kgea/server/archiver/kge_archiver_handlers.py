@@ -4,10 +4,12 @@ Archiver service API handlers
 import json
 from os import getenv
 from pathlib import PurePosixPath
+from uuid import uuid4
 
 from aiohttp import web
 
-from kgea.server.archiver.models import KgeFileSetMetadata
+from kgea.server.archiver.kge_archiver_status import set_process_status, get_process_status
+from kgea.server.archiver.models import KgeFileSetMetadata, ProcessStatusCode, StatusToken
 from kgea.server.archiver.kge_archiver_util import KgeArchiver
 
 import logging
@@ -15,10 +17,10 @@ import logging
 from kgea.server.catalog import KgeFileType, KgeFileSet
 from kgea.server.kgea_session import report_bad_request
 
+logger = logging.getLogger(__name__)
+
 # Master flag for simplified local development
 DEV_MODE = getenv('DEV_MODE', default=False)
-
-logger = logging.getLogger(__name__)
 
 
 def _load_kge_file_set(metadata: KgeFileSetMetadata):
@@ -63,21 +65,21 @@ async def process_kge_fileset(request: web.Request, metadata: KgeFileSetMetadata
     """
     file_set: KgeFileSet = _load_kge_file_set(metadata=metadata)
 
-    process_token: str = ''
-    
+    process_token = uuid4().hex
+    await set_process_status(process_token, ProcessStatusCode.ONGOING)
+
     if not DEV_MODE:
         try:
             archiver: KgeArchiver = KgeArchiver.get_archiver()
-            process_token = await archiver.process(file_set)
+            await archiver.process(file_set, process_token)
     
         except Exception as error:
             msg = f"kge_archiver(): {str(error)}"
             await report_bad_request(request, msg)
     else:
-        
+        # DEV_MODE test stub
         json_string = json.dumps(file_set.to_json_obj(), indent=4)
         logger.debug(f"Stub Archiver processing KGX File Set:\n{json_string}")
-        process_token = 'testing-1-2-3'
         
     return web.json_response(text='{"process_token": "'+process_token+'"}')
 
@@ -93,5 +95,8 @@ async def get_kge_fileset_processing_status(request: web.Request, process_token:
     :type process_token: str
 
     """
-    # TODO: Stub...Implement me!
-    return web.json_response(text='{"process_token": "' + process_token + '"}')
+    status_token: StatusToken = StatusToken(
+        status_token=process_token,
+        status=get_process_status(process_token)
+    )
+    return web.json_response(status_token.to_dict())
