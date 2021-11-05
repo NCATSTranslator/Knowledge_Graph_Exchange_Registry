@@ -329,7 +329,7 @@ class KgeFileSet:
         """
         :return: Versioned file set identifier.
         """
-        return self.kg_id + "." + self.fileset_version
+        return f"{self.kg_id}_{self.fileset_version}"
 
     def get_submitter_name(self):
         """

@@ -189,9 +189,9 @@ async def extract_data_archive(
         logger.debug(f"Completed extract_data_archive({archive_filename}.tar.gz), with return code {str(return_code)}")
 
     except Exception as e:
-        logger.error(f"decompress_in_place({archive_filename}.tar.gz): exception {str(e)}")
+        logger.error(f"extract_data_archive({archive_filename}.tar.gz): exception {str(e)}")
 
-    logger.debug(f"Exiting decompress_in_place({archive_filename}.tar.gz)")
+    logger.debug(f"Exiting extract_data_archive({archive_filename}.tar.gz)")
 
     return file_entries
 
