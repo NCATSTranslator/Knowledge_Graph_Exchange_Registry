@@ -16,6 +16,7 @@ class ProcessStatusCode(Model):
     ONGOING = "Ongoing"
     COMPLETED = "Completed"
     ERROR = "Error"
+    UNKNOWN = "Unknown"
 
     def __init__(self):
         """ProcessStatusCode - a model defined in OpenAPI

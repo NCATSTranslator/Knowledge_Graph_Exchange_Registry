@@ -231,6 +231,7 @@ components:
       - Ongoing
       - Completed
       - Error
+      - Unknown
       title: ProcessStatusCode
       type: string
     KgeFileSetStatusCode:
