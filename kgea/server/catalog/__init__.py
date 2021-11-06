@@ -13,6 +13,7 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
+import asyncio
 from enum import Enum
 from sys import stderr
 
@@ -61,7 +62,7 @@ from kgea.config import (
     get_app_config,
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE,
-    PROCESS_FILESET
+    FILESET_TO_ARCHIVER, FILESET_ARCHIVER_STATUS
 )
 
 from kgea.server.web_services.models import (
@@ -269,15 +270,20 @@ class KgeFileSet:
             # self.status = KgeFileSetStatusCode.LOADED
             self.status = KgeFileSetStatusCode.VALIDATED
 
+        self.process_token: Optional[str] = None
+
     def __str__(self):
         return f"File set version '{self.fileset_version}' of graph '{self.kg_id}': {self.data_files}"
     
-    def is_validated(self) -> bool:
+    async def is_validated(self) -> bool:
         """
         Predicate to test if a KGE File Set is fully validated.
         
         :return: True if fileset has given status
         """
+        if self.status != KgeFileSetStatusCode.VALIDATED and self.process_token:
+            await self._get_fileset_processing_status(self.process_token)
+
         return self.status == KgeFileSetStatusCode.VALIDATED
     
     def report_error(self, msg):
@@ -557,6 +563,44 @@ class KgeFileSet:
                 # "errors": []
             }
 
+    async def _post_fileset_to_archiver(self, fileset_payload: Dict):
+
+        logger.debug(f"_post_fileset_to_archiver(fileset_payload:\n{fileset_payload}")
+
+        # POST the KgeFileSet 'self' data to the kgea.server.archiver web service
+        async with KgeaSession.get_global_session().post(
+                FILESET_TO_ARCHIVER,
+                json=fileset_payload
+        ) as response:
+            msg_prefix = "KgeFileSet._post_fileset_to_archiver(): Archiver response"
+            logger.debug(f"{msg_prefix} 'status': {response.status}")
+            logger.debug(f"{msg_prefix} 'content-type': {response.headers['content-type']}")
+            result = await response.json()
+            logger.debug(f"{msg_prefix} 'json': {result}")
+            if "process_token" in result:
+                self.process_token = result["process_token"]
+
+    async def _get_fileset_processing_status(self, process_token: str):
+        logger.debug(f"_get_fileset_processing_status(process_token: {process_token}")
+
+        # POST the KgeFileSet 'self' data to the kgea.server.archiver web service
+        async with KgeaSession.get_global_session().get(
+                url=f"{FILESET_ARCHIVER_STATUS}?process_token={process_token}"
+        ) as response:
+            msg_prefix = "KgeFileSet._get_fileset_processing_status(): Archiver response"
+            logger.debug(f"{msg_prefix} 'status': {response.status}")
+            logger.debug(f"{msg_prefix} 'content-type': {response.headers['content-type']}")
+            result = await response.json()
+            logger.debug(f"{msg_prefix} 'json': {result}")
+            if "status" in result:
+                if result["status"] == "Completed":
+                    self.status = KgeFileSetStatusCode.VALIDATED
+                elif result["status"] == "Ongoing":
+                    self.status = KgeFileSetStatusCode.PROCESSING
+                else:
+                    # TODO: perhaps the Archiver "Error" results should return error messages in their payload
+                    self.status = KgeFileSetStatusCode.ERROR
+
     ##########################################
     # KGE FileSet Publication to the Archive #
     ##########################################
@@ -572,22 +616,10 @@ class KgeFileSet:
         self.status = KgeFileSetStatusCode.PROCESSING
 
         # Publication of the file_set.yaml is delegated
-        # to the kgea.server.archiver subprocess
-
+        # to the kgea.server.archiver microservice task
         fileset_payload = self.to_json_obj()
-        
-        payload_string = json.dumps(fileset_payload, indent=4)
-        logger.debug(f"KGX File Set payload:\n{payload_string}")
-        
-        # POST the KgeFileSet 'self' data to the kgea.server.archiver web service
-        async with KgeaSession.get_global_session().post(
-                PROCESS_FILESET,
-                json=fileset_payload
-        ) as response:
-            print(f"Status: {response.status}", )
-            print(f"Content-type: {response.headers['content-type']}")
-            result = await response.json()
-            print(f"Result: {result}")
+        await self._post_fileset_to_archiver(fileset_payload)
+
             
     async def confirm_kgx_data_file_set_validation(self):
         """
@@ -1357,7 +1389,7 @@ class KnowledgeGraphCatalog:
             else:
                 raise RuntimeError("Unknown KGE File Set type?")
 
-    def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
+    async def get_kg_entries(self) -> Dict[str,  Dict[str, Union[str, List[str]]]]:
         """
         Get KGE Knowledge Graph Entries.
         
@@ -1385,7 +1417,7 @@ class KnowledgeGraphCatalog:
                 # or a certain completion code. We do this now.
                 versions = knowledge_graph.get_version_names()
                 filtered_versions = [
-                    version for version in versions if knowledge_graph.get_file_set(version).is_validated()
+                    version for version in versions if await knowledge_graph.get_file_set(version).is_validated()
                 ]
                 catalog[kg_id] = dict()
                 catalog[kg_id]['name'] = knowledge_graph.get_name()
@@ -1403,8 +1435,9 @@ def test_check_kgx_compliance():
 # TODO
 @prepare_test
 def test_get_catalog_entries():
+    loop = asyncio.get_event_loop()
+    catalog = loop.run_until_complete(KnowledgeGraphCatalog.catalog().get_kg_entries())
     print("\ntest_get_catalog_entries() test output:\n", file=stderr)
-    catalog = KnowledgeGraphCatalog.catalog().get_kg_entries()
     print(json.dumps(catalog, indent=4, sort_keys=True), file=stderr)
     return True
 

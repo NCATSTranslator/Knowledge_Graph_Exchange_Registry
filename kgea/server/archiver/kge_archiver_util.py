@@ -364,6 +364,9 @@ class KgeArchiver:
                     # ...Remove the archive entry from the KgxFileSet...
                     file_set.remove_data_file(archive_file_key)
 
+                    # take a quick rest, to give other co-routines a chance?
+                    await sleep(0.001)
+
                     logger.debug(f"Adding {len(archive_file_entries)} files to fileset '{file_set.id()}':")
 
                     # ...but add in the archive's files to the file set
@@ -528,19 +531,23 @@ class KgeArchiver:
             msg = "KgeArchiver() worker shutdown exception: " + str(exc)
             logger.error(msg)
 
-    async def process(self, file_set: KgeFileSet, process_token: str) -> str:
+    async def process(self, file_set: KgeFileSet) -> str:
         """
         This method posts a KgeFileSet to the KgeArchiver for processing.
 
         :param file_set: KgeFileSet.
         :param process_token: str.
         """
+
+        process_token = uuid4().hex
+        await set_process_status(process_token, ProcessStatusCode.ONGOING)
+
         # Post the file set to the KgeArchiver task Queue for processing
         logger.debug(
             f"KgeArchiver.process(): adding '{file_set.id()}' " +
             f"to archiver work queue, with process token '{process_token}'"
         )
-        self._archiver_queue.put_nowait((process_token, file_set)) # sending a 2-tuple as an item
+        self._archiver_queue.put_nowait((process_token, file_set))  # sending a 2-tuple as an item
 
         return process_token
 

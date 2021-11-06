@@ -177,8 +177,8 @@ GET_UPLOAD_STATUS = f"{BACKEND}upload/progress"  # GET
 ##################################
 # Archiver Web Service Endpoints #
 ##################################
-PROCESS_FILESET = f"{ARCHIVER}process"
-GET_FILESET_PROCESSING_STATUS = f"{ARCHIVER}status"
+FILESET_TO_ARCHIVER = f"{ARCHIVER}process"
+FILESET_ARCHIVER_STATUS = f"{ARCHIVER}status"
 
 
 def _versioned_backend_target_url(kg_id: str, kg_version: str, target: str):

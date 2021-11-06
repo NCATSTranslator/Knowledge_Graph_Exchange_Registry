@@ -65,19 +65,18 @@ async def process_kge_fileset(request: web.Request, metadata: KgeFileSetMetadata
     """
     file_set: KgeFileSet = _load_kge_file_set(metadata=metadata)
 
-    process_token = uuid4().hex
-    await set_process_status(process_token, ProcessStatusCode.ONGOING)
+    process_token: str = "None"
 
     if not DEV_MODE:
         try:
             archiver: KgeArchiver = KgeArchiver.get_archiver()
-            await archiver.process(file_set, process_token)
-    
+            process_token = await archiver.process(file_set)
         except Exception as error:
             msg = f"kge_archiver(): {str(error)}"
             await report_bad_request(request, msg)
     else:
         # DEV_MODE test stub
+        process_token = "Testing-1-2-3"
         json_string = json.dumps(file_set.to_json_obj(), indent=4)
         logger.debug(f"Stub Archiver processing KGX File Set:\n{json_string}")
         
