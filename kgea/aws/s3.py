@@ -37,6 +37,7 @@ COPY = "copy"
 REMOTE_COPY = "remote-copy"
 DELETE = "delete"
 BATCH_DELETE = "batch-delete"
+BATCH_MOVE = "batch-move"
 
 
 helpdoc = Help(
@@ -360,6 +361,19 @@ def delete_object(
         print(f"Could not delete the '{target_object_key}' in bucket '{bucket_name}'?")
 
 
+def move_object(key, source_folder, target_folder, target_bucket=None):
+    """
+    Move a single object from one S3 location to another.
+    
+    :param key: Object key to move.
+    :param source_folder: Source S3 object key folder location from which to move data
+    :param target_folder: Target S3 object key folder location to which to move data
+    :param target_bucket: (Optional) different target bucket location of target folder
+    """
+    print(f"(Stub) move of '{key}' from {source_folder} in source bucket '{s3_bucket_name}'\n"
+          f"\tto '{target_folder}' in target bucket '{target_bucket}'")
+
+
 # Run the module as a CLI
 if __name__ == '__main__':
 
@@ -654,6 +668,34 @@ if __name__ == '__main__':
                     command=BATCH_DELETE,
                     args={
                         "<filter>": "object key string (prefix) filter"
+                    }
+                )
+        elif s3_operation.lower() == BATCH_MOVE:
+            if len(argv) >= 4:
+                source = argv[2]
+                target = argv[3]
+                target_bucket = argv[4] if len(argv) >= 5 else s3_bucket_name
+                object_keys = get_object_keys(s3_bucket_name, filter_prefix=source)
+                print(f"Moving all object (keys) from folder '{source}' in source bucket '{s3_bucket_name}':")
+                for key in object_keys:
+                    print("\t"+key)
+                print(f"...over to folder '{target}' in target bucket '{target_bucket}'.")
+                prompt = input("Proceed (Type 'yes')? ")
+                if prompt.upper() == "YES":
+                    for key in object_keys:
+                        move_object(key=key, source_folder=source, target_folder=target, target_bucket=target_bucket)
+                else:
+                    print("Cancelling batch move of objects...")
+            else:
+                helpdoc.usage(
+                    err_msg="Missing source or target object key folder for move",
+                    command=BATCH_MOVE,
+                    args={
+                        "<source folder>": "Source S3 object key folder location from which to move data",
+                        "<target folder>": "Target S3 object key folder location to which to move data",
+                        "<target bucket>":
+                            "(Optional) target bucket of target folder if not equivalent to source bucket"
+    
                     }
                 )
         else:
