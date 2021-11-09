@@ -37,7 +37,7 @@ usage () {
     echo
     echo "Usage:"
     echo
-    echo "${0} <KGE Bucket> <KGE Root Directory> <Knowledge Graph Identifier> <File Set Version>"
+    echo "${0} <bucket> <root directory> <kg_id> <fileset version>"
     echo
 #    exit -1  bash exits 0-255
     exit 1

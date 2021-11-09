@@ -393,11 +393,13 @@ if __name__ == '__main__':
                 
                 print(f"{BATCH_UPLOAD} arguments: {argv}")
                 
-                # The minimum file spec is a directory containing the files of interest
+                # The minimum file spec is a directory containing all of the files of interest
+                # The operation is NOT recursive into any subdirectories - they are ignored
                 source_dir = Path(getcwd(), argv[2])
                 
-                # ... for uploading to a specified object key root location in the
-                # default target S3 bucket: e.g. "kge-data/kg_id/fileset_version"
+                # ... for uploading to a specified object key root location (folder) in the
+                # default target S3 bucket: e.g. something like "kge-data/kg_id/fileset_version"
+                # or "kge-data/kg_id/fileset_version/archive" for the archive folders (must be a specific destination)
                 # Default: the default S3 directory defined in the config.yaml...
                 object_key_base = argv[3] if len(argv) >= 4 else s3_directory
                 
