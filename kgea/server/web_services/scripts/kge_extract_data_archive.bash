@@ -50,7 +50,7 @@ usage () {
     echo
     echo "Usage:"
     echo
-    echo "$0 <bucket> <root directory> <kg_id> <fileset version> <subdirectory> <archive_filename>"
+    echo "$0 <bucket> <root directory> <kg_id> <fileset version> <archive_root_filename>"
     echo
 #    exit -1  bash exits 0-255
     exit 1
@@ -97,7 +97,7 @@ else
 fi
 
 if [[ -z "${5}" ]]; then
-    echo "Specify target archive file name for operation!"
+    echo "Specify target archive 'root' file name (i.e. name without the .tar.gz file extension)!"
     usage
 else
     # Archive file name
