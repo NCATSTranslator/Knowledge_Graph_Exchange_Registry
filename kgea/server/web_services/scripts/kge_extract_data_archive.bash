@@ -150,12 +150,12 @@ rm "${tar_file}"
 #    """
 #    KGE File types Enumerated - use numeric codes below
 #    """
-#    KGX_UNKNOWN = (0, "unknown", "unknown file type")
-#    KGX_CONTENT_METADATA_FILE = (1, "metadata", "KGX metadata file")
-#    KGX_DATA_FILE = (2, "data", "KGX data file")
-#    KGE_NODES = (3, "nodes", "KGX node data file")
-#    KGE_EDGES = (4, "edges", "KGX edge data file")
-#    KGE_ARCHIVE = (5, "archive", "KGE data archive")
+#    UNKNOWN = (0, "unknown", "unknown file type")
+#    CONTENT_METADATA_FILE = (1, "metadata", "KGX metadata file")
+#    DATA_FILE = (2, "data", "KGX data file")
+#    NODES = (3, "nodes", "KGX node data file")
+#    EDGES = (4, "edges", "KGX edge data file")
+#    ARCHIVE = (5, "archive", "KGE data archive")
 
 typed_core_file_object_key () {
   if [[ "${1}" =~ node[s]?.${kgx_file_ext} ]];
@@ -218,8 +218,13 @@ do
 
   # the 'unique' file object key is just the variable part relating to file type
   # We prefix the names of the copied files with the archive name to avoid
-  # name collisions with files previously posted from other sources, to S3
-  core_file_object_key="${archive_filename}_${file_data[0]}"
+  # name collisions with files previously posted from other sources, to S3,
+  # except for the content_metadata.json, which is assumed unique(!)
+  if [[ "${file_data[0]}" == "content_metadata.json" ]]; then
+    core_file_object_key="content_metadata.json"
+  else
+    core_file_object_key="${archive_filename}_${file_data[0]}"
+  fi
   echo "Core File Object Key: ${core_file_object_key}"
 
   file_type=${file_data[1]}
