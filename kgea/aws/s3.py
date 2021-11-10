@@ -6,7 +6,7 @@ credentials to execute an AWS Secure Token Service-mediated access
 to a Simple Storage Service (S3) bucket given as an argument.
 """
 from sys import platform, argv
-from os import makedirs, getcwd
+from os import makedirs, getcwd, remove
 from os.path import isdir
 
 if platform != "win32":
@@ -361,18 +361,39 @@ def delete_object(
         print(f"Could not delete the '{target_object_key}' in bucket '{bucket_name}'?")
 
 
-def move_object(key, source_folder, target_folder, target_bucket=None):
+def move_object(object_key, source_folder, target_folder, target_bucket=None, target_client=s3_client):
     """
     Move a single object from one S3 location to another.
     
-    :param key: Object key to move.
+    :param object_key: Object key to move.
     :param source_folder: Source S3 object key folder location from which to move data
     :param target_folder: Target S3 object key folder location to which to move data
     :param target_bucket: (Optional) different target bucket location of target folder
+    :param target_client: (Optional) different target client account
     """
-    print(f"(Stub) move of '{key}' from {source_folder} in source bucket '{s3_bucket_name}'\n"
+    print(f"(Stub) move of '{object_key}' from {source_folder} in source bucket '{s3_bucket_name}'\n"
           f"\tto '{target_folder}' in target bucket '{target_bucket}'")
-
+    
+    # Step 1 - configure source and target buckets
+    #          (in case not the same... should this be done outside of this method?).
+    #          The latter bucket may possibly be remote, needing a special AssumeRole to access
+    # Step 2 - Download source object to disk file
+    filename = object_key.split("/")[-1]
+    download_file(
+        bucket_name=s3_bucket_name,
+        source_object_key=object_key,
+        target_file=filename
+    )
+    # Step 3 - Upload disk file to as comparable key to target folder
+    upload_file(
+        bucket_name=target_bucket,
+        source_file=filename,  # identical to source_file_name since locally cached
+        target_object_key=object_key,
+        client=target_client
+    )
+    # Step 4 - Delete locally cached copy of the file
+    remove(filename)
+    
 
 # Run the module as a CLI
 if __name__ == '__main__':
@@ -683,7 +704,13 @@ if __name__ == '__main__':
                 prompt = input("Proceed (Type 'yes')? ")
                 if prompt.upper() == "YES":
                     for key in object_keys:
-                        move_object(key=key, source_folder=source, target_folder=target, target_bucket=target_bucket)
+                        move_object(
+                            object_key=key,
+                            source_folder=source,
+                            target_folder=target,
+                            target_bucket=target_bucket,
+                            target_client=s3_client  # TODO: need to fix this client.. only local right now?
+                        )
                 else:
                     print("Cancelling batch move of objects...")
             else:
