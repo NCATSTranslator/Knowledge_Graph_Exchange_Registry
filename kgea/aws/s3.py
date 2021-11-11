@@ -5,19 +5,16 @@ the name of a host account IAM role, to obtain temporary AWS service
 credentials to execute an AWS Secure Token Service-mediated access
 to a Simple Storage Service (S3) bucket given as an argument.
 """
-from sys import platform, argv
+from sys import platform, argv, stdout
 from os import makedirs, getcwd, remove
-from os.path import isdir
+from os.path import isdir, getsize
+import threading
 
 if platform != "win32":
     from os import fdopen, pipe, fork, close
 
 from typing import List
 from pathlib import Path
-
-# from multiprocessing import Process, Pipe
-# from multiprocessing.connection import Connection
-# from asyncio import sleep
 
 from botocore.config import Config
 
@@ -26,6 +23,7 @@ from kgea.aws.assume_role import AssumeRole, aws_config
 
 import logging
 logger = logging.getLogger(__name__)
+#logger.setLevel(logging.DEBUG)
 
 HELP = "help"
 UPLOAD = "upload"
@@ -37,7 +35,7 @@ COPY = "copy"
 REMOTE_COPY = "remote-copy"
 DELETE = "delete"
 BATCH_DELETE = "batch-delete"
-BATCH_MOVE = "batch-move"
+BATCH_COPY = "batch-copy"
 
 
 helpdoc = Help(
@@ -63,12 +61,71 @@ s3_client = \
     )
 
 
+def get_remote_s3_client():
+    """
+    :return: result from AssumeRole.get_client() call using "s3_remote" config.yaml parameters
+    """
+    if "s3_remote" not in aws_config:
+        raise RuntimeError("Remote account 's3_remote' configuration parameters are not provided in the config.yaml?")
+    
+    remote_host_account: str = aws_config["s3_remote"]["host_account"]
+    remote_guest_external_id: str = aws_config["s3_remote"]["guest_external_id"]
+    remote_iam_role_name: str = aws_config["s3_remote"]["iam_role_name"]
+    remote_s3_region_name: str = aws_config["s3_remote"]["region"]
+    
+    remote_assumed_role = AssumeRole(
+        host_account=remote_host_account,
+        guest_external_id=remote_guest_external_id,
+        iam_role_name=remote_iam_role_name
+    )
+    
+    remote_s3_client = \
+        remote_assumed_role.get_client(
+            's3',
+            config=Config(
+                signature_version='s3v4',
+                region_name=remote_s3_region_name
+            )
+        )
+    
+    return remote_s3_client
+
+
+if "s3_remote" in aws_config:
+    remote_s3_bucket_name: str = aws_config["s3_remote"]["bucket"]
+    remote_s3_directory: str = aws_config["s3_remote"]["archive-directory"]
+
+
+class ProgressPercentage(object):
+    """
+    Progress monitor for downloading and uploading of files
+    """
+    def __init__(self, action, filename):
+        self._action = action
+        self._filename = filename
+        self._size = float(getsize(filename))
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        # To simplify, assume this is hooked up to a single filename
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            stdout.write(
+                "\r%s  %s / %s  (%.2f%%)" % (
+                    self._filename, self._seen_so_far, self._size,
+                    percentage))
+            stdout.flush()
+
+
 def upload_file(
         bucket_name: str,
         source_file,
         target_object_key: str,
         source_file_name: str = '',
-        client=s3_client
+        client=s3_client,
+        debug=False
 ):
     """
     Upload a file.
@@ -77,7 +134,8 @@ def upload_file(
     :param source_file: may be a file path string or a file descriptor open for reading
     :param target_object_key: target S3 object_key to which to upload the file
     :param source_file_name: (optional) source file name. Defaults to last name of source file path or target object key
-    :param client:
+    :param client: S3 client to access S3 bucket (defaults to globally defined S3 client)
+    :param debug: (optional) if 'True' then the only show logger debug for actions, but don't run the core code
     :return:
     """
     if isinstance(source_file, str):
@@ -89,12 +147,18 @@ def upload_file(
             f"###Uploading file '{source_file_name}' to object " +
             f"'{target_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
-        try:
-            client.upload_file(source_file, bucket_name, target_object_key)
-        except Exception as exc:
-            helpdoc.usage(
-                err_msg="upload_file(): 'client.upload_file' exception: " + str(exc)
-            )
+        if not debug:
+            try:
+                client.upload_file(
+                    source_file,
+                    bucket_name,
+                    target_object_key,
+                    Callback=ProgressPercentage("Upload", source_file_name)
+                )
+            except Exception as exc:
+                helpdoc.usage(
+                    err_msg="upload_file(): 'client.upload_file' exception: " + str(exc)
+                )
 
     else:
         
@@ -106,10 +170,16 @@ def upload_file(
             f"###Uploading file '{source_file_name}' to object " +
             f"'{target_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
-        try:
-            client.upload_fileobj(source_file, bucket_name, target_object_key)
-        except Exception as exc:
-            helpdoc.usage(err_msg="upload_file(): 'client.upload_fileobj' exception: " + str(exc))
+        if not debug:
+            try:
+                client.upload_fileobj(
+                    source_file,
+                    bucket_name,
+                    target_object_key,
+                    Callback=ProgressPercentage("Upload", source_file_name)
+                )
+            except Exception as exc:
+                helpdoc.usage(err_msg="upload_file(): 'client.upload_fileobj' exception: " + str(exc))
 
 
 def get_object_keys(
@@ -160,22 +230,24 @@ def download_file(
         source_object_key: str,
         target_file=None,
         target_file_name=None,
-        client=s3_client
+        client=s3_client,
+        debug=False
 ) -> str:
     """
     Delete an object key (file) in a given bucket.
 
     :param target_file_name:
-    :param client: S3 client to access S3 bucket
     :param bucket_name: the target bucket
     :param source_object_key: source S3 object_key from which to download the file
     :param target_file: file path string or file descriptor (open for (binary) writing) to which to save the file
     :param target_file_name: (optional) target file name. Defaults to last name of target file path or source object key
+    :param client: S3 client to access S3 bucket (defaults to globally defined S3 client)
+    :param debug: (optional) if 'True' then the only show logger debug for actions, but don't run the core code
     :return:
     """
     if not target_file:
         target_file = source_object_key.split("/")[-1]
-        
+    
     if isinstance(target_file, str):
         
         if not target_file_name:
@@ -185,10 +257,16 @@ def download_file(
             f"###Downloading file '{target_file_name}' from object " +
             f"'{source_object_key}' in the S3 bucket '{bucket_name}'\n"
         )
-        try:
-            client.download_file(Bucket=bucket_name, Key=source_object_key, Filename=target_file)
-        except Exception as exc:
-            helpdoc.usage(err_msg="download_file(): 'client.download_file' exception: " + str(exc))
+        if not debug:
+            try:
+                client.download_file(
+                    Bucket=bucket_name,
+                    Key=source_object_key,
+                    Filename=target_file,
+                    Callback=None  # ProgressPercentage("Download", target_file_name)
+                )
+            except Exception as exc:
+                helpdoc.usage(err_msg="download_file(): 'client.download_file' exception: " + str(exc))
     else:
         
         if not target_file_name:
@@ -214,10 +292,16 @@ def download_file(
         #     use_threads=True
         #     )[source]
         #
-        try:
-            client.download_fileobj(Bucket=bucket_name, Key=source_object_key, Fileobj=target_file)
-        except Exception as exc:
-            helpdoc.usage(err_msg="upload_file(): 'client.downloadload_fileobj' exception: " + str(exc))
+        if not debug:
+            try:
+                client.download_fileobj(
+                    Bucket=bucket_name,
+                    Key=source_object_key,
+                    Fileobj=target_file,
+                    Callback=None  # ProgressPercentage("Download", target_file_name)
+                )
+            except Exception as exc:
+                helpdoc.usage(err_msg="upload_file(): 'client.downloadload_fileobj' exception: " + str(exc))
     
     return target_file
 
@@ -361,39 +445,51 @@ def delete_object(
         print(f"Could not delete the '{target_object_key}' in bucket '{bucket_name}'?")
 
 
-def move_object(object_key, source_folder, target_folder, target_bucket=None, target_client=s3_client):
+def batch_copy_object(
+        source_object_key,
+        source_folder,
+        target_folder,
+        target_bucket=None,
+        target_client=s3_client,
+        debug=False
+):
     """
     Move a single object from one S3 location to another.
     
-    :param object_key: Object key to move.
+    :param source_object_key: Object key to move.
     :param source_folder: Source S3 object key folder location from which to move data
     :param target_folder: Target S3 object key folder location to which to move data
     :param target_bucket: (Optional) different target bucket location of target folder
     :param target_client: (Optional) different target client account
+    :param debug: (optional) if 'True' then the only show logger debug for actions, but don't run the core code
     """
-    print(f"(Stub) move of '{object_key}' from {source_folder} in source bucket '{s3_bucket_name}'\n"
-          f"\tto '{target_folder}' in target bucket '{target_bucket}'")
+    target_client_name = "Local" if target_client == s3_client else "Remote"
+
+    # Step 1 - resolve filename, source_key and target key
+    filename = source_object_key.split("/")[-1]
+    target_object_key = source_object_key.replace(source_folder,target_folder)
     
-    # Step 1 - configure source and target buckets
-    #          (in case not the same... should this be done outside of this method?).
-    #          The latter bucket may possibly be remote, needing a special AssumeRole to access
     # Step 2 - Download source object to disk file
-    filename = object_key.split("/")[-1]
+
     download_file(
         bucket_name=s3_bucket_name,
-        source_object_key=object_key,
-        target_file=filename
+        source_object_key=source_object_key,
+        target_file=filename,
+        debug=debug
     )
     # Step 3 - Upload disk file to as comparable key to target folder
     upload_file(
         bucket_name=target_bucket,
         source_file=filename,  # identical to source_file_name since locally cached
-        target_object_key=object_key,
-        client=target_client
+        target_object_key=target_object_key,
+        client=target_client,
+        debug=debug
     )
     # Step 4 - Delete locally cached copy of the file
-    remove(filename)
-    
+    if not debug:
+        remove(filename)
+
+    print(f" ...Done!")
 
 # Run the module as a CLI
 if __name__ == '__main__':
@@ -691,37 +787,53 @@ if __name__ == '__main__':
                         "<filter>": "object key string (prefix) filter"
                     }
                 )
-        elif s3_operation.lower() == BATCH_MOVE:
+        elif s3_operation.lower() == BATCH_COPY:
             if len(argv) >= 4:
                 source = argv[2]
                 target = argv[3]
                 target_bucket = argv[4] if len(argv) >= 5 else s3_bucket_name
+                is_remote_target = argv[5].lower() == "true" if len(argv) >= 6 else False
                 object_keys = get_object_keys(s3_bucket_name, filter_prefix=source)
-                print(f"Moving all object (keys) from folder '{source}' in source bucket '{s3_bucket_name}':")
+                print(
+                    f"\nFrom the folder '{source}'\n" +
+                    f"in source bucket '{s3_bucket_name}' of the 'Local' client,\nmoving the following objects:\n"
+                )
                 for key in object_keys:
-                    print("\t"+key)
-                print(f"...over to folder '{target}' in target bucket '{target_bucket}'.")
+                    if key[-1] != "/":
+                        print("\t"+key)
+                target_client_name = "Remote" if is_remote_target else "Local"
+                print(f"\n...over to folder '{target}'\nin the target bucket " +
+                      f"'{target_bucket}' of the '{target_client_name}' client.\n")
                 prompt = input("Proceed (Type 'yes')? ")
                 if prompt.upper() == "YES":
-                    for key in object_keys:
-                        move_object(
-                            object_key=key,
+                    target_client = get_remote_s3_client() if is_remote_target else s3_client
+                    print(
+                        f"Copying objects from '{source}' folder in bucket '{s3_bucket_name}' of 'Local' client\n" +
+                        f"\tto '{target}' folder in target bucket '{target_bucket}' of '{target_client_name}' client"
+                    )
+                    for source_object_key in object_keys:
+                        batch_copy_object(
+                            source_object_key=source_object_key,
                             source_folder=source,
                             target_folder=target,
                             target_bucket=target_bucket,
-                            target_client=s3_client  # TODO: need to fix this client.. only local right now?
+                            target_client=target_client,
+                            #debug=True
                         )
                 else:
-                    print("Cancelling batch move of objects...")
+                    print("Cancelling batch copy of objects...")
             else:
                 helpdoc.usage(
                     err_msg="Missing source or target object key folder for move",
-                    command=BATCH_MOVE,
+                    command=BATCH_COPY,
                     args={
-                        "<source folder>": "Source S3 object key folder location from which to move data",
-                        "<target folder>": "Target S3 object key folder location to which to move data",
-                        "<target bucket>":
-                            "(Optional) target bucket of target folder if not equivalent to source bucket"
+                        "<source folder>": "full source S3 object key folder location from which to copy data",
+                        "<target folder>": "full target S3 object key folder location to which to copy data",
+                        "[<target bucket>]":
+                            "(optional) name of target bucket for target folder, if not equivalent to source bucket",
+                        "[<remote client>]":
+                            "(optional, case insensitive) string value 'true' is boolean flag that specifies use of " +
+                            "\n\t\t\tthe config.yaml 's3_remote' parameter-configured client as the target of the copy"
     
                     }
                 )
