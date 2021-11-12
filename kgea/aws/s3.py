@@ -841,6 +841,7 @@ if __name__ == '__main__':
                                 target_client=target_client,
                                 # debug=True
                             )
+                    print("\nBatch copy of objects is completed!\n")
                 else:
                     print("Cancelling batch copy of objects...")
             else:
