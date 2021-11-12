@@ -134,8 +134,7 @@ class AssumeRole:
                 self.sts_client.assume_role(
                     RoleArn=self.role_arn,
                     RoleSessionName="AssumeRoleSession",
-                    ExternalId=self.guest_external_id,
-                    DurationSeconds=10800  # 3 hours?
+                    ExternalId=self.guest_external_id
                 )
 
             # Format resulting temporary credentials into
