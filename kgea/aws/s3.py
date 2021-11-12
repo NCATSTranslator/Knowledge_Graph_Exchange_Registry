@@ -23,7 +23,7 @@ from kgea.aws.assume_role import AssumeRole, aws_config
 
 import logging
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 HELP = "help"
 UPLOAD = "upload"
@@ -49,16 +49,24 @@ s3_bucket_name: str = aws_config["s3"]["bucket"]
 s3_directory: str = aws_config["s3"]["archive-directory"]
 s3_region_name: str = aws_config["s3"]["region"]
 
-assumed_role = AssumeRole()
 
-s3_client = \
-    assumed_role.get_client(
-        's3',
-        config=Config(
-            signature_version='s3v4',
-            region_name=s3_region_name
+def get_local_s3_client():
+    """
+    :return: result from AssumeRole.get_client() call using local config.yaml parameters
+    """
+    local_assumed_role = AssumeRole()
+    local_s3_client = \
+        local_assumed_role.get_client(
+            's3',
+            config=Config(
+                signature_version='s3v4',
+                region_name=s3_region_name
+            )
         )
-    )
+    return local_s3_client
+
+
+local_s3_client = get_local_s3_client()
 
 
 def get_remote_s3_client():
@@ -124,7 +132,7 @@ def upload_file(
         source_file,
         target_object_key: str,
         source_file_name: str = '',
-        client=s3_client,
+        client=local_s3_client,
         debug=False
 ):
     """
@@ -185,7 +193,7 @@ def upload_file(
 def get_object_keys(
         bucket_name: str,
         filter_prefix='',
-        client=s3_client
+        client=local_s3_client
 ) -> List[str]:
     """
     Check for the new file in the bucket listing.
@@ -207,7 +215,7 @@ def get_object_keys(
 
 def list_files(
         bucket_name: str,
-        client=s3_client
+        client=local_s3_client
 ):
     """
     Check for the new file in the bucket listing.
@@ -230,7 +238,7 @@ def download_file(
         source_object_key: str,
         target_file=None,
         target_file_name=None,
-        client=s3_client,
+        client=local_s3_client,
         debug=False
 ) -> str:
     """
@@ -311,7 +319,7 @@ def copy(
         target_key: str,
         source_bucket=s3_bucket_name,
         target_bucket: str = '',
-        source_client=s3_client,
+        source_client=local_s3_client,
         target_client=None
 ):
     """
@@ -350,7 +358,7 @@ def remote_copy(
         target_bucket: str,
         target_client,
         source_bucket=s3_bucket_name,
-        source_client=s3_client,
+        source_client=local_s3_client,
 ):
     """
     Copy an object from a source bucket and account to a second bucket and account, where access
@@ -423,7 +431,7 @@ def remote_copy(
 def delete_object(
         bucket_name: str,
         target_object_key: str,
-        client=s3_client
+        client=local_s3_client
 ):
     """
     Delete an object key (file) in a given bucket.
@@ -450,7 +458,8 @@ def batch_copy_object(
         source_folder,
         target_folder,
         target_bucket=None,
-        target_client=s3_client,
+        source_client=local_s3_client,
+        target_client=None,
         debug=False
 ):
     """
@@ -460,21 +469,29 @@ def batch_copy_object(
     :param source_folder: Source S3 object key folder location from which to move data
     :param target_folder: Target S3 object key folder location to which to move data
     :param target_bucket: (Optional) different target bucket location of target folder
-    :param target_client: (Optional) different target client account
+    :param source_client: (Optional) specified source client account
+    :param target_client: (Optional) specified target client account
     :param debug: (optional) if 'True' then the only show logger debug for actions, but don't run the core code
     """
-    target_client_name = "Local" if target_client == s3_client else "Remote"
-
-    # Step 1 - resolve filename, source_key and target key
-    filename = source_object_key.split("/")[-1]
-    target_object_key = source_object_key.replace(source_folder,target_folder)
+    if target_client is not None:
+        target_client_name = "Remote"
+    else:
+        target_client_name = "Local"
+        target_client = source_client
     
+    # Step 1 - resolve filename, target object key and target_bucket
+    filename = source_object_key.split("/")[-1]
+    target_object_key = source_object_key.replace(source_folder, target_folder)
+    if target_bucket is None:
+        target_bucket=s3_bucket_name
+
     # Step 2 - Download source object to disk file
 
     download_file(
         bucket_name=s3_bucket_name,
         source_object_key=source_object_key,
         target_file=filename,
+        client=source_client,
         debug=debug
     )
     # Step 3 - Upload disk file to as comparable key to target folder
@@ -490,6 +507,7 @@ def batch_copy_object(
         remove(filename)
 
     print(f" ...Done!")
+
 
 # Run the module as a CLI
 if __name__ == '__main__':
@@ -678,7 +696,7 @@ if __name__ == '__main__':
                     target_key=target_key,
                     source_bucket=s3_bucket_name,
                     target_bucket=target_s3_bucket_name,
-                    source_client=s3_client,
+                    source_client=local_s3_client,
                     target_client=target_client
                 )
             else:
@@ -806,20 +824,22 @@ if __name__ == '__main__':
                       f"'{target_bucket}' of the '{target_client_name}' client.\n")
                 prompt = input("Proceed (Type 'yes')? ")
                 if prompt.upper() == "YES":
-                    target_client = get_remote_s3_client() if is_remote_target else s3_client
                     print(
                         f"Copying objects from '{source}' folder in bucket '{s3_bucket_name}' of 'Local' client\n" +
                         f"\tto '{target}' folder in target bucket '{target_bucket}' of '{target_client_name}' client"
                     )
                     for source_object_key in object_keys:
                         if source_object_key[-1] != "/":
+                            source_client = get_local_s3_client()
+                            target_client = get_remote_s3_client() if is_remote_target else source_client
                             batch_copy_object(
                                 source_object_key=source_object_key,
                                 source_folder=source,
+                                source_client=source_client,
                                 target_folder=target,
                                 target_bucket=target_bucket,
                                 target_client=target_client,
-                                #debug=True
+                                # debug=True
                             )
                 else:
                     print("Cancelling batch copy of objects...")
