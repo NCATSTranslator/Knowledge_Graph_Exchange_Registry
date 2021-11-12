@@ -1,3 +1,6 @@
+"""
+Core AWS AssumeRole configuration
+"""
 #!/usr/bin/env python
 from typing import Dict, Tuple, Optional
 # from os import getenv
@@ -36,10 +39,10 @@ class AssumeRole:
             iam_role_name=aws_config['iam_role_name']
     ):
         if not iam_role_name:
-            logger.info("AssumeRole(): assume default credentials")
+            logger.debug("AssumeRole(): assume default credentials")
             self._default_credentials = True
         else:
-            logger.info("AssumeRole() using assumed role credentials")
+            logger.debug("AssumeRole() using assumed role credentials")
             self._default_credentials = False
             self.host_account = host_account
             self.guest_external_id = guest_external_id
