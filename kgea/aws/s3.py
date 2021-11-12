@@ -798,9 +798,9 @@ if __name__ == '__main__':
                     f"\nFrom the folder '{source}'\n" +
                     f"in source bucket '{s3_bucket_name}' of the 'Local' client,\nmoving the following objects:\n"
                 )
-                for key in object_keys:
-                    if key[-1] != "/":
-                        print("\t"+key)
+                for source_object_key in object_keys:
+                    if source_object_key[-1] != "/":
+                        print("\t"+source_object_key)
                 target_client_name = "Remote" if is_remote_target else "Local"
                 print(f"\n...over to folder '{target}'\nin the target bucket " +
                       f"'{target_bucket}' of the '{target_client_name}' client.\n")
@@ -812,14 +812,15 @@ if __name__ == '__main__':
                         f"\tto '{target}' folder in target bucket '{target_bucket}' of '{target_client_name}' client"
                     )
                     for source_object_key in object_keys:
-                        batch_copy_object(
-                            source_object_key=source_object_key,
-                            source_folder=source,
-                            target_folder=target,
-                            target_bucket=target_bucket,
-                            target_client=target_client,
-                            #debug=True
-                        )
+                        if source_object_key[-1] != "/":
+                            batch_copy_object(
+                                source_object_key=source_object_key,
+                                source_folder=source,
+                                target_folder=target,
+                                target_bucket=target_bucket,
+                                target_client=target_client,
+                                #debug=True
+                            )
                 else:
                     print("Cancelling batch copy of objects...")
             else:
