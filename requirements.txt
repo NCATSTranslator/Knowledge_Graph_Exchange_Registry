@@ -23,7 +23,6 @@ aiohttp-session
 aiomcache
 jsonschema~=3.2.0
 PyGithub~=1.55
-smart_open
 pathlib~=1.0.1
 py~=1.10.0
 colorama~=0.4.4
