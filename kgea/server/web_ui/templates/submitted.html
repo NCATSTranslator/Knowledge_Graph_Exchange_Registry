@@ -2,7 +2,6 @@
 {% block title %}Confirmation of Submission{% endblock %}
 {% block menu %}
 {% include "logout.button" %}
-{% include "home.button" %}
 {% endblock %}
 {% block content %}
 <div style="width: 50%; margin-left: auto; margin-right: auto;">
@@ -12,6 +11,10 @@
         {% else %}
             is currently being processed and should soon
         {% endif %}
-    be available for downloading from the Home Page.
+    be available for downloading from
+    <form action="/home">
+        <input type="hidden" name="process_token" value="{{process_token}}"/>
+        <input type="submit" value="Home" />
+    </form>
 </div>
 {% endblock %}

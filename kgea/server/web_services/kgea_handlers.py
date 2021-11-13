@@ -3,7 +3,7 @@ Knowledge Graph Exchange Archive backend web service handlers.
 """
 from os import getenv, path
 from pathlib import Path
-from typing import Dict, Tuple, Any
+from typing import Dict, Tuple, Any, Optional
 import logging
 
 import uuid
@@ -441,12 +441,13 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
                 request,
                 f"publish_kge_file_set() errors: unknown '{fileset_version}' for knowledge graph '{kg_id}'?"
             )
-            
+
+        progress_token: Optional[str] = None
         if file_set.get_fileset_status() == KgeFileSetStatusCode.CREATED:
             # Assume that it still needs to be processed
             logger.debug(f"\tPublishing fileset version '{fileset_version}' of graph '{kg_id}'")
             try:
-                await file_set.publish()
+                progress_token = await file_set.publish()
             except Exception as exception:
                 logger.error(str(exception))
     
@@ -463,7 +464,8 @@ async def publish_kge_file_set(request: web.Request, kg_id: str, fileset_version
             f"{SUBMISSION_CONFIRMATION}?" +
             f"kg_name={knowledge_graph.get_name()}&" +
             f"fileset_version={fileset_version}&" +
-            f"validated={str(file_set.get_fileset_status() == KgeFileSetStatusCode.VALIDATED)}",
+            f"validated={str(file_set.get_fileset_status() == KgeFileSetStatusCode.VALIDATED)}" +
+            f"&progress_token={progress_token}" if progress_token else "",
             active_session=True
         )
 

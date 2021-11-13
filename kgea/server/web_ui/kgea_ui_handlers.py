@@ -18,6 +18,7 @@ from aiohttp_session import get_session
 from kgea.config import (
     get_app_config,
     
+    BACKEND,
     LANDING_PAGE,
     HOME_PAGE,
     GET_KNOWLEDGE_GRAPH_CATALOG,
@@ -26,14 +27,13 @@ from kgea.config import (
     METADATA_PAGE,
     FILESET_REGISTRATION_FORM,
     PUBLISH_FILE_SET,
-    # SETUP_UPLOAD_CONTEXT,
     UPLOAD_FILE,
     DIRECT_URL_TRANSFER,
     CANCEL_UPLOAD,
-    # GET_UPLOAD_STATUS,
+    FILESET_ARCHIVER_STATUS,
+
     get_fileset_metadata_url,
     get_meta_knowledge_graph_url,
-    BACKEND
 )
 from kgea.server.catalog import get_biolink_model_releases
 from kgea.server.kgea_session import (
@@ -119,6 +119,7 @@ async def get_kge_home(request: web.Request) -> web.Response:
             "backend": BACKEND,
             "metadata_page": METADATA_PAGE,
             "fileset_registration_form": FILESET_REGISTRATION_FORM,
+            "get_fileset_status": FILESET_ARCHIVER_STATUS
         }
 
         logger.debug(f"get_kge_home(): user_role is set to '{context['user_role']}'")
@@ -374,11 +375,27 @@ async def get_kge_fileset_submitted(request: web.Request) -> web.Response:
         submitter_name = session['name']
         kg_name = request.query.get('kg_name', default='')
         fileset_version = request.query.get('fileset_version', default='')
+        process_token = request.query.get('process_token', default='')
+        
+        missing: List[str] = []
+        if not kg_name:
+            missing.append("kg_name")
+        if not fileset_version:
+            missing.append("fileset_version")
+        if not process_token:
+            missing.append("process_token")
+        if missing:
+            missing_args = ", ".join(missing)
+            await report_bad_request(
+                request,
+                f"get_kge_fileset_submitted() - missing parameter(s): {missing_args}"
+            )
         
         context = {
             "kg_name": kg_name,
             "fileset_version": fileset_version,
-            "submitter_name": submitter_name
+            "submitter_name": submitter_name,
+            "process_token": process_token
         }
         response = aiohttp_jinja2.render_template('submitted.html', request=request, context=context)
         return await with_session(request, response)

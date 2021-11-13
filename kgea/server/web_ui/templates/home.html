@@ -235,6 +235,47 @@
 
         });
 
+        if("{{process_token}}") {
+
+            // callback for mutual recursion
+            async function askForFilesetStatus() {
+                let progress_token = "{{progress_token}}";
+                return await fetch(`{{get_fileset_status}}?progress_token=${progress_token}`, {credentials: "include"})
+                    .then(r => r.json())
+                    .then(j => {
+                        // TODO: parse out the StatusToken from Archiver/status endpoint result
+                    })
+            }
+
+            // timer helper for deferring execution of next recursion step
+            // "value" will be a function here
+            function later(monitor_interval, value) {
+                return new Promise(resolve => setTimeout(resolve, monitor_interval, value));
+            }
+
+            // control flow for mutual recursion
+            async function execute(callback, timeout_count=0) {
+                let _timeout_count = timeout_count;
+                return await callback().then(async received => {
+                    console.log(_timeout_count);
+                    if (received.status === "Ongoing") {
+                        return await later(monitor_interval, askForFilesetStatus).then(callback => execute(callback, _timeout_count))
+                    } else if (received.status === "Completed") {
+                        return true;
+                    } else if (received.status === "Error") {
+                        throw Error('Fileset processing failed! (check server logs for information)')
+                    }
+                })
+            }
+
+            // put the pieces together
+            try {
+                let status_result = await later(monitor_interval, askForFilesetStatus).then(execute)
+            } catch (e) {
+                console.error(e);
+            }
+
+        }
     </script>
 {% endblock %}
 {% block body %}<body onload="getCatalog()">{% endblock %}
