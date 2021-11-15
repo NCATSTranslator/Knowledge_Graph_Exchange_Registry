@@ -88,7 +88,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusToken'
+                $ref: '#/components/schemas/ProcessStatus'
         '404':
           description: >-
             Specified upload token is unknown.
@@ -196,12 +196,12 @@ components:
         - file_type
         - file_size
       additionalProperties: false
-    StatusToken:
+    ProcessStatus:
       description: >-
         Token tracking the status of post-processing of a KGE File Set.
       type: object
       properties:
-        status_token:
+        process_token:
           description: >-
             Token tracking the status of post-processing of a KGE File Set.
           type: string

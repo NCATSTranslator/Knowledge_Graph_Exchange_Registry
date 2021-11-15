@@ -540,7 +540,12 @@ class KgeArchiver:
         """
 
         process_token = uuid4().hex
-        await set_process_status(process_token, ProcessStatusCode.ONGOING)
+        await set_process_status(
+            file_set.kg_id,
+            file_set.fileset_version,
+            process_token,
+            ProcessStatusCode.ONGOING
+        )
 
         # Post the file set to the KgeArchiver task Queue for processing
         logger.debug(
