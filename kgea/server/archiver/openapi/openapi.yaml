@@ -82,7 +82,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusToken'
+                $ref: '#/components/schemas/ProcessStatus'
           description: Details about the status of a KGE File Set post-processing
             operation.
         "404":
@@ -206,19 +206,19 @@ components:
       - object_key
       title: KgeFile
       type: object
-    StatusToken:
+    ProcessStatus:
       additionalProperties: false
       description: Token tracking the status of post-processing of a KGE File Set.
       example:
-        status_token: status_token
         fileset_version: "1.0"
         kg_id: my-great-knowledge-graph
+        process_token: process_token
         status: Completed
       properties:
-        status_token:
+        process_token:
           description: Token tracking the status of post-processing of a KGE File
             Set.
-          title: status_token
+          title: process_token
           type: string
         kg_id:
           description: Knowledge Graph identifier of the KGE File Set being processed.
@@ -238,7 +238,7 @@ components:
       - kg_id
       - status
       - status_token
-      title: StatusToken
+      title: ProcessStatus
       type: object
     ProcessStatusCode:
       description: Code for status of upload or direct URL transfer progress for a
