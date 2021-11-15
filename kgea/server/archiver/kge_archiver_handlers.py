@@ -4,12 +4,11 @@ Archiver service API handlers
 import json
 from os import getenv
 from pathlib import PurePosixPath
-from uuid import uuid4
 
 from aiohttp import web
 
-from kgea.server.archiver.kge_archiver_status import set_process_status, get_process_status
-from kgea.server.archiver.models import KgeFileSetMetadata, ProcessStatusCode, StatusToken
+from kgea.server.archiver.kge_archiver_status import get_process_status
+from kgea.server.archiver.models import KgeFileSetMetadata, ProcessStatus
 from kgea.server.archiver.kge_archiver_util import KgeArchiver
 
 import logging
@@ -94,8 +93,5 @@ async def get_kge_fileset_processing_status(request: web.Request, process_token:
     :type process_token: str
 
     """
-    status_token: StatusToken = StatusToken(
-        status_token=process_token,
-        status=get_process_status(process_token)
-    )
-    return web.json_response(status_token.to_dict())
+    process_status: ProcessStatus = get_process_status(process_token)
+    return web.json_response(process_status.to_dict())

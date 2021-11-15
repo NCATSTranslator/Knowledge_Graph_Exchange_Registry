@@ -17,7 +17,7 @@ from kgea.config import (
 from kgea.aws.assume_role import aws_config
 
 from kgea.server import print_error_trace, run_script
-from kgea.server.archiver.kge_archiver_status import set_process_status
+from kgea.server.archiver.kge_archiver_status import init_process_status, set_process_status
 from kgea.server.archiver.models import ProcessStatusCode
 
 from kgea.server.catalog import (
@@ -404,7 +404,9 @@ class KgeArchiver:
                         fileset_version=file_set.get_fileset_version()
                     )
                     if fileset_metadata_object_key:
-                        logger.info(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
+                        logger.info(
+                            f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}"
+                        )
                     else:
                         msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
                               f"' file for KGE File Set version '{file_set.get_fileset_version()}" + \
@@ -536,11 +538,11 @@ class KgeArchiver:
         This method posts a KgeFileSet to the KgeArchiver for processing.
 
         :param file_set: KgeFileSet.
-        :param process_token: str.
         """
 
         process_token = uuid4().hex
-        await set_process_status(
+
+        await init_process_status(
             file_set.kg_id,
             file_set.fileset_version,
             process_token,
