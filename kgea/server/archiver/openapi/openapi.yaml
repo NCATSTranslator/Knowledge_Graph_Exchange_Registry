@@ -236,8 +236,8 @@ components:
       required:
       - fileset_version
       - kg_id
+      - process_token
       - status
-      - status_token
       title: ProcessStatus
       type: object
     ProcessStatusCode:

@@ -220,7 +220,7 @@ components:
             Code for status of post-processing of a KGE File Set.
           $ref: '#/components/schemas/ProcessStatusCode'
       required:
-        - status_token
+        - process_token
         - kg_id
         - fileset_version
         - status
