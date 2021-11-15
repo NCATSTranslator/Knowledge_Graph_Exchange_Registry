@@ -11,10 +11,10 @@
         {% else %}
             is currently being processed and should soon
         {% endif %}
-    be available for downloading from
-    <form action="/home">
+    be available for downloading from the
+    <form method="get" action="/home">
         <input type="hidden" name="process_token" value="{{process_token}}"/>
-        <input type="submit" value="Home" />
+        <input type="submit" value="Home Page" />
     </form>
 </div>
 {% endblock %}

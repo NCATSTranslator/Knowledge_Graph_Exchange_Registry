@@ -1,5 +1,5 @@
 <div class="menu_item">
-<form action="/home">
+<form method="get" action="/home">
     <input type="submit" value="Home" />
 </form>
 </div>

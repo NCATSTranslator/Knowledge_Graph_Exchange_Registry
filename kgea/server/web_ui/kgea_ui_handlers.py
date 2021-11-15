@@ -112,6 +112,11 @@ async def get_kge_home(request: web.Request) -> web.Response:
     """
     session = await get_session(request)
     if not session.empty:
+        
+        # Optional process token may be set, if the home page being accessed
+        # from the confirmation page for a recent KGE File Set submission
+        process_token: str = request.query.get('process_token', default='')
+        
         context = {
             "submitter_name": session['name'],
             "user_role": session.get('user_role') if 'user_role' in session else DEFAULT_KGE_USER_ROLE,
@@ -119,6 +124,7 @@ async def get_kge_home(request: web.Request) -> web.Response:
             "backend": BACKEND,
             "metadata_page": METADATA_PAGE,
             "fileset_registration_form": FILESET_REGISTRATION_FORM,
+            "process_token": process_token,
             "get_fileset_status": FILESET_ARCHIVER_STATUS
         }
 
@@ -290,10 +296,16 @@ async def get_kge_fileset_registration_form(request: web.Request) -> web.Respons
         )
         # default case when a registered graph has no file versions
         max_major, max_minor = 1, 0
-        if kg_id in fileset_versions and len(fileset_versions[kg_id]) > 0:  # if a registered graph does have file versions, increment from latest
+        
+        # if a registered graph does have file versions, increment from latest
+        if kg_id in fileset_versions and len(fileset_versions[kg_id]) > 0:
             maximum_version = max(float(el) for el in fileset_versions[kg_id])
-            max_major_str, max_minor_str = str(maximum_version).split('.')     # because "1.0" splits into ["1", "0"], and can be destructed
-            max_major, max_minor = int(max_major_str), int(max_minor_str) + 1  # increment minor version to prevent collision
+            
+            # because "1.0" splits into ["1", "0"], and can be destructed
+            max_major_str, max_minor_str = str(maximum_version).split('.')
+
+            # increment minor version to prevent collision
+            max_major, max_minor = int(max_major_str), int(max_minor_str) + 1
 
         context = {
             "kg_id": kg_id,
@@ -342,7 +354,10 @@ async def get_kge_file_upload_form(request: web.Request) -> web.Response:
             missing.append("fileset_version")
 
         if missing:
-            await report_bad_request(request, "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing))
+            await report_bad_request(
+                request,
+                "get_kge_file_upload_form() - missing parameter(s): " + ", ".join(missing)
+            )
         
         context = {
             "kg_id": kg_id,
