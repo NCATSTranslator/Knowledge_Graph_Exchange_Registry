@@ -11,23 +11,31 @@ class StatusToken(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, status_token: str=None, status: ProcessStatusCode=None):
+    def __init__(self, status_token: str=None, kg_id: str=None, fileset_version: str=None, status: ProcessStatusCode=None):
         """StatusToken - a model defined in OpenAPI
 
         :param status_token: The status_token of this StatusToken.
+        :param kg_id: The kg_id of this StatusToken.
+        :param fileset_version: The fileset_version of this StatusToken.
         :param status: The status of this StatusToken.
         """
         self.openapi_types = {
             'status_token': str,
+            'kg_id': str,
+            'fileset_version': str,
             'status': ProcessStatusCode
         }
 
         self.attribute_map = {
             'status_token': 'status_token',
+            'kg_id': 'kg_id',
+            'fileset_version': 'fileset_version',
             'status': 'status'
         }
 
         self._status_token = status_token
+        self._kg_id = kg_id
+        self._fileset_version = fileset_version
         self._status = status
 
     @classmethod
@@ -63,6 +71,56 @@ class StatusToken(Model):
             raise ValueError("Invalid value for `status_token`, must not be `None`")
 
         self._status_token = status_token
+
+    @property
+    def kg_id(self):
+        """Gets the kg_id of this StatusToken.
+
+        Knowledge Graph identifier of the KGE File Set being processed.
+
+        :return: The kg_id of this StatusToken.
+        :rtype: str
+        """
+        return self._kg_id
+
+    @kg_id.setter
+    def kg_id(self, kg_id):
+        """Sets the kg_id of this StatusToken.
+
+        Knowledge Graph identifier of the KGE File Set being processed.
+
+        :param kg_id: The kg_id of this StatusToken.
+        :type kg_id: str
+        """
+        if kg_id is None:
+            raise ValueError("Invalid value for `kg_id`, must not be `None`")
+
+        self._kg_id = kg_id
+
+    @property
+    def fileset_version(self):
+        """Gets the fileset_version of this StatusToken.
+
+        Semantic versioning of the version of the KGX File Set being processed.
+
+        :return: The fileset_version of this StatusToken.
+        :rtype: str
+        """
+        return self._fileset_version
+
+    @fileset_version.setter
+    def fileset_version(self, fileset_version):
+        """Sets the fileset_version of this StatusToken.
+
+        Semantic versioning of the version of the KGX File Set being processed.
+
+        :param fileset_version: The fileset_version of this StatusToken.
+        :type fileset_version: str
+        """
+        if fileset_version is None:
+            raise ValueError("Invalid value for `fileset_version`, must not be `None`")
+
+        self._fileset_version = fileset_version
 
     @property
     def status(self):
