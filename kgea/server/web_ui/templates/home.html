@@ -277,7 +277,9 @@
 
             // put the pieces together
             try {
-                let status_result = await later(monitor_interval, askForFilesetStatus).then(execute)
+                // TODO: problem.. this is "blocking" the main page, right? Not a good thing here?
+                await later(monitor_interval, askForFilesetStatus).then(execute)
+                // TODO: post-processing done? Update the catalog here?
             } catch (e) {
                 console.error(e);
             }
