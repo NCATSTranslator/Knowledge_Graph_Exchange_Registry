@@ -23,6 +23,7 @@
         }
 
         async function getCatalog() {
+            window.alert("KGE catalog being (re-)loaded!")
             fetch("{{get_catalog}}", { method: "GET",  credentials: "include"})
                 .then(
                     response => {
@@ -50,6 +51,10 @@
                         window.alert(err_msg);
                 });
         }
+
+        // Set periodic refreshing of the catalog to 1 minute,
+        // in case that a new KGE File Set version is available
+        setInterval(getCatalog, 60000);
 
         function GetGraphName(kg_id) {
             if(kg_id in kgea_catalog) {
@@ -235,56 +240,6 @@
 
         });
 
-        if("{{process_token}}") {
-
-            // callback for mutual recursion
-            async function askForFilesetStatus() {
-                let progress_token = "{{progress_token}}";
-                window.alert("askForFilesetStatus(progress_token: " + progress_token + ")");
-                return await fetch(`{{get_fileset_status}}?progress_token=${progress_token}`, {credentials: "include"})
-                    .then(result => result.json())
-                    .then(process_status => {
-                        // TODO: parse out the ProcessStatus from Archiver /status endpoint
-                        window.alert(
-                            "askForFilesetStatus() call returned ProcessStatus: " + JSON.stringify(process_status)
-                        );
-                    })
-            }
-
-            // timer helper for deferring execution of next recursion step
-            // "value" will be a function here
-            function later(monitor_interval, value) {
-                return new Promise(resolve => setTimeout(resolve, monitor_interval, value));
-            }
-
-            // control flow for mutual recursion
-            async function execute(callback, timeout_count=0) {
-                let _timeout_count = timeout_count;
-                return await callback().then(async received => {
-                    console.log(_timeout_count);
-                    if (received.status === "Ongoing") {
-                        return await later(
-                            monitor_interval,
-                            askForFilesetStatus
-                        ).then(callback => execute(callback, _timeout_count))
-                    } else if (received.status === "Completed") {
-                        return true;
-                    } else if (received.status === "Error") {
-                        throw Error('Fileset processing failed! (check server logs for information)')
-                    }
-                })
-            }
-
-            // put the pieces together
-            try {
-                // TODO: problem.. this is "blocking" the main page, right? Not a good thing here?
-                await later(monitor_interval, askForFilesetStatus).then(execute)
-                // TODO: post-processing done? Update the catalog here?
-            } catch (e) {
-                console.error(e);
-            }
-
-        }
     </script>
 {% endblock %}
 {% block body %}<body onload="getCatalog()">{% endblock %}

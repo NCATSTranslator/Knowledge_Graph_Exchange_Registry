@@ -113,10 +113,6 @@ async def get_kge_home(request: web.Request) -> web.Response:
     session = await get_session(request)
     if not session.empty:
         
-        # Optional process token may be set, if the home page being accessed
-        # from the confirmation page for a recent KGE File Set submission
-        process_token: str = request.query.get('process_token', default='')
-        
         context = {
             "submitter_name": session['name'],
             "user_role": session.get('user_role') if 'user_role' in session else DEFAULT_KGE_USER_ROLE,
@@ -124,7 +120,6 @@ async def get_kge_home(request: web.Request) -> web.Response:
             "backend": BACKEND,
             "metadata_page": METADATA_PAGE,
             "fileset_registration_form": FILESET_REGISTRATION_FORM,
-            "process_token": process_token,
             "get_fileset_status": FILESET_ARCHIVER_STATUS
         }
 

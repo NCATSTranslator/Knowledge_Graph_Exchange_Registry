@@ -586,25 +586,46 @@ class KgeFileSet:
             return None
             
     async def _get_fileset_processing_status(self, process_token: str):
+        
         logger.debug(f"_get_fileset_processing_status(process_token: {process_token}")
 
         # POST the KgeFileSet 'self' data to the kgea.server.archiver web service
         async with KgeaSession.get_global_session().get(
                 url=f"{FILESET_ARCHIVER_STATUS}?process_token={process_token}"
         ) as response:
+            
             msg_prefix = "KgeFileSet._get_fileset_processing_status(): Archiver response"
             logger.debug(f"{msg_prefix} 'status': {response.status}")
             logger.debug(f"{msg_prefix} 'content-type': {response.headers['content-type']}")
             result = await response.json()
             logger.debug(f"{msg_prefix} 'json': {result}")
-            if "status" in result:
-                if result["status"] == "Completed":
-                    self.status = KgeFileSetStatusCode.VALIDATED
-                elif result["status"] == "Ongoing":
-                    self.status = KgeFileSetStatusCode.PROCESSING
-                else:
-                    # TODO: perhaps the Archiver "Error" results should return error messages in their payload
-                    self.status = KgeFileSetStatusCode.ERROR
+            
+            if not all(key in result for key in ["process_token", "kg_id", "fileset_version", "status"]):
+                logger.error(f"_get_fileset_processing_status() {result} missing keys")
+                return
+            
+            # Sanity check: does the process_token belong to the specified file set?
+            if result["kg_id"] != self.kg_id:
+                logger.error(
+                    f"{msg_prefix} : result kg_id '{result['kg_id']}' "
+                    f"!= current kd_id '{self.kg_id}' ... skipping!"
+                )
+                return
+            
+            if result["fileset_version"] != self.fileset_version:
+                logger.error(
+                    f"_{msg_prefix} result kg_id '{result['fileset_version']}' "
+                    f"!= current kd_id '{self.fileset_version}' ... skipping!"
+                )
+                return
+
+            if result["status"] == "Completed":
+                self.status = KgeFileSetStatusCode.VALIDATED
+            elif result["status"] == "Ongoing":
+                self.status = KgeFileSetStatusCode.PROCESSING
+            else:
+                # TODO: perhaps the Archiver "Error" results should return error messages in their payload?
+                self.status = KgeFileSetStatusCode.ERROR
 
     ##########################################
     # KGE FileSet Publication to the Archive #
@@ -1417,15 +1438,20 @@ class KnowledgeGraphCatalog:
             catalog: Dict[str,  Dict[str, Union[str, List[str]]]] = dict()
             for kg_id, knowledge_graph in self._kge_knowledge_graph_catalog.items():
 
-                # We only want to show graphs that either satisfy the existence of a filetype,
-                # or a certain completion code. We do this now.
+                # We only want to show fileset versions that exist and are validated
                 versions = knowledge_graph.get_version_names()
-                filtered_versions = [
-                    version for version in versions if await knowledge_graph.get_file_set(version).is_validated()
-                ]
-                catalog[kg_id] = dict()
-                catalog[kg_id]['name'] = knowledge_graph.get_name()
-                catalog[kg_id]['versions'] = filtered_versions
+                filtered_versions = []
+                for version in versions:
+                    fileset = knowledge_graph.get_file_set(version)
+                    if not fileset:
+                        logger.warning(f"get_kg_entries(): unknown fileset version '{version}'... skipping")
+                    elif await fileset.is_validated():
+                        filtered_versions.append(version)
+    
+                if filtered_versions:
+                    catalog[kg_id] = dict()
+                    catalog[kg_id]['name'] = knowledge_graph.get_name()
+                    catalog[kg_id]['versions'] = filtered_versions
 
         return catalog
 
