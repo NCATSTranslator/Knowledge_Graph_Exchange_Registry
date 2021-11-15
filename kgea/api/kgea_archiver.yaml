@@ -205,12 +205,24 @@ components:
           description: >-
             Token tracking the status of post-processing of a KGE File Set.
           type: string
+        kg_id:
+          description: >-
+            Knowledge Graph identifier of the KGE File Set being processed.
+          type: string
+          example: "my-great-knowledge-graph"
+        fileset_version:
+          description: >-
+            Semantic versioning of the version of the KGX File Set being processed.
+          type: string
+          example: "1.0"
         status:
           description: >-
             Code for status of post-processing of a KGE File Set.
           $ref: '#/components/schemas/ProcessStatusCode'
       required:
         - status_token
+        - kg_id
+        - fileset_version
         - status
       additionalProperties: false
     ProcessStatusCode:
@@ -223,6 +235,7 @@ components:
         - Completed
         - Error
         - Unknown
+      example: "Completed"
     KgeFileSetStatusCode:
       description: >-
         Code for status of processing for a KGE File Set.
