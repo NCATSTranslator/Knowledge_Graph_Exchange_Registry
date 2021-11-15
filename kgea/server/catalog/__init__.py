@@ -62,7 +62,8 @@ from kgea.config import (
     get_app_config,
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE,
-    FILESET_TO_ARCHIVER, FILESET_ARCHIVER_STATUS
+    FILESET_TO_ARCHIVER,
+    FILESET_ARCHIVER_STATUS
 )
 
 from kgea.server.web_services.models import (
@@ -563,7 +564,7 @@ class KgeFileSet:
                 # "errors": []
             }
 
-    async def _post_fileset_to_archiver(self, fileset_payload: Dict) -> Optional[str]:
+    async def _post_fileset_to_archiver(self, fileset_payload: Dict):
 
         logger.debug(f"_post_fileset_to_archiver(fileset_payload:\n{fileset_payload}")
 
@@ -580,10 +581,8 @@ class KgeFileSet:
                 logger.debug(f"{msg_prefix} 'json': {result}")
                 if "process_token" in result:
                     self.process_token = result["process_token"]
-                return self.process_token
         except Exception as e:
             logger.error(f"_post_fileset_to_archiver() exception: {str(e)}")
-            return None
             
     async def _get_fileset_processing_status(self, process_token: str):
         
@@ -611,11 +610,18 @@ class KgeFileSet:
                     f"!= current kd_id '{self.kg_id}' ... skipping!"
                 )
                 return
-            
+
             if result["fileset_version"] != self.fileset_version:
                 logger.error(
                     f"_{msg_prefix} result kg_id '{result['fileset_version']}' "
                     f"!= current kd_id '{self.fileset_version}' ... skipping!"
+                )
+                return
+
+            if result["process_token"] != self.process_token:
+                logger.error(
+                    f"{msg_prefix} : result process_token '{result['process_token']}' "
+                    f"!= current process_token '{self.process_token}' ... skipping!"
                 )
                 return
 
@@ -630,7 +636,7 @@ class KgeFileSet:
     ##########################################
     # KGE FileSet Publication to the Archive #
     ##########################################
-    async def publish(self) -> Optional[str]:
+    async def publish(self):
         """
         After a file_set is uploaded, publish file set in the Archive
         after post-processing the file set, including generation of the
@@ -644,7 +650,7 @@ class KgeFileSet:
         # Publication of the file_set.yaml is delegated
         # to the kgea.server.archiver microservice task
         fileset_payload = self.to_json_obj()
-        return await self._post_fileset_to_archiver(fileset_payload)
+        await self._post_fileset_to_archiver(fileset_payload)
 
     async def confirm_kgx_data_file_set_validation(self):
         """
