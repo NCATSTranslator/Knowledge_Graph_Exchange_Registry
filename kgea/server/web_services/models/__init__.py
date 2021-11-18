@@ -13,3 +13,4 @@ from kgea.server.web_services.models.meta_knowledge_graph import MetaKnowledgeGr
 from kgea.server.web_services.models.meta_node import MetaNode
 from kgea.server.web_services.models.upload_progress_token import UploadProgressToken
 from kgea.server.web_services.models.upload_token_object import UploadTokenObject
+from kgea.server.web_services.models.kge_upload_progress_status_code import KgeUploadProgressStatusCode

@@ -2,7 +2,6 @@
 Test Parameters + Decorator
 """
 from sys import stderr
-from os import getenv
 from functools import wraps
 
 import logging
@@ -50,10 +49,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
 progress_tracking_on = True
-
-# Running the PyTests in DEV_MODE suppresses deletion of files in S3
-# Useful for debugging the tests
-DEV_MODE = getenv('DEV_MODE', default=False)
 
 
 def prepare_test_random_object_location(func):

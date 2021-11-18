@@ -2,7 +2,6 @@
 KGE Web User Interface Application Code package.
 """
 from os import getenv, path
-import logging
 
 from kgea.server.kgea_session import KgeaSession
 
@@ -24,6 +23,9 @@ from .kgea_ui_handlers import (
     get_kge_fileset_submitted,
     get_kge_data_unavailable
 )
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 async def make_app():
@@ -79,12 +81,6 @@ def main():
     """
     Main application entry point.
     """
-    # Master flag for local development runs bypassing
-    # authentication and other production processes
-    DEV_MODE = getenv('DEV_MODE', default=False)
-    
-    if DEV_MODE:
-        logging.basicConfig(level=logging.DEBUG)
 
     web.run_app(make_app(), port=8090)
 

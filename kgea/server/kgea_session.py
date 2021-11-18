@@ -7,7 +7,6 @@ async def handler(request):
     text = 'Last visited: {}'.format(last_visit)
     return web.Response(text=text)
 """
-from os import getenv
 from typing import Dict
 import pprint
 
@@ -20,7 +19,7 @@ from aiohttp import web, ClientSession
 from aiohttp_session import AbstractStorage, setup, new_session, get_session, Session
 from multidict import MultiDict
 
-from kgea.config import get_app_config, HOME_PAGE
+from kgea.config import DEV_MODE, get_app_config, HOME_PAGE
 from kgea.server.kgea_user_roles import (
     KGE_USER_ROLE,
     DEFAULT_KGE_USER_ROLE
@@ -28,9 +27,6 @@ from kgea.server.kgea_user_roles import (
 
 import logging
 logger = logging.getLogger(__name__)
-
-# Master flag for simplified local development
-DEV_MODE = getenv('DEV_MODE', default=False)
 
 
 class KgeaSession:
@@ -158,7 +154,7 @@ async def initialize_user_session(request, uid: str = None, user_attributes: Dic
             logger.debug(f"initialize_user_session(): user_attributes:\n{pprint.pp(user_attributes, indent=4)}")
             session['username'] = user_attributes.setdefault("username", 'anonymous')
             session['name'] = user_attributes.setdefault("given_name", '') + ' ' + \
-                              user_attributes.setdefault("family_name", 'anonymous')
+                user_attributes.setdefault("family_name", 'anonymous')
             session['email'] = user_attributes.setdefault("email", '')
             session['user_role'] = int(user_attributes.setdefault(KGE_USER_ROLE, DEFAULT_KGE_USER_ROLE))
 

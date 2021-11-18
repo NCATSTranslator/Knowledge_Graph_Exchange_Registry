@@ -1,9 +1,10 @@
-# Putative KGX Docker Process...
-# not sure how this will work in practice?
 FROM python:3.8
 
 RUN python -m pip install --upgrade pip && pip install wheel
 RUN pip install --no-cache-dir -r requirements.txt
+
+ENV DOCKER_RUNNING 1
+ENV DEV_MODE 0
 
 EXPOSE 8100
 

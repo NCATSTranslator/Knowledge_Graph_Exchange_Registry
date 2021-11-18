@@ -59,6 +59,8 @@ from github.GithubException import UnknownObjectException, BadCredentialsExcepti
 from kgx.validator import Validator
 
 from kgea.config import (
+    get_flag,
+    DEV_MODE,
     get_app_config,
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE,
@@ -89,11 +91,9 @@ from kgea.server.kgea_file_ops import (
 import logging
 logger = logging.getLogger(__name__)
 
-DEV_MODE = getenv('DEV_MODE', default=False)
 OVERRIDE = True
-
-RUN_TESTS = getenv('RUN_TESTS', default=False)
-CLEAN_TESTS = getenv('CLEAN_TESTS', default=False)
+RUN_TESTS = get_flag('RUN_TESTS')
+CLEAN_TESTS = get_flag('CLEAN_TESTS')
 
 
 def prepare_test(func):

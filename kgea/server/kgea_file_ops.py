@@ -10,7 +10,6 @@ Stress test using SRI SemMedDb: https://github.com/NCATSTranslator/semmeddb-biol
 from sys import stderr
 from typing import Union, List, Tuple, Dict, Optional
 from subprocess import Popen, PIPE
-from os import getenv
 from os.path import sep, splitext, dirname, abspath
 import io
 
@@ -41,6 +40,7 @@ from boto3.s3.transfer import TransferConfig
 from kgea.aws.assume_role import AssumeRole, aws_config
 
 from kgea.config import (
+    DEV_MODE,
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE
 )
@@ -48,9 +48,6 @@ from kgea.config import (
 logger = logging.getLogger(__name__)
 
 pp = PrettyPrinter(indent=4, stream=stderr)
-
-# Master flag for local development, usually when code is not run inside an EC2 server
-DEV_MODE = getenv('DEV_MODE', default=False)
 
 s3_config = aws_config['s3']
 default_s3_region = s3_config['region']

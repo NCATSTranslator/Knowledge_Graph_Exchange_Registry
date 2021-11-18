@@ -2,7 +2,6 @@
 KGE Archive OAuth2 User Authentication/Authorization Workflow (based on AWS Cognito)
 """
 import sys
-from os import getenv
 from typing import Dict
 
 from pprint import PrettyPrinter
@@ -14,7 +13,7 @@ import json
 from base64 import b64encode
 from uuid import uuid4
 
-from kgea.config import get_app_config
+from kgea.config import DEV_MODE, get_app_config
 from kgea.server.kgea_session import KgeaSession
 from kgea.server.kgea_user_roles import (
     KGE_USER_TEAM,
@@ -27,9 +26,6 @@ from kgea.server.kgea_user_roles import (
 logger = logging.getLogger(__name__)
 
 pp = PrettyPrinter(indent=4)
-
-# Master flag for simplified local development
-DEV_MODE = getenv('DEV_MODE', default=False)
 
 _KGEA_APP_CONFIG = get_app_config()
 

@@ -8,6 +8,8 @@ services:
       dockerfile: ./kgea/server/KGEA_UI_Dockerfile
     ports:
     - "8090:8090"
+    environment:
+      DEV_MODE: ${DEV_MODE}
     networks:
     - default
 
@@ -17,6 +19,8 @@ services:
       dockerfile: ./kgea/server/KGEA_Web_Server_Dockerfile
     ports:
     - "8080:8080"
+    environment:
+      DEV_MODE: ${DEV_MODE}
     networks:
     - default
 
@@ -26,6 +30,8 @@ services:
       dockerfile: ./kgea/server/KGEA_Archiver_Dockerfile
     ports:
       - "8100:8100"
+    environment:
+      ARCHIVER_DEV_MODE: ${ARCHIVER_DEV_MODE}
     networks:
     - default
 

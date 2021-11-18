@@ -237,14 +237,23 @@ pipenv install -r requirements-dev.txt
 
 ### The Web User interface
 
-```python
-DEV_MODE=1 python -m kgea.server.web_ui
+```
+export DEV_MODE=1
+python -m kgea.server.web_ui
 ```
 
 ### Back End Web Services
 
-```python
-DEV_MODE=1 python -m kgea.server.web_services
+```
+export DEV_MODE=1
+python -m kgea.server.web_services
+```
+
+### Back End Archiver Services
+
+```
+export ARCHIVER_DEV_MODE=1 
+python -m kgea.server.archiver
 ```
 
 # Running the Application within a Docker Container

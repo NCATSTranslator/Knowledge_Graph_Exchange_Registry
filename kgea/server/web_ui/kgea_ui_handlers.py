@@ -2,8 +2,6 @@
 KGE Archive Back End Web Services Handlers
 """
 from typing import List, Dict
-from os import getenv
-import logging
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -16,6 +14,7 @@ import aiohttp_jinja2
 from aiohttp_session import get_session
 
 from kgea.config import (
+    DEV_MODE,
     get_app_config,
     
     BACKEND,
@@ -30,7 +29,6 @@ from kgea.config import (
     UPLOAD_FILE,
     DIRECT_URL_TRANSFER,
     CANCEL_UPLOAD,
-    FILESET_ARCHIVER_STATUS,
 
     get_fileset_metadata_url,
     get_meta_knowledge_graph_url,
@@ -55,11 +53,8 @@ from .kgea_users import (
 )
 from kgea.server.kgea_file_ops import get_default_date_stamp, get_fileset_versions_available
 
-# Master flag for local development runs bypassing authentication and other production processes
-DEV_MODE = getenv('DEV_MODE', default=False)
-
+import logging
 logger = logging.getLogger(__name__)
-logger.setLevel('DEBUG')
 
 # Opaquely access the configuration dictionary
 _KGEA_APP_CONFIG = get_app_config()

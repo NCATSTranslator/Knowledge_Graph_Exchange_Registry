@@ -3,19 +3,21 @@ Knowledge Graph Exchange Archive backend web service handlers.
 """
 from os import getenv, path
 from pathlib import Path
-from typing import Dict, Tuple, Any, Optional
+from typing import Dict, Tuple, Any
 import logging
 
 import uuid
 import time
 
-from .models import (
+from kgea.config import DEV_MODE
+from kgea.aws.assume_role import AssumeRole
+from kgea.server.web_services.models import (
     KgeMetadata,
     UploadTokenObject,
-    UploadProgressToken, KgeFileSetStatusCode
+    UploadProgressToken,
+    KgeFileSetStatusCode,
+    KgeUploadProgressStatusCode
 )
-from .models.kge_upload_progress_status_code import KgeUploadProgressStatusCode
-from ...aws.assume_role import AssumeRole
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -83,9 +85,6 @@ logger = logging.getLogger(__name__)
 #############################################################
 # Configuration
 #############################################################
-
-# Master flag for local development runs bypassing authentication and other production processes
-DEV_MODE = getenv('DEV_MODE', default=False)
 
 # This is likely invariant almost forever unless new types of
 # KGX data files will eventually be added, i.e. 'attributes'(?)

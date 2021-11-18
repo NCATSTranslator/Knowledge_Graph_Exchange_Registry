@@ -9,11 +9,21 @@ except ImportError:
     from yaml import Loader, Dumper
 
 import logging
+logger = logging.getLogger(__name__)
+
+
+def get_flag(name):
+    value = getenv(name, default=0)
+    value = int(value) if value else 0
+    logger.debug(f"{name}=={not (not value)}")
+    return value
 
 
 # Master flag for local development runs bypassing
 # authentication and other production processes
-DEV_MODE = getenv('DEV_MODE', default=False)
+DEV_MODE = get_flag('DEV_MODE')
+ARCHIVER_DEV_MODE = get_flag('ARCHIVER_DEV_MODE')
+DOCKER_RUNNING = get_flag('DOCKER_RUNNING')
 
 # the following config file should be visible in the 'kgea/config' subdirectory, as
 # copied from the available template and populated with site-specific configuration values
@@ -83,8 +93,9 @@ def _load_app_config() -> dict:
                 if DEV_MODE:
                     logging.warning(
                         "Github credentials are missing inside the application config.yaml file?\n" +
-                        "These to be set for publication of KGE file set entries to the Translator Registry.\n"
-                        "Assume that you don't care... thus, the application will still run (only in DEV_MODE)."
+                        "These to be set for publication of KGE file set entries to the Translator Registry.\n" +
+                        "Assume that you don't care... thus, the application will still run " +
+                        "(only in DEV_MODE)."
                     )
                 else:
                     raise RuntimeError(
@@ -136,12 +147,18 @@ if DEV_MODE:
     # Point to http://localhost:8080 for backend archive web service endpoints
     BACKEND = "http://localhost:8080/" + BACKEND_PATH
 
-    ARCHIVER = "http://localhost:8100/" + ARCHIVER_PATH
+    if DOCKER_RUNNING:
+        ARCHIVER = "http://archiver:8100/" + ARCHIVER_PATH
+    else:
+        ARCHIVER = "http://localhost:8100/" + ARCHIVER_PATH
 else:
     # Production NGINX resolves relative paths otherwise?
     FRONTEND = "/"
     BACKEND = FRONTEND + BACKEND_PATH
-    ARCHIVER = FRONTEND + ARCHIVER_PATH
+    if DOCKER_RUNNING:
+        ARCHIVER = "http://archiver:8100/" + ARCHIVER_PATH
+    else:
+        ARCHIVER = FRONTEND + ARCHIVER_PATH
 
 ##################################################
 # Frontend Web Service Endpoints - all GET calls #

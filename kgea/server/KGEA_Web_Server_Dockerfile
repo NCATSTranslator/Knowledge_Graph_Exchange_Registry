@@ -3,6 +3,9 @@ FROM python:3.8
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
+ENV DOCKER_RUNNING 1
+ENV DEV_MODE 0
+
 RUN apt-get update && apt-get upgrade -y && apt-get install -y build-essential git python3-lxml
 RUN python -m pip install --upgrade pip && python -m pip install wheel
 

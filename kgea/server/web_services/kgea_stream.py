@@ -1,7 +1,6 @@
 """
 KGE Archive data file streaming.
 """
-from os import getenv
 from typing import List, Dict
 
 import logging
@@ -18,6 +17,7 @@ from collections.abc import AsyncIterable
 import boto3
 from botocore.exceptions import ClientError
 
+from kgea.config import get_flag
 from kgea.server.kgea_file_ops import (
     get_object_location,
     object_keys_in_location,
@@ -29,9 +29,7 @@ from kgea.server.kgea_file_ops import s3_client
 
 from kgea.server.kgea_session import KgeaSession
 
-# Master flag for local development runs bypassing authentication and other production processes
-DEV_MODE = getenv('DEV_MODE', default=False)
-RUN_TESTS = getenv('RUN_TESTS', default=False)
+RUN_TESTS = get_flag('RUN_TESTS')
 
 logger = logging.getLogger(__name__)
 

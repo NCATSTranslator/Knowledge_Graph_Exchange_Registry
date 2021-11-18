@@ -2,24 +2,19 @@
 Archiver service API handlers
 """
 import json
-from os import getenv
 from pathlib import PurePosixPath
 
 from aiohttp import web
 
+from kgea.config import ARCHIVER_DEV_MODE
 from kgea.server.archiver.kge_archiver_status import get_process_status
 from kgea.server.archiver.models import KgeFileSetMetadata, ProcessStatus
 from kgea.server.archiver.kge_archiver_util import KgeArchiver
-
-import logging
-
 from kgea.server.catalog import KgeFileType, KgeFileSet
 from kgea.server.kgea_session import report_bad_request
 
+import logging
 logger = logging.getLogger(__name__)
-
-# Master flag for simplified local development
-DEV_MODE = getenv('DEV_MODE', default=False)
 
 
 def _load_kge_file_set(metadata: KgeFileSetMetadata):
@@ -66,7 +61,7 @@ async def process_kge_fileset(request: web.Request, metadata: KgeFileSetMetadata
 
     process_token: str = "None"
 
-    if not DEV_MODE:
+    if not ARCHIVER_DEV_MODE:
         try:
             archiver: KgeArchiver = KgeArchiver.get_archiver()
             process_token = await archiver.process(file_set)
@@ -74,7 +69,7 @@ async def process_kge_fileset(request: web.Request, metadata: KgeFileSetMetadata
             msg = f"kge_archiver(): {str(error)}"
             await report_bad_request(request, msg)
     else:
-        # DEV_MODE test stub
+        # ARCHIVER_DEV_MODE test stub
         process_token = "Testing-1-2-3"
         json_string = json.dumps(file_set.to_json_obj(), indent=4)
         logger.debug(f"Stub Archiver processing KGX File Set:\n{json_string}")
