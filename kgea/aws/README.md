@@ -20,6 +20,9 @@
     - [SNS Configuration](#sns-configuration)
         - [SNS Access Policy for the KGE Archive Server](#sns-access-policy-for-the-kge-archive-server)
         - [Configuring SNS from the Command Line, using STS AssumeRole permissions](#configuring-sns-from-the-command-line-using-sts-assumerole-permissions)
+- [KGE AWS Utility Modules](#kge-aws-utility-modules)
+    - [S3 Script](#s3-script)
+    - [Cognito Script](#cognito-script)
 
 ## Overview
 
@@ -161,4 +164,26 @@ T.B.A
 
 # KGE AWS Utility Modules
 
-Various utility AWS CLI modules (available in the **kgea.aws** package of the project) may be used the KGEA config.yaml configurations for AWS IAM, S3, EC2, Cognito, etc. operations, to access a given KGE Archive site.  For example, the [S3 module](s3.py) permits administrative access the back end KGE archive bucket contents. The [Cognito module](cognito.py) can halp administrative maintenance of the KGE user auth/auth system  (e.g. to (re-)set User_Role attributes of registered users)
+Various utility AWS CLI modules (available in the **kgea.aws** package of the project) may be used the KGEA config.yaml configurations for AWS IAM, S3, EC2, Cognito, etc. operations, to access a given KGE Archive site.  
+
+## S3 Script
+
+The [S3 module](s3.py) is a well-developed script that provides administrative access the back end KGE archive bucket contents. To generally see all the available commands, type:
+
+```shell
+python -m kgea.aws.s3 --help
+```
+
+Additional usage help on subcommands is provided in a similar fashion.  For example, for the `copy` command:
+
+```shell
+python -m kgea.aws.s3 copy --help
+```
+
+## Cognito Script
+
+The [Cognito script](cognito.py) can help administrative maintenance of the KGE user auth/auth system  (e.g. to (re-)set User_Role attributes of registered users). See usage by:
+
+```shell
+python -m kgea.aws.cognito --help
+```
