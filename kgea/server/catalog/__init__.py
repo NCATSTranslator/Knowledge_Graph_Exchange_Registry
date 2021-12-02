@@ -1454,10 +1454,9 @@ class KnowledgeGraphCatalog:
                     elif await fileset.is_validated():
                         filtered_versions.append(version)
     
-                if filtered_versions:
-                    catalog[kg_id] = dict()
-                    catalog[kg_id]['name'] = knowledge_graph.get_name()
-                    catalog[kg_id]['versions'] = filtered_versions
+                catalog[kg_id] = dict()
+                catalog[kg_id]['name'] = knowledge_graph.get_name()
+                catalog[kg_id]['versions'] = filtered_versions
 
         return catalog
 

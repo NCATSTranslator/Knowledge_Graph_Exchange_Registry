@@ -14,8 +14,7 @@ from kgea.config import (
     CONTENT_METADATA_FILE,
     get_app_config
 )
-from kgea.aws.assume_role import aws_config
-
+from kgea.aws.assume_role import the_role, aws_config
 from kgea.server import print_error_trace, run_script
 from kgea.server.archiver.kge_archiver_status import init_process_status, set_process_status
 from kgea.server.archiver.models import ProcessStatusCode
@@ -112,7 +111,8 @@ async def compress_fileset(
     try:
         return_code = await run_script(
             script=_KGEA_ARCHIVER_SCRIPT,
-            args=(bucket, root, kg_id, version)
+            args=(bucket, root, kg_id, version),
+            env=the_role.get_aws_env()
         )
         logger.info(f"Finished archive script build {s3_archive_key}, return code: {str(return_code)}")
 
@@ -176,6 +176,7 @@ async def extract_data_archive(
                 "file_size": str(file_size),
                 "object_key": file_object_key
             })
+
     try:
         return_code = await run_script(
             script=_KGEA_EDA_SCRIPT,
@@ -186,6 +187,7 @@ async def extract_data_archive(
                 file_set_version,
                 archive_filename
             ),
+            env=the_role.get_aws_env(),
             stdout_parser=output_parser
         )
         logger.debug(f"Completed extract_data_archive({archive_filename}.tar.gz), with return code {str(return_code)}")
@@ -469,6 +471,7 @@ class KgeArchiver:
                 logger.debug("Compressing total KGE file set...")
 
                 try:
+                    # TODO: does the s3_archive_key need to be persisted anywhere?
                     s3_archive_key: str = await compress_fileset(
                         kg_id=file_set.get_kg_id(),
                         version=file_set.get_fileset_version()

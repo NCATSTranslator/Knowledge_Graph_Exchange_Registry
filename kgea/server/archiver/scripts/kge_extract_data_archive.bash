@@ -32,13 +32,18 @@ tar=$(which tar)
 
 # the --quiet switch suppresses AWS command output. Might wish to control this external to this script?
 #
-aws_flags=--quiet
+# aws_flags=--quiet
 
 # AWS command (can be tweaked if problematic, e.g. under Windows?)
 if [[ "$OSTYPE" == "cygwin" ]]; then
         aws=$(which aws.cmd)
 else
         aws=$(which aws)
+fi
+
+if [[ -z "${aws}" ]]; then
+    # last ditch effort to find the AWS CLI
+    aws="/usr/local/bin/aws"
 fi
 
 if [[ ! -f ${aws} ]]; then
@@ -101,8 +106,8 @@ if [[ -z "${5}" ]]; then
     usage
 else
     # Archive file name
-    archive_filename="${5}"
-    echo "Archive file name: ${archive_filename}.tar.gz"
+    archive_base_name="${5}"
+    echo "Archive file name: ${archive_base_name}.tar.gz"
 fi
 
 # Folder of given versioned file set of the Knowledge Graph
@@ -115,7 +120,8 @@ s3_uri="s3://${bucket}/${file_set_key_prefix}"
 echo "Base S3 URI: ${s3_uri}"
 
 # Archive file to be extracted
-archive_object_key="${s3_uri}/${archive_filename}.tar.gz"
+archive_filename="${archive_base_name}.tar.gz"
+archive_object_key="${s3_uri}/${archive_filename}"
 
 echo
 echo "Beginning extraction of '${archive_object_key}'"
@@ -125,17 +131,23 @@ echo "Beginning extraction of '${archive_object_key}'"
 workdir=archive_$(date +%s)
 mkdir "${workdir}"
 cd "${workdir}" || exit 3
+echo "Current working directory: '$(pwd)'"
 
 # STEP 1 - download the tar.gz archive to the local working directory
 echo
 echo "Downloading '${archive_object_key}' data archive:"
-$aws s3 cp "${aws_flags}" "${archive_object_key}" .
+if [[ -z "${aws_flags}" ]]; then
+    $aws s3 cp "${archive_object_key}" "${archive_filename}"
+else
+    $aws s3 cp "${aws_flags}" "${archive_object_key}" "${archive_filename}"
+fi
+
+echo "Files in current working directory: '$(ls -l *)'"
 
 # STEP 2 - gunzip the archive
-gz_file=$(ls *.gz)  # hopefully, just one file?
 echo
-echo "Decompressing '${gz_file}'"
-$gunzip "${gz_file}"
+echo "Decompressing '${archive_filename}'"
+$gunzip "${archive_filename}"
 
 # STEP 3 - extract the tarfile for identification and later uploading
 tar_file=$(ls *.tar)  # hopefully, just one file?

@@ -3,7 +3,7 @@
 #####################################################
 import traceback
 from sys import exc_info, stderr
-from typing import Tuple, List
+from typing import Tuple, List, Optional, Mapping
 from subprocess import Popen, PIPE, STDOUT
 import logging
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def run_script(
         script,
         args: Tuple = (),
-        # env: Optional = None
+        env: Optional[Mapping[str, str]] = None,
         stdout_parser=None
 ) -> int:
     """
@@ -24,7 +24,8 @@ async def run_script(
 
     :param script: full OS path to the executable script.
     :param args: command line arguments for the script
-    :param stdout_parser: (optional) single string argument function to parse lines piped back from stdout of the script
+    :param env: dictionary of environment variables to be set (Optional)
+    :param stdout_parser: (optional) single string arg function, to parse lines piped back from stdout of the script
     :return: return code of the script
     """
     cmd: List = list()
@@ -35,7 +36,7 @@ async def run_script(
     try:
         with Popen(
                 args=cmd,
-                # env=env,
+                env=env,
                 bufsize=1,
                 universal_newlines=True,
                 stdout=PIPE,

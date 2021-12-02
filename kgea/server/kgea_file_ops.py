@@ -37,7 +37,7 @@ except ImportError:
 from botocore.config import Config
 from boto3.s3.transfer import TransferConfig
 
-from kgea.aws.assume_role import AssumeRole, aws_config
+from kgea.aws.assume_role import aws_config, the_role
 
 from kgea.config import (
     DEV_MODE,
@@ -175,12 +175,6 @@ def get_url_file_size(url: str) -> int:
 ################################################
 # Wrapper for AWS IAM Role for the Application #
 ################################################
-
-# Obtain an AWS Clients using an Assumed IAM Role
-# with default parameters (loaded from config.yaml)
-#
-the_role = AssumeRole()
-
 
 ############################
 # AWS S3 client operations #

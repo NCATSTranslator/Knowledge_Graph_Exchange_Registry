@@ -17,6 +17,7 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 # We selectively copy the project into the image
 # so as not to bloat it with unused code
 COPY kgea/__init__.py ./kgea/
+COPY kgea/api/*.yaml ./kgea/api/
 COPY kgea/aws/*.py ./kgea/aws/
 COPY kgea/config/ ./kgea/config/
 COPY kgea/server/*.py ./kgea/server/

@@ -1,15 +1,12 @@
 """
 Core AWS AssumeRole configuration
 """
-#!/usr/bin/env python
 from typing import Dict, Tuple, Optional
-# from os import getenv
 from os.path import expanduser
 
 from datetime import datetime
 
 from json import dumps
-# import configparser
 
 import boto3
 from botocore.config import Config
@@ -212,6 +209,7 @@ class AssumeRole:
 
     def get_resource(self, service, **kwargs):
         """
+        Get resource client for specified service.
 
         :param service:
         :param kwargs:
@@ -229,3 +227,28 @@ class AssumeRole:
                     aws_session_token=credentials["sessionToken"]
                 )
             return self.aws_session.resource(service_name=service, **kwargs)
+
+    def get_aws_credentials(self) -> Dict[str, str]:
+        credentials, _ = self.get_credentials_dict()
+        return {
+           "AWS_ACCESS_KEY_ID": credentials["sessionId"],
+           "AWS_SECRET_ACCESS_KEY": credentials["sessionKey"]
+        }
+
+    @staticmethod
+    def get_aws_default_region() -> str:
+        return aws_config["s3"]["region"]
+
+    def get_aws_env(self) -> Dict[str, str]:
+        credentials = self.get_aws_credentials()
+        return {
+            "AWS_ACCESS_KEY_ID": credentials["AWS_ACCESS_KEY_ID"],
+            "AWS_SECRET_ACCESS_KEY":  credentials["AWS_SECRET_ACCESS_KEY"],
+            "AWS_DEFAULT_REGION": self.get_aws_default_region()
+        }
+
+
+# Obtain an AWS Clients using an Assumed IAM Role
+# with default parameters (loaded from config.yaml)
+#
+the_role = AssumeRole()
