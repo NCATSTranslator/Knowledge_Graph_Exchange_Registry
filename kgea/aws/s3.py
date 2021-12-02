@@ -28,11 +28,11 @@ logger = logging.getLogger(__name__)
 HELP = "help"
 UPLOAD = "upload"
 BATCH_UPLOAD = "batch-upload"
-DOWNLOAD = "download"
-BATCH_DOWNLOAD = "batch-download"
 LIST = "list"
 COPY = "copy"
-REMOTE_COPY = "remote-copy"
+DOWNLOAD = "download"
+BATCH_DOWNLOAD = "batch-download"
+# REMOTE_COPY = "remote-copy"
 DELETE = "delete"
 BATCH_DELETE = "batch-delete"
 BATCH_COPY = "batch-copy"
@@ -40,8 +40,8 @@ BATCH_COPY = "batch-copy"
 
 helpdoc = Help(
     default_usage=f"\tpython -m kgea.aws.'{Path(argv[0]).stem}' <operation> [<object_key>+|<prefix_filter>]\n\n" +
-                  "where <operation> is one of upload, batch-upload, list, copy, "
-                  "download, batch-download, delete, batch-delete and test.\n"
+                  f"where <operation> is one of {HELP}, {UPLOAD}, {BATCH_UPLOAD}, {LIST}, {COPY}, {DOWNLOAD}, "
+                  f"{BATCH_DOWNLOAD}, {DELETE}, {BATCH_DELETE} or {BATCH_COPY}.\n"
 )
 
 
@@ -624,91 +624,91 @@ if __name__ == '__main__':
                     }
                 )
 
-        elif s3_operation.lower() == REMOTE_COPY:
-    
-            if len(argv) >= 4:
-        
-                source_key = argv[2]
-                target_key = argv[3]
-        
-                #
-                # The 'target' client and possibly, the target bucket
-                # (if not given as the 3rd CLI arguments after the 'copy' command)
-                # are configured here using "s3_remote" settings as provided
-                # from the application's config.yaml file.
-                #
-                target_client = None
-                target_s3_bucket_name = None
-            
-                if "s3_remote" not in aws_config or \
-                    not all(
-                        [
-                            tag in aws_config["s3_remote"]
-                            for tag in [
-                                'guest_external_id',
-                                'host_account',
-                                'iam_role_name',
-                                'archive-directory',
-                                'bucket',
-                                'region'
-                            ]
-                        ]):
-                    
-                    helpdoc.usage(
-                        err_msg="Remote copy(): 's3_remote' settings in 'config.yaml' are missing or incomplete?"
-                    )
-            
-                    target_assumed_role = AssumeRole(
-                        host_account=aws_config["s3_remote"]['host_account'],
-                        guest_external_id=aws_config["s3_remote"]['guest_external_id'],
-                        iam_role_name=aws_config["s3_remote"]['iam_role_name']
-                    )
-            
-                    target_client = \
-                        target_assumed_role.get_client(
-                            's3',
-                            config=Config(
-                                signature_version='s3v4',
-                                region_name=aws_config["s3_remote"]["region"]
-                            )
-                        )
-                    
-                    assert target_client
-                    
-                    target_s3_bucket_name = aws_config["s3_remote"]["bucket"]
-        
-                # Default remote target bucket name may also be overridden on the command line
-                target_s3_bucket_name = argv[4] if len(argv) >= 5 else target_s3_bucket_name
-        
-                if not target_s3_bucket_name:
-                    helpdoc.usage(
-                        err_msg="Remote copy(): missing the target s3 bucket name?",
-                        command=REMOTE_COPY,
-                        args={
-                            "<source key>": "key of source object from which to copy",
-                            "<target key>": "key of target object to which to copy",
-                            "[<target bucket>]?": "(optional) target bucket name (default: source bucket)"
-                        }
-                    )
-                
-                remote_copy(
-                    source_key=source_key,
-                    target_key=target_key,
-                    source_bucket=s3_bucket_name,
-                    target_bucket=target_s3_bucket_name,
-                    source_client=local_s3_client,
-                    target_client=target_client
-                )
-            else:
-                helpdoc.usage(
-                    err_msg="Remote copy(): missing a 'source' and/or 'target' key?",
-                    command=REMOTE_COPY,
-                    args={
-                        "<source key>": "key of source object from which to copy",
-                        "<target key>": "key of target object to which to copy",
-                        "[<target bucket>]?": "(optional) target bucket name (default: source bucket)"
-                    }
-                )
+        # elif s3_operation.lower() == REMOTE_COPY:
+        #
+        #     if len(argv) >= 4:
+        #
+        #         source_key = argv[2]
+        #         target_key = argv[3]
+        #
+        #         #
+        #         # The 'target' client and possibly, the target bucket
+        #         # (if not given as the 3rd CLI arguments after the 'copy' command)
+        #         # are configured here using "s3_remote" settings as provided
+        #         # from the application's config.yaml file.
+        #         #
+        #         target_client = None
+        #         target_s3_bucket_name = None
+        #
+        #         if "s3_remote" not in aws_config or \
+        #             not all(
+        #                 [
+        #                     tag in aws_config["s3_remote"]
+        #                     for tag in [
+        #                         'guest_external_id',
+        #                         'host_account',
+        #                         'iam_role_name',
+        #                         'archive-directory',
+        #                         'bucket',
+        #                         'region'
+        #                     ]
+        #                 ]):
+        #
+        #             helpdoc.usage(
+        #                 err_msg="Remote copy(): 's3_remote' settings in 'config.yaml' are missing or incomplete?"
+        #             )
+        #
+        #             target_assumed_role = AssumeRole(
+        #                 host_account=aws_config["s3_remote"]['host_account'],
+        #                 guest_external_id=aws_config["s3_remote"]['guest_external_id'],
+        #                 iam_role_name=aws_config["s3_remote"]['iam_role_name']
+        #             )
+        #
+        #             target_client = \
+        #                 target_assumed_role.get_client(
+        #                     's3',
+        #                     config=Config(
+        #                         signature_version='s3v4',
+        #                         region_name=aws_config["s3_remote"]["region"]
+        #                     )
+        #                 )
+        #
+        #             assert target_client
+        #
+        #             target_s3_bucket_name = aws_config["s3_remote"]["bucket"]
+        #
+        #         # Default remote target bucket name may also be overridden on the command line
+        #         target_s3_bucket_name = argv[4] if len(argv) >= 5 else target_s3_bucket_name
+        #
+        #         if not target_s3_bucket_name:
+        #             helpdoc.usage(
+        #                 err_msg="Remote copy(): missing the target s3 bucket name?",
+        #                 command=REMOTE_COPY,
+        #                 args={
+        #                     "<source key>": "key of source object from which to copy",
+        #                     "<target key>": "key of target object to which to copy",
+        #                     "[<target bucket>]?": "(optional) target bucket name (default: source bucket)"
+        #                 }
+        #             )
+        #
+        #         remote_copy(
+        #             source_key=source_key,
+        #             target_key=target_key,
+        #             source_bucket=s3_bucket_name,
+        #             target_bucket=target_s3_bucket_name,
+        #             source_client=local_s3_client,
+        #             target_client=target_client
+        #         )
+        #     else:
+        #         helpdoc.usage(
+        #             err_msg="Remote copy(): missing a 'source' and/or 'target' key?",
+        #             command=REMOTE_COPY,
+        #             args={
+        #                 "<source key>": "key of source object from which to copy",
+        #                 "<target key>": "key of target object to which to copy",
+        #                 "[<target bucket>]?": "(optional) target bucket name (default: source bucket)"
+        #             }
+        #         )
 
         elif s3_operation.lower() == DOWNLOAD:
             if len(argv) >= 3:
