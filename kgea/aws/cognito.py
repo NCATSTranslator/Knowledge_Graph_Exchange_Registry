@@ -6,7 +6,7 @@
 # to the AWS Cognito (OAuth2) management service.
 #
 from sys import argv
-from typing import Dict
+from typing import Dict, List
 from pprint import PrettyPrinter
 
 from boto3.exceptions import Boto3Error
@@ -30,16 +30,18 @@ helpdoc = Help(
                   f"'{CREATE_USER}', '{GET_USER_DETAILS}', '{SET_USER_ATTRIBUTE}' or '{DELETE_USER}'\n"
 )
 
-
-TEST_USER = {
-    "username": "translator",
+TEST_USER_NAME = "cognito-test-user"
+TEST_TEMP_PASSWORD = "KGE@_Te5t_U$er#1"
+TEST_USER_ATTRIBUTES = {
     "email": "richard.bruskiewich@cropinformatics.com",
     "family_name": "Lator",
     "given_name": "Trans",
+    "email_verified": "true",
+    "website": "https://ncats.nih.gov",
     "custom:Team": "SRI",
     "custom:Affiliation": "NCATS",
     "custom:Contact_PI": "da Boss",
-    "custom:User_Role": 2  # give this bloke editorial privileges
+    "custom:User_Role": "2"  # give this bloke editorial privileges
 }
 
 
@@ -47,6 +49,7 @@ def create_user(
     client,
     upi: str,
     uid: str,
+    tpw: str,
     attributes: Dict[str, str]
 ):
     """
@@ -54,45 +57,25 @@ def create_user(
     :param client:
     :param upi:
     :param uid:
+    :param tpw: temporary password, 15 characters, with at least one upper, lower, number and symbol
     :param attributes: Dict
     """
+    user_attributes: List[Dict[str, str]] = list()
+    for n, v in attributes.items():
+        user_attributes.append(
+            {
+                "Name": n,
+                "Value": v
+            }
+        )
+
     try:
-        # response = client.admin_create_user(
-        #     UserPoolId='string',
-        #     Username='string',
-        #     UserAttributes=[
-        #         {
-        #             "email": "trans.lator@translator.io",
-        #             "family_name": "Lator",
-        #             "given_name": "Trans",
-        #             "custom:Team": "SRI",
-        #             "custom:Affiliation": "NCATS",
-        #             "custom:Contact_PI": "da Boss",
-        #             "custom:User_Role": 2  # give this bloke editorial privileges
-        #         },
-        #     ],
-        #     ValidationData=[
-        #         {
-        #             'Name': 'string',
-        #             'Value': 'string'
-        #         },
-        #     ],
-        #     TemporaryPassword='string',
-        #     ForceAliasCreation=True|False,
-        #     MessageAction='RESEND'|'SUPPRESS',
-        #     DesiredDeliveryMediums=[
-        #         'SMS'|'EMAIL',
-        #     ],
-        #     ClientMetadata={
-        #         'string': 'string'
-        #     }
-        # )
-        response = client.admin_get_user(
+        response = client.admin_create_user(
             UserPoolId=upi,
             Username=uid,
-            UserAttributes=[
-                attributes
-            ],
+            UserAttributes=user_attributes,
+            TemporaryPassword=tpw,
+            MessageAction='SUPPRESS',
             DesiredDeliveryMediums=['EMAIL'],
         )
         logger.info(f"create_user() response:")
@@ -100,6 +83,19 @@ def create_user(
 
     except Boto3Error as b3e:
         logger.error(f"create_user() exception: {b3e}")
+
+
+def test_create_user():
+    upi: str = aws_config["cognito"]["user-pool-id"]
+    role = AssumeRole()
+    client = role.get_client('cognito-idp')
+    create_user(
+        client=client,
+        upi=upi,
+        uid=TEST_USER_NAME,
+        tpw=TEST_TEMP_PASSWORD,
+        attributes=TEST_USER_ATTRIBUTES
+    )
 
 
 def get_user_details(
@@ -166,7 +162,7 @@ def delete_user(
     :param uid: username to delete
     """
     try:
-        response = client.delete_user(
+        response = client.admin_delete_user(
             UserPoolId=upi,
             Username=uid
         )
@@ -175,6 +171,17 @@ def delete_user(
 
     except Boto3Error as b3e:
         logger.error(f"delete_user() exception: {b3e}")
+
+
+def test_delete_user():
+    upi: str = aws_config["cognito"]["user-pool-id"]
+    role = AssumeRole()
+    client = role.get_client('cognito-idp')
+    delete_user(
+        client=client,
+        upi=upi,
+        uid=TEST_USER_NAME
+    )
 
 
 # Run the module as a CLI
