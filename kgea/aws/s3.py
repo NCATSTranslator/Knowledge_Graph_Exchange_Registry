@@ -755,6 +755,8 @@ if __name__ == '__main__':
                             target_file=filepath
                         )
                         print("Done!")
+                else:
+                    print("Cancelling batch downloading of files...")
             else:
                 helpdoc.usage(
                     err_msg="Missing prefix filter for keys of S3 object(s) to download?",

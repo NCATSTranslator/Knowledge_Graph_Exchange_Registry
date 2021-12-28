@@ -167,7 +167,7 @@ def delete_user(
             Username=uid
         )
         logger.info(f"delete_user() response:")
-        pp.pprint(response)
+        # pp.pprint(response)
 
     except Boto3Error as b3e:
         logger.error(f"delete_user() exception: {b3e}")
@@ -267,12 +267,16 @@ if __name__ == '__main__':
             if len(argv) >= 3:
 
                 username = argv[2]
-
-                delete_user(
-                    client=cognito_client,
-                    upi=user_pool_id,
-                    uid=username
-                )
+                prompt = input(f"\nWarning: deleting user name '{username}' in user pool '{user_pool_id}'? (Type 'delete' again to proceed) ")
+                if prompt.upper() == "DELETE":
+                    delete_user(
+                        client=cognito_client,
+                        upi=user_pool_id,
+                        uid=username
+                    )
+                    print(f"\nUser '{username}' successfully deleted!\n")
+                else:
+                    print("\nCancelling deletion of user...\n")
             else:
                 helpdoc.usage(
                     err_msg=f"{DELETE_USER} needs more arguments",
