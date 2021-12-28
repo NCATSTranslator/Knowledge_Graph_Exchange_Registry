@@ -16,6 +16,7 @@ from kgea.aws.assume_role import AssumeRole, aws_config
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel("DEBUG")
 
 pp = PrettyPrinter(indent=4)
 
@@ -45,6 +46,11 @@ TEST_USER_ATTRIBUTES = {
 }
 
 
+def read_user_attributes(filename: str) -> Dict:
+    mock_ua = TEST_USER_ATTRIBUTES.copy()
+    return mock_ua
+
+
 def create_user(
     client,
     upi: str,
@@ -53,7 +59,7 @@ def create_user(
     attributes: Dict[str, str]
 ):
     """
-
+    Create user with given user name, temporary password and attributes
     :param client:
     :param upi:
     :param uid:
@@ -70,16 +76,17 @@ def create_user(
         )
 
     try:
-        response = client.admin_create_user(
-            UserPoolId=upi,
-            Username=uid,
-            UserAttributes=user_attributes,
-            TemporaryPassword=tpw,
-            MessageAction='SUPPRESS',
-            DesiredDeliveryMediums=['EMAIL'],
-        )
-        logger.info(f"create_user() response:")
-        pp.pprint(response)
+        kwargs: Dict = {
+            "UserPoolId": upi,
+            "Username": uid,
+            "UserAttributes": user_attributes,
+            "MessageAction":'SUPPRESS',
+            "DesiredDeliveryMediums": ['EMAIL']
+        }
+        if tpw:
+            kwargs["TemporaryPassword"] = tpw
+        response = client.admin_create_user(**kwargs)
+        logger.debug(f"create_user() response:\n{pp.pformat(response)}")
 
     except Boto3Error as b3e:
         logger.error(f"create_user() exception: {b3e}")
@@ -114,8 +121,7 @@ def get_user_details(
             UserPoolId=upi,
             Username=uid
         )
-        logger.info(f"get_user_details() response:")
-        pp.pprint(response)
+        logger.debug(f"get_user_details() response:\n{pp.pformat(response)}")
 
     except Boto3Error as b3e:
         logger.error(f"get_user_details() exception: {b3e}")
@@ -143,8 +149,7 @@ def update_user_attributes(
                 for key, value in attributes.items()
             ],
         )
-        logger.info(f"update_user_attributes() response:")
-        pp.pprint(response)
+        logger.info(f"update_user_attributes() response:\n{pp.pformat(response)}")
 
     except Boto3Error as b3e:
         logger.error(f"update_user_attributes() exception: {b3e}")
@@ -166,8 +171,7 @@ def delete_user(
             UserPoolId=upi,
             Username=uid
         )
-        logger.info(f"delete_user() response:")
-        # pp.pprint(response)
+        logger.debug(f"delete_user() response:\n{pp.pformat(response)}")
 
     except Boto3Error as b3e:
         logger.error(f"delete_user() exception: {b3e}")
@@ -184,7 +188,6 @@ def test_delete_user():
     )
 
 
-# Run the module as a CLI
 if __name__ == '__main__':
 
     if len(argv) > 1:
@@ -199,22 +202,33 @@ if __name__ == '__main__':
 
         if operation.lower() == CREATE_USER:
 
-            if len(argv) >= 3:
+            if len(argv) > 3:
 
                 username = argv[2]
+
+                ua_file = argv[3]
+
+                attributes: Dict = read_user_attributes(ua_file)
+
+                if 'temporary_password' in attributes:
+                    temporary_password = attributes.pop('temporary_password')
+                else:
+                    temporary_password = None  # empty - let Cognito set?
 
                 create_user(
                     cognito_client,
                     upi=user_pool_id,
                     uid=username,
-                    attributes=dict()
+                    tpw=temporary_password,
+                    attributes=attributes
                 )
             else:
                 helpdoc.usage(
-                    err_msg=f"{CREATE_USER} needs the target username",
+                    err_msg=f"{CREATE_USER} needs more parameters!",
                     command=CREATE_USER,
                     args={
-                        "<username>": 'user account'
+                        "<username>": 'user account',
+                        "<filename>": 'name of the user attribute properties file',
                     }
                 )
         elif operation.lower() == GET_USER_DETAILS:
@@ -244,13 +258,13 @@ if __name__ == '__main__':
                 name = argv[3]
                 value = argv[4]
 
-                user_attributes = {name: value}
+                attributes = {name: value}
 
                 update_user_attributes(
                     cognito_client,
                     upi=user_pool_id,
                     uid=username,
-                    attributes=user_attributes
+                    attributes=attributes
                 )
             else:
                 helpdoc.usage(
@@ -264,10 +278,13 @@ if __name__ == '__main__':
                 )
         elif operation.lower() == DELETE_USER:
 
-            if len(argv) >= 3:
+            if len(argv) > 2:
 
                 username = argv[2]
-                prompt = input(f"\nWarning: deleting user name '{username}' in user pool '{user_pool_id}'? (Type 'delete' again to proceed) ")
+                prompt = input(
+                    f"\nWarning: deleting user name '{username}' " +
+                    f"in user pool '{user_pool_id}'? (Type 'delete' again to proceed) "
+                )
                 if prompt.upper() == "DELETE":
                     delete_user(
                         client=cognito_client,
