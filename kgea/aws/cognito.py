@@ -9,6 +9,8 @@ from sys import argv
 from typing import Dict, List
 from pprint import PrettyPrinter
 
+from configparser import ConfigParser
+
 from boto3.exceptions import Boto3Error
 
 from kgea.aws import Help
@@ -26,29 +28,55 @@ GET_USER_DETAILS = "get-user-details"
 SET_USER_ATTRIBUTE = "set-user-attribute"  # including disabling
 DELETE_USER = "delete-user"
 
-helpdoc = Help(
+help_doc = Help(
     default_usage="where <operation> is one of " +
                   f"'{CREATE_USER}', '{GET_USER_DETAILS}', '{SET_USER_ATTRIBUTE}' or '{DELETE_USER}'\n"
 )
 
-TEST_USER_NAME = "cognito-test-user"
-TEST_TEMP_PASSWORD = "KGE@_Te5t_U$er#1"
-TEST_USER_ATTRIBUTES = {
-    "email": "richard.bruskiewich@cropinformatics.com",
-    "family_name": "Lator",
-    "given_name": "Trans",
-    "email_verified": "true",
-    "website": "https://ncats.nih.gov",
-    "custom:Team": "SRI",
-    "custom:Affiliation": "NCATS",
-    "custom:Contact_PI": "da Boss",
-    "custom:User_Role": "2"  # give this bloke editorial privileges
+# Hack around peculiar case sensitivity
+# TODO: Should perhaps convert Translator User Pool custom attributes to all lower case
+_CUSTOM_ATTRIBUTE_MAP = {
+    "custom_team": "custom:Team",
+    "custom_affiliation": "custom:Affiliation",
+    "custom_contact_pi": "custom:Contact_PI",
+    "custom_user_role": "custom:User_Role",
 }
 
 
-def read_user_attributes(filename: str) -> Dict:
-    mock_ua = TEST_USER_ATTRIBUTES.copy()
-    return mock_ua
+def read_user_attributes(filename: str, section: str = 'DEFAULT') -> Dict:
+    """
+    Read in user attributes (in an MS Windows-style configuration file).
+
+    Parameters
+    ----------
+    filename: str
+        (Path) name of file.
+    section: str
+        Section in the configuration file (generally, the username)
+
+    Returns
+    -------
+    Dict
+        A dictionary of user attributes belonging to the section.
+    """
+    ua: Dict = dict()
+    try:
+        config = ConfigParser()
+        config.read(filename)
+        sections = "\n".join(config.sections())
+        logger.debug(f"read_user_attributes(): Sections: {sections}")
+    except (FileNotFoundError,):
+        config = dict()
+        logger.warning(f"cognito.read_user_attributes(): file '{filename}' not found?")
+    if section in config:
+        for k, v in config[section].items():
+            # patch custom attribute keys
+            if k.startswith("custom_"):
+                if k not in _CUSTOM_ATTRIBUTE_MAP:
+                    continue
+                k = _CUSTOM_ATTRIBUTE_MAP.get(k)
+            ua[k] = v
+    return ua
 
 
 def create_user(
@@ -80,7 +108,7 @@ def create_user(
             "UserPoolId": upi,
             "Username": uid,
             "UserAttributes": user_attributes,
-            "MessageAction":'SUPPRESS',
+            "MessageAction": 'SUPPRESS',
             "DesiredDeliveryMediums": ['EMAIL']
         }
         if tpw:
@@ -90,19 +118,6 @@ def create_user(
 
     except Boto3Error as b3e:
         logger.error(f"create_user() exception: {b3e}")
-
-
-def test_create_user():
-    upi: str = aws_config["cognito"]["user-pool-id"]
-    role = AssumeRole()
-    client = role.get_client('cognito-idp')
-    create_user(
-        client=client,
-        upi=upi,
-        uid=TEST_USER_NAME,
-        tpw=TEST_TEMP_PASSWORD,
-        attributes=TEST_USER_ATTRIBUTES
-    )
 
 
 def get_user_details(
@@ -177,17 +192,6 @@ def delete_user(
         logger.error(f"delete_user() exception: {b3e}")
 
 
-def test_delete_user():
-    upi: str = aws_config["cognito"]["user-pool-id"]
-    role = AssumeRole()
-    client = role.get_client('cognito-idp')
-    delete_user(
-        client=client,
-        upi=upi,
-        uid=TEST_USER_NAME
-    )
-
-
 if __name__ == '__main__':
 
     if len(argv) > 1:
@@ -208,7 +212,7 @@ if __name__ == '__main__':
 
                 ua_file = argv[3]
 
-                attributes: Dict = read_user_attributes(ua_file)
+                attributes: Dict = read_user_attributes(filename=ua_file, section=username)
 
                 if 'temporary_password' in attributes:
                     temporary_password = attributes.pop('temporary_password')
@@ -223,7 +227,7 @@ if __name__ == '__main__':
                     attributes=attributes
                 )
             else:
-                helpdoc.usage(
+                help_doc.usage(
                     err_msg=f"{CREATE_USER} needs more parameters!",
                     command=CREATE_USER,
                     args={
@@ -243,7 +247,7 @@ if __name__ == '__main__':
                     uid=username
                 )
             else:
-                helpdoc.usage(
+                help_doc.usage(
                     err_msg=f"{GET_USER_DETAILS} needs the target username",
                     command=GET_USER_DETAILS,
                     args={
@@ -267,7 +271,7 @@ if __name__ == '__main__':
                     attributes=attributes
                 )
             else:
-                helpdoc.usage(
+                help_doc.usage(
                     err_msg=f"{SET_USER_ATTRIBUTE} needs more arguments",
                     command=SET_USER_ATTRIBUTE,
                     args={
@@ -295,7 +299,7 @@ if __name__ == '__main__':
                 else:
                     print("\nCancelling deletion of user...\n")
             else:
-                helpdoc.usage(
+                help_doc.usage(
                     err_msg=f"{DELETE_USER} needs more arguments",
                     command=DELETE_USER,
                     args={
@@ -305,6 +309,6 @@ if __name__ == '__main__':
         # elif operation.upper() == 'OTHER':
         #     pass
         else:
-            helpdoc.usage("\nUnknown Operation: '" + operation + "'")
+            help_doc.usage("\nUnknown Operation: '" + operation + "'")
     else:
-        helpdoc.usage()
+        help_doc.usage()
