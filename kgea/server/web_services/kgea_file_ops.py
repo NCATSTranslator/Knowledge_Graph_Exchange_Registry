@@ -73,6 +73,9 @@ _EDA_OUTPUT_DATA_PREFIX = "file_entry="  # the Decompress-In-Place bash script c
 
 _KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
 
+_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_ebs_volume_mount.bash"
+_KGEA_EBS_VOLUME_UNMOUNT_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_ebs_volume_unmount.bash"
+
 
 def print_error_trace(err_msg: str):
     """
@@ -749,7 +752,7 @@ async def compress_fileset(
     """
     s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
 
-    logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
+    logger.debug(f"Initiating execution of compress_fileset({s3_archive_key})")
 
     try:
         return_code = await run_script(
@@ -761,7 +764,7 @@ async def compress_fileset(
     except Exception as e:
         logger.error(f"compress_fileset({s3_archive_key}) exception: {str(e)}")
 
-    logger.info(f"Exiting compress_fileset({s3_archive_key})")
+    logger.debug(f"Exiting compress_fileset({s3_archive_key})")
     
     return s3_archive_key
 
@@ -1326,11 +1329,13 @@ def upload_from_link(
 # AWS EC2 & EBS client operations #
 ###################################
 
-def ec2_client(assumed_role=the_role):
+def ec2_client(assumed_role=None):
     """
     :param assumed_role:
-    :return: EC2 client
+    :return: AWS EC2 client
     """
+    if not assumed_role:
+        assumed_role = the_role
     return assumed_role.get_client('ec2')
 
 ###################################################################################################
@@ -1345,8 +1350,7 @@ def ec2_client(assumed_role=the_role):
 # create_ebs_volume():
 # 1.1 (EC2 client) - Create a suitably sized EBS volume, via the EC2 client
 # 1.2 (EC2 client) - Associate the EBS volume with the EC2 instance running the application
-# 1.3 (Popen() run bash script) - Mount the EBS volume inside the EC2 instance
-# 1.4 (Popen() run bash script) - Format the EBS volume
+# 1.3 (Popen() run bash script) - Mount the EBS volume inside the EC2 instance and format the volume
 #     TODO: might try to configure and use a persistent EBS Snapshot in step 1 to accelerate this step?
 #
 # compress_fileset():
@@ -1372,38 +1376,126 @@ def create_ebs_volume(size: int) -> str:
     :return: EBS volume instance identifier
     """
     if DEV_MODE:
-        return ''
+        dry_run = True
     else:
+        dry_run = False
 
-        raise RuntimeError("create_ebs_volume(): Not yet implemented!")
+    logger.debug(f"create_ebs_volume({size}): creating an EBS volume of size  '{size}'.")
+
+    # Create a suitably sized EBS volume, via the EC2 client
+    # response = ec2_client().create_volume(
+    #     AvailabilityZone='string',
+    #     Encrypted=True|False,
+    #     Iops=123,
+    #     KmsKeyId='string',
+    #     OutpostArn='string',
+    #     Size=123,
+    #     SnapshotId='string',
+    #     VolumeType='standard'|'io1'|'io2'|'gp2'|'sc1'|'st1'|'gp3',
+    #     DryRun=True|False,
+    #     TagSpecifications=[
+    #         {
+    #             'ResourceType': 'capacity-reservation'|'client-vpn-endpoint'|'customer-gateway'|'carrier-gateway'|'dedicated-host'|'dhcp-options'|'egress-only-internet-gateway'|'elastic-ip'|'elastic-gpu'|'export-image-task'|'export-instance-task'|'fleet'|'fpga-image'|'host-reservation'|'image'|'import-image-task'|'import-snapshot-task'|'instance'|'instance-event-window'|'internet-gateway'|'ipam'|'ipam-pool'|'ipam-scope'|'ipv4pool-ec2'|'ipv6pool-ec2'|'key-pair'|'launch-template'|'local-gateway'|'local-gateway-route-table'|'local-gateway-virtual-interface'|'local-gateway-virtual-interface-group'|'local-gateway-route-table-vpc-association'|'local-gateway-route-table-virtual-interface-group-association'|'natgateway'|'network-acl'|'network-interface'|'network-insights-analysis'|'network-insights-path'|'network-insights-access-scope'|'network-insights-access-scope-analysis'|'placement-group'|'prefix-list'|'replace-root-volume-task'|'reserved-instances'|'route-table'|'security-group'|'security-group-rule'|'snapshot'|'spot-fleet-request'|'spot-instances-request'|'subnet'|'traffic-mirror-filter'|'traffic-mirror-session'|'traffic-mirror-target'|'transit-gateway'|'transit-gateway-attachment'|'transit-gateway-connect-peer'|'transit-gateway-multicast-domain'|'transit-gateway-route-table'|'volume'|'vpc'|'vpc-endpoint'|'vpc-endpoint-service'|'vpc-peering-connection'|'vpn-connection'|'vpn-gateway'|'vpc-flow-log',
+    #             'Tags': [
+    #                 {
+    #                     'Key': 'string',
+    #                     'Value': 'string'
+    #                 },
+    #             ]
+    #         },
+    #     ],
+    #     MultiAttachEnabled=True|False,
+    #     Throughput=123,
+    #     ClientToken='string'
+    # )
+
+    volume_id = "some-new-ebs-id"
+
+    # Attach the EBS volume with the EC2 instance running the application
+    try:
+        response = volume.attach_to_instance(
+            Device='string',
+            InstanceId='string',
+            DryRun=dry_run
+        )
+        ec2_client()
+    except Exception as e:
+        logger.error(
+            f"create_ebs_volume(): cannot attach an EBS volume '{volume_id}' to current instance: {str(e)}"
+        )
+        return ""
+
+    mount_point = "some-mount-point"
+
+    # Mount the EBS volume inside the EC2 instance and format the volume
+    logger.debug(
+        f"create_ebs_volume({volume_id}): Mounting and formatting the EBS volume onto mount point'{mount_point}'."
+    )
+
+    try:
+        return_code = await run_script(
+            script=_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT,
+            args=(volume_id, mount_point, dry_run)
+        )
+        logger.info(f"Finished mounting and formatting a '{size}' byte EBS volume.")
+
+    except Exception as e:
+        logger.error(f"create_ebs_volume(): exception: {str(e)}")
+
+    logger.debug(f"Exiting create_ebs_volume(size: '{size}')")
+
+    raise RuntimeError("create_ebs_volume(): Not yet implemented!")
 
 
-def delete_ebs_volume(identifier: str):
+def delete_ebs_volume(mount_point: str):
     """
     Discards a given volume.
     
     :param identifier: EBS volume instance identifier
     """
-    raise RuntimeError("create_ebs_volume(): Not yet implemented!")
+    if DEV_MODE:
+        dry_run = True
+    else:
+        dry_run = False
 
+    volume_id = "some-existing-ebs-id"
 
-# DEPRECATED - Unit tests moved over to kgea 'tests' folder
-# """
-# Unit Tests
-# * Run each test function as an assertion if we are debugging the project
-# """
-#
-#
-# def run_test(test_func):
-#     """
-#     Run a test function (timed)
-#     :param test_func:
-#     """
-#     try:
-#         start = time.time()
-#         assert (test_func())
-#         end = time.time()
-#         logger.debug("{} passed: {} seconds".format(test_func.__name__, end - start))
-#     except Exception as e:
-#         logger.error("{} failed!".format(test_func.__name__))
-#         logger.error(e)
+    # 3.1 (Popen() run bash script) - Cleanly unmount EBS volume after it is no longer needed.
+
+    try:
+        return_code = await run_script(
+            script=_KGEA_EBS_VOLUME_UNMOUNT_SCRIPT,
+            args=(mount_point, dry_run,)
+        )
+        logger.info(f"delete_ebs_volume(): finished unmounting EBS volume '{mount_point}'.")
+
+    except Exception as e:
+        logger.error(f"delete_ebs_volume(): EBS volume '{mount_point}' could not be unmounted? Exception: {str(e)}")
+
+    volume = ec2_client().Volume(volume_id)
+
+    # 3.2 (EC2 client) - Detach the EBS volume from the EC2 instance.
+    try:
+        response = volume.detach_from_instance(
+            Device='string',
+            Force=True | False,
+            InstanceId='string',
+            DryRun=dry_run
+
+        )
+        ec2_client()
+    except Exception as e:
+        logger.error(
+            f"delete_ebs_volume(): cannot detach the EBS volume '{volume_id}' from current instance: {str(e)}"
+        )
+        return ""
+
+    # 3.3 (EC2 client) - Delete the instance (to avoid economic cost).
+    try:
+        response = volume.delete(
+            DryRun=dry_run
+        )
+    except Exception:
+        pass
+
+    raise RuntimeError("delete_ebs_volume(): Not yet implemented!")
