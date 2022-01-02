@@ -6,10 +6,7 @@ from os import getenv, remove
 from os.path import isfile
 from pytest import mark
 
-from botocore.config import Config
-
-from kgea.aws.assume_role import aws_config, AssumeRole
-from kgea.aws.s3 import copy, s3_client, upload_file, list_files, delete_object, remote_copy, download_file
+from kgea.aws.s3 import copy, local_s3_client, upload_file, list_files, delete_object, remote_copy, download_file
 from kgea.server.web_services.kgea_file_ops import object_key_exists
 from kgea.tests import (
     TEST_BUCKET_2,
@@ -30,7 +27,7 @@ KEEP_TEST_FILES = getenv('KEEP_TEST_FILES', default=False) == 'True'
 
 def test_assumed_role_s3_access(
         bucket_name: str = TEST_BUCKET,
-        client=s3_client
+        client=local_s3_client
 ):
     """
     Test for assumed role s3 access on a given bucket.
@@ -49,7 +46,7 @@ def test_assumed_role_s3_access(
 
 def test_upload_file(
         bucket_name: str = TEST_BUCKET,
-        client=s3_client
+        client=local_s3_client
 ):
     """
     Test for uploading of file to S3.
@@ -96,7 +93,7 @@ def test_upload_file(
 
 def test_download_file(
         bucket_name: str = TEST_BUCKET,
-        client=s3_client
+        client=local_s3_client
 ):
     """
     Test for downloading of a S3 object to a target file.

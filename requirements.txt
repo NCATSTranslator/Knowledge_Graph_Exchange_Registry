@@ -15,6 +15,7 @@ botocore
 boto3
 pyyaml~=5.4.1
 pytest~=6.2.4
+pytest-asyncio
 
 # AIOHTTP 3.7.4 has a bug which is problematic for KGE, anticipated to be fixed in a 4.* release
 # See

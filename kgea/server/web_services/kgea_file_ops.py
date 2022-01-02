@@ -1370,7 +1370,9 @@ def create_ebs_volume(size: int) -> str:
     Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
     The EBS volume is mounted by default on the (Linux) directory '/data' and formatted as a simple
     
-    Note: is a 'no operation' in application 'DEV_MODE' thus  returns an empty string identifier.
+    Notes:
+    * This operation can only be performed when the application is running inside an EC2 instance
+    * In 'DEV_MODE', this is a 'no operation' which performs a "dry run" of the operation and returns a fake identifier.
     
     :param size: specified size (in gigabytes)
     :return: EBS volume instance identifier
@@ -1379,6 +1381,9 @@ def create_ebs_volume(size: int) -> str:
         dry_run = True
     else:
         dry_run = False
+
+    # Check if running inside EC2
+
 
     logger.debug(f"create_ebs_volume({size}): creating an EBS volume of size  '{size}'.")
 

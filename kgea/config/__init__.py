@@ -3,13 +3,14 @@ from os import getenv
 from os.path import dirname, abspath
 
 import yaml
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
 
 import logging
-
+logger = logging.getLogger(__name__)
 
 # Master flag for local development runs bypassing
 # authentication and other production processes
@@ -64,7 +65,7 @@ def _load_app_config() -> dict:
                 if 'host_account' not in config['aws'] or \
                    'guest_external_id' not in config['aws'] or \
                    'iam_role_name' not in config['aws']:
-                    logging.warning(
+                    logger.warning(
                         "Missing aws 'host_account', 'guest_external_id' and/or 'iam_role_name' attributes" +
                         " in the '~/kgea/config/config.yaml' configuration file. Assume that you are running" +
                         " within an EC2 instance (configured with a suitable instance profile role)."
@@ -74,7 +75,7 @@ def _load_app_config() -> dict:
                     config['aws']['iam_role_name'] = None
             if 'github' not in config:
                 if DEV_MODE:
-                    logging.warning(
+                    logger.warning(
                         "Github credentials are missing inside the application config.yaml file?\n" +
                         "These to be set for publication of KGE file set entries to the Translator Registry.\n"
                         "Assume that you don't care... thus, the application will still run (only in DEV_MODE)."
