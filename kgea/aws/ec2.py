@@ -93,7 +93,7 @@ def get_ec2_instance_metadata() -> Dict:
 
 
 async def get_ec2_instance_id() -> str:
-    metadata = await get_ec2_instance_metadata()
+    metadata = get_ec2_instance_metadata()
     if "instanceId" in metadata:
         return metadata["instanceId"]
     else:
@@ -101,7 +101,7 @@ async def get_ec2_instance_id() -> str:
 
 
 async def get_ec2_instance_region() -> str:
-    metadata = await get_ec2_instance_metadata()
+    metadata = get_ec2_instance_metadata()
     if "region" in metadata:
         return metadata["region"]
     else:
@@ -109,7 +109,7 @@ async def get_ec2_instance_region() -> str:
 
 
 async def get_ec2_instance_availability_zone() -> str:
-    metadata = await get_ec2_instance_metadata()
+    metadata = get_ec2_instance_metadata()
     if "availabilityZone" in metadata:
         return metadata["availabilityZone"]
     else:
