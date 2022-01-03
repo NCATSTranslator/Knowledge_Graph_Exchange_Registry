@@ -68,7 +68,7 @@ _instance_details: Dict = dict()
 #     "pendingTime" : "2014-01-23T45:01:23Z",
 #     "instanceType" : "m1.small"
 # }
-async def get_ec2_instance_metadata() -> Dict:
+def get_ec2_instance_metadata() -> Dict:
     """
     Returns dictionary of EC2 instance metadata
     """
@@ -80,7 +80,7 @@ async def get_ec2_instance_metadata() -> Dict:
                 timeout=10  # 10 seconds timeout
             )
             if resp.status == 200:
-                data = await resp.read()
+                data = resp.read()
                 _instance_details = json.loads(data)
             else:
                 raise URLError(f"Response status: {str(resp.status)}")
