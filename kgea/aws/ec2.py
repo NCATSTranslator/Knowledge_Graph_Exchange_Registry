@@ -75,15 +75,15 @@ async def get_ec2_instance_metadata() -> Dict:
     global _instance_details
     if not _instance_details:
         try:
-            async with urlopen(
+            resp = urlopen(
                 url=EC2_INSTANCE_IDENTITY_URL,
                 timeout=10  # 10 seconds timeout
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.text()
-                    _instance_details = json.loads(data)
-                else:
-                    raise URLError(f"Response status: {str(resp.status)}")
+            )
+            if resp.status == 200:
+                data = await resp.text()
+                _instance_details = json.loads(data)
+            else:
+                raise URLError(f"Response status: {str(resp.status)}")
         except URLError as ue:
             logger.warning(
                 "get_instance_metadata(): instance metadata is inaccessible..." +
