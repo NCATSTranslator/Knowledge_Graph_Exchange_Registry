@@ -8,9 +8,9 @@
 import json
 import sys
 from pathlib import Path
-from urllib.error import URLError
 
 from urllib.request import urlopen
+from urllib.error import URLError
 
 from json import dumps
 from typing import List, Optional, Dict
@@ -80,7 +80,7 @@ async def get_ec2_instance_metadata() -> Dict:
                 timeout=10  # 10 seconds timeout
             )
             if resp.status == 200:
-                data = await resp.text()
+                data = await resp.read()
                 _instance_details = json.loads(data)
             else:
                 raise URLError(f"Response status: {str(resp.status)}")
