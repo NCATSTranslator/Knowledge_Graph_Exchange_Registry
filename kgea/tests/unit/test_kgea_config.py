@@ -6,7 +6,7 @@ from kgea.aws.ec2 import get_ec2_instance_metadata
 
 
 def test_instance_metadata():
-    metadata: Dict = await get_ec2_instance_metadata()
+    metadata: Dict = get_ec2_instance_metadata()
     assert "instanceId" in metadata
     assert "region" in metadata
     assert "availabilityZone" in metadata
