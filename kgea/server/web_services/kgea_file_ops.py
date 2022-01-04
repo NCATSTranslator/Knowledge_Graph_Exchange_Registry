@@ -1355,6 +1355,9 @@ def ec2_client(assumed_role=None):
 # 1.2 (EC2 client) - Associate the EBS volume with the EC2 instance running the application
 # 1.3 (Popen() run bash script) - Mount the EBS volume inside the EC2 instance and format the volume
 #     TODO: might try to configure and use a persistent EBS Snapshot in step 1 to accelerate this step?
+#     TODO: what kind of unit testing can I attempt on the dynamic EBS provisioning subsystem?
+#     TODO: in the DOCKER containers, you may need to map the dynamically provisioned EBS 'scratch' directory
+#     TODO: begs the question: why copy the source code into the docker container? Should it simply be a mapped volume?
 #
 # compress_fileset():
 # 2.0 (Popen() run bash script) - Use the instance as the volume working space for target
@@ -1378,7 +1381,8 @@ def create_ebs_volume(size: int) -> Optional[str]:
     * In 'DEV_MODE', this is a 'no operation' which performs a "dry run" of the operation and returns a fake identifier.
     
     :param size: specified size (in gigabytes)
-    :return: EBS volume instance identifier
+
+    :return: EBS volume instance identifier (or TODO: better.. i.e. UUID of formatted volume?)
     """
     if DEV_MODE:
         dry_run = True
@@ -1449,12 +1453,10 @@ def create_ebs_volume(size: int) -> Optional[str]:
     ec2 = resource('ec2')
     volume = ec2.Volume(volume_id)
 
-    # Attach the EBS volume to a device on the
-    # EC2 instance running the application
+    # Attach the EBS volume to a device in the EC2 instance running the application
 
-    # This could be 'sdb' but just careful to avoid use of an existing one
-    # TODO: This needs to be parameterized in the config.yaml
-    volume_device = ebs_config['scratch_device']
+    volume_device = f"/dev/{ebs_config['scratch_device']}"
+    
     try:
         # va_response == {
         #     'AttachTime': datetime(2015, 1, 1),
