@@ -1521,7 +1521,6 @@ def delete_ebs_volume(volume_id: str):
     Discards a given volume.
     
     :param volume_id: EBS volume mount_point to be deleted
-    :param mount_point: EBS volume mount_point to be deleted
     """
     if DEV_MODE:
         dry_run = True
@@ -1541,19 +1540,25 @@ def delete_ebs_volume(volume_id: str):
 
     mount_point = _SCRATCH_DIR
 
-    # 3.1 (Popen() run bash script) - Cleanly unmount EBS volume after it is no longer needed.
-
+    # 3.1 (Popen() run sudo umount -d mount_point) - Cleanly unmount EBS volume after it is no longer needed.
     try:
-        # TODO: use of this process script seems too much overhead
         if not dry_run:
-            return_code = await run_script(
-                script=_KGEA_EBS_VOLUME_UNMOUNT_SCRIPT,
-                args=(mount_point,)
-            )
-            if return_code == 0:
+            cmd = f"sudo umount -d {mount_point}"
+            logger.debug(cmd)
+            with Popen(
+                cmd,
+                bufsize=1,
+                universal_newlines=True,
+                stderr=PIPE,
+                shell=True
+            ) as proc:
+                for line in proc.stderr:
+                    logger.debug(line)
+
+            if proc.returncode == 0:
                 logger.info(
-                    "delete_ebs_volume(): Successfully unmounting of " +
-                    f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+                    "delete_ebs_volume(): Successfully unmounted " +
+                    f"EBS volume '{volume_id}' from mount point '{mount_point}'"
                 )
             else:
                 logger.error(
@@ -1575,21 +1580,21 @@ def delete_ebs_volume(volume_id: str):
 
     # 3.2 (EC2 client) - Detach the EBS volume from the EC2 instance.
     try:
-        vol_det_response = volume.detach_from_instance(
+        vol_detach_response = volume.detach_from_instance(
             Device=volume_device,
             Force=True,
             InstanceId=instance_id,
             DryRun=dry_run
 
         )
-        logger.debug(f"delete_ebs_volume(): volume.detach() response:\n{pp.pformat(vol_det_response)}")
+        logger.debug(f"delete_ebs_volume(): volume.detach() response:\n{pp.pformat(vol_detach_response)}")
     except Exception as e:
         logger.error(
             f"delete_ebs_volume(): cannot detach the EBS volume '{volume_id}' from current instance: {str(e)}"
         )
         return
 
-    # 3.3 (EC2 client) - Delete the instance (to avoid economic cost).
+    # 3.3 (EC2 client) - Delete the instance (to avoid incurring further economic cost).
     try:
         del_response = volume.delete(
             DryRun=dry_run
@@ -1599,4 +1604,3 @@ def delete_ebs_volume(volume_id: str):
         logger.error(
             f"delete_ebs_volume(): cannot detach the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
         )
-
