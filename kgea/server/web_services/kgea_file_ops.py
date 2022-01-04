@@ -39,14 +39,16 @@ except ImportError:
     from yaml import Loader, Dumper
 
 from botocore.config import Config
+from boto3 import resource
 from boto3.s3.transfer import TransferConfig
-
-from kgea.aws.assume_role import AssumeRole, aws_config
 
 from kgea.config import (
     PROVIDER_METADATA_FILE,
     FILE_SET_METADATA_FILE
 )
+
+from kgea.aws.assume_role import AssumeRole, aws_config
+from kgea.aws.ec2 import get_ec2_instance_id,  get_ec2_instance_availability_zone
 
 logger = logging.getLogger(__name__)
 
@@ -60,21 +62,22 @@ default_s3_region = s3_config['region']
 default_s3_bucket = s3_config['bucket']
 default_s3_root_key = s3_config['archive-directory']
 
+ebs_config = aws_config['ebs']
+
 # TODO: may need to fix script paths below - may not resolve under Microsoft Windows
 # if sys.platform is 'win32':
 #     archive_script = archive_script.replace('\\', '/').replace('C:', '/mnt/c/')
 
-# Probably will rarely change the name of these
-# scripts, but changed once already...
+# Probably will rarely change the name of these scripts, but changed once already...
+_SCRIPTS = f"{dirname(abspath(__file__))}{sep}scripts{sep}"
+_SCRATCH_DIR = f"{_SCRIPTS}scratch"
 _KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
 
-_KGEA_EDA_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_extract_data_archive.bash"
+_KGEA_EDA_SCRIPT = f"{_SCRIPTS}kge_extract_data_archive.bash"
 _EDA_OUTPUT_DATA_PREFIX = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
 
-_KGEA_URL_TRANSFER_SCRIPT = "kge_direct_url_transfer.bash"
-
-_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_ebs_volume_mount.bash"
-_KGEA_EBS_VOLUME_UNMOUNT_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_ebs_volume_unmount.bash"
+_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT = f"{_SCRIPTS}kge_ebs_volume_mount.bash"
+_KGEA_EBS_VOLUME_UNMOUNT_SCRIPT = f"{_SCRIPTS}kge_ebs_volume_unmount.bash"
 
 
 def print_error_trace(err_msg: str):
@@ -1365,7 +1368,7 @@ def ec2_client(assumed_role=None):
 ###################################################################################################
 
 
-def create_ebs_volume(size: int) -> str:
+def create_ebs_volume(size: int) -> Optional[str]:
     """
     Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
     The EBS volume is mounted by default on the (Linux) directory '/data' and formatted as a simple
@@ -1382,88 +1385,146 @@ def create_ebs_volume(size: int) -> str:
     else:
         dry_run = False
 
-    # Check if running inside EC2
+    # The application can only create an EBS volume if it is running
+    # within an EC2 instance so retrieve the EC2 instance identifier
+    instance_id = get_ec2_instance_id()
+    if not instance_id:
+        logger.warning("create_ebs_volume(): not inside an EC2 instance? Cannot dynamically provision an EBS volume!")
+        return None
 
+    if not ebs_config:
+        logger.warning("create_ebs_volume(): 'ebs' configuration missing? Cannot dynamically provision an EBS volume!")
+        return None
 
-    logger.debug(f"create_ebs_volume({size}): creating an EBS volume of size  '{size}'.")
+    logger.debug(f"create_ebs_volume({size}): creating an EBS volume of size '{size}' GB for instance {instance_id}.")
 
-    # Create a suitably sized EBS volume, via the EC2 client
-    # response = ec2_client().create_volume(
-    #     AvailabilityZone='string',
-    #     Encrypted=True|False,
-    #     Iops=123,
-    #     KmsKeyId='string',
-    #     OutpostArn='string',
-    #     Size=123,
-    #     SnapshotId='string',
-    #     VolumeType='standard'|'io1'|'io2'|'gp2'|'sc1'|'st1'|'gp3',
-    #     DryRun=True|False,
-    #     TagSpecifications=[
-    #         {
-    #             'ResourceType': 'capacity-reservation'|'client-vpn-endpoint'|'customer-gateway'|'carrier-gateway'|'dedicated-host'|'dhcp-options'|'egress-only-internet-gateway'|'elastic-ip'|'elastic-gpu'|'export-image-task'|'export-instance-task'|'fleet'|'fpga-image'|'host-reservation'|'image'|'import-image-task'|'import-snapshot-task'|'instance'|'instance-event-window'|'internet-gateway'|'ipam'|'ipam-pool'|'ipam-scope'|'ipv4pool-ec2'|'ipv6pool-ec2'|'key-pair'|'launch-template'|'local-gateway'|'local-gateway-route-table'|'local-gateway-virtual-interface'|'local-gateway-virtual-interface-group'|'local-gateway-route-table-vpc-association'|'local-gateway-route-table-virtual-interface-group-association'|'natgateway'|'network-acl'|'network-interface'|'network-insights-analysis'|'network-insights-path'|'network-insights-access-scope'|'network-insights-access-scope-analysis'|'placement-group'|'prefix-list'|'replace-root-volume-task'|'reserved-instances'|'route-table'|'security-group'|'security-group-rule'|'snapshot'|'spot-fleet-request'|'spot-instances-request'|'subnet'|'traffic-mirror-filter'|'traffic-mirror-session'|'traffic-mirror-target'|'transit-gateway'|'transit-gateway-attachment'|'transit-gateway-connect-peer'|'transit-gateway-multicast-domain'|'transit-gateway-route-table'|'volume'|'vpc'|'vpc-endpoint'|'vpc-endpoint-service'|'vpc-peering-connection'|'vpn-connection'|'vpn-gateway'|'vpc-flow-log',
-    #             'Tags': [
-    #                 {
-    #                     'Key': 'string',
-    #                     'Value': 'string'
-    #                 },
-    #             ]
-    #         },
-    #     ],
-    #     MultiAttachEnabled=True|False,
-    #     Throughput=123,
-    #     ClientToken='string'
-    # )
+    availability_zone = get_ec2_instance_availability_zone()
 
-    volume_id = "some-new-ebs-id"
-
-    # Attach the EBS volume with the EC2 instance running the application
     try:
-        response = volume.attach_to_instance(
-            Device='string',
-            InstanceId='string',
+        # Create a suitably sized EBS volume, via the EC2 client
+        # response == {
+        #     'Attachments': [
+        #         {
+        #             'AttachTime': datetime(2015, 1, 1),
+        #             'Device': 'string',
+        #             'InstanceId': 'string',
+        #             'State': 'attaching'|'attached'|'detaching'|'detached'|'busy',
+        #             'VolumeId': 'string',
+        #             'DeleteOnTermination': True|False
+        #         },
+        #     ],
+        #     'AvailabilityZone': 'string',
+        #     'CreateTime': datetime(2015, 1, 1),
+        #     'Encrypted': True|False,
+        #     'KmsKeyId': 'string',
+        #     'OutpostArn': 'string',
+        #     'Size': 123,
+        #     'SnapshotId': 'string',
+        #     'State': 'creating'|'available'|'in-use'|'deleting'|'deleted'|'error',
+        #     'VolumeId': 'string',
+        #     'Iops': 123,
+        #     'Tags': [
+        #         {
+        #             'Key': 'string',
+        #             'Value': 'string'
+        #         },
+        #     ],
+        #     'VolumeType': 'standard'|'io1'|'io2'|'gp2'|'sc1'|'st1'|'gp3',
+        #     'FastRestored': True|False,
+        #     'MultiAttachEnabled': True|False,
+        #     'Throughput': 123
+        # }
+        volume_info = ec2_client().create_volume(
+            AvailabilityZone=availability_zone,
+            Size=size,
+            VolumeType='gp2',
+            DryRun=dry_run,
+        )
+        logger.debug(f"create_ebs_volume(): ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
+    except Exception as ex:
+        logger.error(f"create_ebs_volume(): ec2_client.create_volume() exception: {str(ex)}")
+        return None
+
+    volume_id = volume_info["VolumeId"]
+    ec2 = resource('ec2')
+    volume = ec2.Volume(volume_id)
+
+    # Attach the EBS volume to a device on the
+    # EC2 instance running the application
+
+    # This could be 'sdb' but just careful to avoid use of an existing one
+    # TODO: This needs to be parameterized in the config.yaml
+    volume_device = ebs_config['scratch_device']
+    try:
+        # va_response == {
+        #     'AttachTime': datetime(2015, 1, 1),
+        #     'Device': 'string',
+        #     'InstanceId': 'string',
+        #     'State': 'attaching'|'attached'|'detaching'|'detached'|'busy',
+        #     'VolumeId': 'string',
+        #     'DeleteOnTermination': True|False
+        # }
+        va_response = volume.attach_to_instance(
+            Device=volume_device,
+            InstanceId=instance_id,
             DryRun=dry_run
         )
-        ec2_client()
+        logger.debug(f"create_ebs_volume(): attach_to_instance() response:\n{pp.pformat(va_response)}")
     except Exception as e:
         logger.error(
-            f"create_ebs_volume(): cannot attach an EBS volume '{volume_id}' to current instance: {str(e)}"
+            f"create_ebs_volume(): failed to attach EBS volume '{volume_id}' to instance '{instance_id}': {str(e)}"
         )
-        return ""
+        return None
 
-    mount_point = "some-mount-point"
+    mount_point = _SCRATCH_DIR
 
-    # Mount the EBS volume inside the EC2 instance and format the volume
     logger.debug(
-        f"create_ebs_volume({volume_id}): Mounting and formatting the EBS volume onto mount point'{mount_point}'."
+        f"create_ebs_volume(): Attempting to mount and format EBS volume '{volume_id}' onto '{mount_point}'."
     )
 
     try:
-        return_code = await run_script(
-            script=_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT,
-            args=(volume_id, mount_point, dry_run)
-        )
-        logger.info(f"Finished mounting and formatting a '{size}' byte EBS volume.")
+        if not dry_run:
+            return_code = await run_script(
+                script=_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT,
+                args=(volume_id, mount_point)
+            )
+            if return_code == 0:
+                logger.info(
+                    f"Successfully provisioning, mounting and formatting of EBS volume '{volume_id}' " +
+                    f"of {size} gigabytes, on mount point '{mount_point}'"
+                )
+                return volume_id
+            else:
+                logger.error(
+                    f"Failure to complete mounting and formatting of " +
+                    f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+                )
+                return None
+        else:
+            logger.debug(
+                "'Dry Run' skipping of the mounting and formatting of " +
+                f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+            )
+            return None
 
     except Exception as e:
-        logger.error(f"create_ebs_volume(): exception: {str(e)}")
+        logger.error(
+            f"create_ebs_volume(): EBS volume '{volume_id}' mounting/formatting script exception: {str(e)}"
+        )
+        return None
 
-    logger.debug(f"Exiting create_ebs_volume(size: '{size}')")
 
-    raise RuntimeError("create_ebs_volume(): Not yet implemented!")
-
-
-def delete_ebs_volume(mount_point: str):
+def delete_ebs_volume(volume_id: str, mount_point: str):
     """
     Discards a given volume.
     
-    :param identifier: EBS volume instance identifier
+    :param volume_id: EBS volume mount_point to be deleted
+    :param mount_point: EBS volume mount_point to be deleted
     """
     if DEV_MODE:
         dry_run = True
     else:
         dry_run = False
-
-    volume_id = "some-existing-ebs-id"
 
     # 3.1 (Popen() run bash script) - Cleanly unmount EBS volume after it is no longer needed.
 

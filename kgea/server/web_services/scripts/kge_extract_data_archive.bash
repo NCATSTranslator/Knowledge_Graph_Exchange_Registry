@@ -120,11 +120,17 @@ archive_object_key="${s3_uri}/${archive_filename}.tar.gz"
 echo
 echo "Beginning extraction of '${archive_object_key}'"
 
+# Set current working directory to a 'scratch' folder
+if [[ ! -d "scratch" ]]; then
+    mkdir "scratch"
+fi
+cd "scratch"
+
 # To avoid collision in concurrent data operations across multiple graphs
 # use a timestamped directory, instead of a simple literal subdirectory name
-workdir=archive_$(date +%s)
-mkdir "${workdir}"
-cd "${workdir}" || exit 3
+archive_dir=archive_$(date +%s)
+mkdir "${archive_dir}"
+cd "${archive_dir}" || exit 3
 
 # STEP 1 - download the tar.gz archive to the local working directory
 echo
@@ -256,9 +262,9 @@ done
 #
 # STEP 7 - clean out the work directory
 echo
-echo "Deleting working directory ${workdir}"
+echo "Deleting working directory ${archive_dir}"
 cd ..
-rm -Rf "${workdir}"
+rm -Rf "${archive_dir}"
 
 echo
 echo "Completed extraction of '${archive_object_key}'"

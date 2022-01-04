@@ -12,6 +12,8 @@ aws:
   # EC2 instance profile to get at an EC2 role
   host_account: '<Host AWS Account Number>'
   guest_external_id: '<Guest-specified external identifier'
+  ebs:
+    scratch_device: "nvme2n1"  # block device name designated for temporary EBS 'scratch' volume provisioning
   s3:
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files

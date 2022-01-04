@@ -138,6 +138,10 @@ aws:
   host_account: '<Host AWS Account Number>'
   guest_external_id: '<Guest-specified external identifier'
   iam_role_name: '<Host-specified IAM Role name>'
+  ebs:
+    # 'Nitro System' based NVMe block device name designated for temporary EBS 'scratch' volume provisioning.
+    # Older EC2 instance types may use classical device names like '/dev/xvdf' or '/dev/sdc'
+    scratch_device: 'nvme2n1'  
   s3:
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files

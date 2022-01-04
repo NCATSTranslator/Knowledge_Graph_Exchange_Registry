@@ -28,4 +28,3 @@ else
     # Linux file path mount point path for volume
     mount_point=${2}
 fi
-
