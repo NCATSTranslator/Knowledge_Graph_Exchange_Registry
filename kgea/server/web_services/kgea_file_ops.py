@@ -1456,7 +1456,7 @@ def create_ebs_volume(size: int) -> Optional[str]:
     # Attach the EBS volume to a device in the EC2 instance running the application
 
     volume_device = f"/dev/{ebs_config['scratch_device']}"
-    
+
     try:
         # va_response == {
         #     'AttachTime': datetime(2015, 1, 1),
@@ -1492,19 +1492,19 @@ def create_ebs_volume(size: int) -> Optional[str]:
             )
             if return_code == 0:
                 logger.info(
-                    f"Successfully provisioning, mounting and formatting of EBS volume '{volume_id}' " +
-                    f"of {size} gigabytes, on mount point '{mount_point}'"
+                    f"create_ebs_volume(): Successfully provisioning, mounting and formatting of " +
+                    f"EBS volume '{volume_id}' of {size} gigabytes, on mount point '{mount_point}'"
                 )
                 return volume_id
             else:
                 logger.error(
-                    f"Failure to complete mounting and formatting of " +
+                    f"create_ebs_volume(): Failure to complete mounting and formatting of " +
                     f"EBS volume '{volume_id}' on mount point '{mount_point}'"
                 )
                 return None
         else:
             logger.debug(
-                "'Dry Run' skipping of the mounting and formatting of " +
+                "create_ebs_volume(): 'Dry Run' skipping of the mounting and formatting of " +
                 f"EBS volume '{volume_id}' on mount point '{mount_point}'"
             )
             return None
@@ -1516,7 +1516,7 @@ def create_ebs_volume(size: int) -> Optional[str]:
         return None
 
 
-def delete_ebs_volume(volume_id: str, mount_point: str):
+def delete_ebs_volume(volume_id: str):
     """
     Discards a given volume.
     
@@ -1528,42 +1528,75 @@ def delete_ebs_volume(volume_id: str, mount_point: str):
     else:
         dry_run = False
 
+    # The application can only delete an EBS volume if it is running
+    # within an EC2 instance so retrieve the EC2 instance identifier
+    instance_id = get_ec2_instance_id()
+    if not instance_id:
+        logger.warning("delete_ebs_volume(): not inside an EC2 instance? Cannot delete any EBS volume!")
+        return None
+
+    if not ebs_config:
+        logger.warning("delete_ebs_volume(): 'ebs' configuration missing? Cannot dynamically provision an EBS volume!")
+        return None
+
+    mount_point = _SCRATCH_DIR
+
     # 3.1 (Popen() run bash script) - Cleanly unmount EBS volume after it is no longer needed.
 
     try:
-        return_code = await run_script(
-            script=_KGEA_EBS_VOLUME_UNMOUNT_SCRIPT,
-            args=(mount_point, dry_run,)
-        )
-        logger.info(f"delete_ebs_volume(): finished unmounting EBS volume '{mount_point}'.")
+        # TODO: use of this process script seems too much overhead
+        if not dry_run:
+            return_code = await run_script(
+                script=_KGEA_EBS_VOLUME_UNMOUNT_SCRIPT,
+                args=(mount_point,)
+            )
+            if return_code == 0:
+                logger.info(
+                    "delete_ebs_volume(): Successfully unmounting of " +
+                    f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+                )
+            else:
+                logger.error(
+                    "delete_ebs_volume(): Failure to complete unmounting of " +
+                    f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+                )
+                return
+        else:
+            logger.debug(
+                f"delete_ebs_volume(): 'Dry Run' skipping of the unmounting of " +
+                f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+            )
 
     except Exception as e:
         logger.error(f"delete_ebs_volume(): EBS volume '{mount_point}' could not be unmounted? Exception: {str(e)}")
 
+    volume_device = f"/dev/{ebs_config['scratch_device']}"
     volume = ec2_client().Volume(volume_id)
 
     # 3.2 (EC2 client) - Detach the EBS volume from the EC2 instance.
     try:
-        response = volume.detach_from_instance(
-            Device='string',
-            Force=True | False,
-            InstanceId='string',
+        vol_det_response = volume.detach_from_instance(
+            Device=volume_device,
+            Force=True,
+            InstanceId=instance_id,
             DryRun=dry_run
 
         )
-        ec2_client()
+        logger.debug(f"delete_ebs_volume(): volume.detach() response:\n{pp.pformat(vol_det_response)}")
     except Exception as e:
         logger.error(
             f"delete_ebs_volume(): cannot detach the EBS volume '{volume_id}' from current instance: {str(e)}"
         )
-        return ""
+        return
 
     # 3.3 (EC2 client) - Delete the instance (to avoid economic cost).
     try:
-        response = volume.delete(
+        del_response = volume.delete(
             DryRun=dry_run
         )
-    except Exception:
-        pass
+        logger.debug(f"delete_ebs_volume(): successful volume.delete() response:\n{pp.pformat(del_response)}?")
+    except Exception as ex:
+        logger.error(
+            f"delete_ebs_volume(): cannot detach the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
+        )
 
-    raise RuntimeError("delete_ebs_volume(): Not yet implemented!")
