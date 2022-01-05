@@ -1477,6 +1477,17 @@ async def create_ebs_volume(
         volume_id = volume_info["VolumeId"]
         volume_status = volume_info["State"]
 
+        # response ={
+        #     'Volumes': [   {   ...
+        #                        'State': 'creating',
+        #                        'VolumeId': 'vol-0219a32e665737263',
+        #                        ...
+        #     'ResponseMetadata': ...
+        #     }
+        def get_volume_status(response):
+            volrec = response["Volumes"][0]
+            return volrec['State']
+
         # monitor status for 'available' before proceeding
         while volume_status not in ["available", "error"]:
 
@@ -1484,7 +1495,7 @@ async def create_ebs_volume(
             await sleep(1)
 
             # ... then check status again
-            volume_status = ebs_ec2_client.describe_volumes(
+            dv_response = ebs_ec2_client.describe_volumes(
                 Filters=[
                     {
                         'Name': 'status',
@@ -1504,7 +1515,7 @@ async def create_ebs_volume(
             logger.debug(
                 f"create_ebs_volume(): ebs_ec2_client.describe_volumes() response:\n{pp.pformat(volume_status)}"
             )
-            volume_status = volume_status['State']
+            volume_status = get_volume_status(dv_response)
 
         if volume_status == "error":
             logger.error(f"create_ebs_volume(): for some reason, volume State is in 'error'")
