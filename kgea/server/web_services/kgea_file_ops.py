@@ -39,7 +39,6 @@ except ImportError:
     from yaml import Loader, Dumper
 
 from botocore.config import Config
-from boto3 import resource
 from boto3.s3.transfer import TransferConfig
 
 from kgea.config import (
@@ -62,7 +61,8 @@ default_s3_region = s3_config['region']
 default_s3_bucket = s3_config['bucket']
 default_s3_root_key = s3_config['archive-directory']
 
-ebs_config = aws_config['ebs']
+ebs_config: Dict = aws_config['ebs']
+_SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'nvme2n1')}"  # Reasonable contemporary Nitro option?
 
 # TODO: may need to fix script paths below - may not resolve under Microsoft Windows
 # if sys.platform is 'win32':
@@ -71,6 +71,12 @@ ebs_config = aws_config['ebs']
 # Probably will rarely change the name of these scripts, but changed once already...
 _SCRIPTS = f"{dirname(abspath(__file__))}{sep}scripts{sep}"
 _SCRATCH_DIR = f"{_SCRIPTS}scratch"
+
+
+def scratch_dir_path():
+    return _SCRATCH_DIR
+
+
 _KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
 
 _KGEA_EDA_SCRIPT = f"{_SCRIPTS}kge_extract_data_archive.bash"
@@ -1341,6 +1347,18 @@ def ec2_client(assumed_role=None):
         assumed_role = the_role
     return assumed_role.get_client('ec2')
 
+
+def ec2_resource(assumed_role=the_role):
+    """
+    :param assumed_role:
+    :return: EC2 resource
+    """
+
+    if not assumed_role:
+        assumed_role = the_role
+
+    return assumed_role.get_resource('ec2')
+
 ###################################################################################################
 # Dynamic EBS provisioning steps, orchestrated by the KgeArchiver.worker() task which
 # direct calls methods using S3 and EC2 clients, plus an (steps 1.3, 1.4 plus 3.1) enhanced
@@ -1371,33 +1389,33 @@ def ec2_client(assumed_role=None):
 ###################################################################################################
 
 
-def create_ebs_volume(size: int) -> Optional[str]:
+async def create_ebs_volume(
+        size: int,
+        device: str = _SCRATCH_DEVICE,
+        mount_point: str = scratch_dir_path(),
+        dry_run: bool = False
+) -> Optional[str]:
     """
     Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
     The EBS volume is mounted by default on the (Linux) directory '/data' and formatted as a simple
     
     Notes:
     * This operation can only be performed when the application is running inside an EC2 instance
-    * In 'DEV_MODE', this is a 'no operation' which performs a "dry run" of the operation and returns a fake identifier.
     
     :param size: specified size (in gigabytes)
+    :param device: EBS device path of volume to be deleted (default: config.yaml designated 'scratch' device name)
+    :param mount_point: OS mount point (path) from which to unmount the volume (default: local 'scratch' mount point)
+    :param dry_run: no operation test run if True
 
-    :return: EBS volume instance identifier (or TODO: better.. i.e. UUID of formatted volume?)
+    :return: EBS volume instance identifier (or TODO: maybe better to return UUID of formatted volume?)
     """
-    if DEV_MODE:
-        dry_run = True
-    else:
-        dry_run = False
-
     # The application can only create an EBS volume if it is running
     # within an EC2 instance so retrieve the EC2 instance identifier
     instance_id = get_ec2_instance_id()
-    if not instance_id:
-        logger.warning("create_ebs_volume(): not inside an EC2 instance? Cannot dynamically provision an EBS volume!")
-        return None
-
-    if not ebs_config:
-        logger.warning("create_ebs_volume(): 'ebs' configuration missing? Cannot dynamically provision an EBS volume!")
+    if not (dry_run or instance_id):
+        logger.warning(
+            "create_ebs_volume(): not inside an EC2 instance? Cannot dynamically provision your EBS volume?"
+        )
         return None
 
     logger.debug(f"create_ebs_volume({size}): creating an EBS volume of size '{size}' GB for instance {instance_id}.")
@@ -1450,12 +1468,9 @@ def create_ebs_volume(size: int) -> Optional[str]:
         return None
 
     volume_id = volume_info["VolumeId"]
-    ec2 = resource('ec2')
-    volume = ec2.Volume(volume_id)
+    volume = ec2_resource().Volume(volume_id)
 
     # Attach the EBS volume to a device in the EC2 instance running the application
-
-    volume_device = f"/dev/{ebs_config['scratch_device']}"
 
     try:
         # va_response == {
@@ -1467,7 +1482,7 @@ def create_ebs_volume(size: int) -> Optional[str]:
         #     'DeleteOnTermination': True|False
         # }
         va_response = volume.attach_to_instance(
-            Device=volume_device,
+            Device=device,
             InstanceId=instance_id,
             DryRun=dry_run
         )
@@ -1477,8 +1492,6 @@ def create_ebs_volume(size: int) -> Optional[str]:
             f"create_ebs_volume(): failed to attach EBS volume '{volume_id}' to instance '{instance_id}': {str(e)}"
         )
         return None
-
-    mount_point = _SCRATCH_DIR
 
     logger.debug(
         f"create_ebs_volume(): Attempting to mount and format EBS volume '{volume_id}' onto '{mount_point}'."
@@ -1516,29 +1529,37 @@ def create_ebs_volume(size: int) -> Optional[str]:
         return None
 
 
-def delete_ebs_volume(volume_id: str):
+def delete_ebs_volume(
+        volume_id: str,
+        device: str = _SCRATCH_DEVICE,
+        mount_point: str = scratch_dir_path(),
+        dry_run: bool = False
+) -> None:
     """
-    Discards a given volume.
-    
-    :param volume_id: EBS volume mount_point to be deleted
-    """
-    if DEV_MODE:
-        dry_run = True
-    else:
-        dry_run = False
+    Detaches and deletes the previously provisioned specified volume.
 
-    # The application can only delete an EBS volume if it is running
+    Notes:
+    * This operation can only be performed when the application is running inside an EC2 instance
+
+    :param volume_id: identifier of the EBS volume to be deleted
+    :param device: EBS device path of volume to be deleted (default: config.yaml designated 'scratch' device name)
+    :param mount_point: OS mount point (path) from which to unmount the volume (default: local 'scratch' mount point)
+    :param dry_run: no operation test run if True
+    """
+    if not (volume_id or device or mount_point):
+        logger.error(
+            "delete_ebs_volume(): empty 'volume_id', 'device' or 'mount_point' argument?"
+        )
+        return
+
+    # The application can only create an EBS volume if it is running
     # within an EC2 instance so retrieve the EC2 instance identifier
     instance_id = get_ec2_instance_id()
-    if not instance_id:
-        logger.warning("delete_ebs_volume(): not inside an EC2 instance? Cannot delete any EBS volume!")
-        return None
-
-    if not ebs_config:
-        logger.warning("delete_ebs_volume(): 'ebs' configuration missing? Cannot dynamically provision an EBS volume!")
-        return None
-
-    mount_point = _SCRATCH_DIR
+    if not (dry_run or instance_id):
+        logger.warning(
+            "delete_ebs_volume(): not inside an EC2 instance? Cannot dynamically provision your EBS volume?"
+        )
+        return
 
     # 3.1 (Popen() run sudo umount -d mount_point) - Cleanly unmount EBS volume after it is no longer needed.
     try:
@@ -1575,13 +1596,16 @@ def delete_ebs_volume(volume_id: str):
     except Exception as e:
         logger.error(f"delete_ebs_volume(): EBS volume '{mount_point}' could not be unmounted? Exception: {str(e)}")
 
-    volume_device = f"/dev/{ebs_config['scratch_device']}"
-    volume = ec2_client().Volume(volume_id)
+    if dry_run and not volume_id:
+        logger.warning(f"delete_ebs_volume(): volume_id is null.. skipping volume detach and deletion")
+        return
 
-    # 3.2 (EC2 client) - Detach the EBS volume from the EC2 instance.
+    volume = ec2_resource().Volume(volume_id)
+
+    # 3.2 (EC2 client) - Detach the EBS volume on the scratch device from the EC2 instance.
     try:
         vol_detach_response = volume.detach_from_instance(
-            Device=volume_device,
+            Device=device,
             Force=True,
             InstanceId=instance_id,
             DryRun=dry_run
