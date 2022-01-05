@@ -281,19 +281,18 @@ def s3_client(
     return assumed_role.get_client('s3', config=config)
 
 
-def s3_resource(assumed_role=the_role):
+def s3_resource(assumed_role=the_role, **kwargs):
     """
     :param assumed_role:
     :return: S3 resource
     """
-    
     if not assumed_role:
         assumed_role = the_role
 
-    return assumed_role.get_resource(
-        's3',
-        region_name=default_s3_region
-    )
+    if "region_name" not in kwargs:
+        kwargs["region_name"] = default_s3_region
+
+    return assumed_role.get_resource('s3', **kwargs)
 
 
 def create_location(bucket, kg_id):
@@ -1341,7 +1340,8 @@ def upload_from_link(
 def ec2_client(
         assumed_role=None,
         config=Config(
-            # EC2 region assumed to be set to the same as the config.yaml S3... not totally sure about this
+            # EC2 region assumed to be set to the same as the
+            # config.yaml S3, but not totally sure about this.
             region_name=default_s3_region
         )
 ):
@@ -1355,7 +1355,7 @@ def ec2_client(
     return assumed_role.get_client('ec2', config=config)
 
 
-def ec2_resource(assumed_role=the_role):
+def ec2_resource(assumed_role=the_role, **kwargs):
     """
     :param assumed_role:
     :return: EC2 resource
@@ -1364,7 +1364,7 @@ def ec2_resource(assumed_role=the_role):
     if not assumed_role:
         assumed_role = the_role
 
-    return assumed_role.get_resource('ec2')
+    return assumed_role.get_resource('ec2', **kwargs)
 
 ###################################################################################################
 # Dynamic EBS provisioning steps, orchestrated by the KgeArchiver.worker() task which
@@ -1478,7 +1478,7 @@ async def create_ebs_volume(
     volume_id = volume_info["VolumeId"]
 
     logger.debug(f"create_ebs_volume(): executing ec2_resource().Volume({volume_id})")
-    volume = ec2_resource().Volume(volume_id)
+    volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
 
     # Attach the EBS volume to a device in the EC2 instance running the application
 
@@ -1575,6 +1575,8 @@ def delete_ebs_volume(
         )
         return
 
+    ec2_region = get_ec2_instance_region()
+
     # 3.1 (Popen() run sudo umount -d mount_point) - Cleanly unmount EBS volume after it is no longer needed.
     try:
         if not dry_run:
@@ -1614,7 +1616,7 @@ def delete_ebs_volume(
         logger.warning(f"delete_ebs_volume(): volume_id is null.. skipping volume detach and deletion")
         return
 
-    volume = ec2_resource().Volume(volume_id)
+    volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
 
     # 3.2 (EC2 client) - Detach the EBS volume on the scratch device from the EC2 instance.
     try:
