@@ -47,7 +47,7 @@ from kgea.config import (
 )
 
 from kgea.aws.assume_role import AssumeRole, aws_config
-from kgea.aws.ec2 import get_ec2_instance_id,  get_ec2_instance_availability_zone
+from kgea.aws.ec2 import get_ec2_instance_id, get_ec2_instance_availability_zone, get_ec2_instance_region
 
 logger = logging.getLogger(__name__)
 
@@ -270,8 +270,8 @@ def s3_client(
         )
 ):
     """
-    :param assumed_role:
-    :param config:
+    :param assumed_role: assumed IAM role serving as authentication broker
+    :param config: botocore.config.Config configuring the S3 client
     :return: S3 client
     """
     
@@ -1338,14 +1338,21 @@ def upload_from_link(
 # AWS EC2 & EBS client operations #
 ###################################
 
-def ec2_client(assumed_role=None):
+def ec2_client(
+        assumed_role=None,
+        config=Config(
+            # EC2 region assumed to be set to the same as the config.yaml S3... not totally sure about this
+            region_name=default_s3_region
+        )
+):
     """
-    :param assumed_role:
+    :param assumed_role: assumed IAM role serving as authentication broker
+    :param config: botocore.config.Config configuring the EC2 client
     :return: AWS EC2 client
     """
     if not assumed_role:
         assumed_role = the_role
-    return assumed_role.get_client('ec2')
+    return assumed_role.get_client('ec2', config=config)
 
 
 def ec2_resource(assumed_role=the_role):
@@ -1420,7 +1427,8 @@ async def create_ebs_volume(
 
     logger.debug(f"create_ebs_volume({size}): creating an EBS volume of size '{size}' GB for instance {instance_id}.")
 
-    availability_zone = get_ec2_instance_availability_zone()
+    ec2_region = get_ec2_instance_region()
+    ec2_availability_zone = get_ec2_instance_availability_zone()
 
     try:
         # Create a suitably sized EBS volume, via the EC2 client
@@ -1456,8 +1464,8 @@ async def create_ebs_volume(
         #     'MultiAttachEnabled': True|False,
         #     'Throughput': 123
         # }
-        volume_info = ec2_client().create_volume(
-            AvailabilityZone=availability_zone,
+        volume_info = ec2_client(config=Config(region_name=ec2_region)).create_volume(
+            AvailabilityZone=ec2_availability_zone,
             Size=size,
             VolumeType='gp2',
             DryRun=dry_run,
