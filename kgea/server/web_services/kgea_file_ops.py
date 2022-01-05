@@ -13,7 +13,7 @@ from subprocess import Popen, PIPE, STDOUT
 from os import getenv
 from os.path import sep, splitext, basename, dirname, abspath
 import io
-
+from asyncio import sleep
 from pprint import PrettyPrinter
 
 import random
@@ -1431,6 +1431,8 @@ async def create_ebs_volume(
     ec2_availability_zone = get_ec2_instance_availability_zone()
 
     try:
+        ebs_ec2_client = ec2_client(config=Config(region_name=ec2_region))
+
         # Create a suitably sized EBS volume, via the EC2 client
         # response == {
         #     'Attachments': [
@@ -1464,18 +1466,49 @@ async def create_ebs_volume(
         #     'MultiAttachEnabled': True|False,
         #     'Throughput': 123
         # }
-        volume_info = ec2_client(config=Config(region_name=ec2_region)).create_volume(
+        volume_info = ebs_ec2_client.create_volume(
             AvailabilityZone=ec2_availability_zone,
             Size=size,
             VolumeType='gp2',
             DryRun=dry_run,
         )
         logger.debug(f"create_ebs_volume(): ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
+
+        volume_id = volume_info["VolumeId"]
+        volume_status = volume_info["State"]
+
+        # monitor status for 'available' before proceeding
+        while volume_status not in ["available", "error"]:
+
+            # Wait a little while for completion of volume creation...
+            await sleep(1)
+
+            # ... then check status again
+            volume_status = ebs_ec2_client.describe_volumes(
+                Filters=[
+                    {
+                        'Name': 'status',
+                        'Values': [
+                            'creating',
+                            'available',
+                            'in-use',
+                            'deleting',
+                            'deleted',
+                            'error'
+                        ]
+                    },
+                ],
+                VolumeIds=[volume_id],
+                DryRun=dry_run
+            )
+            logger.debug(
+                f"create_ebs_volume(): ebs_ec2_client.describe_volumes() response:\n{pp.pformat(volume_status)}"
+            )
+            volume_status = volume_status['State']
+
     except Exception as ex:
         logger.error(f"create_ebs_volume(): ec2_client.create_volume() exception: {str(ex)}")
         return None
-
-    volume_id = volume_info["VolumeId"]
 
     logger.debug(f"create_ebs_volume(): executing ec2_resource().Volume({volume_id})")
     volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
@@ -1493,7 +1526,7 @@ async def create_ebs_volume(
         # }
         logger.debug(
             "create_ebs_volume(): executing " +
-            f"volume.attach_to_instance(Device={device},InstanceId={instance_id},DryRun={dry_run})"
+            f"volume.attach_to_instance(Device={device}, InstanceId={instance_id}, DryRun={dry_run})"
         )
         va_response = volume.attach_to_instance(
             Device=device,
