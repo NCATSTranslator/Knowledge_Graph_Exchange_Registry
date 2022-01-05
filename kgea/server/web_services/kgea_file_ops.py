@@ -1506,6 +1506,10 @@ async def create_ebs_volume(
             )
             volume_status = volume_status['State']
 
+        if volume_status == "error":
+            logger.error(f"create_ebs_volume(): for some reason, volume State is in 'error'")
+            return None
+
     except Exception as ex:
         logger.error(f"create_ebs_volume(): ec2_client.create_volume() exception: {str(ex)}")
         return None
@@ -1514,7 +1518,6 @@ async def create_ebs_volume(
     volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
 
     # Attach the EBS volume to a device in the EC2 instance running the application
-
     try:
         # va_response == {
         #     'AttachTime': datetime(2015, 1, 1),
