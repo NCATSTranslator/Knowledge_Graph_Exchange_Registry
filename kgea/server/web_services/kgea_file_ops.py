@@ -62,7 +62,7 @@ default_s3_bucket = s3_config['bucket']
 default_s3_root_key = s3_config['archive-directory']
 
 ebs_config: Dict = aws_config['ebs']
-_SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'nvme2n1')}"  # Reasonable contemporary Nitro option?
+_SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'sdc')}"  # we assume that sdb is already used up?
 
 # TODO: may need to fix script paths below - may not resolve under Microsoft Windows
 # if sys.platform is 'win32':

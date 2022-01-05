@@ -9,6 +9,9 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
+_TEST_DEVICE = "sdc"
+_TEST_MOUNT_POINT = "/opt/ebs_test_dir"
+
 
 @pytest.mark.asyncio
 async def test_create_ebs_volume():
@@ -21,18 +24,28 @@ async def test_create_ebs_volume():
         dry_run = True
 
     # Create, attach, format and mount a 'tiny' test EBS volume
-    test_volume_id = await create_ebs_volume(1, dry_run=dry_run)
+    test_volume_id = await create_ebs_volume(
+        size=1,
+        device=_TEST_DEVICE,
+        mount_point=_TEST_MOUNT_POINT,
+        dry_run=dry_run
+    )
     if not dry_run:
         assert test_volume_id
 
     # If not a 'Dry Run', check if you can access the resulting scratch directory
-    test_file = f"{scratch_dir_path()}/testfile"
+    test_file = f"{_TEST_MOUNT_POINT}/testfile"
     if not dry_run:
         Path(test_file).touch()
         assert exists(test_file)
 
     # Delete the test volume
-    delete_ebs_volume(test_volume_id, dry_run=dry_run)
+    delete_ebs_volume(
+        volume_id=test_volume_id,
+        device=_TEST_DEVICE,
+        mount_point=_TEST_MOUNT_POINT,
+        dry_run=dry_run
+    )
 
     if not dry_run:
         assert not exists(test_file)
