@@ -1425,7 +1425,7 @@ async def create_ebs_volume(
         )
         return None
 
-    logger.debug(f"create_ebs_volume({size}): creating an EBS volume of size '{size}' GB for instance {instance_id}.")
+    logger.debug(f"create_ebs_volume(): creating an EBS volume of size '{size}' GB for instance {instance_id}.")
 
     ec2_region = get_ec2_instance_region()
     ec2_availability_zone = get_ec2_instance_availability_zone()
@@ -1476,6 +1476,8 @@ async def create_ebs_volume(
         return None
 
     volume_id = volume_info["VolumeId"]
+
+    logger.debug(f"create_ebs_volume(): executing ec2_resource().Volume({volume_id})")
     volume = ec2_resource().Volume(volume_id)
 
     # Attach the EBS volume to a device in the EC2 instance running the application
@@ -1489,12 +1491,16 @@ async def create_ebs_volume(
         #     'VolumeId': 'string',
         #     'DeleteOnTermination': True|False
         # }
+        logger.debug(
+            "create_ebs_volume(): executing " +
+            f"volume.attach_to_instance(Device={device},InstanceId={instance_id},DryRun={dry_run})"
+        )
         va_response = volume.attach_to_instance(
             Device=device,
             InstanceId=instance_id,
             DryRun=dry_run
         )
-        logger.debug(f"create_ebs_volume(): attach_to_instance() response:\n{pp.pformat(va_response)}")
+        logger.debug(f"create_ebs_volume(): volume.attach_to_instance() response:\n{pp.pformat(va_response)}")
     except Exception as e:
         logger.error(
             f"create_ebs_volume(): failed to attach EBS volume '{volume_id}' to instance '{instance_id}': {str(e)}"
