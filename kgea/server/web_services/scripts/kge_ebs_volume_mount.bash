@@ -8,7 +8,7 @@ usage () {
     echo
     echo "Usage:"
     echo
-    echo "${0} <device_path> <mount_point>"
+    echo "${0} <device> <mount_point>"
     exit 1
 }
 
@@ -16,7 +16,7 @@ if [[ -z "${1}" ]]; then
     usage
 else
     # EBS Device Path (assigned by AWS)
-    device_path=${1}
+    device=${1}
 fi
 
 if [[ -z "${2}" ]]; then
