@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
-_TEST_DEVICE = "sdc"
+_TEST_DEVICE = "/dev/sdc"
 _TEST_MOUNT_POINT = "/opt/ebs_test_dir"
 
 
