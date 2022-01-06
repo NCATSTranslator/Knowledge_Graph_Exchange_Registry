@@ -1416,16 +1416,17 @@ async def create_ebs_volume(
 
     :return: EBS volume instance identifier (or TODO: maybe better to return UUID of formatted volume?)
     """
+    method = "create_ebs_volume():"
     # The application can only create an EBS volume if it is running
     # within an EC2 instance so retrieve the EC2 instance identifier
     instance_id = get_ec2_instance_id()
     if not (dry_run or instance_id):
         logger.warning(
-            "create_ebs_volume(): not inside an EC2 instance? Cannot dynamically provision your EBS volume?"
+            f"{method} not inside an EC2 instance? Cannot dynamically provision your EBS volume?"
         )
         return None
 
-    logger.debug(f"create_ebs_volume(): creating an EBS volume of size '{size}' GB for instance {instance_id}.")
+    logger.debug(f"{method} creating an EBS volume of size '{size}' GB for instance {instance_id}.")
 
     ec2_region = get_ec2_instance_region()
     ec2_availability_zone = get_ec2_instance_availability_zone()
@@ -1472,7 +1473,7 @@ async def create_ebs_volume(
             VolumeType='gp2',
             DryRun=dry_run,
         )
-        logger.debug(f"create_ebs_volume(): ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
+        logger.debug(f"{method} ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
 
         volume_id = volume_info["VolumeId"]
         volume_status = volume_info["State"]
@@ -1513,19 +1514,21 @@ async def create_ebs_volume(
                 DryRun=dry_run
             )
             logger.debug(
-                f"create_ebs_volume(): ebs_ec2_client.describe_volumes() response:\n{pp.pformat(volume_status)}"
+                f"{method} ebs_ec2_client.describe_volumes() response:\n{pp.pformat(volume_status)}"
             )
             volume_status = get_volume_status(dv_response)
 
         if volume_status == "error":
-            logger.error(f"create_ebs_volume(): for some reason, volume State is in 'error'")
+            logger.error(f"{method} for some reason, volume State is in 'error'")
             return None
 
     except Exception as ex:
-        logger.error(f"create_ebs_volume(): ec2_client.create_volume() exception: {str(ex)}")
+        logger.error(f"{method} ec2_client.create_volume() exception: {str(ex)}")
         return None
 
-    logger.debug(f"create_ebs_volume(): executing ec2_resource().Volume({volume_id})")
+    id_msg = f"EBS volume {volume_id}' of {size} gigabytes, attached to device '{device}' mounted at '{mount_point}'"
+
+    logger.debug(f"{method} executing ec2_resource().Volume({volume_id})")
     volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
 
     # Attach the EBS volume to a device in the EC2 instance running the application
@@ -1539,53 +1542,47 @@ async def create_ebs_volume(
         #     'DeleteOnTermination': True|False
         # }
         logger.debug(
-            "create_ebs_volume(): executing " +
-            f"volume.attach_to_instance(Device={device}, InstanceId={instance_id}, DryRun={dry_run})"
+            f"{method} executing volume.attach_to_instance(Device={device}, InstanceId={instance_id}, DryRun={dry_run})"
         )
         va_response = volume.attach_to_instance(
             Device=device,
             InstanceId=instance_id,
             DryRun=dry_run
         )
-        logger.debug(f"create_ebs_volume(): volume.attach_to_instance() response:\n{pp.pformat(va_response)}")
+        logger.debug(f"{method} volume.attach_to_instance() response:\n{pp.pformat(va_response)}")
     except Exception as e:
         logger.error(
-            f"create_ebs_volume(): failed to attach EBS volume '{volume_id}' to instance '{instance_id}': {str(e)}"
+            f"{method} failed to attach {id_msg}: {str(e)}"
         )
         return None
 
     logger.debug(
-        f"create_ebs_volume(): Attempting to mount and format EBS volume '{volume_id}' onto '{mount_point}'."
+        f"{method} mount and format {id_msg}."
     )
 
     try:
         if not dry_run:
             return_code = await run_script(
                 script=_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT,
-                args=(volume_id, mount_point)
+                args=(device, mount_point)
             )
             if return_code == 0:
-                logger.info(
-                    f"create_ebs_volume(): Successfully provisioning, mounting and formatting of " +
-                    f"EBS volume '{volume_id}' of {size} gigabytes, on mount point '{mount_point}'"
-                )
+                logger.info(f"{method} Successfully provisioning, mounting and formatting of {id_msg}")
                 return volume_id
             else:
                 logger.error(
-                    f"create_ebs_volume(): Failure to complete mounting and formatting of " +
-                    f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+                    f"{method} Failure to complete mounting and formatting of {id_msg}"
                 )
                 return None
         else:
             logger.debug(
-                "create_ebs_volume(): 'Dry Run' skipping of the mounting and formatting of " +
-                f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+                f"{method} 'Dry Run' skipping of the mounting and formatting of {id_msg}"
             )
             return None
 
     except Exception as e:
         logger.error(
-            f"create_ebs_volume(): EBS volume '{volume_id}' mounting/formatting script exception: {str(e)}"
+            f"{method} {id_msg} mounting/formatting script exception: {str(e)}"
         )
         return None
 
@@ -1607,9 +1604,10 @@ def delete_ebs_volume(
     :param mount_point: OS mount point (path) from which to unmount the volume (default: local 'scratch' mount point)
     :param dry_run: no operation test run if True
     """
+    method = "delete_ebs_volume():"
     if not (volume_id or device or mount_point):
         logger.error(
-            "delete_ebs_volume(): empty 'volume_id', 'device' or 'mount_point' argument?"
+            f"{method} empty 'volume_id', 'device' or 'mount_point' argument?"
         )
         return
 
@@ -1618,7 +1616,7 @@ def delete_ebs_volume(
     instance_id = get_ec2_instance_id()
     if not (dry_run or instance_id):
         logger.warning(
-            "delete_ebs_volume(): not inside an EC2 instance? Cannot dynamically provision your EBS volume?"
+            f"{method}  not inside an EC2 instance? Cannot dynamically provision your EBS volume?"
         )
         return
 
@@ -1641,26 +1639,24 @@ def delete_ebs_volume(
 
             if proc.returncode == 0:
                 logger.info(
-                    "delete_ebs_volume(): Successfully unmounted " +
-                    f"EBS volume '{volume_id}' from mount point '{mount_point}'"
+                    f"{method} Successfully unmounted EBS volume '{volume_id}' from mount point '{mount_point}'"
                 )
             else:
                 logger.error(
-                    "delete_ebs_volume(): Failure to complete unmounting of " +
-                    f"EBS volume '{volume_id}' on mount point '{mount_point}'"
+                    f"{method} Failed to unmount of EBS volume '{volume_id}' on mount point '{mount_point}'"
                 )
                 return
         else:
             logger.debug(
-                f"delete_ebs_volume(): 'Dry Run' skipping of the unmounting of " +
+                f"{method} 'Dry Run' skipping of the unmounting of " +
                 f"EBS volume '{volume_id}' on mount point '{mount_point}'"
             )
 
     except Exception as e:
-        logger.error(f"delete_ebs_volume(): EBS volume '{mount_point}' could not be unmounted? Exception: {str(e)}")
+        logger.error(f"{method} EBS volume '{mount_point}' could not be unmounted? Exception: {str(e)}")
 
     if dry_run and not volume_id:
-        logger.warning(f"delete_ebs_volume(): volume_id is null.. skipping volume detach and deletion")
+        logger.warning(f"{method} volume_id is null.. skipping volume detach and deletion")
         return
 
     volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
@@ -1674,10 +1670,10 @@ def delete_ebs_volume(
             DryRun=dry_run
 
         )
-        logger.debug(f"delete_ebs_volume(): volume.detach() response:\n{pp.pformat(vol_detach_response)}")
+        logger.debug(f"{method} volume.detach() response:\n{pp.pformat(vol_detach_response)}")
     except Exception as e:
         logger.error(
-            f"delete_ebs_volume(): cannot detach the EBS volume '{volume_id}' from current instance: {str(e)}"
+            f"{method} cannot detach the EBS volume '{volume_id}' from current instance: {str(e)}"
         )
         return
 
@@ -1686,8 +1682,8 @@ def delete_ebs_volume(
         del_response = volume.delete(
             DryRun=dry_run
         )
-        logger.debug(f"delete_ebs_volume(): successful volume.delete() response:\n{pp.pformat(del_response)}?")
+        logger.debug(f"{method} successful volume.delete() response:\n{pp.pformat(del_response)}?")
     except Exception as ex:
         logger.error(
-            f"delete_ebs_volume(): cannot detach the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
+            f"{method} cannot detach the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
         )
