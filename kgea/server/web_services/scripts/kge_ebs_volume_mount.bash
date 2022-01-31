@@ -3,8 +3,8 @@
 # Shell script for *nix command line driven for formatting and mounting
 # of an attached, newly created, empty (unformatted) AWS EC2 EBS volume.
 #
-# The script currently assumes that the external volume_id of the EBS volume is
-# identified by a volume ID, to be resolved to its internal NVME volume_id path
+# The script currently assumes that the external EBS volume is
+# identified by a volume id to be resolved to its internal NVME device path
 #
 
 usage () {
@@ -64,7 +64,7 @@ sudo nvme list -o json | python -c "
 import sys, json
 nvme_json = json.load(sys.stdin)
 nvme_devices = nvme_json['Devices']
-for device_spec in devices:
+for device_spec in nvme_devices:
     if device_spec['SerialNumber'] == '${volume_id}':
         print(device_spec['DevicePath'])
         break
