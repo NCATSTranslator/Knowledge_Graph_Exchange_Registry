@@ -64,7 +64,7 @@ sudo nvme list -o json | python -c "
 import sys, json
 nvme_json = json.load(sys.stdin)
 nvme_devices = nvme_json['Devices']
-the_device  = 'unknown'
+the_device  = ''
 for device_spec in nvme_devices:
     if device_spec['SerialNumber'] == '${volume_id}':
         the_device = device_spec['DevicePath']
@@ -74,26 +74,26 @@ print(the_device)
 
 echo "EBS Volume is mapped to device '${nvme_device}'"
 
-if [[ ! -f "${nvme_device}" ]]; then
+if [[ -z "${nvme_device}" ]]; then
     echo "EBS volume '${volume_id}' is unknown? Cannot mount!"
     usage
     exit 1
 fi
 
 #  Format the new volume
-sudo mkfs -t xfs $nvme_device
+sudo mkfs -t xfs "${nvme_device}"
 
 # Create a 'scratch' directory relative to the
 # current working directory, if not otherwise available
-if [[ ! -d $mount_point ]]; then
-    mkdir $mount_point
+if [[ ! -d "${mount_point}" ]]; then
+    mkdir "${mount_point}"
 fi
 
 # Mount the volume  on the 'scratch' path
-sudo mount $nvme_device $mount_point
+sudo mount "${nvme_device}" "${mount_point}"
 
 # Fix user/group access permissions
-sudo chown -R "$(id -u):$(id -g)" $mount_point
+sudo chown -R "$(id -u):$(id -g)" "${mount_point}"
 
 # We do NOT here add an entry for the volume_id to the /etc/fstab file
 # to automatically mount an attached volume after reboot since this
