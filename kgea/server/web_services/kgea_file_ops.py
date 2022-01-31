@@ -61,6 +61,7 @@ default_s3_region = s3_config['region']
 default_s3_bucket = s3_config['bucket']
 default_s3_root_key = s3_config['archive-directory']
 
+# Dynamic provisioning
 ebs_config: Dict = aws_config['ebs']
 _SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'sdc')}"  # we assume that sdb is already used up?
 
@@ -1475,7 +1476,10 @@ async def create_ebs_volume(
         )
         logger.debug(f"{method} ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
 
-        volume_id = volume_info["VolumeId"]
+        volume_id: str = volume_info["VolumeId"]
+        # Remove the embedded hyphen
+        volume_id = volume_id.replace('-', '')
+
         volume_status = volume_info["State"]
 
         # response ={
@@ -1549,6 +1553,9 @@ async def create_ebs_volume(
             InstanceId=instance_id,
             DryRun=dry_run
         )
+        # Note that, at this point, the external device path is set to the de
+        # the 'device' argument passed to the method, something like '/dev/sdc'
+        # Note however, that on recent EC2 instances, this is mapped internally to an internal NVME device, something like '/dev/nvme2n1'
         logger.debug(f"{method} volume.attach_to_instance() response:\n{pp.pformat(va_response)}")
     except Exception as e:
         logger.error(
@@ -1560,11 +1567,15 @@ async def create_ebs_volume(
         f"{method} mount and format {id_msg}."
     )
 
+    volume_id = volume_id.replace('-', '')
     try:
         if not dry_run:
             return_code = await run_script(
                 script=_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT,
-                args=(device, mount_point)
+                args=(
+                    volume_id.replace('-', ''),  # Locally remove the embedded hyphen, for script compatibility
+                    mount_point
+                )
             )
             if return_code == 0:
                 logger.info(f"{method} Successfully provisioning, mounting and formatting of {id_msg}")

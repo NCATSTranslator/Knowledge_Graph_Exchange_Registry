@@ -27,8 +27,13 @@ This document provides a fairly complete synopsis of the set of decisions and ta
         10.1.2 Fix the client id and secret
         10.1.3 Fix the S3 parameters
         10.1.4 Adjust any other config.yaml parameters (if and as necessary or desired)
-11. (EC2 server) docker-compose launch (from KGE code root directory)
-    11.1 docker-compose build
-    11.2 docker-compose up -d
-    11.3 docker image prune  # to clean out old images
-    11.4 docker-compose logs -f  # to monitor the application
+11. If you need to locally test components of the system outside the Docker containers, then ensure that required local OS level software is installed  (i.e. by 'sudo apt install...' etc. Refer to the KGEA_Archive_Dockerfile etc.) 
+    - 11.1 apt-get update && apt-get upgrade -y && apt-get install -y build-essential git python-lxml nvme
+    - 11.2 _Maybe create a local Python VENV and activate it..._
+    - 11.3 python -m pip install --no-cache-dir -r requirements.txt
+    - 11.4 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; unzip awscliv2.zip; ./aws/install; aws --version
+12. (EC2 server) docker-compose launch (from KGE code root directory)
+    - 12.1 docker-compose build
+    - 12.2 docker-compose up -d
+    - 12.3 docker image prune  # to clean out old images
+    - 12.4 docker-compose logs -f  # to monitor the application
