@@ -64,16 +64,26 @@ sudo nvme list -o json | python -c "
 import sys, json
 nvme_json = json.load(sys.stdin)
 nvme_devices = nvme_json['Devices']
+the_device  = 'unknown'
 for device_spec in nvme_devices:
     if device_spec['SerialNumber'] == '${volume_id}':
-        print(device_spec['DevicePath'])
+        the_device = device_spec['DevicePath']
         break
-print('unknown')
+print(the_device)
 ")
 
-echo ${nvme_device}
+echo "${nvme_device}"
 
-exit(0)
+exit 0
+
+if [[ ! -f "${nvme_device}" ]]; then
+    echo "EBS volumn '${volume_id}' is unknown? Cannot mount!"
+    usage
+    exit 1
+else
+    # Internal filing system mount point path assigned by application
+    mount_point=${2}
+fi
 
 #  Format the new volume
 sudo mkfs -t xfs $nvme_device
