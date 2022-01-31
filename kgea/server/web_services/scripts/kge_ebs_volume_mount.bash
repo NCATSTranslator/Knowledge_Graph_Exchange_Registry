@@ -59,7 +59,7 @@ echo "Mounting EBS volume '${volume_id}' on mount point '${mount_point}'"
 #   ]
 # }
 # Use Python to parse this JSON string for the NVME device assigned to the given EBS volume?
-nvme_device = $(
+nvme_device=$(
 sudo nvme list -o json | python -c "
 import sys, json
 nvme_json = json.load(sys.stdin)
