@@ -1477,9 +1477,6 @@ async def create_ebs_volume(
         logger.debug(f"{method} ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
 
         volume_id: str = volume_info["VolumeId"]
-        # Remove the embedded hyphen
-        volume_id = volume_id.replace('-', '')
-
         volume_status = volume_info["State"]
 
         # response ={
@@ -1573,7 +1570,9 @@ async def create_ebs_volume(
             return_code = await run_script(
                 script=_KGEA_EBS_VOLUME_MOUNT_AND_FORMAT_SCRIPT,
                 args=(
-                    volume_id.replace('-', ''),  # Locally remove the embedded hyphen, for script compatibility
+                    # Locally remove the embedded hyphen,
+                    # only here, for script compatibility
+                    volume_id.replace('-', ''),
                     mount_point
                 )
             )
