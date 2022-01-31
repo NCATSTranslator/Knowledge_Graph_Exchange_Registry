@@ -72,17 +72,12 @@ for device_spec in nvme_devices:
 print(the_device)
 ")
 
-echo "${nvme_device}"
-
-exit 0
+echo "EBS Volume is mapped to device '${nvme_device}'"
 
 if [[ ! -f "${nvme_device}" ]]; then
-    echo "EBS volumn '${volume_id}' is unknown? Cannot mount!"
+    echo "EBS volume '${volume_id}' is unknown? Cannot mount!"
     usage
     exit 1
-else
-    # Internal filing system mount point path assigned by application
-    mount_point=${2}
 fi
 
 #  Format the new volume
