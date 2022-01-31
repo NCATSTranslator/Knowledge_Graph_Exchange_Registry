@@ -1381,7 +1381,7 @@ def ec2_resource(assumed_role=the_role, **kwargs):
 # 1.3 (Popen() run bash script) - Mount the EBS volume inside the EC2 instance and format the volume
 #     TODO: might try to configure and use a persistent EBS Snapshot in step 1 to accelerate this step?
 #     TODO: what kind of unit testing can I attempt on the dynamic EBS provisioning subsystem?
-#     TODO: in the DOCKER containers, you may need to map the dynamically provisioned EBS 'scratch' directory
+#     TODO: in the DOCKER containers, you may need to map the dynamically provisioned EBS 'scratch' VOLUME
 #     TODO: begs the question: why copy the source code into the docker container? Should it simply be a mapped volume?
 #
 # compress_fileset():
@@ -1404,14 +1404,14 @@ async def create_ebs_volume(
 ) -> Optional[str]:
     """
     Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
-    The EBS volume is mounted by default on the (Linux) directory '/data' and formatted as a simple
+    The EBS volume is formatted and mounted by default on the (Linux) directory '/data'
     
     Notes:
     * This operation can only be performed when the application is running inside an EC2 instance
     
     :param size: specified size (in gigabytes)
     :param device: EBS device path of volume to be deleted (default: config.yaml designated 'scratch' device name)
-    :param mount_point: OS mount point (path) from which to unmount the volume (default: local 'scratch' mount point)
+    :param mount_point: OS mount point (path) to which to mount the volume (default: local 'scratch' mount point)
     :param dry_run: no operation test run if True
 
     :return: EBS volume instance identifier (or TODO: maybe better to return UUID of formatted volume?)
