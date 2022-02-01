@@ -1741,6 +1741,7 @@ def delete_ebs_volume(
 
         )
         logger.debug(f"{method} volume.detach() response:\n{pp.pformat(vol_detach_response)}")
+        # TODO: perhaps we need to poll here for completion of the 'detach' operation?
     except Exception as e:
         logger.error(
             f"{method} cannot detach the EBS volume '{volume_id}' from current instance: {str(e)}"
@@ -1753,6 +1754,7 @@ def delete_ebs_volume(
             DryRun=dry_run
         )
         logger.debug(f"{method} successful volume.delete() response:\n{pp.pformat(del_response)}?")
+        # TODO: perhaps we need to poll here for completion of the volume 'delete' operation?
     except Exception as ex:
         logger.error(
             f"{method} cannot detach the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
