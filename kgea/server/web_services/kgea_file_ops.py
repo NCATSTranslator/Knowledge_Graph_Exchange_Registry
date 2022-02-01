@@ -1410,17 +1410,11 @@ async def poll_volume_status(
     logger.debug(
         f"Entering {method}(" +
         f"volume_id: '{volume_id}', " +
-        f"volume_status: {volume_status}, " +
-        f"initial_status: {initial_status}, " +
-        f"target_status: {target_status})"
+        f"volume_status: '{volume_status}', " +
+        f"initial_status: '{initial_status}', " +
+        f"target_status: '{target_status}')"
     )
-    # response ={
-    #     'Volumes': [   {   ...
-    #                        'State': 'creating',
-    #                        'VolumeId': 'vol-0219a32e665737263',
-    #                        ...
-    #     'ResponseMetadata': ...
-    #     }
+
     def get_volume_status(response):
         volrec = response["Volumes"][0]
         return volrec['State']
@@ -1599,7 +1593,7 @@ async def create_ebs_volume(
             ebs_ec2_client,
             volume_id,
             va_response["State"],
-            ["available"],
+            ["attaching", "attached"],
             "in-use",
             dry_run
         )
