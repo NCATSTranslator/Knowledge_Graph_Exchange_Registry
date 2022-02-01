@@ -47,6 +47,9 @@ async def test_create_ebs_volume():
         Path(test_file).touch()
         assert exists(test_file)
 
+    # temporary short cut just to double check that the provisioning succeeds (before I delete the evidence!)
+    exit(0)
+
     # Delete the test volume
     delete_ebs_volume(
         volume_id=test_volume_id,
