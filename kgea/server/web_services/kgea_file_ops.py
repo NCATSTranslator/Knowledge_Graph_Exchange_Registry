@@ -1406,6 +1406,14 @@ async def poll_volume_status(
         target_status: str,
         dry_run: bool
 ) -> str:
+    method = "poll_volume_status"
+    logger.debug(
+        f"Entering {method}(" +
+        f"volume_id: '{volume_id}', " +
+        f"volume_status: {volume_status}, " +
+        f"initial_status: {initial_status}, " +
+        f"target_status: {target_status})"
+    )
     # response ={
     #     'Volumes': [   {   ...
     #                        'State': 'creating',
@@ -1419,11 +1427,13 @@ async def poll_volume_status(
 
     if volume_status not in initial_status:
         raise RuntimeError(
-            f"Volume {volume_id} 'State' has initial state {initial_status}? "
+            f"{method}(): Volume {volume_id} 'State' has initial state {initial_status}? "
             f"Expected {' or '.join(initial_status)}"
         )
 
-    if volume_status != target_status:
+    if not volume_status == target_status:
+
+        logger.debug(f"{method}(): Hopefully '{volume_status}' != '{target_status}'")
 
         # monitor status for 'target_status' before proceeding
         while volume_status not in [target_status, "error"]:
@@ -1454,8 +1464,10 @@ async def poll_volume_status(
             # )
             volume_status = get_volume_status(dv_response)
 
+            logger.debug(f"{method}(): Status is now '{volume_status}'")
+
     if volume_status == "error":
-        raise RuntimeError(f"For some reason, volume {volume_id} 'State' is in 'error'")
+        raise RuntimeError(f"{method}(): For some reason, volume {volume_id} 'State' is in 'error'")
 
     return volume_status
 
@@ -1541,7 +1553,7 @@ async def create_ebs_volume(
 
         volume_id: str = volume_info["VolumeId"]
 
-        poll_volume_status(
+        await poll_volume_status(
             ebs_ec2_client,
             volume_id,
             volume_info["State"],
@@ -1583,7 +1595,7 @@ async def create_ebs_volume(
         # to an internal NVME device, something like '/dev/nvme2n1'
         logger.debug(f"{method} volume.attach_to_instance() response:\n{pp.pformat(va_response)}")
 
-        poll_volume_status(
+        await poll_volume_status(
             ebs_ec2_client,
             volume_id,
             va_response["State"],
