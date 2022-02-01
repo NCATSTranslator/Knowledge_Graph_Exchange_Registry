@@ -1398,7 +1398,7 @@ def ec2_resource(assumed_role=the_role, **kwargs):
 ###################################################################################################
 
 
-def poll_volume_status(
+async def poll_volume_status(
         ebs_ec2_client,
         volume_id: str,
         volume_status: str,
