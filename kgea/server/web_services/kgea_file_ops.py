@@ -1367,6 +1367,7 @@ def ec2_resource(assumed_role=the_role, **kwargs):
 
     return assumed_role.get_resource('ec2', **kwargs)
 
+
 ###################################################################################################
 # Dynamic EBS provisioning steps, orchestrated by the KgeArchiver.worker() task which
 # direct calls methods using S3 and EC2 clients, plus an (steps 1.3, 1.4 plus 3.1) enhanced
@@ -1397,12 +1398,74 @@ def ec2_resource(assumed_role=the_role, **kwargs):
 ###################################################################################################
 
 
+def poll_volume_status(
+        ebs_ec2_client,
+        volume_id: str,
+        volume_status: str,
+        initial_status: List[str],
+        target_status: str,
+        dry_run: bool
+) -> str:
+    # response ={
+    #     'Volumes': [   {   ...
+    #                        'State': 'creating',
+    #                        'VolumeId': 'vol-0219a32e665737263',
+    #                        ...
+    #     'ResponseMetadata': ...
+    #     }
+    def get_volume_status(response):
+        volrec = response["Volumes"][0]
+        return volrec['State']
+
+    if volume_status not in initial_status:
+        raise RuntimeError(
+            f"Volume {volume_id} 'State' has initial state {initial_status}? "
+            f"Expected {' or '.join(initial_status)}"
+        )
+
+    if volume_status != target_status:
+
+        # monitor status for 'target_status' before proceeding
+        while volume_status not in [target_status, "error"]:
+            # Wait a little while for completion of volume creation...
+            await sleep(1)
+
+            # ... then check status again
+            dv_response = ebs_ec2_client.describe_volumes(
+                Filters=[
+                    {
+                        'Name': 'status',
+                        'Values': [
+                            'creating',
+                            'available',
+                            'in-use',
+                            'deleting',
+                            'deleted',
+                            'error'
+                        ]
+                    },
+                ],
+                VolumeIds=[volume_id],
+                DryRun=dry_run
+            )
+
+            # logger.debug(
+            #     f"poll_volume_status(): ebs_ec2_client.describe_volumes() response:\n{pp.pformat(volume_status)}"
+            # )
+            volume_status = get_volume_status(dv_response)
+
+    if volume_status == "error":
+        raise RuntimeError(f"For some reason, volume {volume_id} 'State' is in 'error'")
+
+    return volume_status
+
+
 async def create_ebs_volume(
         size: int,
         device: str = _SCRATCH_DEVICE,
         mount_point: str = scratch_dir_path(),
         dry_run: bool = False
-) -> Optional[str]:
+) -> Optional[Tuple[str,str]]:
     """
     Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
     The EBS volume is formatted and mounted by default on the (Linux) directory '/data'
@@ -1415,7 +1478,7 @@ async def create_ebs_volume(
     :param mount_point: OS mount point (path) to which to mount the volume (default: local 'scratch' mount point)
     :param dry_run: no operation test run if True
 
-    :return: EBS volume instance identifier (or TODO: maybe better to return UUID of formatted volume?)
+    :return: Tuple of EBS volume identifier and associated internal (NVME) device path
     """
     method = "create_ebs_volume():"
     # The application can only create an EBS volume if it is running
@@ -1477,57 +1540,21 @@ async def create_ebs_volume(
         logger.debug(f"{method} ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
 
         volume_id: str = volume_info["VolumeId"]
-        volume_status = volume_info["State"]
 
-        # response ={
-        #     'Volumes': [   {   ...
-        #                        'State': 'creating',
-        #                        'VolumeId': 'vol-0219a32e665737263',
-        #                        ...
-        #     'ResponseMetadata': ...
-        #     }
-        def get_volume_status(response):
-            volrec = response["Volumes"][0]
-            return volrec['State']
-
-        # monitor status for 'available' before proceeding
-        while volume_status not in ["available", "error"]:
-
-            # Wait a little while for completion of volume creation...
-            await sleep(1)
-
-            # ... then check status again
-            dv_response = ebs_ec2_client.describe_volumes(
-                Filters=[
-                    {
-                        'Name': 'status',
-                        'Values': [
-                            'creating',
-                            'available',
-                            'in-use',
-                            'deleting',
-                            'deleted',
-                            'error'
-                        ]
-                    },
-                ],
-                VolumeIds=[volume_id],
-                DryRun=dry_run
-            )
-            logger.debug(
-                f"{method} ebs_ec2_client.describe_volumes() response:\n{pp.pformat(volume_status)}"
-            )
-            volume_status = get_volume_status(dv_response)
-
-        if volume_status == "error":
-            logger.error(f"{method} for some reason, volume State is in 'error'")
-            return None
+        poll_volume_status(
+            ebs_ec2_client,
+            volume_id,
+            volume_info["State"],
+            ["creating", "available"],
+            "available",
+            dry_run
+        )
 
     except Exception as ex:
         logger.error(f"{method} ec2_client.create_volume() exception: {str(ex)}")
         return None
 
-    id_msg = f"EBS volume {volume_id}' of {size} gigabytes, attached to device '{device}' mounted at '{mount_point}'"
+    id_msg = f"EBS volume {volume_id}' of {size} gigabytes, attached to device '{device}', mounted at '{mount_point}'"
 
     logger.debug(f"{method} executing ec2_resource().Volume({volume_id})")
     volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
@@ -1550,10 +1577,21 @@ async def create_ebs_volume(
             InstanceId=instance_id,
             DryRun=dry_run
         )
-        # Note that, at this point, the external device path is set to the de
+        # Note that, at this point, the external device path is set to
         # the 'device' argument passed to the method, something like '/dev/sdc'
-        # Note however, that on recent EC2 instances, this is mapped internally to an internal NVME device, something like '/dev/nvme2n1'
+        # Note however, that on recent EC2 instances, this is mapped internally
+        # to an internal NVME device, something like '/dev/nvme2n1'
         logger.debug(f"{method} volume.attach_to_instance() response:\n{pp.pformat(va_response)}")
+
+        poll_volume_status(
+            ebs_ec2_client,
+            volume_id,
+            va_response["State"],
+            ["available"],
+            "in-use",
+            dry_run
+        )
+
     except Exception as e:
         logger.error(
             f"{method} failed to attach {id_msg}: {str(e)}"
@@ -1564,7 +1602,19 @@ async def create_ebs_volume(
         f"{method} mount and format {id_msg}."
     )
 
-    volume_id = volume_id.replace('-', '')
+    nvme_device = ""
+
+    def output_parser(line: str):
+        """
+        :param line: bash script stdout line being parsed
+        """
+        if not line.strip():
+            return  # empty line?
+
+        # logger.debug(f"Entering output_parser(line: {line})!")
+        if line.startswith("nvme_device="):
+            nvme_device = line.replace("nvme_device=", '')
+
     try:
         if not dry_run:
             return_code = await run_script(
@@ -1574,11 +1624,15 @@ async def create_ebs_volume(
                     # only here, for script compatibility
                     volume_id.replace('-', ''),
                     mount_point
-                )
+                ),
+                stdout_parser=output_parser
             )
             if return_code == 0:
-                logger.info(f"{method} Successfully provisioning, mounting and formatting of {id_msg}")
-                return volume_id
+                logger.info(
+                    f"{method} Successfully provisioned, formatted and mounted {id_msg} " +
+                    f"on the internal NVME device '{nvme_device}'"
+                )
+                return volume_id, nvme_device
             else:
                 logger.error(
                     f"{method} Failure to complete mounting and formatting of {id_msg}"
@@ -1599,8 +1653,8 @@ async def create_ebs_volume(
 
 def delete_ebs_volume(
         volume_id: str,
-        device: str = _SCRATCH_DEVICE,
-        mount_point: str = scratch_dir_path(),
+        device: str,
+        mount_point: str,
         dry_run: bool = False
 ) -> None:
     """

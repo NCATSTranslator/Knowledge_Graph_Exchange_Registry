@@ -58,7 +58,10 @@ echo "Mounting EBS volume '${volume_id}' on mount point '${mount_point}'"
 # ... other volume entries...
 #   ]
 # }
-# Use Python to parse this JSON string for the NVME device assigned to the given EBS volume?
+
+# Use Python to parse this JSON string for the
+# NVME device assigned to the given EBS volume?
+
 nvme_device=$(
 sudo nvme list -o json | python -c "
 import sys, json
@@ -72,7 +75,7 @@ for device_spec in nvme_devices:
 print(the_device)
 ")
 
-echo "EBS Volume is mapped to device '${nvme_device}'"
+echo "nvme_device=${nvme_device}"
 
 if [[ -z "${nvme_device}" ]]; then
     echo "EBS volume '${volume_id}' is unknown? Cannot mount!"

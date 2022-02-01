@@ -24,12 +24,20 @@ async def test_create_ebs_volume():
         dry_run = True
 
     # Create, attach, format and mount a 'tiny' test EBS volume
-    test_volume_id = await create_ebs_volume(
+    mounted_volume = await create_ebs_volume(
         size=1,
         device=_TEST_DEVICE,
         mount_point=_TEST_MOUNT_POINT,
         dry_run=dry_run
     )
+    # should not be None but rather, a Tuple of
+    # the volume identifier and (NVME) device
+    # corresponding to the _TEST_DEVICE
+    assert mounted_volume
+
+    # extract 'em'
+    test_volume_id, test_volume_device = mounted_volume
+
     if not dry_run:
         assert test_volume_id
 
@@ -42,7 +50,7 @@ async def test_create_ebs_volume():
     # Delete the test volume
     delete_ebs_volume(
         volume_id=test_volume_id,
-        device=_TEST_DEVICE,
+        device=test_volume_device,
         mount_point=_TEST_MOUNT_POINT,
         dry_run=dry_run
     )
