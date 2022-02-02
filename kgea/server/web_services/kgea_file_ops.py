@@ -1709,9 +1709,9 @@ async def delete_ebs_volume(
     * This operation can only be performed when the application is running inside an EC2 instance
 
     :param volume_id: identifier of the EBS volume to be deleted
-    :param device: EBS device path of volume to be deleted (default: config.yaml designated 'scratch' device name)
-    :param mount_point: OS mount point (path) from which to unmount the volume (default: local 'scratch' mount point)
-    :param dry_run: no operation test run if True
+    :param device: EBS device path of volume to be deleted
+    :param mount_point: OS mount point (directory path) to unmount
+    :param dry_run: no operation test run if True (default: False)
     """
     method = "delete_ebs_volume():"
     if not (volume_id or device or mount_point):
@@ -1732,10 +1732,11 @@ async def delete_ebs_volume(
     ec2_region = get_ec2_instance_region()
     ebs_ec2_client = ec2_client(config=Config(region_name=ec2_region))
 
-    # 3.1 (Popen() run sudo umount -d mount_point) - Cleanly unmount EBS volume after it is no longer needed.
+    # 3.1 (Popen() run sudo umount -d mount_point, then remove the mount point directory)
+    #     Cleanly unmount EBS volume after it is no longer needed.
     try:
         if not dry_run:
-            cmd = f"sudo umount -d {mount_point}"
+            cmd = f"sudo umount -d {mount_point}; sudo rm -f {mount_point}"
             logger.debug(cmd)
             with Popen(
                 cmd,

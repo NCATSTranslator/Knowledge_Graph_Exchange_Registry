@@ -43,12 +43,11 @@ async def test_create_ebs_volume():
         mount_point=_TEST_MOUNT_POINT,
         dry_run=dry_run
     )
-    # should not be None but rather, a Tuple of
-    # the volume identifier and (NVME) device
-    # corresponding to the _TEST_DEVICE
+    # should not be None but rather, a Tuple of the volume identifier
+    # and the (NVME) device corresponding to the _TEST_DEVICE
     assert mounted_volume
 
-    # extract 'em'
+    # extract them
     test_volume_id, test_volume_device = mounted_volume
 
     if not dry_run:
