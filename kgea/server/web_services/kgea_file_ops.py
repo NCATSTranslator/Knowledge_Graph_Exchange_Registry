@@ -117,7 +117,7 @@ async def run_script(
     cmd: List = list()
     cmd.append(script)
     cmd.extend(args)
-    
+
     logger.debug(f"run_script(cmd: '{cmd}')")
     try:
         with Popen(
@@ -134,11 +134,11 @@ async def run_script(
                 if stdout_parser:
                     stdout_parser(line)
                 logger.debug(line)
-                
+
     except RuntimeError:
         logger.error(f"run_script({script}) exception: {exc_info()}")
         return -1
-    
+
     return proc.returncode
 
 
@@ -275,7 +275,7 @@ def s3_client(
     :param config: botocore.config.Config configuring the S3 client
     :return: S3 client
     """
-    
+
     if not assumed_role:
         assumed_role = the_role
 
@@ -374,7 +374,7 @@ def match_objects_from_bucket(bucket_name, object_key, assumed_role=None):
     :param bucket_name:
     :param object_key:
     :param assumed_role:
-    
+
     :return:
     """
     bucket = s3_resource(assumed_role=assumed_role).Bucket(bucket_name)
@@ -446,7 +446,7 @@ def object_entries_in_location(bucket, object_location='') -> Dict[str, int]:
     # If object_location is the empty string, then each object
     # listed passes (since the empty string is part of every string)
     object_matches = {key: bucket_listings[key] for key in bucket_listings if object_location in key}
-    
+
     return object_matches
 
 
@@ -454,12 +454,12 @@ def object_keys_in_location(bucket, object_location='') -> List[str]:
     """
     :param bucket:
     :param object_location:
-    
+
     :return: all object keys in specified object location of a
              specified bucket (all bucket keys if object_location is empty)
     """
     key_catalog = object_entries_in_location(bucket, object_location=object_location)
-    
+
     return list(key_catalog.keys())
 
 
@@ -481,14 +481,14 @@ def object_keys_for_fileset_version(
     :return: Tuple [ matched list of file object keys, file set version ] found
     """
     target_fileset, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
-    
+
     object_key_list: List[str] = \
         object_keys_in_location(
             bucket=bucket,
             object_location=target_fileset,
         )
     filtered_file_key_list = list(filter(match_function, object_key_list))
-    
+
     return filtered_file_key_list, fileset_version
 
 
@@ -508,9 +508,9 @@ def object_folder_contents_size(
     """
     target_fileset, fileset_version = with_version(get_object_location, fileset_version)(kg_id)
     target_folder = f"{target_fileset}{object_subfolder}"
-    
+
     logger.debug(f"object_folder_contents_size({target_folder})")
-    
+
     object_key_catalog: Dict[str, int] = \
         object_entries_in_location(
             bucket=bucket,
@@ -520,7 +520,7 @@ def object_folder_contents_size(
     total_size = 0
     for size in object_key_catalog.values():
         total_size += int(size)
-    
+
     return total_size
 
 
@@ -557,7 +557,7 @@ def get_fileset_versions_available(bucket_name):
     # create a map of kg_ids and their versions
     kg_ids = set(kg_ids_pattern.match(kg_file).group(1) for kg_file in all_kge_archive_files if
                  kg_ids_pattern.match(kg_file) is not None)  # some kg_ids don't have versions
-    
+
     versions_per_kg = {}
     version_kg_pairs = set(
         (
@@ -769,12 +769,12 @@ async def compress_fileset(
             args=(bucket, root, kg_id, version)
         )
         logger.info(f"Finished archive script build {s3_archive_key}, return code: {str(return_code)}")
-        
+
     except Exception as e:
         logger.error(f"compress_fileset({s3_archive_key}) exception: {str(e)}")
 
     logger.debug(f"Exiting compress_fileset({s3_archive_key})")
-    
+
     return s3_archive_key
 
 
@@ -787,7 +787,7 @@ async def extract_data_archive(
 ) -> List[Dict[str, str]]:
     """
     Decompress a tar.gz data archive file from a given S3 bucket, and upload back its internal files back.
-    
+
     Version 1.0 - decompress_in_place() below used Smart_Open... not scalable
     Version 2.0 - this version uses an external bash shell script to perform this operation...
 
@@ -796,12 +796,12 @@ async def extract_data_archive(
     :param archive_filename: base name of the tar.gz archive to be decompressed
     :param bucket: in S3
     :param root_directory: KGE data folder in the bucket
-    
+
     :return: list of file entries
     """
     # one step decompression - bash level script operations on the local disk
     logger.debug(f"Initiating execution of extract_data_archive({archive_filename})")
-    
+
     if not archive_filename.endswith('.tar.gz'):
         err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
         logger.error(err_msg)
@@ -809,7 +809,7 @@ async def extract_data_archive(
 
     part = archive_filename.split('.')
     archive_filename = '.'.join(part[:-2])
-    
+
     file_entries: List[Dict[str, str]] = []
 
     def output_parser(line: str):
@@ -818,7 +818,7 @@ async def extract_data_archive(
         """
         if not line.strip():
             return   # empty line?
-        
+
         # logger.debug(f"Entering output_parser(line: {line})!")
         if line.startswith(_EDA_OUTPUT_DATA_PREFIX):
             line = line.replace(_EDA_OUTPUT_DATA_PREFIX, '')
@@ -843,10 +843,10 @@ async def extract_data_archive(
             stdout_parser=output_parser
         )
         logger.debug(f"Completed extract_data_archive({archive_filename}.tar.gz), with return code {str(return_code)}")
-        
+
     except Exception as e:
         logger.error(f"decompress_in_place({archive_filename}.tar.gz): exception {str(e)}")
-    
+
     logger.debug(f"Exiting decompress_in_place({archive_filename}.tar.gz)")
 
     return file_entries
@@ -855,7 +855,7 @@ async def extract_data_archive(
 def decompress_in_place(tar_gz_file_key, target_location=None, traversal_func=None):
     """
     ### DEPRECIATED - see extract_data_archive() above.
-    
+
     Decompress a gzipped file from within a given S3 bucket.
 
     Version 1.0 - this version used Smart_Open... not scalable
@@ -872,24 +872,24 @@ def decompress_in_place(tar_gz_file_key, target_location=None, traversal_func=No
     :param traversal_func: Optional
     :return:
     """
-    
+
     if target_location[-1] != '/':
         raise Warning(
             "decompress_to_kgx(): the target location given doesn't terminate in a separator, " +
             f" instead {target_location[-1]}." +
             "\nUnarchived files may be put outside of a <kg_id>/<fileset_version>/ folder pair."
         )
-    
+
     if '.gz' not in tar_gz_file_key:
         raise Exception('decompress_in_place(): Gzipped key cannot be a GZIP file! (' + str(tar_gz_file_key) + ')')
-    
+
     if target_location is None:
         target_location = '/'.join(tar_gz_file_key.split('/')[:-1]) + '/'
-    
+
     archive_location = f"s3://{default_s3_bucket}/{tar_gz_file_key}"
-    
+
     file_entries = []
-    
+
     # one step decompression - use the tarfile library's ability
     # to open gzip files transparently to avoid gzip+tar step
     with smart_open.open(archive_location, 'rb', compression='disable') as fin:
@@ -900,10 +900,10 @@ def decompress_in_place(tar_gz_file_key, target_location=None, traversal_func=No
             else:
                 for entry in tf:  # list each entry one by one
                     fileobj = tf.extractfile(entry)
-                    
+
                     # problem: entry name file can be is nested. un-nest. Use os path to get the flat file name
                     unpacked_filename = basename(entry.name)
-                    
+
                     if fileobj is not None:  # not a directory
                         s3_client().upload_fileobj(  # upload a new obj to s3
                             Fileobj=io.BytesIO(fileobj.read()),
@@ -1006,22 +1006,22 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
 
         file_entries = []
         for entry in tf:  # list each entry one by one
-            
+
             logger.debug(f"traversal_func_kgx(): Traversing entry'{entry}'")
 
             object_key = location  # if not strict else None
-            
+
             fileobj = tf.extractfile(entry)
 
             logger.debug(f"traversal_func_kgx(): Entry file object '{fileobj}'")
 
             if fileobj is not None:  # not a directory
-                
+
                 pre_name = entry.name
                 unpacked_filename = basename(pre_name)
 
                 logger.debug(f"traversal_func_kgx(): Entry names: {pre_name}, {unpacked_filename}")
-                
+
                 if is_node_y(pre_name):
                     object_key = location + 'nodes/' + unpacked_filename
                 elif is_edge_y(pre_name):
@@ -1032,7 +1032,7 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
                 logger.debug(f"traversal_func_kgx(): Object key will be '{object_key}'")
 
                 if object_key is not None:
-                    
+
                     logger.debug(f"traversal_func_kgx(): uploading entry into '{object_key}'")
 
                     s3_client().upload_fileobj(  # upload a new obj to s3
@@ -1304,9 +1304,9 @@ def upload_from_link(
     """
     # make sure we're getting a valid url
     assert(valid_url(source))
-    
+
     try:
-        
+
         s3_object_target = f"s3://{bucket}/{object_key}"
         cmd = f"curl -L {source}| aws s3 cp - {s3_object_target}"
         with Popen(
@@ -1329,7 +1329,7 @@ def upload_from_link(
                 if previous < current:
                     callback(current-previous)
                     previous = current
-        
+
     except RuntimeWarning:
         logger.warning("URL transfer cancelled by exception?")
 
@@ -1398,72 +1398,95 @@ def ec2_resource(assumed_role=the_role, **kwargs):
 ###################################################################################################
 
 
-async def poll_volume_status(
-        ebs_ec2_client,
-        volume_id: str,
+def is_valid_initial_status(
         volume_status: str,
-        initial_status: List[str],
-        target_status: str,
-        dry_run: bool
-) -> str:
-    method = "poll_volume_status"
+        initial_status: List[str]
+):
+    """
+    This 'volume_status' is generally the result of a specific volume operation
+    call, hence the expected range of EBS volume State values can be checked
+    against a specific list of 'initial_status' states. This particular list of
+    Such statements are often quite distinct from the target volume 'State' polled
+    by the describe_volumes() call, inside await_target_volume_state() below.
+
+    :param volume_status: string status being checked against initial status
+    :param initial_status: the valid initial status list of States
+
+    :raises: RuntimeError if the volume_status is invalid
+    """
+    if volume_status not in initial_status:
+        raise RuntimeError(
+            f"check_volume_status(): Volume 'State' has initial state {initial_status}? "
+            f"Expected {' or '.join(initial_status)}"
+        )
+
+
+async def await_target_volume_state(
+        client,
+        volume_id: str,
+        target_state: str,
+        dry_run: bool,
+        time_out: int = 30  # default time out for the await is 30 seconds?
+):
+    """
+    Polls EBS describe_volumes status until target_status or error is signalled.
+
+    :param client: EBS EC2 client to which the polling operation is targeted
+    :param volume_id: string volume identifier
+    :param target_state: should be one of 'creating', 'available', 'in-use', 'deleting', 'deleted'
+    :param dry_run: True if polling done as a 'dry run' AWS operation
+    :param time_out: approximate seconds before the polling operation will time out (default: ~30 seconds)
+
+    :raise: TimeoutError if status polling operation exceeds specified time_out
+    :raise: RuntimeError if volume reports an 'error' State
+    """
+    method = "await_target_volume_state"
     logger.debug(
         f"Entering {method}(" +
         f"volume_id: '{volume_id}', " +
-        f"volume_status: '{volume_status}', " +
-        f"initial_status: '{initial_status}', " +
-        f"target_status: '{target_status}')"
+        f"target_status: '{target_state}')"
     )
 
     def get_volume_status(response):
         volrec = response["Volumes"][0]
         return volrec['State']
 
-    if volume_status not in initial_status:
-        raise RuntimeError(
-            f"{method}(): Volume {volume_id} 'State' has initial state {initial_status}? "
-            f"Expected {' or '.join(initial_status)}"
+    # monitor status for 'target_status' before proceeding
+    volume_status = None
+    tries = 0
+    while volume_status not in [target_state, "error"]:
+
+        # Wait a second before checking status
+        await sleep(1)
+
+        # ... then check status again
+        dv_response = client.describe_volumes(
+            Filters=[
+                {
+                    'Name': 'status',
+                    'Values': [
+                        'creating',
+                        'available',
+                        'in-use',
+                        'deleting',
+                        'deleted',
+                        'error'
+                    ]
+                },
+            ],
+            VolumeIds=[volume_id],
+            DryRun=dry_run
         )
+        volume_status = get_volume_status(dv_response)
 
-    if not volume_status == target_status:
+        logger.debug(f"{method}(): Status is now '{volume_status}'")
 
-        logger.debug(f"{method}(): Hopefully '{volume_status}' != '{target_status}'")
-
-        # monitor status for 'target_status' before proceeding
-        while volume_status not in [target_status, "error"]:
-            # Wait a little while for completion of volume creation...
-            await sleep(1)
-
-            # ... then check status again
-            dv_response = ebs_ec2_client.describe_volumes(
-                Filters=[
-                    {
-                        'Name': 'status',
-                        'Values': [
-                            'creating',
-                            'available',
-                            'in-use',
-                            'deleting',
-                            'deleted',
-                            'error'
-                        ]
-                    },
-                ],
-                VolumeIds=[volume_id],
-                DryRun=dry_run
-            )
-
-            # logger.debug(
-            #     f"poll_volume_status(): ebs_ec2_client.describe_volumes() response:\n{pp.pformat(volume_status)}"
-            # )
-            volume_status = get_volume_status(dv_response)
-
-            logger.debug(f"{method}(): Status is now '{volume_status}'")
+        tries += 1
+        if tries > time_out:
+            raise TimeoutError(f"{method}(): polling timeout encountered for volume '{volume_id}'?")
 
     if volume_status == "error":
-        raise RuntimeError(f"{method}(): For some reason, volume {volume_id} 'State' is in 'error'")
-
-    return volume_status
+        raise RuntimeError(f"{method}(): volume '{volume_id}' reporting an 'error' state")
 
 
 async def create_ebs_volume(
@@ -1471,14 +1494,14 @@ async def create_ebs_volume(
         device: str = _SCRATCH_DEVICE,
         mount_point: str = scratch_dir_path(),
         dry_run: bool = False
-) -> Optional[Tuple[str,str]]:
+) -> Optional[Tuple[str, str]]:
     """
     Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
     The EBS volume is formatted and mounted by default on the (Linux) directory '/data'
-    
+
     Notes:
     * This operation can only be performed when the application is running inside an EC2 instance
-    
+
     :param size: specified size (in gigabytes)
     :param device: EBS device path of volume to be deleted (default: config.yaml designated 'scratch' device name)
     :param mount_point: OS mount point (path) to which to mount the volume (default: local 'scratch' mount point)
@@ -1546,15 +1569,18 @@ async def create_ebs_volume(
         logger.debug(f"{method} ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
 
         volume_id: str = volume_info["VolumeId"]
-
-        await poll_volume_status(
-            ebs_ec2_client,
-            volume_id,
-            volume_info["State"],
-            ["creating", "available"],
-            "available",
-            dry_run
-        )
+        volume_status = volume_info["State"]
+        if is_valid_initial_status(
+                volume_status,
+                ["creating", "available"]
+        ) and not volume_status == "available":
+            # if necessary, wait for the volume State transition to "available"
+            await await_target_volume_state(
+                ebs_ec2_client,
+                volume_id,
+                "available",
+                dry_run
+            )
 
     except Exception as ex:
         logger.error(f"{method} ec2_client.create_volume() exception: {str(ex)}")
@@ -1589,14 +1615,18 @@ async def create_ebs_volume(
         # to an internal NVME device, something like '/dev/nvme2n1'
         logger.debug(f"{method} volume.attach_to_instance() response:\n{pp.pformat(va_response)}")
 
-        await poll_volume_status(
-            ebs_ec2_client,
-            volume_id,
-            va_response["State"],
-            ["attaching", "attached"],
-            "in-use",
-            dry_run
-        )
+        volume_status = va_response["State"]
+        if is_valid_initial_status(
+                volume_status,
+                ["attaching", "attached", "busy"]  # not too sure about 'busy' but I'll hedge my bets here...
+        ) and not volume_status == "attached":
+            # await until the attaching volume State signals that it is "in-use"
+            await await_target_volume_state(
+                ebs_ec2_client,
+                volume_id,
+                "in-use",
+                dry_run
+            )
 
     except Exception as e:
         logger.error(
@@ -1691,6 +1721,7 @@ def delete_ebs_volume(
         return
 
     ec2_region = get_ec2_instance_region()
+    ebs_ec2_client = ec2_client(config=Config(region_name=ec2_region))
 
     # 3.1 (Popen() run sudo umount -d mount_point) - Cleanly unmount EBS volume after it is no longer needed.
     try:
@@ -1733,6 +1764,14 @@ def delete_ebs_volume(
 
     # 3.2 (EC2 client) - Detach the EBS volume on the scratch device from the EC2 instance.
     try:
+        # vol_detach_response = {
+        #     'AttachTime': datetime(2015, 1, 1),
+        #     'Device': 'string',
+        #     'InstanceId': 'string',
+        #     'State': 'attaching'|'attached'|'detaching'|'detached'|'busy',
+        #     'VolumeId': 'string',
+        #     'DeleteOnTermination': True|False
+        # }
         vol_detach_response = volume.detach_from_instance(
             Device=device,
             Force=True,
@@ -1741,7 +1780,21 @@ def delete_ebs_volume(
 
         )
         logger.debug(f"{method} volume.detach() response:\n{pp.pformat(vol_detach_response)}")
-        # TODO: perhaps we need to poll here for completion of the 'detach' operation?
+
+        volume_status = vol_detach_response["State"]
+        target_status = "detached"
+        if is_valid_initial_status(
+                volume_status,
+                ["attaching", "attached", "detaching", "detached", "busy"]  # not too sure about 'busy' here but ...
+        ) and not volume_status == target_status:
+            # We want to wait until the detached volume State is again fully "available"
+            await await_target_volume_state(
+                ebs_ec2_client,
+                volume_id,
+                "available",
+                dry_run
+            )
+
     except Exception as e:
         logger.error(
             f"{method} cannot detach the EBS volume '{volume_id}' from current instance: {str(e)}"
@@ -1750,11 +1803,24 @@ def delete_ebs_volume(
 
     # 3.3 (EC2 client) - Delete the instance (to avoid incurring further economic cost).
     try:
-        del_response = volume.delete(
-            DryRun=dry_run
+        # Sanity check: await until volume is 'available' prior to attempting deletion
+        await await_target_volume_state(
+            ebs_ec2_client,
+            volume_id,
+            "available",
+            dry_run
         )
-        logger.debug(f"{method} successful volume.delete() response:\n{pp.pformat(del_response)}?")
-        # TODO: perhaps we need to poll here for completion of the volume 'delete' operation?
+
+        volume.delete(DryRun=dry_run)  # this operation returns no response but...
+
+        # ...then you can poll to wait until the volume is deemed "deleted"?
+        await await_target_volume_state(
+            ebs_ec2_client,
+            volume_id,
+            "deleted",
+            dry_run
+        )
+
     except Exception as ex:
         logger.error(
             f"{method} cannot detach the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
