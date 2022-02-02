@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from kgea.aws.ec2 import get_ec2_instance_id
-from kgea.server.web_services.kgea_file_ops import create_ebs_volume, scratch_dir_path, delete_ebs_volume
+from kgea.server.web_services.kgea_file_ops import create_ebs_volume, delete_ebs_volume
 
 import logging
 logger = logging.getLogger(__name__)
