@@ -1488,6 +1488,10 @@ async def await_target_volume_state(
     if volume_status == "error":
         raise RuntimeError(f"{method}(): volume '{volume_id}' reporting an 'error' state")
 
+    # Unless a timeout or error occurs, then the
+    # volume_status should equal the target_state
+    assert volume_status == target_state
+
 
 async def create_ebs_volume(
         size: int,
@@ -1519,12 +1523,13 @@ async def create_ebs_volume(
         )
         return None
 
-    logger.debug(f"{method} creating an EBS volume of size '{size}' GB for instance {instance_id}.")
+    logger.debug(f"{method}: creating an EBS volume of size '{size}' GB for instance {instance_id}.")
 
     ec2_region = get_ec2_instance_region()
     ec2_availability_zone = get_ec2_instance_availability_zone()
 
     try:
+        logger.debug(f"{method}: getting EC2 Client.")
         ebs_ec2_client = ec2_client(config=Config(region_name=ec2_region))
 
         # Create a suitably sized EBS volume, via the EC2 client
@@ -1560,27 +1565,34 @@ async def create_ebs_volume(
         #     'MultiAttachEnabled': True|False,
         #     'Throughput': 123
         # }
+        logger.debug(f"{method}: creating EBS volume in '{ec2_availability_zone}'.")
         volume_info = ebs_ec2_client.create_volume(
             AvailabilityZone=ec2_availability_zone,
             Size=size,
             VolumeType='gp2',
             DryRun=dry_run,
         )
-        logger.debug(f"{method} ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
+        logger.debug(f"{method}: ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
 
         volume_id: str = volume_info["VolumeId"]
         volume_status = volume_info["State"]
-        if is_valid_initial_status(
+        initial_states = ["creating", "available"]
+        if not is_valid_initial_status(
                 volume_status,
-                ["creating", "available"]
-        ) and not volume_status == "available":
-            # if necessary, wait for the volume State transition to "available"
-            await await_target_volume_state(
-                ebs_ec2_client,
-                volume_id,
-                "available",
-                dry_run
+                initial_states
+        ):
+            raise RuntimeError(
+                f"{method}: volume status '{volume_status}' must be one of {' or '.join(initial_states)}"
             )
+        else:
+            if not volume_status == "available":
+                # if necessary, wait for the volume State transition to "available"
+                await await_target_volume_state(
+                    ebs_ec2_client,
+                    volume_id,
+                    "available",
+                    dry_run
+                )
 
     except Exception as ex:
         logger.error(f"{method} ec2_client.create_volume() exception: {str(ex)}")
