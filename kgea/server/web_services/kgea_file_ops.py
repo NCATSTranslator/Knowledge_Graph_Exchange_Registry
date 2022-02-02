@@ -1529,7 +1529,7 @@ async def create_ebs_volume(
     ec2_availability_zone = get_ec2_instance_availability_zone()
 
     try:
-        logger.debug(f"{method}: getting EC2 Client.")
+        logger.debug(f"{method} getting EC2 Client.")
         ebs_ec2_client = ec2_client(config=Config(region_name=ec2_region))
 
         # Create a suitably sized EBS volume, via the EC2 client
@@ -1565,34 +1565,30 @@ async def create_ebs_volume(
         #     'MultiAttachEnabled': True|False,
         #     'Throughput': 123
         # }
-        logger.debug(f"{method}: creating EBS volume in '{ec2_availability_zone}'.")
+        logger.debug(f"{method} creating EBS volume in '{ec2_availability_zone}'.")
         volume_info = ebs_ec2_client.create_volume(
             AvailabilityZone=ec2_availability_zone,
             Size=size,
             VolumeType='gp2',
             DryRun=dry_run,
         )
-        logger.debug(f"{method}: ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
+        logger.debug(f"{method} ec2_client.create_volume() response:\n{pp.pformat(volume_info)}")
 
         volume_id: str = volume_info["VolumeId"]
-        volume_status = volume_info["State"]
+
+        volume_status: str = volume_info["State"]
         initial_states = ["creating", "available"]
-        if not is_valid_initial_status(
-                volume_status,
-                initial_states
-        ):
-            raise RuntimeError(
-                f"{method}: volume status '{volume_status}' must be one of {' or '.join(initial_states)}"
+
+        is_valid_initial_status(volume_status, initial_states)
+
+        if not volume_status == "available":
+            # if necessary, wait for the volume State transition to "available"
+            await await_target_volume_state(
+                ebs_ec2_client,
+                volume_id,
+                "available",
+                dry_run
             )
-        else:
-            if not volume_status == "available":
-                # if necessary, wait for the volume State transition to "available"
-                await await_target_volume_state(
-                    ebs_ec2_client,
-                    volume_id,
-                    "available",
-                    dry_run
-                )
 
     except Exception as ex:
         logger.error(f"{method} ec2_client.create_volume() exception: {str(ex)}")
@@ -1627,11 +1623,12 @@ async def create_ebs_volume(
         # to an internal NVME device, something like '/dev/nvme2n1'
         logger.debug(f"{method} volume.attach_to_instance() response:\n{pp.pformat(va_response)}")
 
-        volume_status = va_response["State"]
-        if is_valid_initial_status(
-                volume_status,
-                ["attaching", "attached", "busy"]  # not too sure about 'busy' but I'll hedge my bets here...
-        ) and not volume_status == "attached":
+        volume_status: str = va_response["State"]
+
+        # not too sure about 'busy' but I'll hedge my bets here...
+        is_valid_initial_status(volume_status, ["attaching", "attached", "busy"])
+
+        if not volume_status == "attached":
             # await until the attaching volume State signals that it is "in-use"
             await await_target_volume_state(
                 ebs_ec2_client,
@@ -1794,11 +1791,14 @@ async def delete_ebs_volume(
         logger.debug(f"{method} volume.detach() response:\n{pp.pformat(vol_detach_response)}")
 
         volume_status = vol_detach_response["State"]
-        target_status = "detached"
-        if is_valid_initial_status(
-                volume_status,
-                ["attaching", "attached", "detaching", "detached", "busy"]  # not too sure about 'busy' here but ...
-        ) and not volume_status == target_status:
+        target_status: str = "detached"
+
+        is_valid_initial_status(
+            volume_status,
+            ["attaching", "attached", "detaching", "detached", "busy"]  # not too sure about 'busy' here but...
+        )
+
+        if not volume_status == target_status:
             # We want to wait until the detached volume State is again fully "available"
             await await_target_volume_state(
                 ebs_ec2_client,

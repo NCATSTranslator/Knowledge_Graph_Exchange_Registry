@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from kgea.aws.ec2 import get_ec2_instance_id
-from kgea.server.web_services.kgea_file_ops import create_ebs_volume, delete_ebs_volume
+from kgea.server.web_services.kgea_file_ops import create_ebs_volume, delete_ebs_volume, is_valid_initial_status
 
 import logging
 logger = logging.getLogger(__name__)
@@ -11,6 +11,19 @@ logger.setLevel("DEBUG")
 
 _TEST_DEVICE = "/dev/sdc"
 _TEST_MOUNT_POINT = "/opt/ebs_test_dir"
+
+
+def test_is_initial_volume_status_validation():
+    volume_status = "creating"
+    initial_states = ["creating", "available"]
+
+    is_valid_initial_status(volume_status, initial_states)
+
+    try:
+        volume_status = "something_else"
+        is_valid_initial_status(volume_status, initial_states)
+    except RuntimeError:
+        assert True
 
 
 @pytest.mark.asyncio
