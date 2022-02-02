@@ -1687,7 +1687,7 @@ async def create_ebs_volume(
         return None
 
 
-def delete_ebs_volume(
+async def delete_ebs_volume(
         volume_id: str,
         device: str,
         mount_point: str,
