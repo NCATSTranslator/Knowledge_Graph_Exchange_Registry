@@ -830,6 +830,9 @@ async def extract_data_archive(
                 "file_size": str(file_size),
                 "object_key": file_object_key
             })
+
+    # TODO: need large enough EBS storage allocated before this operation is attempted?
+
     try:
         return_code = await run_script(
             script=_KGEA_EDA_SCRIPT,
@@ -846,6 +849,8 @@ async def extract_data_archive(
 
     except Exception as e:
         logger.error(f"decompress_in_place({archive_filename}.tar.gz): exception {str(e)}")
+
+    # TODO: here, do I need to release the EBS storage allocated above (or not)?
 
     logger.debug(f"Exiting decompress_in_place({archive_filename}.tar.gz)")
 

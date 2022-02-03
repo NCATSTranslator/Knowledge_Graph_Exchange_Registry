@@ -425,6 +425,7 @@ class KgeFileSet:
         """
         :return: S3 object keys
         """
+        # TODO: can I somehow return the archive file sizes here?
         archive_files_keys = list(filter(
             lambda x: '.tar.gz' in x, self.get_data_file_object_keys()
         ))
@@ -528,7 +529,7 @@ class KgeFileSet:
             "object_key": object_key,
             "file_type": file_type,
             "file_name": file_name,
-            "file_size": file_size,
+            "file_size": file_size,  # TODO: how do I ensure that this value is accurately set for all files?
             "input_format": input_format,
             "input_compression": input_compression,
             "kgx_compliant": False,  # until proven True...
@@ -2042,18 +2043,25 @@ class KgeArchiver:
 
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
+                # TODO: can I somehow also return (and use) the archive
+                #       file sizes here, ordered from largest to smallest?
                 archive_file_key_list = file_set.get_archive_file_keys()
                 logger.debug(f"KgeArchiver task {task_id} unpacking incoming tar.gz archives: {archive_file_key_list}")
                 
                 for archive_file_key in archive_file_key_list:
-                    
+
                     archive_filename = file_set.get_property_of_data_file_key(archive_file_key, 'file_name')
                     
                     logger.debug(f"Unpacking archive {archive_filename}")
                     
                     #
                     # RMB: 2021-10-07, we deprecated the RAM-based version of the 'decompress-in-place' operation,
-                    # moving instead towards the kge_extract_data_archive.bash hard disk-centric solution
+                    # moving instead towards the kge_extract_data_archive.bash hard disk-centric solution.
+                    #
+                    # TODO: Need to computer EBS storage needed for these operations and allocated it dynamically
+                    #       Answer: if the archive sizes are ordered largest to smallest (above), then initialize
+                    #       the EBS drive for the largest archive, then reuse? Problem: perhaps still not big enough
+                    #       for later post-processing steps (e.g. generation of the "master"  tar.gz archive?)
                     #
                     # archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     #
@@ -2120,8 +2128,8 @@ class KgeArchiver:
             # take a quick rest, to give other co-routines a chance?
             await sleep(0.001)
             
-            # 2. Aggregate each of all nodes and edges each
-            #    into their respective files in the archive folder
+            # 2. Aggregate each of all nodes and edges each into
+            #    their respective files in the AWS S3 archive folder
             self.aggregate_to_archive(
                 file_set=file_set,
                 kgx_file_type="nodes",
@@ -2147,6 +2155,10 @@ class KgeArchiver:
             #    from compressing the previous compression (so the source of files is distinct
             #    from the target to which it is written)
             logger.debug("Compressing total KGE file set...")
+            # TODO: this is the second place where a suitably large EBS storage device needs to be available.
+            #       The size of such an EBS drive should be at least as large as the aggregate size of all
+            #       the files to be tar'd, plus perhaps the untar'd size of the largest file (in case it
+            #       needs to coexist on the drive alongside most of the growing tar archive (not yet gzip'd)?)
             try:
                 s3_archive_key: str = await compress_fileset(
                     kg_id=file_set.kg_id,
@@ -2156,6 +2168,8 @@ class KgeArchiver:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
                 print_error_trace("File set compression failure! "+str(e))
                 raise e
+
+            # TODO: once  we get her, we can unmount/detach/delete the aforementioned large EBS storage device?
 
             logger.debug("...File compression completed!")
 
@@ -2197,7 +2211,8 @@ class KgeArchiver:
             # 6. KGX validation of KGE compliant archive.
             
             # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
-            # TODO: need to managed multiple Biolink Model specific KGX validators
+            # TODO: need to managed multiple Biolink Model specific KGX validators.
+            # TODO: might need yet another large EBS drive here, to validate the file set (or not.. stream processed?)
             logger.debug(
                 f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive..."
             )
