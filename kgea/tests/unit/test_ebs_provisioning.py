@@ -69,3 +69,6 @@ async def test_create_ebs_volume():
 
     if not dry_run:
         assert not exists(test_file)
+
+    # force an error condition here so that DEBUG output is all shown(?)
+    assert False
