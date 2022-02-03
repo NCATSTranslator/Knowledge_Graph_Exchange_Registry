@@ -1,6 +1,5 @@
 from os.path import exists
 from pathlib import Path
-from asyncio import sleep
 
 import pytest
 
@@ -55,9 +54,6 @@ async def test_create_ebs_volume():
         Path(test_file).touch()
         assert exists(test_file)
 
-    # temporary delay of 5 minutes for the deletion of the newly created test EBS volume
-    await sleep(300)
-
     # Delete the test volume
     await delete_ebs_volume(
         volume_id=test_volume_id,
@@ -68,6 +64,3 @@ async def test_create_ebs_volume():
 
     if not dry_run:
         assert not exists(test_file)
-
-    # force an error condition here so that DEBUG output is all shown(?)
-    assert False
