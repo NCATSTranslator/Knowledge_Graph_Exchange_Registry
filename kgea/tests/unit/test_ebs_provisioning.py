@@ -1,5 +1,7 @@
 from os.path import exists
 from pathlib import Path
+from asyncio import sleep
+
 import pytest
 
 from kgea.aws.ec2 import get_ec2_instance_id
@@ -52,6 +54,9 @@ async def test_create_ebs_volume():
     if not dry_run:
         Path(test_file).touch()
         assert exists(test_file)
+
+    # temporary delay of 5 minutes for the deletion of the newly created test EBS volume
+    await sleep(300)
 
     # Delete the test volume
     await delete_ebs_volume(
