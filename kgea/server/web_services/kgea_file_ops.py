@@ -1737,7 +1737,7 @@ async def delete_ebs_volume(
     try:
         if not dry_run:
 
-            cmd = f"sudo umount -d {mount_point}; sudo rm -f {mount_point}"
+            cmd = f"sudo umount -d {mount_point}; sudo rm -Rf {mount_point}"
             logger.debug(f"{method} running command '{cmd}'?")
 
             with Popen(

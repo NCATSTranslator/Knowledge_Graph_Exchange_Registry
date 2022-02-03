@@ -83,8 +83,8 @@ if [[ -z "${nvme_device}" ]]; then
     exit 1
 fi
 
-#  Format the new volume
-sudo mkfs -t xfs "${nvme_device}"
+#  Format the new volume (log silently thrown away to /dev/null)
+sudo mkfs -t xfs "${nvme_device}" >/dev/null
 
 # Create a 'scratch' directory relative to the
 # current working directory, if not otherwise available
