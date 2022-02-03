@@ -1647,18 +1647,22 @@ async def create_ebs_volume(
         f"{method} mount and format {id_msg}."
     )
 
+    # nvme_device is made visible and set as a
+    # nonlocal variable is set within the output_parser()
     nvme_device = ""
 
     def output_parser(line: str):
         """
         :param line: bash script stdout line being parsed
         """
+        nonlocal nvme_device  # important to declare this as nonlocal here!
         if not line.strip():
             return  # empty line?
 
         # logger.debug(f"Entering output_parser(line: {line})!")
         if line.startswith("nvme_device="):
             nvme_device = line.replace("nvme_device=", '')
+            logger.debug(f"output_parser(): nvme_device={nvme_device}")
 
     try:
         if not dry_run:
@@ -1673,6 +1677,9 @@ async def create_ebs_volume(
                 stdout_parser=output_parser
             )
             if return_code == 0:
+                # 'nvme_device' should NOT be empty
+                assert nvme_device
+
                 logger.info(
                     f"{method} Successfully provisioned, formatted and mounted {id_msg} " +
                     f"on the internal NVME device '{nvme_device}'"
