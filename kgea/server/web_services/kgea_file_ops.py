@@ -1736,8 +1736,10 @@ async def delete_ebs_volume(
     #     Cleanly unmount EBS volume after it is no longer needed.
     try:
         if not dry_run:
+
             cmd = f"sudo umount -d {mount_point}; sudo rm -f {mount_point}"
-            logger.debug(cmd)
+            logger.debug(f"{method} running command '{cmd}'?")
+
             with Popen(
                 cmd,
                 bufsize=1,
@@ -1770,6 +1772,7 @@ async def delete_ebs_volume(
         logger.warning(f"{method} volume_id is null.. skipping volume detach and deletion")
         return
 
+    logger.debug(f"{method} accessing EC2 resource for volume {volume_id}?")
     volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
 
     # 3.2 (EC2 client) - Detach the EBS volume on the scratch device from the EC2 instance.
@@ -1782,41 +1785,25 @@ async def delete_ebs_volume(
         #     'VolumeId': 'string',
         #     'DeleteOnTermination': True|False
         # }
+        logger.debug(f"{method} detaching device '{device}' from EC2 instance '{instance_id}'?")
+
+        await await_target_volume_state(
+            ebs_ec2_client,
+            volume_id,
+            "in-use",
+            dry_run
+        )
+
         vol_detach_response = volume.detach_from_instance(
             Device=device,
             Force=True,
             InstanceId=instance_id,
             DryRun=dry_run
-
         )
+
         logger.debug(f"{method} volume.detach() response:\n{pp.pformat(vol_detach_response)}")
 
-        volume_status = vol_detach_response["State"]
-        target_status: str = "detached"
-
-        is_valid_initial_status(
-            volume_status,
-            ["attaching", "attached", "detaching", "detached", "busy"]  # not too sure about 'busy' here but...
-        )
-
-        if not volume_status == target_status:
-            # We want to wait until the detached volume State is again fully "available"
-            await await_target_volume_state(
-                ebs_ec2_client,
-                volume_id,
-                "available",
-                dry_run
-            )
-
-    except Exception as e:
-        logger.error(
-            f"{method} cannot detach the EBS volume '{volume_id}' from current instance: {str(e)}"
-        )
-        return
-
-    # 3.3 (EC2 client) - Delete the instance (to avoid incurring further economic cost).
-    try:
-        # Sanity check: await until volume is 'available' prior to attempting deletion
+        # We want to wait until the detached volume State is again fully "available"
         await await_target_volume_state(
             ebs_ec2_client,
             volume_id,
@@ -1824,6 +1811,7 @@ async def delete_ebs_volume(
             dry_run
         )
 
+        # 3.3 (EC2 client) - Delete the instance (to avoid incurring further economic cost).
         volume.delete(DryRun=dry_run)  # this operation returns no response but...
 
         # ...then you can poll to wait until the volume is deemed "deleted"?
@@ -1836,5 +1824,5 @@ async def delete_ebs_volume(
 
     except Exception as ex:
         logger.error(
-            f"{method} cannot detach the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
+            f"{method} cannot delete the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
         )
