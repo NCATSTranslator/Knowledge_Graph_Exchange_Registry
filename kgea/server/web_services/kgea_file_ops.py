@@ -1822,14 +1822,6 @@ async def delete_ebs_volume(
         # 3.3 (EC2 client) - Delete the instance (to avoid incurring further economic cost).
         volume.delete(DryRun=dry_run)  # this operation returns no response but...
 
-        # ...then you can poll to wait until the volume is deemed "deleted"?
-        await await_target_volume_state(
-            ebs_ec2_client,
-            volume_id,
-            "deleted",
-            dry_run
-        )
-
     except Exception as ex:
         logger.error(
             f"{method} cannot delete the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
