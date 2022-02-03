@@ -1514,6 +1514,7 @@ async def create_ebs_volume(
     :return: Tuple of EBS volume identifier and associated internal (NVME) device path
     """
     method = "create_ebs_volume():"
+
     # The application can only create an EBS volume if it is running
     # within an EC2 instance so retrieve the EC2 instance identifier
     instance_id = get_ec2_instance_id()
@@ -1523,7 +1524,10 @@ async def create_ebs_volume(
         )
         return None
 
-    logger.debug(f"{method}: creating an EBS volume of size '{size}' GB for instance {instance_id}.")
+    id_msg = f"EBS volume of {size} GB, attached to device '{device}', " + \
+             f"mounted on '{mount_point}', of instance '{instance_id}'"
+
+    logger.info(f"{method} creating {id_msg}")
 
     ec2_region = get_ec2_instance_region()
     ec2_availability_zone = get_ec2_instance_availability_zone()
@@ -1593,8 +1597,6 @@ async def create_ebs_volume(
     except Exception as ex:
         logger.error(f"{method} ec2_client.create_volume() exception: {str(ex)}")
         return None
-
-    id_msg = f"EBS volume {volume_id}' of {size} gigabytes, attached to device '{device}', mounted at '{mount_point}'"
 
     logger.debug(f"{method} executing ec2_resource().Volume({volume_id})")
     volume = ec2_resource(region_name=ec2_region).Volume(volume_id)
@@ -1677,12 +1679,13 @@ async def create_ebs_volume(
                 stdout_parser=output_parser
             )
             if return_code == 0:
+
                 # 'nvme_device' should NOT be empty
                 assert nvme_device
 
                 logger.info(
-                    f"{method} Successfully provisioned, formatted and mounted {id_msg} " +
-                    f"on the internal NVME device '{nvme_device}'"
+                    f"{method} Successfully provisioned, formatted and mounted "
+                    f"'{volume_id}' {id_msg} on the internal NVME device '{nvme_device}'"
                 )
                 # deprecated returning the NVME device ... don't really care?
                 return volume_id
@@ -1698,9 +1701,7 @@ async def create_ebs_volume(
             return None
 
     except Exception as e:
-        logger.error(
-            f"{method} {id_msg} mounting/formatting script exception: {str(e)}"
-        )
+        logger.error(f"{method} {id_msg} mounting/formatting script exception: {str(e)}")
         return None
 
 
@@ -1722,19 +1723,20 @@ async def delete_ebs_volume(
     :param dry_run: no operation test run if True (default: False)
     """
     method = "delete_ebs_volume():"
+
     if not (volume_id or device or mount_point):
-        logger.error(
-            f"{method} empty 'volume_id', 'device' or 'mount_point' argument?"
-        )
+        logger.error(f"{method} empty 'volume_id', 'device' or 'mount_point' argument?")
         return
+
+    id_msg = f"EBS volume '{volume_id}', attached to device '{device}' and mounted on '{mount_point}'."
+
+    logger.info(f"{method} deleting {id_msg}")
 
     # The application can only create an EBS volume if it is running
     # within an EC2 instance so retrieve the EC2 instance identifier
     instance_id = get_ec2_instance_id()
     if not (dry_run or instance_id):
-        logger.warning(
-            f"{method}  not inside an EC2 instance? Cannot dynamically provision your EBS volume?"
-        )
+        logger.warning(f"{method}  not inside an EC2 instance? Cannot dynamically provision your EBS volume?")
         return
 
     ec2_region = get_ec2_instance_region()
@@ -1775,6 +1777,7 @@ async def delete_ebs_volume(
 
     except Exception as e:
         logger.error(f"{method} EBS volume '{mount_point}' could not be unmounted? Exception: {str(e)}")
+        return
 
     if dry_run and not volume_id:
         logger.warning(f"{method} volume_id is null.. skipping volume detach and deletion")
@@ -1824,5 +1827,7 @@ async def delete_ebs_volume(
 
     except Exception as ex:
         logger.error(
-            f"{method} cannot delete the EBS volume '{volume_id}' from instance, exception: {str(ex)}"
+            f"{method} cannot delete the EBS volume '{volume_id}' from instance '{instance_id}', exception: {str(ex)}"
         )
+
+    logger.info(f"{method} successfully completed deletion of {id_msg}")
