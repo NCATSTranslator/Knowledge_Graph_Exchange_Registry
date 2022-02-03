@@ -1498,7 +1498,7 @@ async def create_ebs_volume(
         device: str = _SCRATCH_DEVICE,
         mount_point: str = scratch_dir_path(),
         dry_run: bool = False
-) -> Optional[Tuple[str, str]]:
+) -> Optional[str]:
     """
     Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
     The EBS volume is formatted and mounted by default on the (Linux) directory '/data'
@@ -1507,7 +1507,7 @@ async def create_ebs_volume(
     * This operation can only be performed when the application is running inside an EC2 instance
 
     :param size: specified size (in gigabytes)
-    :param device: EBS device path of volume to be deleted (default: config.yaml designated 'scratch' device name)
+    :param device: external AWS EBS device name to be deleted (default: config.yaml designated 'scratch' device name)
     :param mount_point: OS mount point (path) to which to mount the volume (default: local 'scratch' mount point)
     :param dry_run: no operation test run if True
 
@@ -1684,7 +1684,8 @@ async def create_ebs_volume(
                     f"{method} Successfully provisioned, formatted and mounted {id_msg} " +
                     f"on the internal NVME device '{nvme_device}'"
                 )
-                return volume_id, nvme_device
+                # deprecated returning the NVME device ... don't really care?
+                return volume_id
             else:
                 logger.error(
                     f"{method} Failure to complete mounting and formatting of {id_msg}"
@@ -1705,8 +1706,8 @@ async def create_ebs_volume(
 
 async def delete_ebs_volume(
         volume_id: str,
-        device: str,
-        mount_point: str,
+        device: str = _SCRATCH_DEVICE,  # NOT the NVME device here, but the external device name, e.g. /dev/sdc
+        mount_point: str = scratch_dir_path(),
         dry_run: bool = False
 ) -> None:
     """
@@ -1716,7 +1717,7 @@ async def delete_ebs_volume(
     * This operation can only be performed when the application is running inside an EC2 instance
 
     :param volume_id: identifier of the EBS volume to be deleted
-    :param device: EBS device path of volume to be deleted
+    :param device: external EBS device path name of volume to be deleted e.g. /dev/sdc
     :param mount_point: OS mount point (directory path) to unmount
     :param dry_run: no operation test run if True (default: False)
     """
