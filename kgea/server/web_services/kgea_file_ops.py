@@ -71,7 +71,7 @@ _SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'sdc')}"  # we
 
 # Probably will rarely change the name of these scripts, but changed once already...
 _SCRIPTS = f"{dirname(abspath(__file__))}{sep}scripts{sep}"
-_SCRATCH_DIR = f"{_SCRIPTS}scratch"
+_SCRATCH_DIR = f"{_SCRIPTS}scratch_data"
 
 
 def scratch_dir_path():
@@ -831,8 +831,6 @@ async def extract_data_archive(
                 "object_key": file_object_key
             })
 
-    # TODO: need large enough EBS storage allocated before this operation is attempted?
-
     try:
         return_code = await run_script(
             script=_KGEA_EDA_SCRIPT,
@@ -841,7 +839,8 @@ async def extract_data_archive(
                 root_directory,
                 kg_id,
                 file_set_version,
-                archive_filename
+                archive_filename,
+                scratch_dir_path()
             ),
             stdout_parser=output_parser
         )
@@ -849,8 +848,6 @@ async def extract_data_archive(
 
     except Exception as e:
         logger.error(f"decompress_in_place({archive_filename}.tar.gz): exception {str(e)}")
-
-    # TODO: here, do I need to release the EBS storage allocated above (or not)?
 
     logger.debug(f"Exiting decompress_in_place({archive_filename}.tar.gz)")
 
