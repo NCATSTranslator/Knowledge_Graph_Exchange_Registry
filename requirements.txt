@@ -1,3 +1,19 @@
+# 4 Feb  2022 - explicitly pulling in 'default' dependencies here for some modules.
+# May need to review whether or not versions pulled are fully compatible with the other fixed dependencies below
+graphviz
+websocket_client
+yarl
+pyld
+biothings-client
+biothings-explorer
+typing_extensions
+tomli
+terminaltables
+pbr
+snowballstemmer
+Pygments
+Babel
+
 # TODO: temporary patched version of Connexion for proper form upload support
 # connexion
 -e git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion
@@ -60,20 +76,6 @@ docutils~=0.16
 numpy~=1.21.1
 validators~=0.18.2
 smart_open>=5.1.0
-
-# 4 Feb  2022 - setting fresh constrained dependencies here...
-# need to review whether or not they fully work properly
-# with the other fixed dependencies
-graphviz>=0.19.1
-websocket_client>=1.2.3
-yarl>=1.7.2
-pyld>=2.0.3
-biothings-client>=0.2.6
-biothings-explorer>=1.1.0
-typing_extensions>=4.0.1
-tomli>=2.0.0
-terminaltables>=3.1.10
-pbr>=5.8.0
 
 # kgx
 kgx>=1.5.5
