@@ -96,6 +96,7 @@ from kgea.server.web_services.kgea_file_ops import (
     object_key_exists,
     extract_data_archive,
     create_presigned_url,
+    scratch_dir_path,
     create_ebs_volume,
     delete_ebs_volume
 )
@@ -300,6 +301,7 @@ class KgeFileSet:
         # cache subset of files which are 'archive' files  (with their sizes)
         # TODO: need to make sure that the cache is only initialized once or remains 'current'!?!
         self.archive_file_list: List[Tuple[str, str, int]] = list()
+        self.archive_s3_object_key: Optional[str] = None
 
         # no errors to start
         self.errors: List[str] = list()
@@ -1944,13 +1946,14 @@ class KgeArchiver:
         self._archiver_worker: List[Task] = list()
 
         # we hard code the creation of KgeArchiver tasks here, not later
-        for i in range(0, max_tasks):
-            self._archiver_worker.append(create_task(self.worker()))
+        # We limit the number of 'max_tasks' here to range 1..20, reflecting internal resource constraints
+        max_tasks = 1 if max_tasks <= 0 else max_tasks
+        max_tasks = 20 if max_tasks > 20 else max_tasks
+        for i in range(1, max_tasks):
+            self._archiver_worker.append(create_task(self.worker(task_id=i)))
 
         self.max_tasks: int = max_tasks
         self.max_wait: int = max_wait
-
-        self.ebs_volume_id: Optional[str] = None
 
     _the_archiver = None
     
@@ -2042,18 +2045,26 @@ class KgeArchiver:
             print_error_trace(f"Failure to copy '{file_name}' file?" + str(e))
             raise e
 
-    async def worker(self, task_id=None):
+    async def worker(self, task_id: int = 1):
         """
 
         :param task_id:
         """
         if task_id is None:
             task_id = len(self._archiver_worker)
+            
+        worker_name = f"KgeArchiver worker '{task_id}:"
+        
+        # "scratch" EBS devices, mount points and volumes are locally managed, one set per task_id
+        drive_letter = chr(ord('b') + task_id)
+        device = f"/dev/sd{drive_letter}"
+        mount_point = f"{scratch_dir_path()}/data_{drive_letter}"
+        ebs_volume_id: Optional[str] = None
 
         while True:
             file_set: KgeFileSet = await self._archiver_queue.get()
 
-            logger.info(f"KgeArchiver worker {task_id} starting archive of {file_set.id()}")
+            logger.info(f"{worker_name} starting archive of '{file_set.id()}'")
             
             # sleep briefly to yield to co-routine executed main web application code. Done several times below...
             # 10 seconds to allow the user to go to home and get the KG catalog, before this task ties up the CPU?
@@ -2067,7 +2078,7 @@ class KgeArchiver:
             try:
 
                 step_msg = "1. Unpacking incoming tar.gz archives"
-                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
+                logger.debug(f"{worker_name} '{task_id}': {step_msg}")
 
                 archive_file_list = file_set.get_archive_files()
 
@@ -2076,13 +2087,13 @@ class KgeArchiver:
                     # extract the Tuple of archive file name and size
                     archive_object_key, archive_filename, archive_file_size = archive_file
                     
-                    logger.debug(f"Unpacking archive {archive_filename}")
+                    logger.debug(f"{worker_name} Unpacking archive {archive_filename}")
                     
                     #
                     # RMB: 2021-10-07, we deprecated the RAM-based version of the 'decompress-in-place' operation,
                     # moving instead towards the kge_extract_data_archive.bash hard disk-centric solution.
                     #
-                    if not self.ebs_volume_id:
+                    if not ebs_volume_id:
 
                         # TODO: Need to computer EBS storage needed for these operations and allocated it dynamically
                         #     Answer: if the archive sizes are ordered largest to smallest (above), then initialize
@@ -2090,13 +2101,23 @@ class KgeArchiver:
                         #     for later post-processing steps (e.g. generation of "master" tar archive + largest file?)
 
                         # 1st Heuristic: take the largest file (first seen) multiplied by number of archive files + 1?
-                        # TODO: this is NOT reentrant for multiple workers and kge filesets being processed concurrently
                         estimated_ebs_storage_size = ceil(
                             float((len(archive_file_list) + 1) * archive_file_size)/(2**30)
                         )
 
-                        # volume creation uses default method call values for EBS storage parameters
-                        self.ebs_volume_id = await create_ebs_volume(estimated_ebs_storage_size)
+                        logger.debug(
+                            f"{worker_name} Provisioning EBS storage volume " +
+                            f"of size {estimated_ebs_storage_size}" +
+                            f"on device '{device}' mounted on '{mount_point}'..."
+                        )
+
+                        ebs_volume_id = await create_ebs_volume(
+                            size=estimated_ebs_storage_size,
+                            device=device,
+                            mount_point=mount_point
+                        )
+                        logger.debug(
+                            f"{worker_name} EBS volume '{ebs_volume_id}' successfully provisioned!")
                     #
                     # archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     #
@@ -2110,7 +2131,9 @@ class KgeArchiver:
                     # ...Remove the archive entry from the KgxFileSet...
                     file_set.remove_data_file(archive_object_key)
                     
-                    logger.debug(f"Adding {len(archive_file_entries)} files to fileset '{file_set.id()}':")
+                    logger.debug(
+                        f"{worker_name} Adding {len(archive_file_entries)} files to fileset '{file_set.id()}':"
+                    )
                     
                     # ...but add in the archive's files to the file set
                     for entry in archive_file_entries:
@@ -2125,7 +2148,7 @@ class KgeArchiver:
                         )
 
                 step_msg = "2. Create and add the fileset.yaml to the KGE S3 repository"
-                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
+                logger.debug(f"{worker_name} {step_msg}")
 
                 # Publish a 'file_set.yaml' metadata file to the
                 # versioned archive subdirectory containing the KGE File Set
@@ -2138,7 +2161,7 @@ class KgeArchiver:
                     fileset_version=file_set.fileset_version
                 )
                 if fileset_metadata_object_key:
-                    logger.info(f"KgeFileSet.publish(): successfully created object key {fileset_metadata_object_key}")
+                    logger.info(f"{worker_name} successfully created object key {fileset_metadata_object_key}")
                 else:
                     msg = f"publish(): metadata '{FILE_SET_METADATA_FILE}" + \
                           f"' file for KGE File Set version '{file_set.fileset_version}" + \
@@ -2148,7 +2171,7 @@ class KgeArchiver:
                     raise RuntimeError(msg)
 
                 step_msg = "3. Aggregating nodes, edges and metadata files in S3."
-                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
+                logger.debug(f"{worker_name} {step_msg}")
             
                 # take a quick rest, to give other co-routines a chance?
                 await sleep(0.001)
@@ -2175,7 +2198,7 @@ class KgeArchiver:
                 await sleep(0.001)
 
                 step_msg = "4. Compressing total KGE file set and generating SHA1 hash."
-                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
+                logger.debug(f"{worker_name} {step_msg}")
 
                 # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
                 #    containing the aggregated kgx nodes and edges files, Appending `file_set_root_key`
@@ -2187,12 +2210,13 @@ class KgeArchiver:
                 #       We persist the previously created/attached/mounted EBS drive from the archive extraction above.
                 #       The size of such an EBS drive here should be at least as large as the aggregate size of all
                 #       the files to be tar'd, plus perhaps the untar'd size of the largest file (in case it needs
-                #       to coexist on the drive alongside most of the growing tar archive (not yet gzip'd)?). The above
-                #       computed 'estimated_ebs_storage_size' variable could already be a reasonable size approximation?
-                # 5. Compute the SHA1 hash sum for the resulting archive file.
-                #    The SHA1 hash creation is also run in the bash CLI of the compress_fileset() run script.
+                #       to coexist on the drive alongside most of the growing tar archive (not yet gzip'd)?).
+                #       The above computed 'estimated_ebs_storage_size' could already be a reasonable size?
+                #
+                # 5. Compute the SHA1 hash sum for the resulting archive file:
+                #        The archive SHA1 hash is already computed inside the bash CLI of the compress_fileset() script.
 
-                s3_archive_key: str = await compress_fileset(
+                file_set.archive_s3_object_key = await compress_fileset(
                     kg_id=file_set.kg_id,
                     version=file_set.fileset_version
                 )
@@ -2203,36 +2227,50 @@ class KgeArchiver:
                 # 6. KGX validation of KGE compliant archive.
 
                 # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
-                # TODO: need to managed multiple Biolink Model specific KGX validators.
+                # TODO: need to managed multiple Biolink Model-specific KGX validators.
 
-                step_msg = f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive?"
-                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
+                step_msg = f"(Future) KgeArchiver worker '{task_id}' validation of {file_set.id()} tar.gz archive?"
+                logger.debug(f"{worker_name} {step_msg}")
 
                 # validator: KgxValidator = KnowledgeGraphCatalog.catalog().get_validator()
                 # KgxValidator.validate(self)
 
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace(f"KgeArchiver.worker() task {task_id}: {step_msg} failure!:\n"+str(e))
+                print_error_trace(f"{worker_name} {step_msg} failure!:\n"+str(e))
                 raise e
 
             finally:
                 # we need to release any allocated EBS drive here in case of exception conditions.
-                if self.ebs_volume_id:
-                    await delete_ebs_volume(self.ebs_volume_id)
-                    self.ebs_volume_id = None
+                if ebs_volume_id:
+                    logger.debug(
+                        f"{worker_name} exception clean up - unmounting/detaching/deleting EBS volume '{ebs_volume_id}'"
+                    )
+                    await delete_ebs_volume(
+                        volume_id=ebs_volume_id,
+                        device=device,
+                        mount_point=mount_point
+                    )
+                    ebs_volume_id = None
 
             # We still need to release any allocated EBS drive here.
             # This code gets run if the previous try: block did NOT serve an exception
-            if self.ebs_volume_id:
-                await delete_ebs_volume(self.ebs_volume_id)
-                self.ebs_volume_id = None
+            if ebs_volume_id:
+                logger.debug(
+                    f"{worker_name} task clean up - unmounting/detaching/deleting EBS volume '{ebs_volume_id}'"
+                )
+                await delete_ebs_volume(
+                        volume_id=ebs_volume_id,
+                        device=device,
+                        mount_point=mount_point
+                )
+                ebs_volume_id = None
 
             # Assume that the TAR.GZ archive of the
             # KGE File Set is validated by this point
             file_set.status = KgeFileSetStatusCode.VALIDATED
             
-            logger.debug(f"KgeArchiver.worker {task_id} completed archiving of {file_set.id()}")
+            logger.debug(f"{worker_name} completed archive/validation of '{file_set.id()}'")
 
             self._archiver_queue.task_done()
 

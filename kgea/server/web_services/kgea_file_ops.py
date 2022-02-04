@@ -63,23 +63,20 @@ default_s3_root_key = s3_config['archive-directory']
 
 # Dynamic provisioning
 ebs_config: Dict = aws_config['ebs']
-_SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'sdc')}"  # we assume that sdb is already used up?
 
-# TODO: may need to fix script paths below - may not resolve under Microsoft Windows
-# if sys.platform is 'win32':
-#     archive_script = archive_script.replace('\\', '/').replace('C:', '/mnt/c/')
-
-# Probably will rarely change the name of these scripts, but changed once already...
-_SCRIPTS = f"{dirname(abspath(__file__))}{sep}scripts{sep}"
-_SCRATCH_DIR = f"{_SCRIPTS}scratch_data"
+# we assume that '/dev/sdb' is already in use?
+_SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'sdc')}"
+_SCRATCH_DIR = ebs_config.setdefault('scratch_dir', f"/opt/tmp")
 
 
 def scratch_dir_path():
     return _SCRATCH_DIR
 
 
-_KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
+# Probably will rarely change the name of these scripts, but changed once already...
+_SCRIPTS = f"{dirname(abspath(__file__))}{sep}scripts{sep}"
 
+_KGEA_ARCHIVER_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_archiver.bash"
 _KGEA_EDA_SCRIPT = f"{_SCRIPTS}kge_extract_data_archive.bash"
 _EDA_OUTPUT_DATA_PREFIX = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
 
@@ -1497,20 +1494,20 @@ async def await_target_volume_state(
 
 async def create_ebs_volume(
         size: int,
-        device: str = _SCRATCH_DEVICE,
+        device: str = _SCRATCH_DEVICE,  # NOT the internal NVME device here, but an external device, e.g. '/dev/sdc'
         mount_point: str = scratch_dir_path(),
         dry_run: bool = False
 ) -> Optional[str]:
     """
     Allocates and mounts an EBS volume of a given size onto the EC2 instance running the application (if applicable).
-    The EBS volume is formatted and mounted by default on the (Linux) directory '/data'
+    The EBS volume is formatted and mounted by default on the (Linux) directory '/scratch_data'
 
     Notes:
     * This operation can only be performed when the application is running inside an EC2 instance
 
     :param size: specified size (in gigabytes)
     :param device: external AWS EBS device name to be deleted (default: config.yaml designated 'scratch' device name)
-    :param mount_point: OS mount point (path) to which to mount the volume (default: local 'scratch' mount point)
+    :param mount_point: OS mount point (path) to which to mount the volume (default: local 'scratch_data' mount point)
     :param dry_run: no operation test run if True
 
     :return: Tuple of EBS volume identifier and associated internal (NVME) device path
@@ -1709,7 +1706,7 @@ async def create_ebs_volume(
 
 async def delete_ebs_volume(
         volume_id: str,
-        device: str = _SCRATCH_DEVICE,  # NOT the NVME device here, but the external device name, e.g. /dev/sdc
+        device: str = _SCRATCH_DEVICE,  # NOT the internal NVME device here, but an external device, e.g. '/dev/sdc'
         mount_point: str = scratch_dir_path(),
         dry_run: bool = False
 ) -> None:
