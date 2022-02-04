@@ -13,6 +13,7 @@ pbr
 snowballstemmer
 Pygments
 Babel
+alabaster
 
 # TODO: temporary patched version of Connexion for proper form upload support
 # connexion
