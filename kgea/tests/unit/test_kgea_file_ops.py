@@ -14,6 +14,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 
 from kgea.aws.assume_role import aws_config, AssumeRole
+from kgea.server.web_services.catalog import KgeFileSet, KgeFileType
 from kgea.tests import (
     TEST_BUCKET,
     
@@ -603,3 +604,37 @@ def wrap_upload_from_link(test_bucket, test_kg, test_fileset_version, test_link,
         assert False
 
     logger.debug('Success!')
+
+
+def test_get_archive_files():
+    test_file_set: KgeFileSet = KgeFileSet(
+        kg_id="test_kg",
+        biolink_model_release="2.2.2",
+        fileset_version="1.0",
+        submitter_name="daBoss",
+        submitter_email="translator@ncats.io"
+    )
+    # setup fake data for test
+    n = 10000
+    for f in ("testing.tar.gz", "one", "two.tar.gz", "three", "four.tar.gz"):
+        test_file_set.add_data_file(
+            file_type=KgeFileType.KGE_ARCHIVE if "tar.gz" in f else KgeFileType.KGX_DATA_FILE,
+            file_name=f,
+            file_size=n,
+            object_key=f"who_cares/{f}"
+        )
+        n *= 10
+
+    test_archive_files = test_file_set.get_archive_files()
+
+    assert len(test_archive_files) == 3
+
+    assert test_archive_files[0][0] == "four.tar.gz"
+    assert test_archive_files[0][1] == 100000000
+
+    assert test_archive_files[1][0] == "two.tar.gz"
+    assert test_archive_files[1][1] == 1000000
+
+    assert test_archive_files[2][0] == "testing.tar.gz"
+    assert test_archive_files[2][1] == 10000
+

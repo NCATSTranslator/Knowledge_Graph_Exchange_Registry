@@ -14,6 +14,7 @@ TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
 from sys import stderr
+from operator import itemgetter
 
 from os import getenv
 from os.path import dirname, abspath
@@ -60,8 +61,6 @@ except ImportError:
 from github import Github
 from github.GithubException import UnknownObjectException, BadCredentialsException
 
-import smart_open
-
 from kgx.utils.kgx_utils import GraphEntityType
 from kgx.transformer import Transformer
 from kgx.validator import Validator
@@ -69,7 +68,8 @@ from kgx.validator import Validator
 from kgea.config import (
     get_app_config,
     PROVIDER_METADATA_FILE,
-    FILE_SET_METADATA_FILE, CONTENT_METADATA_FILE
+    FILE_SET_METADATA_FILE,
+    CONTENT_METADATA_FILE
 )
 
 from kgea.server.web_services.models import (
@@ -96,7 +96,9 @@ from kgea.server.web_services.kgea_file_ops import (
     random_alpha_string,
     object_key_exists,
     extract_data_archive,
-    create_presigned_url
+    create_presigned_url,
+    create_ebs_volume,
+    delete_ebs_volume
 )
 
 from kgea.server.web_services.sha_utils import sha1_manifest
@@ -196,6 +198,9 @@ def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
     :param file_name:
     :return: Tuple of input_format, compression
     """
+    if not file_name:
+        raise RuntimeError("format_and_compression(): empty file_name?")
+
     part = file_name.split('.')
 
     input_format = ''
@@ -204,7 +209,7 @@ def format_and_compression(file_name) -> Tuple[str, Optional[str]]:
         if m:
             input_format = m['filext']
 
-    if 'tar' in part[-2]:
+    if len(part) > 2 and 'tar' in part[-2]:
         archive = 'tar'
     else:
         archive = None
@@ -294,6 +299,10 @@ class KgeFileSet:
 
         # this attribute will track all data files of the given version of KGE File Set
         self.data_files: Dict[str, Dict[str, Any]] = dict()
+
+        # cache subset of files which are 'archive' files  (with their sizes)
+        # TODO: need to make sure that the cache is only initialized once or remains 'current'!?!
+        self.archive_file_list: List[Tuple[str, int]] = list()
 
         # no errors to start
         self.errors: List[str] = list()
@@ -421,15 +430,26 @@ class KgeFileSet:
         )
         return edge_files_keys
 
-    def get_archive_file_keys(self):
+    def get_archive_files(self) -> List[Tuple[str, int]]:
         """
-        :return: S3 object keys
+        Get the subset of 'tar.gz' archive files (tagged with file sizes) in the KgeFileSet.
+
+        A tacit design assumption is that this method is only called once the upload of the KgeFileSet is completed,
+        since it 'caches' the result of its generation, to accelerate future calls to contains_file_of_type().
+
+        :return: list of archive file names and sizes, ordered by largest down to smallest file size.
         """
-        # TODO: can I somehow return the archive file sizes here?
-        archive_files_keys = list(filter(
-            lambda x: '.tar.gz' in x, self.get_data_file_object_keys()
-        ))
-        return archive_files_keys
+        if not self.archive_file_list:
+            # populate if the archive file subset of the self.data_files is empty?
+            for entry in self.data_files.values():
+                file_name: str = entry["file_name"]
+                file_size: int = entry["file_size"]
+                if '.tar.gz' in file_name:
+                    archive_file: Tuple[str, int] = file_name, file_size
+                    self.archive_file_list.append(archive_file)
+            self.archive_file_list = sorted(self.archive_file_list, key=itemgetter(1), reverse=True)
+
+        return self.archive_file_list
     
     def get_property_of_data_file_key(self, object_key: str, attribute: str):
         """
@@ -451,7 +471,7 @@ class KgeFileSet:
         :return:
         """
         if filetype is KgeFileType.KGE_ARCHIVE:
-            return len(self.get_archive_file_keys()) > 0
+            return len(self.get_archive_files()) > 0
         elif filetype is KgeFileType.KGE_NODES:
             return len(self.get_nodes()) > 0
         elif filetype is KgeFileType.KGE_EDGES:
@@ -1932,6 +1952,8 @@ class KgeArchiver:
         self.max_tasks: int = max_tasks
         self.max_wait: int = max_wait
 
+        self.ebs_volume_id: str = None
+
     _the_archiver = None
     
     @classmethod
@@ -2021,7 +2043,7 @@ class KgeArchiver:
             # Can't be more specific than this 'cuz not sure what errors may be thrown here...
             print_error_trace(f"Failure to copy '{file_name}' file?" + str(e))
             raise e
-    
+
     async def worker(self, task_id=None):
         """
 
@@ -2045,12 +2067,14 @@ class KgeArchiver:
             try:
                 # TODO: can I somehow also return (and use) the archive
                 #       file sizes here, ordered from largest to smallest?
-                archive_file_key_list = file_set.get_archive_file_keys()
-                logger.debug(f"KgeArchiver task {task_id} unpacking incoming tar.gz archives: {archive_file_key_list}")
-                
-                for archive_file_key in archive_file_key_list:
+                logger.debug(f"KgeArchiver task {task_id} unpacking incoming tar.gz archives")
 
-                    archive_filename = file_set.get_property_of_data_file_key(archive_file_key, 'file_name')
+                archive_file_list = file_set.get_archive_files()
+
+                for archive_file in archive_file_list:
+
+                    # extract the Tuple of archive file name and size
+                    archive_filename, archive_file_size = archive_file
                     
                     logger.debug(f"Unpacking archive {archive_filename}")
                     
@@ -2058,10 +2082,19 @@ class KgeArchiver:
                     # RMB: 2021-10-07, we deprecated the RAM-based version of the 'decompress-in-place' operation,
                     # moving instead towards the kge_extract_data_archive.bash hard disk-centric solution.
                     #
-                    # TODO: Need to computer EBS storage needed for these operations and allocated it dynamically
-                    #       Answer: if the archive sizes are ordered largest to smallest (above), then initialize
-                    #       the EBS drive for the largest archive, then reuse? Problem: perhaps still not big enough
-                    #       for later post-processing steps (e.g. generation of the "master"  tar.gz archive?)
+                    if not self.ebs_volume_id:
+
+                        # TODO: Need to computer EBS storage needed for these operations and allocated it dynamically
+                        #     Answer: if the archive sizes are ordered largest to smallest (above), then initialize
+                        #     the EBS storage for the largest archive, then reuse? Problem: perhaps still not big enough
+                        #     for later post-processing steps (e.g. generation of "master" tar archive + largest file?)
+
+                        # 1st Heuristic: take the largest file (first seen) multiplied by number of archive files?
+                        # TODO: this is NOT reentrant for multiple workers and kge filesets being processed concurrently
+                        estimated_ebs_storage_size = len(archive_file_list) * archive_file_size
+
+                        # volume creation uses default method call values for EBS storage parameters
+                        self.ebs_volume_id = await create_ebs_volume(estimated_ebs_storage_size)
                     #
                     # archive_file_entries = decompress_to_kgx(file_key, archive_location)
                     #
@@ -2073,7 +2106,7 @@ class KgeArchiver:
                         )
                     #
                     # ...Remove the archive entry from the KgxFileSet...
-                    file_set.remove_data_file(archive_file_key)
+                    file_set.remove_data_file(archive_file)
                     
                     logger.debug(f"Adding {len(archive_file_entries)} files to fileset '{file_set.id()}':")
                     
@@ -2093,6 +2126,18 @@ class KgeArchiver:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
                 print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
                 raise e
+
+            finally:
+                # may need to release allocated EBS storage?
+                if self.ebs_volume_id:
+                    await delete_ebs_volume(self.ebs_volume_id)
+                    self.ebs_volume_id = None
+
+            # this gets run iff the previous try: block did NOT serve an exception
+            # TODO: might defer release of the EBS storage until after tar.gz archive below(?!)
+            if self.ebs_volume_id:
+                await delete_ebs_volume(self.ebs_volume_id)
+                self.ebs_volume_id = None
 
             logger.debug("Create and add the fileset.yaml to the KGE S3 repository")
 
@@ -2169,7 +2214,7 @@ class KgeArchiver:
                 print_error_trace("File set compression failure! "+str(e))
                 raise e
 
-            # TODO: once  we get her, we can unmount/detach/delete the aforementioned large EBS storage device?
+            # TODO: once  we get here, we can unmount/detach/delete the aforementioned large EBS storage device?
 
             logger.debug("...File compression completed!")
 
