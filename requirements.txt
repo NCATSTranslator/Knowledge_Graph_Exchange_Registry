@@ -19,8 +19,8 @@ pytest-asyncio
 
 # AIOHTTP 3.7.4 has a bug which is problematic for KGE, anticipated to be fixed in a 4.* release
 # See
-aiohttp<3.7
-aiohttp-session
+aiohttp>=3.8.1
+aiohttp-session>=2.11.0
 aiomcache
 jsonschema~=3.2.0
 PyGithub~=1.55
