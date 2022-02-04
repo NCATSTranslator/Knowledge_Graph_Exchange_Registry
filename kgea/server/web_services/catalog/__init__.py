@@ -13,12 +13,6 @@ in the module for now but may change in the future.
 TRANSLATOR_SMARTAPI_REPO = "NCATS-Tangerine/translator-api-registry"
 KGE_SMARTAPI_DIRECTORY = "translator_knowledge_graph_archive"
 """
-from sys import stderr
-from operator import itemgetter
-
-from os import getenv
-from os.path import dirname, abspath
-
 from typing import Dict, Union, Set, List, Any, Optional, Tuple
 from enum import Enum
 from string import Template, punctuation
@@ -27,6 +21,7 @@ from datetime import date, datetime
 # TODO: maybe convert Catalog components to Python Dataclasses?
 # from dataclasses import dataclass
 
+from math import ceil
 import re
 
 import threading
@@ -40,8 +35,12 @@ from asyncio import (
     run
 )
 
+from sys import stderr
+from os import getenv
+from os.path import dirname, abspath
 from io import BytesIO, StringIO
 import tempfile
+from operator import itemgetter
 
 import json
 from jsonschema import (
@@ -100,8 +99,6 @@ from kgea.server.web_services.kgea_file_ops import (
     create_ebs_volume,
     delete_ebs_volume
 )
-
-from kgea.server.web_services.sha_utils import sha1_manifest
 
 import logging
 logger = logging.getLogger(__name__)
@@ -302,7 +299,7 @@ class KgeFileSet:
 
         # cache subset of files which are 'archive' files  (with their sizes)
         # TODO: need to make sure that the cache is only initialized once or remains 'current'!?!
-        self.archive_file_list: List[Tuple[str, int]] = list()
+        self.archive_file_list: List[Tuple[str, str, int]] = list()
 
         # no errors to start
         self.errors: List[str] = list()
@@ -430,22 +427,23 @@ class KgeFileSet:
         )
         return edge_files_keys
 
-    def get_archive_files(self) -> List[Tuple[str, int]]:
+    def get_archive_files(self) -> List[Tuple[str, str, int]]:
         """
-        Get the subset of 'tar.gz' archive files (tagged with file sizes) in the KgeFileSet.
+        Get the subset of 'tar.gz' archive file (object key, name and size) in the KgeFileSet.
 
         A tacit design assumption is that this method is only called once the upload of the KgeFileSet is completed,
         since it 'caches' the result of its generation, to accelerate future calls to contains_file_of_type().
 
-        :return: list of archive file names and sizes, ordered by largest down to smallest file size.
+        :return: list of archive file entries with object key, name and size, ordered from largest to smallest size.
         """
         if not self.archive_file_list:
             # populate if the archive file subset of the self.data_files is empty?
             for entry in self.data_files.values():
+                object_key: str = entry["object_key"]
                 file_name: str = entry["file_name"]
                 file_size: int = entry["file_size"]
                 if '.tar.gz' in file_name:
-                    archive_file: Tuple[str, int] = file_name, file_size
+                    archive_file: Tuple[str, str, int] = object_key, file_name, file_size
                     self.archive_file_list.append(archive_file)
             self.archive_file_list = sorted(self.archive_file_list, key=itemgetter(1), reverse=True)
 
@@ -1952,7 +1950,7 @@ class KgeArchiver:
         self.max_tasks: int = max_tasks
         self.max_wait: int = max_wait
 
-        self.ebs_volume_id: str = None
+        self.ebs_volume_id: Optional[str] = None
 
     _the_archiver = None
     
@@ -2063,18 +2061,20 @@ class KgeArchiver:
             #       Or is this a main loop blockage issue (which maybe needs to be resolved some other way?)
             await sleep(10)
 
+            step_msg = "0. Starting KgeArchiver processing"
+
             # 1. Unpack any uploaded archive(s) where they belong: (JSON) content metadata, nodes and edges
             try:
-                # TODO: can I somehow also return (and use) the archive
-                #       file sizes here, ordered from largest to smallest?
-                logger.debug(f"KgeArchiver task {task_id} unpacking incoming tar.gz archives")
+
+                step_msg = "1. Unpacking incoming tar.gz archives"
+                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
 
                 archive_file_list = file_set.get_archive_files()
 
                 for archive_file in archive_file_list:
 
                     # extract the Tuple of archive file name and size
-                    archive_filename, archive_file_size = archive_file
+                    archive_object_key, archive_filename, archive_file_size = archive_file
                     
                     logger.debug(f"Unpacking archive {archive_filename}")
                     
@@ -2089,9 +2089,11 @@ class KgeArchiver:
                         #     the EBS storage for the largest archive, then reuse? Problem: perhaps still not big enough
                         #     for later post-processing steps (e.g. generation of "master" tar archive + largest file?)
 
-                        # 1st Heuristic: take the largest file (first seen) multiplied by number of archive files?
+                        # 1st Heuristic: take the largest file (first seen) multiplied by number of archive files + 1?
                         # TODO: this is NOT reentrant for multiple workers and kge filesets being processed concurrently
-                        estimated_ebs_storage_size = len(archive_file_list) * archive_file_size
+                        estimated_ebs_storage_size = ceil(
+                            float((len(archive_file_list) + 1) * archive_file_size)/(2**30)
+                        )
 
                         # volume creation uses default method call values for EBS storage parameters
                         self.ebs_volume_id = await create_ebs_volume(estimated_ebs_storage_size)
@@ -2106,7 +2108,7 @@ class KgeArchiver:
                         )
                     #
                     # ...Remove the archive entry from the KgxFileSet...
-                    file_set.remove_data_file(archive_file)
+                    file_set.remove_data_file(archive_object_key)
                     
                     logger.debug(f"Adding {len(archive_file_entries)} files to fileset '{file_set.id()}':")
                     
@@ -2122,26 +2124,9 @@ class KgeArchiver:
                             object_key=entry["object_key"]
                         )
 
-            except Exception as e:
-                # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("KgeArchiver.worker(): Error while unpacking archive?: "+str(e))
-                raise e
+                step_msg = "2. Create and add the fileset.yaml to the KGE S3 repository"
+                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
 
-            finally:
-                # may need to release allocated EBS storage?
-                if self.ebs_volume_id:
-                    await delete_ebs_volume(self.ebs_volume_id)
-                    self.ebs_volume_id = None
-
-            # this gets run iff the previous try: block did NOT serve an exception
-            # TODO: might defer release of the EBS storage until after tar.gz archive below(?!)
-            if self.ebs_volume_id:
-                await delete_ebs_volume(self.ebs_volume_id)
-                self.ebs_volume_id = None
-
-            logger.debug("Create and add the fileset.yaml to the KGE S3 repository")
-
-            try:
                 # Publish a 'file_set.yaml' metadata file to the
                 # versioned archive subdirectory containing the KGE File Set
 
@@ -2162,113 +2147,92 @@ class KgeArchiver:
                     file_set.report_error(msg)
                     raise RuntimeError(msg)
 
-            except Exception as exc:
-                msg = f"publish(): {file_set.kg_id} {file_set.fileset_version} {str(exc)}"
-                file_set.report_error(msg)
-                print_error_trace(msg)
-                raise RuntimeError(msg)
-
-            logger.debug("Aggregating nodes")
+                step_msg = "3. Aggregating nodes, edges and metadata files in S3."
+                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
             
-            # take a quick rest, to give other co-routines a chance?
-            await sleep(0.001)
-            
-            # 2. Aggregate each of all nodes and edges each into
-            #    their respective files in the AWS S3 archive folder
-            self.aggregate_to_archive(
-                file_set=file_set,
-                kgx_file_type="nodes",
-                file_object_keys=file_set.get_nodes()
-            )
-            self.aggregate_to_archive(
-                file_set=file_set,
-                kgx_file_type="edges",
-                file_object_keys=file_set.get_edges()
-            )
+                # take a quick rest, to give other co-routines a chance?
+                await sleep(0.001)
 
-            # 3. Copy over metadata files into the archive folder
-            self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
-            self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
-            self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
+                # 2. Aggregate each of all nodes and edges each into
+                #    their respective files in the AWS S3 archive folder
+                self.aggregate_to_archive(
+                    file_set=file_set,
+                    kgx_file_type="nodes",
+                    file_object_keys=file_set.get_nodes()
+                )
+                self.aggregate_to_archive(
+                    file_set=file_set,
+                    kgx_file_type="edges",
+                    file_object_keys=file_set.get_edges()
+                )
 
-            # take a quick rest, to give other co-routines a chance?
-            await sleep(0.001)
-            
-            # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
-            #    containing the aggregated kgx nodes and edges files, Appending `file_set_root_key`
-            #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
-            #    from compressing the previous compression (so the source of files is distinct
-            #    from the target to which it is written)
-            logger.debug("Compressing total KGE file set...")
-            # TODO: this is the second place where a suitably large EBS storage device needs to be available.
-            #       The size of such an EBS drive should be at least as large as the aggregate size of all
-            #       the files to be tar'd, plus perhaps the untar'd size of the largest file (in case it
-            #       needs to coexist on the drive alongside most of the growing tar archive (not yet gzip'd)?)
-            try:
+                # 3. Copy over metadata files into the archive folder
+                self.copy_to_kge_archive(file_set, PROVIDER_METADATA_FILE)
+                self.copy_to_kge_archive(file_set, FILE_SET_METADATA_FILE)
+                self.copy_to_kge_archive(file_set, CONTENT_METADATA_FILE)
+
+                # take a quick rest, to give other co-routines a chance?
+                await sleep(0.001)
+
+                step_msg = "4. Compressing total KGE file set and generating SHA1 hash."
+                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
+
+                # 4. Tar and gzip a single <kg_id>.<fileset_version>.tar.gz archive file
+                #    containing the aggregated kgx nodes and edges files, Appending `file_set_root_key`
+                #    with 'aggregates/' and 'archive/'  to prevent multiple compress_fileset runs
+                #    from compressing the previous compression (so the source of files is distinct
+                #    from the target to which it is written)
+                #
+                # TODO: this is the second place where a suitably large EBS storage device needs to be available.
+                #       We persist the previously created/attached/mounted EBS drive from the archive extraction above.
+                #       The size of such an EBS drive here should be at least as large as the aggregate size of all
+                #       the files to be tar'd, plus perhaps the untar'd size of the largest file (in case it needs
+                #       to coexist on the drive alongside most of the growing tar archive (not yet gzip'd)?). The above
+                #       computed 'estimated_ebs_storage_size' variable could already be a reasonable size approximation?
+                # 5. Compute the SHA1 hash sum for the resulting archive file.
+                #    The SHA1 hash creation is also run in the bash CLI of the compress_fileset() run script.
+
                 s3_archive_key: str = await compress_fileset(
                     kg_id=file_set.kg_id,
                     version=file_set.fileset_version
                 )
+
+                # take a quick rest, to give other co-routines a chance?
+                await sleep(0.001)
+
+                # 6. KGX validation of KGE compliant archive.
+
+                # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
+                # TODO: need to managed multiple Biolink Model specific KGX validators.
+
+                step_msg = f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive?"
+                logger.debug(f"KgeArchiver.worker() task {task_id}: {step_msg}")
+
+                # validator: KgxValidator = KnowledgeGraphCatalog.catalog().get_validator()
+                # KgxValidator.validate(self)
+
             except Exception as e:
                 # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-                print_error_trace("File set compression failure! "+str(e))
+                print_error_trace(f"KgeArchiver.worker() task {task_id}: {step_msg} failure!:\n"+str(e))
                 raise e
 
-            # TODO: once  we get here, we can unmount/detach/delete the aforementioned large EBS storage device?
+            finally:
+                # we need to release any allocated EBS drive here in case of exception conditions.
+                if self.ebs_volume_id:
+                    await delete_ebs_volume(self.ebs_volume_id)
+                    self.ebs_volume_id = None
 
-            logger.debug("...File compression completed!")
+            # We still need to release any allocated EBS drive here.
+            # This code gets run if the previous try: block did NOT serve an exception
+            if self.ebs_volume_id:
+                await delete_ebs_volume(self.ebs_volume_id)
+                self.ebs_volume_id = None
 
-            # take a quick rest, to give other co-routines a chance?
-            await sleep(0.001)
-            
-            # 5. Compute the SHA1 hash sum for the resulting archive file.
-
-            # DEPRECATED LOCAL CODE: SHA1 hash creation now run in the bash CLI of the compress_fileset() method above.
-
-            # #  Hmm... since we are adding the file_set.yaml file to the archive, it would not
-            # #  really help to embed the hash sum into the fileset yaml itself, but we can store
-            # #  it in an extra small text file (e.g. sha1.txt?) and read it in during the catalog
-            # #  loading, for communication back to the user as part of the catalog metadata
-            # #  (once the archiving and hash generation is completed...)
-            # logger.debug("Computing SHA1 hash sum...")
-            # try:
-            #     # NOTE: We have to "disable" compression as smart_open auto-decompresses based off of the format
-            #     # of whatever is being opened. If we let this happen, then the hash function would run over
-            #     # a decompressed buffer; not the compressed file/buffer that we expect our users to use when
-            #     # they download and validate the archive.
-            #     with smart_open.open(s3_archive_key, 'rb', compression='disable') as archive_file_key:
-            #         sha1sum = sha1_manifest(archive_file_key)
-            #         sha1sum_value = sha1sum[archive_file_key.name]
-            #         sha1file = f"{file_set.kg_id}_{file_set.fileset_version}.sha1.txt"
-            #         manifest_object_location = f"kge-data/{file_set.kg_id}/{file_set.fileset_version}/manifest/"
-            #         sha1_s3_path = f"s3://{default_s3_bucket}/{manifest_object_location}{sha1file}"
-            #         with smart_open.open(sha1_s3_path, 'w') as sha1file:
-            #             sha1file.write(sha1sum_value)
-            #
-            # except Exception as e:
-            #     # Can't be more specific than this 'cuz not sure what errors may be thrown here...
-            #     print_error_trace("SHA1 hash sum computation failure! "+str(e))
-            #     raise e
-            #
-            # # take a quick rest, to give other co-routines a chance?
-            # await sleep(0.001)
-            
-            # 6. KGX validation of KGE compliant archive.
-            
-            # TODO: Debug and/or redesign KGX validation of data files - doesn't yet work properly
-            # TODO: need to managed multiple Biolink Model specific KGX validators.
-            # TODO: might need yet another large EBS drive here, to validate the file set (or not.. stream processed?)
-            logger.debug(
-                f"(Future) KgeArchiver worker {task_id} validation of {file_set.id()} tar.gz archive..."
-            )
-            # validator: KgxValidator = KnowledgeGraphCatalog.catalog().get_validator()
-            # KgxValidator.validate(self)
-            
             # Assume that the TAR.GZ archive of the
             # KGE File Set is validated by this point
             file_set.status = KgeFileSetStatusCode.VALIDATED
             
-            logger.debug(f"KgeArchiver worker {task_id} finished archiving of {file_set.id()}")
+            logger.debug(f"KgeArchiver.worker {task_id} completed archiving of {file_set.id()}")
 
             self._archiver_queue.task_done()
 
