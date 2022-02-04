@@ -14,6 +14,11 @@ snowballstemmer
 Pygments
 Babel
 alabaster
+antlr4-python3-runtime
+rdflib_jsonld
+PyJSG
+PyShExC
+SPARQLWrapper
 
 # TODO: temporary patched version of Connexion for proper form upload support
 # connexion
