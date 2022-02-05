@@ -5,6 +5,9 @@ FROM python:3.8
 RUN python -m pip install --upgrade pip && pip install wheel
 COPY requirements_1.txt  /usr/src/app/requirements_1.txt
 RUN python -m pip install --no-cache-dir -r requirements_1.txt
+
+# Not sure if I won't need to also import BOTO3 here?
+
 COPY requirements_kgx.txt  /usr/src/app/requirements_kgx.txt
 RUN python -m pip install --no-cache-dir -r requirements_kgx.txt
 

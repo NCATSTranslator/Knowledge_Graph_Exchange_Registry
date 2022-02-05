@@ -37,3 +37,6 @@ validators~=0.18.2
 smart_open>=5.1.0
 pytest~=6.2.4
 pytest-asyncio
+PyJWT
+pynacl
+pyld
