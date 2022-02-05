@@ -3,6 +3,7 @@
 docker
 pandas
 pytz
+cffi
 prologterms
 mypy
 mypy-extensions
