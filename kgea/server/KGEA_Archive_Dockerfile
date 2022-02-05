@@ -3,7 +3,7 @@ FROM python:3.8
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y build-essential git python-lxml nvme
+RUN apt-get update && apt-get upgrade -y && apt-get install -y build-essential git python-lxml nvme-cli
 RUN python -m pip install --upgrade pip && python -m pip install wheel
 
 # Copy over requirements and defined dependencies independent of the rest of the
