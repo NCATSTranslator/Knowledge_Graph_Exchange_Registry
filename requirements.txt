@@ -4,6 +4,7 @@ pytz
 prefixcommons
 platformdirs
 PyJWT
+pandas
 graphviz
 websocket_client
 yarl
@@ -23,6 +24,7 @@ rdflib_jsonld
 PyJSG
 PyShExC
 SPARQLWrapper
+
 
 # TODO: temporary patched version of Connexion for proper form upload support
 # connexion
