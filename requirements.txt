@@ -1,5 +1,6 @@
 # 4 Feb  2022 - explicitly pulling in 'default' dependencies here for some modules.
 # May need to review whether or not versions pulled are fully compatible with the other fixed dependencies below
+docker
 pandas
 pytz
 prologterms
@@ -14,6 +15,7 @@ pynacl
 jsonasobj
 jsonlines
 jsonstreams
+frozenlist
 ordered-set
 graphviz
 websocket_client
