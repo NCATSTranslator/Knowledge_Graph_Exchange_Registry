@@ -1,40 +1,15 @@
-# 4 Feb  2022 - explicitly pulling in 'default' dependencies here for some modules.
-# May need to review whether or not versions pulled are fully compatible with the other fixed dependencies below
+# TODO: temporary patched version of Connexion for proper form upload support
+# connexion
+-e git+https://github.com/STARInformatics/connexion.git@fix-urlencoded-body-parameter-parsing#egg=connexion
+Flask~=2.0.1
+swagger-ui-bundle == 0.0.6
+aiohttp_jinja2
+jinja2
+aiohttp_cors >= 0.7.0
+aiohttp>=3.8.1
+aiohttp-session>=2.11.0
+aiomcache
 
-wheel~=0.36.2
-
-docker
-pandas
-graphviz
-
-pytz
-cffi
-prologterms
-mypy
-mypy-extensions
-prefixcommons
-platformdirs
-PyJWT
-pathspec
-commonmark
-pynacl
-jsonasobj
-jsonlines
-jsonstreams
-frozenlist
-ordered-set
-websocket_client
-yarl
-pyld
-typing_extensions
-tomli
-terminaltables
-pbr
-snowballstemmer
-Pygments
-Babel
-alabaster
-antlr4-python3-runtime
-rdflib_jsonld
-PyJSG
-SPARQLWrapper
+requests~=2.26.0
+botocore
+boto3

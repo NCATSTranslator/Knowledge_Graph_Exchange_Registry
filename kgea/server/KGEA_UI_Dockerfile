@@ -9,9 +9,11 @@ RUN python -m pip install --upgrade pip && python -m pip install wheel
 # Copy over requirements and defined dependencies independent of the rest of the
 # code base, so that they are not repeatedly installed when the code changes
 # February 5, 2022 - partitioned requirements.txt into three files, to ease loading(?)
-COPY requirements*.txt  /usr/src/app/requirements.txt
+COPY requirements_1.txt  /usr/src/app/requirements_1.txt
 RUN python -m pip install --no-cache-dir -r requirements_1.txt
+COPY requirements_2.txt  /usr/src/app/requirements_2.txt
 RUN python -m pip install --no-cache-dir -r requirements_2.txt
+COPY requirements_3.txt  /usr/src/app/requirements_3.txt
 RUN python -m pip install --no-cache-dir -r requirements_3.txt
 
 COPY . /usr/src/app

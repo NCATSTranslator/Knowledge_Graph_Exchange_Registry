@@ -1,6 +1,6 @@
 # Feb 5, 2022: The requirements files were split to allow
 # separate processing if OS resource limitations arise
 -r requirements_1.txt
+-r requirements_kgx.txt
 -r requirements_2.txt
 -r requirements_3.txt
--r requirements_kgx.txt
