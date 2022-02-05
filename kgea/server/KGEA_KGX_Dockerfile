@@ -2,6 +2,9 @@
 # not sure how this will work in practice?
 FROM python:3.8
 
+RUN apt-get update && apt-get upgrade -y && apt-get install -y apt-utils build-essential git python-lxml
+RUN python -m pip install --upgrade pip && python -m pip install wheel
+
 RUN python -m pip install --upgrade pip && pip install wheel
 COPY requirements_1.txt  /usr/src/app/requirements_1.txt
 RUN python -m pip install --no-cache-dir -r requirements_1.txt

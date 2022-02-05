@@ -61,8 +61,8 @@ default_s3_region = s3_config['region']
 default_s3_bucket = s3_config['bucket']
 default_s3_root_key = s3_config['archive-directory']
 
-# Dynamic provisioning
-ebs_config: Dict = aws_config['ebs']
+# Default EBS dynamic provisioning parameters
+ebs_config: Dict = aws_config.setdefault('ebs', dict())
 
 # we assume that '/dev/sdb' is already in use?
 _SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'sdc')}"

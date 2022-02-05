@@ -73,13 +73,6 @@ def _load_app_config() -> dict:
                     config['aws']['host_account'] = ''
                     config['aws']['guest_external_id'] = ''
                     config['aws']['iam_role_name'] = ''
-                if 'ebs' not in config['aws'] or \
-                   'scratch_device' not in config['aws']['ebs']:
-                    logger.warning(
-                        "Missing aws 'ebs.scratch_device' attribute in the '~/kgea/config/config.yaml' " +
-                        "configuration file. Assume that you will not dynamically provision EBS volumes."
-                    )
-                    config['aws']['ebs'] = dict()
             if 'github' not in config:
                 if DEV_MODE:
                     logger.warning(
