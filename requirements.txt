@@ -2,6 +2,8 @@
 # May need to review whether or not versions pulled are fully compatible with the other fixed dependencies below
 pandas
 pytz
+prologterms
+mypy
 prefixcommons
 platformdirs
 PyJWT
