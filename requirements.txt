@@ -4,9 +4,17 @@ pandas
 pytz
 prologterms
 mypy
+mypy-extensions
 prefixcommons
 platformdirs
 PyJWT
+pathspec
+commonmark
+pynacl
+jsonasobj
+jsonlines
+jsonstreams
+ordered-set
 graphviz
 websocket_client
 yarl
