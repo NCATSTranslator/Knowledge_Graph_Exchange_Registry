@@ -2,7 +2,9 @@ PyShExC
 biothings-client
 biothings-explorer
 
-# temporary workaround for using kgx (linkml has the same conflict)
-# aligns 'click' package version dependency with 'black' package to >=8.0.0
+# temporary workaround (kgx and linkml have the same conflict):
+# Align the 'black' package as kgx with respect to click dependency.
+# linkml
+-e git+https://github.com/linkml/linkml.git@issue-592-patch#egg=linkml
 # kgx>=1.5.5
 -e git+https://github.com/biolink/kgx.git@patch-issue-371#egg=kgx
