@@ -8,6 +8,8 @@ RUN python -m pip install --no-cache-dir -r requirements_1.txt
 COPY requirements_kgx.txt  /usr/src/app/requirements_kgx.txt
 RUN python -m pip install --no-cache-dir -r requirements_kgx.txt
 
+COPY ./kgea /usr/src/app/kgea
+
 EXPOSE 8100
 
 ENTRYPOINT ["python"]

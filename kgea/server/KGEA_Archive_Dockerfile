@@ -18,7 +18,7 @@ RUN python -m pip install --no-cache-dir -r requirements_2.txt
 COPY requirements_3.txt  /usr/src/app/requirements_3.txt
 RUN python -m pip install --no-cache-dir -r requirements_3.txt
 
-COPY . /usr/src/app
+COPY ./kgea /usr/src/app/kgea
 
 # install the latest AWS CLI inside the container
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; \
