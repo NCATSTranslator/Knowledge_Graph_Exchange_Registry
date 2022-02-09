@@ -397,7 +397,7 @@ Now, you can proceed to install Docker and Docker Compose.
 
 ### Extending AWS EBS Disk Sizes
 
-If you need a larger disk size than originally allocated in an AMI / EC2 instance, see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html.
+If you need a larger disk size than originally allocated in an AMI / EC2 instance, see [here](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html) (see also [this general guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modify-volume.html) for modifying EBS sizes).
 
 See also [here](https://medium.com/geekculture/tutorial-how-to-extend-aws-ebs-volumes-with-no-downtime-ec7d9e82426e) and [here](https://unix.stackexchange.com/questions/546785/how-do-i-resize-this-aws-ec2-ubuntu-18-instance-from-16gb-to-100gb) for additional tips.
 

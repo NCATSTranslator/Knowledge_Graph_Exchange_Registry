@@ -20,6 +20,16 @@
     - [SNS Configuration](#sns-configuration)
         - [SNS Access Policy for the KGE Archive Server](#sns-access-policy-for-the-kge-archive-server)
         - [Configuring SNS from the Command Line, using STS AssumeRole permissions](#configuring-sns-from-the-command-line-using-sts-assumerole-permissions)
+- [KGE AWS Utility Modules](#kge-aws-utility-modules)
+    - [S3 Script](#s3-script)
+    - [Cognito Script](#cognito-script)
+      - [Cognito Script Configuration](#cognito-script-configuration)
+      - [Running the Script](#running-the-script)
+        - [create-user](#create-user)
+        - [get-user-details](#get-user-details)
+        - [set-user-attribute](#set-user-attribute)
+        - [delete-user](#delete-user)
+    - [Other Scripts](#other-scripts)
 
 ## Overview
 
@@ -129,7 +139,7 @@ KGE Archive use cases currently restricts data access to authorized human users.
 
 #### Cognito Access Policy for the KGE Archive Server
 
-T.B.A
+The IAM Role configured for the system needs to given the `AmazonCognitoPowerUser` policy.
 
 #### Configuring Cognito from the Command Line, using STS AssumeRole permissions
 
@@ -161,4 +171,104 @@ T.B.A
 
 # KGE AWS Utility Modules
 
-Various utility AWS CLI modules (available in the **kgea.aws** package of the project) may be used the KGEA config.yaml configurations for AWS IAM, S3, EC2, Cognito, etc. operations, to access a given KGE Archive site.  For example, the [S3 module](s3.py) permits administrative access the back end KGE archive bucket contents. The [Cognito module](cognito.py) can halp administrative maintenance of the KGE user auth/auth system  (e.g. to (re-)set User_Role attributes of registered users)
+Various utility AWS CLI modules (available in the **kgea.aws** package of the project) may be used the KGEA config.yaml configurations for AWS IAM, S3, EC2, Cognito, etc. operations, to access a given KGE Archive site.  
+
+## S3 Script
+
+The [S3 module](s3.py) is a well-developed script that provides administrative access the back end KGE archive bucket contents. To generally see all the available commands, type:
+
+```shell
+python -m kgea.aws.s3 --help
+```
+
+Additional usage help on subcommands is provided in a similar fashion.  For example, for the `copy` command:
+
+```shell
+python -m kgea.aws.s3 copy --help
+```
+
+## Cognito Script
+
+The [Cognito script](cognito.py) can help administrative maintenance of the KGE user auth/auth system  (e.g. to (re-)set User_Role attributes of registered users). 
+
+###  Cognito Script Configuration
+
+The `cognito.user-pool-id` config.yaml parameter in the system, needs to be set to the Cognito User Pool identifier.
+
+See also [Cognito Access Policy](#cognito-access-policy-for-the-kge-archive-server), which should be set.
+
+### Running the Script
+
+See usage by:
+
+```shell
+python -m kgea.aws.cognito --help
+```
+
+gives usage documentation as follows:
+
+```shell
+Usage:
+
+python -m kgea.aws.cognito <operation>
+
+where:
+where <operation> is one of 'create-user', 'get-user-details', 'set-user-attribute' or 'delete-user'
+```
+
+Individual operations also have usage information, e.g.
+
+```shell
+python -m kgea.aws.cognito create-user --help
+```
+
+gives
+
+```shell
+create-user error: create-user needs more parameters!
+Usage:
+
+python -m kgea.aws.cognito create-user <username> <filename>
+
+where:
+        <username> is the user account
+        <filename> is the name of the user attribute properties file
+```
+
+The four available Cognito commands are somewhat self-explanatory, but their usage may need some clarification.
+
+#### create-user
+
+This command needs two arguments: the `username` to create plus the path name to a (MS Windows style) INI file which gives the user attributes for the given user. This INI file contents will look something like this (this has fanciful data):
+
+```
+[cognito-test-user]
+email = trans.lator@ncats.io
+family_name = Lator
+given_name = Trans
+email_verified = true
+website = https://ncats.nih.gov
+custom_team = SRI
+custom_affiliation = NCATS
+custom_contact_pi = da Boss
+custom_user_role = 2
+
+```
+
+The 'section' of the INI file should use the username. In principle, one INI file can have user attributes for multiple users, but only the one corresponding section is parsed in the create-user command.  The keys starting with `custom_` correspond to the Cognito 'custom' attributes in the User Pool  (but labels all in lower case). For example, `custom_contact_pi` corresponds to the `custom:Contact_PI` user attribute.
+
+#### get-user-details
+
+Easy command with one parameter: the `username` the details for which are to be displayed.
+
+#### set-user-attribute
+
+To set a user attribute for a given `username`, give the `name` and `value` of the attribute. Note that  user attribute values are taken assumed to be strings.
+
+#### delete-user
+
+Easy command with one parameter: the `username` to delete
+
+## Other Scripts
+
+Stubs are started for AWS Console, Ec2 and SNS operations, but their use cases are not yet central to KGEA.
