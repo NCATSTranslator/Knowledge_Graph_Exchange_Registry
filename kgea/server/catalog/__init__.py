@@ -677,7 +677,8 @@ class KgeFileSet:
         self.revisions = 'Creation'
         files = ""
         for entry in self.data_files.values():
-            files += "- " + entry["file_name"]+"\n"
+            files += f"- {entry['file_name']}\n"
+        files = files.strip("\n")
         try:
             fileset_metadata_yaml = populate_template(
                 host=site_hostname,
@@ -1462,7 +1463,7 @@ def add_to_s3_repository(
         text: str,
         file_name: str,
         fileset_version: str = ''
-) -> str:
+) -> Optional[str]:
     """
     Add a file of specified text content and name,
      to a KGE Archive (possibly versioned) S3 folder.
@@ -1473,22 +1474,27 @@ def add_to_s3_repository(
     :return: str object key of the uploaded file
     """
 
-    if text:
-        if fileset_version:
-            file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
+    try:
+        if text:
+            if fileset_version:
+                file_set_location, _ = with_version(func=get_object_location, version=fileset_version)(kg_id)
+            else:
+                file_set_location = get_object_location(kg_id)
+            data_bytes = text.encode('utf-8')
+            object_key = get_object_key(file_set_location, file_name)
+            upload_file(
+                bucket=default_s3_bucket,
+                object_key=object_key,
+                source=BytesIO(data_bytes)
+            )
+            return object_key
         else:
-            file_set_location = get_object_location(kg_id)
-        data_bytes = text.encode('utf-8')
-        object_key = get_object_key(file_set_location, file_name)
-        upload_file(
-            bucket=default_s3_bucket,
-            object_key=object_key,
-            source=BytesIO(data_bytes)
+            raise RuntimeError("add_to_s3_repository(): Empty text string argument? Can't archive a vacuum!")
+    except Exception as e:
+        logger.warning(
+            f"add_to_s3_repository(kg_id: '{kg_id}', text: '{text[0:min(15,len(text))] if text else 'None'}', " +
+            f"file_name: '{file_name}', fileset_version: '{fileset_version}')\n\t{str(e)}"
         )
-        return object_key
-    else:
-        logger.warning("add_to_s3_repository(): Empty text string argument? Can't archive a vacuum!")
-        return ''
 
 
 def get_github_token() -> Optional[str]:

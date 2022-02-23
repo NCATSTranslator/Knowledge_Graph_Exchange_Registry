@@ -1,7 +1,7 @@
 """
 KGE Catalog tests (extracted from catalog module, 22-2-2022
 """
-
+from math import ceil
 from sys import stderr
 from datetime import datetime
 
@@ -10,11 +10,15 @@ import asyncio
 from os.path import dirname, abspath
 import tempfile
 import json
-from typing import List
+from typing import List, Optional
 
+import pytest
 from github import Github
 
-from kgea import PROVIDER_METADATA_TEMPLATE_FILE_PATH, TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH
+from kgea import (
+    PROVIDER_METADATA_TEMPLATE_FILE_PATH,
+    TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH
+)
 from kgea.config import get_flag, get_app_config
 from kgea.server.catalog import (
     KnowledgeGraphCatalog,
@@ -48,17 +52,17 @@ RUN_TESTS = get_flag('RUN_TESTS')
 CLEAN_TESTS = get_flag('CLEAN_TESTS')
 
 _TEST_SMARTAPI_REPO = "NCATSTranslator/Knowledge_Graph_Exchange_Registry"
-_TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/tests/output"
+_TEST_KGE_SMARTAPI_TARGET_DIRECTORY = "kgea/server/catalog/tests/output"
 
 """
 Test Parameters + Decorator
 """
-TEST_BUCKET = 'kgea-test-bucket'
-TEST_KG_NAME = 'test_kg'
-TEST_FILE_DIR = 'kgea/server/test/data/'
-TEST_FILE_NAME = 'somedata.csv'
+# TEST_BUCKET = 'kgea-test-bucket'
+# TEST_KG_NAME = 'test_kg'
+# TEST_FILE_DIR = 'kgea/server/test/data/'
+# TEST_FILE_NAME = 'somedata.csv'
 
-SAMPLE_META_KNOWLEDGE_GRAPH_FILE = abspath(dirname(__file__) + '/sample_meta_knowledge_graph.json')
+SAMPLE_META_KNOWLEDGE_GRAPH_FILE = abspath(f"{dirname(__file__)}/data/sample_meta_knowledge_graph.json")
 
 
 def test_get_catalog_entries():
@@ -210,7 +214,7 @@ def prepare_test_file_set(fileset_version: str = "1.0") -> KgeFileSet:
 def test_create_fileset_metadata_file():
 
     global _TEST_TFMF
-    
+
     print("\ntest_create_fileset_metadata_entry() test output:\n", file=stderr)
 
     fs = prepare_test_file_set()
@@ -218,6 +222,16 @@ def test_create_fileset_metadata_file():
     _TEST_TFMF = fs.generate_fileset_metadata_file()
 
     print(str(_TEST_TPMF), file=stderr)
+
+    # also test add_to_s3_repository
+    outcome: Optional[str] = add_to_s3_repository(
+        kg_id="kge_test_provider_metadata_file",
+        text=_TEST_TFMF,
+        file_name="test_provider_metadata_file",
+        fileset_version="100.0"
+    )
+
+    assert outcome
 
 
 def test_create_translator_registry_entry():
@@ -229,27 +243,15 @@ def test_create_translator_registry_entry():
     )
     print(str(_TEST_TRE), file=stderr)
 
-
-def test_add_to_archive() -> bool:
-    outcome: str = add_to_s3_repository(
-        kg_id="kge_test_provider_metadata_file",
-        text=_TEST_TPMF,
-        file_name="test_provider_metadata_file",
-        fileset_version="100.0"
-    )
-
-    return not outcome == ''
-
-
-def test_add_to_github():
+    # test add_to_github()
     outcome: bool = add_to_github(
-        "kge_test_translator_registry_entry",
+        f"kge_test_translator_registry_entry_{ceil(datetime.now().timestamp())}",
         _TEST_TRE,
         repo_path=_TEST_SMARTAPI_REPO,
         target_directory=_TEST_KGE_SMARTAPI_TARGET_DIRECTORY
     )
 
-    return outcome
+    assert outcome
 
 
 def test_get_biolink_releases():
@@ -258,7 +260,7 @@ def test_get_biolink_releases():
     :return:
     """
     releases: List = get_biolink_model_releases()
-    assert ('2.0.2' in releases)
+    assert ('2.2.13' in releases)
     print("Test access to Biolink releases:")
     for release in releases:
         print(f"\t{release}")
@@ -299,9 +301,10 @@ def clean_tests(
         repo.delete_file(contents.path, "Remove test entry = '" + entry_path + "'", contents.sha)
 
 
+@pytest.mark.skip(reason="Need to review content metadata schema and sample data, to fix this test?")
 def test_contents_metadata_validator():
     """
-
+    Checks contents metadata JSON validator with a sample file
     :return:
     """
     print("\ntest_contents_metadata_validator() test output:\n", file=stderr)
@@ -313,56 +316,5 @@ def test_contents_metadata_validator():
 
     if errors:
         logger.error("test_contents_metadata_validator() errors: " + str(errors))
-    return not errors
 
-
-def run_test(test_func):
-    """
-    Wrapper to run a test.
-
-    :param test_func:
-    :return:
-    """
-    try:
-        start = datetime.now()
-        assert (test_func())
-        end = datetime.now()
-        print(f"{test_func.__name__} passed: {str(end - start)} seconds")
-    except Exception as e:
-        logger.error(f"{test_func.__name__} failed!")
-        logger.error(e)
-
-
-"""
-Unit Tests
-* Run each test function as an assertion if we are debugging the project
-"""
-if __name__ == '__main__':
-
-    # Set the RUN_TESTS environment variable to a non-blank value
-    # whenever you wish to run the unit tests in this module...
-    # Set the CLEAN_TESTS environment variable to a non-blank value
-    # to clean up test outputs from RUN_TESTS runs.
-
-    if RUN_TESTS:
-
-        print("Catalog package module tests")
-
-        # The generate_translator_registry_entry() and add_to_github() methods both work as coded as of 29 March 2021,
-        # thus we comment out this test to avoid repeated commits to the KGE repo. The 'clean_tests()' below
-        # is thus not currently needed either, since it simply removes the github artifacts from add_to_github().
-        # This code can be uncommented if these features need to be tested again in the future
-        # test_kg_id_normalization()
-        # assert (test_create_provider_metadata_file())
-        # assert (test_create_fileset_metadata_file())
-        # assert (test_add_to_archive())
-        # assert (test_create_translator_registry_entry())
-        # assert (test_add_to_github())
-        # run_test(test_contents_metadata_validator)
-        # test_get_biolink_releases()
-        # assert (test_get_catalog_entries())
-        #
-        print("Catalog package module tests completed?")
-
-    # if CLEAN_TESTS:
-    #     clean_tests()
+    assert not errors

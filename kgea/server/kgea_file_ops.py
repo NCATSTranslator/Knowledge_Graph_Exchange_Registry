@@ -1729,8 +1729,10 @@ async def delete_ebs_volume(
     # The application can only create an EBS volume if it is running
     # within an EC2 instance so retrieve the EC2 instance identifier
     instance_id = get_ec2_instance_id()
-    if not (dry_run or instance_id):
-        logger.warning(f"{method}  not inside an EC2 instance? Cannot dynamically provision your EBS volume?")
+    if dry_run or not instance_id:
+        logger.warning(
+            f"{method}  dry run or not inside an EC2 instance? Cannot dynamically provision your EBS volume?"
+        )
         return
 
     ec2_region = get_ec2_instance_region()
