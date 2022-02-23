@@ -1,8 +1,5 @@
 # coding: utf-8
-
 import pytest
-import json
-from aiohttp import web
 
 from kgea.server.archiver.models.process_file_set_body import ProcessFileSetBody
 
@@ -13,7 +10,7 @@ async def test_process_fileset(client):
 
     Posts a KGE File Set for post-processing after upload.
     """
-    body = ProcessFileSetBody()
+    body = ProcessFileSetBody().json()
     headers = { 
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded',
