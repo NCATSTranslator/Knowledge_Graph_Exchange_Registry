@@ -6,15 +6,23 @@ WORKDIR /usr/src/app
 ENV DOCKER_RUNNING 1
 ENV DEV_MODE 0
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y build-essential git python3-lxml
+RUN apt-get update && apt-get upgrade -y && apt-get install -y apt-utils build-essential git python-lxml
+
 RUN python -m pip install --upgrade pip && python -m pip install wheel
 
 # Copy over requirements and defined dependencies independent of the rest of the
 # code base, so that they are not repeatedly installed when the code changes
-COPY requirements.txt  /usr/src/app/requirements.txt
-RUN python -m pip install --no-cache-dir -r requirements.txt
+# February 5, 2022 - partitioned requirements.txt into four files, to ease loading(?)
+COPY requirements_1.txt  /usr/src/app/requirements_1.txt
+RUN python -m pip install --no-cache-dir -r requirements_1.txt
+COPY requirements_kgx.txt  /usr/src/app/requirements_kgx.txt
+RUN python -m pip install --no-cache-dir -r requirements_kgx.txt
+COPY requirements_2.txt  /usr/src/app/requirements_2.txt
+RUN python -m pip install --no-cache-dir -r requirements_2.txt
+COPY requirements_3.txt  /usr/src/app/requirements_3.txt
+RUN python -m pip install --no-cache-dir -r requirements_3.txt
 
-COPY . /usr/src/app
+COPY ./kgea /usr/src/app/kgea
 
 EXPOSE 8090
 

@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 
 from kgea.aws.assume_role import aws_config, AssumeRole
+from kgea.server.catalog import KgeFileSet, KgeFileType
 from kgea.server.tests import (
     TEST_BUCKET,
     
@@ -131,8 +132,8 @@ def test_object_folder_contents_size(
         test_fileset_version=TEST_FS_VERSION,
         test_bucket=TEST_BUCKET
 ):
-    fk1 = upload_test_file(test_subfolder='archive/')
-    fk2 = upload_test_file(test_file_path=TEST_LARGE_FILE_PATH, test_subfolder='archive/')
+    fk1 = upload_test_file(test_sub_folder='archive/')
+    fk2 = upload_test_file(test_file_path=TEST_LARGE_FILE_PATH, test_sub_folder='archive/')
     
     size = object_folder_contents_size(
         kg_id=test_kg_id,
@@ -147,7 +148,7 @@ def test_object_folder_contents_size(
     delete_test_file(test_object_key=fk2)
 
 
-def test_create_presigned_url(test_bucket=TEST_BUCKET):
+def test_create_pre_signed_url(test_bucket=TEST_BUCKET):
     try:
         # TODO: write tests
         create_presigned_url(object_key=get_object_location(TEST_KG_ID), bucket=test_bucket)
@@ -209,14 +210,16 @@ def upload_test_file(
         test_bucket=TEST_BUCKET,
         test_kg=TEST_KG_ID,
         test_file_path=TEST_SMALL_FILE_PATH,
-        test_subfolder=''
+        test_sub_folder='',
+        test_client=s3_client()
 ):
     """
 
     :param test_bucket:
     :param test_kg:
     :param test_file_path:
-    :param test_subfolder:
+    :param test_sub_folder:
+    :param test_client:
     :return:
     """
     # NOTE: file must be read in binary mode!
@@ -225,7 +228,7 @@ def upload_test_file(
     with open(test_file_path, 'rb') as test_file:
         
         content_location, _ = with_version(get_object_location)(test_kg)
-        content_location = f"{content_location}{test_subfolder}"
+        content_location = f"{content_location}{test_sub_folder}"
         test_file_object_key = get_object_key(content_location, test_file.name)
         
         # only create the object key if it doesn't already exist?
@@ -233,7 +236,8 @@ def upload_test_file(
             upload_file(
                 bucket=test_bucket,
                 object_key=test_file_object_key,
-                source=test_file
+                source=test_file,
+                client=test_client
             )
             assert object_key_exists(object_key=test_file_object_key, bucket_name=test_bucket)
     
@@ -251,12 +255,12 @@ def delete_test_file(test_object_key, test_bucket=TEST_BUCKET, test_client=s3_cl
     test_client.delete_object(Bucket=test_bucket, Key=test_object_key)
 
 
-def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
+def test_upload_file_to_archive():
     try:
         test_object_key = upload_test_file(
-            test_bucket=test_bucket,
-            test_kg=test_kg,
-            test_subfolder='archive/'
+            test_bucket=TEST_BUCKET,
+            test_kg=TEST_KG_ID,
+            test_sub_folder='archive/'
         )
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -271,18 +275,19 @@ def test_upload_file_to_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
         logger.error(e)
         assert False
 
-    delete_test_file(test_object_key=test_object_key, test_bucket=test_bucket)
+    delete_test_file(test_object_key=test_object_key, test_bucket=TEST_BUCKET)
 
 
-def test_upload_file_to_remote_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
+def test_upload_file_to_remote_archive():
     
-    target_assumed_role, target_client, target_bucket = get_remote_client()
+    remote_target_assumed_role, remote_target_client, remote_target_bucket = get_remote_client()
     
     try:
         test_object_key = upload_test_file(
-            test_bucket=test_bucket,
-            test_kg=test_kg,
-            test_subfolder='archive/'
+            test_bucket=remote_target_bucket,
+            test_kg=TEST_KG_ID,
+            test_sub_folder='archive/',
+            test_client=remote_target_client
         )
     except FileNotFoundError as e:
         logger.error("Test is malformed!")
@@ -297,7 +302,11 @@ def test_upload_file_to_remote_archive(test_bucket=TEST_BUCKET, test_kg=TEST_KG_
         logger.error(e)
         assert False
 
-    delete_test_file(test_object_key=test_object_key, test_bucket=test_bucket)
+    delete_test_file(
+        test_object_key=test_object_key,
+        test_bucket=remote_target_bucket,
+        test_client=remote_target_client
+    )
 
 
 def test_kg_files_for_version(
@@ -375,16 +384,16 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
 
 def test_copy_file():
     try:
-        testdir = "test-copy"
+        test_dir = "test-copy"
         # TODO: how do I bootstrap this test?
-        source_key = f"{testdir}/{TEST_OBJECT}"
+        source_key = f"{test_dir}/{TEST_OBJECT}"
         s3_client().put_object(
             Bucket=TEST_BUCKET,
             Key=source_key,
             Body=b'Test Object'
         )
         
-        target_dir = f"{testdir}/target_dir"
+        target_dir = f"{test_dir}/target_dir"
         
         copy_file(
             source_key=source_key,
@@ -395,13 +404,13 @@ def test_copy_file():
         
         assert(object_key_exists(object_key=target_key))
 
-        response = s3_client().list_objects_v2(Bucket=TEST_BUCKET, Prefix=testdir)
+        response = s3_client().list_objects_v2(Bucket=TEST_BUCKET, Prefix=test_dir)
 
         for obj in response['Contents']:
             logger.debug(f"Deleting {obj['Key']}")
             s3_client().delete_object(Bucket=TEST_BUCKET, Key=obj['Key'])
         
-        assert (not object_key_exists(object_key=testdir))
+        assert (not object_key_exists(object_key=test_dir))
         
     except Exception as e:
         logger.error(e)
@@ -583,3 +592,36 @@ def wrap_upload_from_link(test_bucket, test_kg, test_fileset_version, test_link,
         assert False
 
     logger.debug('Success!')
+
+
+def test_get_archive_files():
+    test_file_set: KgeFileSet = KgeFileSet(
+        kg_id="test_kg",
+        biolink_model_release="2.2.2",
+        fileset_version="1.0",
+        submitter_name="daBoss",
+        submitter_email="translator@ncats.io"
+    )
+    # setup fake data for test
+    n = 10000
+    for f in ("testing.tar.gz", "one", "two.tar.gz", "three", "four.tar.gz"):
+        test_file_set.add_data_file(
+            file_type=KgeFileType.ARCHIVE if "tar.gz" in f else KgeFileType.DATA_FILE,
+            file_name=f,
+            file_size=n,
+            object_key=f"who_cares/{f}"
+        )
+        n *= 10
+
+    test_archive_files = test_file_set.get_archive_files()
+
+    assert len(test_archive_files) == 3
+
+    assert test_archive_files[0][0] == "four.tar.gz"
+    assert test_archive_files[0][1] == 100000000
+
+    assert test_archive_files[1][0] == "two.tar.gz"
+    assert test_archive_files[1][1] == 1000000
+
+    assert test_archive_files[2][0] == "testing.tar.gz"
+    assert test_archive_files[2][1] == 10000

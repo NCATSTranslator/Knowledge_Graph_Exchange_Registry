@@ -25,42 +25,6 @@ async def test_compress_fileset():
         assert False
 
 
-# This is a simple test of the KgxArchive queue/task.
-# It cannot be run with the given test_file_set object
-# since the data files don't exist in S3!
-def test_stub_archiver() -> bool:
-
-    archiver: KgeArchiver = KgeArchiver()
-
-    async def archive_test():
-        """
-        async archive test wrapper
-        :return:
-        """
-
-        logger.debug("\ntest_stub_archiver() startup of tasks\n")
-
-        fs = prepare_test_file_set("1.0")
-        await archiver.process(fs)
-
-        # We create all our workers in the KgeArchiver() constructor
-        # archiver.create_workers(2)
-
-        # fs = test_file_set("1.1")
-        # await archiver.process(fs)
-        # fs = test_file_set("1.2")
-        # await archiver.process(fs)
-        # fs = test_file_set("1.3")
-        # await archiver.process(fs)
-
-        # # Don't want to finish too quickly...
-        # await sleep(30)
-        #
-        # logger.debug("\ntest_stub_archiver() shutdown now!\n")
-        # await archiver.shutdown_workers()
-
-    run(archive_test())
-    return True
 
 
 # TODO: more complete KGX validator test

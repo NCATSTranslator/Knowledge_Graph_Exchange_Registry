@@ -1,0 +1,6 @@
+# 5 Feb 2022 - pull in these 'chunky' dependencies here
+docker
+pandas
+graphviz
+botocore
+boto3

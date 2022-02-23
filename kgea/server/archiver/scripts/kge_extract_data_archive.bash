@@ -70,7 +70,7 @@ if [[ -z "${1}" ]]; then
 else
     # KGE Bucket
     bucket="${1}"
-    echo "Bucket: ${bucket}"
+    echo "Bucket: '${bucket}'"
 fi
 
 if [[ -z "${2}" ]]; then
@@ -79,7 +79,7 @@ if [[ -z "${2}" ]]; then
 else
     # Root directory of the KGE Knowledge Graphs
     root_directory="${2}"
-    echo "Root directory: ${root_directory}"
+    echo "Root directory: '${root_directory}'"
 fi
 
 if [[ -z "${3}" ]]; then
@@ -88,7 +88,7 @@ if [[ -z "${3}" ]]; then
 else
     # Specific Knowledge Graph Identifier
     kg_id=${3}
-    echo "Knowledge Graph Id: ${kg_id}"
+    echo "Knowledge Graph Id: '${kg_id}'"
 fi
 
 if [[ -z "${4}" ]]; then
@@ -98,7 +98,7 @@ else
     # TODO: [perhaps need to validate proper SemVer format of file set version string here?
     # Specific File Set Version of interest for the Knowledge Graph
     file_set_version=${4}
-    echo "File Set Version: ${file_set_version}"
+    echo "File Set Version: '${file_set_version}'"
 fi
 
 if [[ -z "${5}" ]]; then
@@ -108,6 +108,15 @@ else
     # Archive file name
     archive_base_name="${5}"
     echo "Archive file name: ${archive_base_name}.tar.gz"
+fi
+
+if [[ -z "${6}" ]]; then
+    echo "Specify the local scratch device path (i.e. perhaps something like '/scratch_data/one')!"
+    usage
+else
+    # Scratch data directory path for the script operations use
+    scratch_dir="${6}"
+    echo "Scratch data directory path: '${scratch_dir}'"
 fi
 
 # Folder of given versioned file set of the Knowledge Graph
@@ -126,11 +135,17 @@ archive_object_key="${s3_uri}/${archive_filename}"
 echo
 echo "Beginning extraction of '${archive_object_key}'"
 
+# Set current working directory to a 'scratch' folder
+if [[ ! -d ${scratch_dir} ]]; then
+    mkdir ${scratch_dir}
+fi
+cd ${scratch_dir}
+
 # To avoid collision in concurrent data operations across multiple graphs
 # use a timestamped directory, instead of a simple literal subdirectory name
-workdir=archive_$(date +%s)
-mkdir "${workdir}"
-cd "${workdir}" || exit 3
+archive_dir=archive_$(date +%s)
+mkdir "${archive_dir}"
+cd "${archive_dir}" || exit 3
 echo "Current working directory: '$(pwd)'"
 
 # STEP 1 - download the tar.gz archive to the local working directory
@@ -268,9 +283,9 @@ done
 #
 # STEP 7 - clean out the work directory
 echo
-echo "Deleting working directory ${workdir}"
+echo "Deleting working directory ${archive_dir}"
 cd ..
-rm -Rf "${workdir}"
+rm -Rf "${archive_dir}"
 
 echo
 echo "Completed extraction of '${archive_object_key}'"

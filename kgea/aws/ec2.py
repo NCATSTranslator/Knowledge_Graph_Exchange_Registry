@@ -5,15 +5,24 @@
 # credentials to execute an AWS Secure Token Service-mediated access
 # to a Simple Storage Service (S3) bucket given as an argument.
 #
+import json
 import sys
 from pathlib import Path
 
+from urllib.request import urlopen
+from urllib.error import URLError
+
 from json import dumps
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from botocore.exceptions import ClientError
 
 from kgea.aws.assume_role import AssumeRole
+
+import logging
+logger = logging.getLogger(__name__)
+
+EC2_INSTANCE_IDENTITY_URL = "http://169.254.169.254/latest/dynamic/instance-identity/document"
 
 
 def usage(err_msg: str = ''):
@@ -37,6 +46,74 @@ def usage(err_msg: str = ''):
         "\nNote[*]: for instance actions other than 'describe', one or more EC2 instance id arguments must be provided."
     )
     exit(0)
+
+
+_instance_details: Dict = dict()
+
+
+# Should return the following dictionary of tags  (values given are just examples)
+# {
+#     "devpayProductCodes" : null,
+#     "privateIp" : "10.1.2.3",
+#     "region" : "us-east-1",
+#     "kernelId" : "aki-12345678",
+#     "ramdiskId" : null,
+#     "availabilityZone" : "us-east-1a",
+#     "accountId" : "123456789abc",
+#     "version" : "2010-08-31",
+#     "instanceId" : "i-12345678",
+#     "billingProducts" : null,
+#     "architecture" : "x86_64",
+#     "imageId" : "ami-12345678",
+#     "pendingTime" : "2014-01-23T45:01:23Z",
+#     "instanceType" : "m1.small"
+# }
+def get_ec2_instance_metadata() -> Dict:
+    """
+    Returns dictionary of EC2 instance metadata
+    """
+    global _instance_details
+    if not _instance_details:
+        try:
+            resp = urlopen(
+                url=EC2_INSTANCE_IDENTITY_URL,
+                timeout=10  # 10 seconds timeout
+            )
+            if resp.status == 200:
+                data = resp.read()
+                _instance_details = json.loads(data)
+            else:
+                raise URLError(f"Response status: {str(resp.status)}")
+        except URLError as ue:
+            logger.warning(
+                "get_instance_metadata(): instance metadata is inaccessible..." +
+                f" perhaps you are not inside a running EC2 instance: {str(ue)}"
+            )
+    return _instance_details
+
+
+def get_ec2_instance_id() -> str:
+    metadata = get_ec2_instance_metadata()
+    if "instanceId" in metadata:
+        return metadata["instanceId"]
+    else:
+        return ""
+
+
+def get_ec2_instance_region() -> str:
+    metadata = get_ec2_instance_metadata()
+    if "region" in metadata:
+        return metadata["region"]
+    else:
+        return ""
+
+
+def get_ec2_instance_availability_zone() -> str:
+    metadata = get_ec2_instance_metadata()
+    if "availabilityZone" in metadata:
+        return metadata["availabilityZone"]
+    else:
+        return ""
 
 
 # Run the module as a CLI
@@ -198,7 +275,7 @@ if __name__ == '__main__':
                             # SnapshotId='string',
                             
                             
-                            VolumeType= 'st1', # 'standard' | 'io1' | 'io2' | 'gp2' | 'sc1' | 'st1' | 'gp3',
+                            VolumeType='st1',  # 'standard' | 'io1' | 'io2' | 'gp2' | 'sc1' | 'st1' | 'gp3',
                             # DryRun=True | False,
                             # TagSpecifications=[
                             #     {

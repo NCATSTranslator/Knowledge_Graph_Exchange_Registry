@@ -207,16 +207,16 @@ class AssumeRole:
 
             return self.aws_session.client(service, config=config)
 
-    def get_resource(self, service, **kwargs):
+    def get_resource(self, service_name, **kwargs):
         """
-        Get resource client for specified service.
-
-        :param service:
+        Retrieves the resource associated with a specified AWS service.
+        
+        :param service_name:
         :param kwargs:
         :return:
         """
         if self._default_credentials:
-            return boto3.resource('s3', **kwargs)
+            return boto3.resource(service_name=service_name, **kwargs)
         else:
             credentials, session_renewed = self.get_credentials_dict()
 
@@ -226,7 +226,7 @@ class AssumeRole:
                     aws_secret_access_key=credentials["sessionKey"],
                     aws_session_token=credentials["sessionToken"]
                 )
-            return self.aws_session.resource(service_name=service, **kwargs)
+            return self.aws_session.resource(service_name=service_name, **kwargs)
 
     def get_aws_credentials(self) -> Dict[str, str]:
         credentials, _ = self.get_credentials_dict()

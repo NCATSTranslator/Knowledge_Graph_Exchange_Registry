@@ -2,6 +2,7 @@
 Configure KGE Logging
 """
 from logging.config import dictConfig
+from os.path import abspath, dirname
 
 from kgea.config import get_app_config
 
@@ -32,3 +33,8 @@ dictConfig({
         }
     }
 })
+
+API_DIR = f"{dirname(__file__)}/api"
+PROVIDER_METADATA_TEMPLATE_FILE_PATH = abspath(f"{API_DIR}/kge_provider_metadata.yaml")
+FILE_SET_METADATA_TEMPLATE_FILE_PATH = abspath(f"{API_DIR}/kge_fileset_metadata.yaml")
+TRANSLATOR_SMARTAPI_TEMPLATE_FILE_PATH = abspath(f"{API_DIR}/kge_smartapi_entry.yaml")

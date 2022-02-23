@@ -1,8 +1,9 @@
-from typing import Dict, Union, Optional
+from typing import Dict
 from os import getenv
 from os.path import dirname, abspath
 
 import yaml
+
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
@@ -35,7 +36,7 @@ FILE_SET_METADATA_FILE = 'file_set.yaml'
 CONTENT_METADATA_FILE = 'content_metadata.json'  # this particular file is expected to be JSON and explicitly named
 
 # Exported  'application configuration' dictionary
-_app_config: Dict[str, Union[Dict[str, Optional[str]], Union[Optional[str], bool]]] = dict()
+_app_config: Dict = dict()
 
 
 def get_app_config() -> dict:
@@ -56,7 +57,7 @@ def _load_app_config() -> dict:
         with open(CONFIG_FILE_PATH, mode='r', encoding='utf-8') as app_config_file:
 
             config_raw = yaml.load(app_config_file, Loader=Loader)
-            config: Dict[str, Union[Dict[str, Optional[str]], Union[Optional[str], bool]]] = dict(config_raw)
+            config: Dict = dict(config_raw)
 
             if 'aws' not in config:
                 raise RuntimeError(
@@ -90,13 +91,13 @@ def _load_app_config() -> dict:
                         "'iam_role_name' attributes in the '~/kgea/config/config.yaml' configuration file. You are "
                         "likely running within an EC2 instance (configured with a suitable instance profile role)."
                     )
-                    config['aws']['default_region_name'] = None
+                    config['aws'] = None
                     config['aws']['host_account'] = None
                     config['aws']['guest_external_id'] = None
                     config['aws']['iam_role_name'] = None
             if 'github' not in config:
                 if DEV_MODE:
-                    logging.warning(
+                    logger.warning(
                         "Github credentials are missing inside the application config.yaml file?\n" +
                         "These to be set for publication of KGE file set entries to the Translator Registry.\n" +
                         "Assume that you don't care... thus, the application will still run " +

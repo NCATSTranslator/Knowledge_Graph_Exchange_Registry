@@ -1,0 +1,29 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [{
+			"Effect": "Allow",
+			"Action": [
+				"ec2:DescribeVolumes",
+				"ec2:DescribeAvailabilityZones",
+				"ec2:CreateVolume"
+			],
+			"Resource": "*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ec2:AttachVolume",
+				"ec2:DetachVolume"
+			],
+			"Resource": "arn:aws:ec2:us-east-1:<aws_account_id>:instance/<ec2_instance_id>"
+		},
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ec2:AttachVolume",
+				"ec2:DetachVolume"
+			],
+			"Resource": "arn:aws:ec2:us-east-1:<aws_account_id>:volume/*"
+		}
+	]
+}

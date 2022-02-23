@@ -98,6 +98,12 @@ output=( "provider.yaml" "file_set.yaml" "content_metadata.json" \
          "nodes.tsv" "edges.tsv" "nodes/nodes.tsv" "edges/edges.tsv" \
          "nodes.jsonl" "edges.jsonl" "nodes/nodes.jsonl" "edges/edges.jsonl")
 
+# Set current working directory to a 'scratch' folder
+if [[ ! -d "scratch" ]]; then
+    mkdir "scratch"
+fi
+cd "scratch"
+
 # iterate over files
 echo
 echo "Retrieve and tar files:"

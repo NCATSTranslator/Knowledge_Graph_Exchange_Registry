@@ -1,7 +1,18 @@
 FROM python:3.8
 
+RUN apt-get update && apt-get upgrade -y && apt-get install -y apt-utils build-essential git python-lxml
+RUN python -m pip install --upgrade pip && python -m pip install wheel
+
 RUN python -m pip install --upgrade pip && pip install wheel
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements_1.txt  /usr/src/app/requirements_1.txt
+RUN python -m pip install --no-cache-dir -r requirements_1.txt
+
+# Not sure if I won't need to also import BOTO3 here?
+
+COPY requirements_kgx.txt  /usr/src/app/requirements_kgx.txt
+RUN python -m pip install --no-cache-dir -r requirements_kgx.txt
+
+COPY ./kgea /usr/src/app/kgea
 
 ENV DOCKER_RUNNING 1
 ENV DEV_MODE 0

@@ -164,6 +164,9 @@ aws:
     client_secret: '<myClientSecret>'  # get from value set in the AWS Cognito User Pool app
     site_uri:  '<myArchiveSiteURL>'    # get from AWS Cognito User Pool app
     login_callback:  '/oauth2callback'
+  ebs:
+    scratch_device: "sdc"    # block device name designated for temporary 'scratch' EBS  volume provisioning w/o '/dev/'
+    scratch_dir: "/opt/tmp"  # OS path name for temporary 'scratch' EBS volume mounting
   s3:
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
@@ -192,13 +195,13 @@ github:
 
 # Uncomment and set this configuration tag value to override
 # hardcoded default number of KGX Archiver and/or (KGX) Validator worker tasks
+# NOTE: these should be between 1 and 20 (values internally coerced accordingly)
 # Number_of_Archiver_Tasks: 1
 # Number_of_Validator_Tasks: 1
 
 # This parameter is automatically created by the system and written back into this file.
 # EncryptedCookieStorage uses this "Fernat" key to configure user session management.
 # secret_key: ''
-
 ```
 
 Now when you run the Archive application, this file will be read in, and the specified AWS access parameters used to connect to S3 (and other required AWS operations). NOTE: `config.yaml` is in `.gitignore`, but its template is not. 
