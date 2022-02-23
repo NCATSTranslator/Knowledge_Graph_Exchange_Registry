@@ -19,10 +19,6 @@ aws:
   # Note the EC2 instances generally use the
   # EC2 instance profile to get at an EC2 role
   #
-  host_account: '<Host AWS Account Number>'
-  iam_role_name: '<remote role name>'
-  guest_external_id: '<Guest-specified external identifier'
-  #
   cognito:
     # AWS Cognito OAuth2 transaction parameters
     # These parameters should match those set as 'app client' parameters in Cognito
@@ -50,6 +46,9 @@ aws:
   # may be access by setting the following parameters
   #
   s3_remote:
+    host_account: '<Host AWS Account Number>'
+    iam_role_name: '<remote role name>'
+    guest_external_id: '<Guest-specified external identifier'
     # Amazon S3 storage structure
     bucket: 'kgea-bucket'         # REQUIRED: the name of the S3 bucket that will host your kgea files
     archive-directory: 'kge-data' # REQUIRED: the name of the bucket subfolder containing the KGE Archive file sets

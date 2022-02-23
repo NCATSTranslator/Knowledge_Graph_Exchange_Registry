@@ -81,11 +81,11 @@ def prepare_test_random_object_location(func):
 
 
 def test_get_fileset_versions_available(test_bucket=TEST_BUCKET):
-    try:
-        fileset_version_map = get_fileset_versions_available(bucket_name=test_bucket)
-        assert (type(fileset_version_map) is dict and len(fileset_version_map) > 0)
-    except AssertionError as e:
-        raise AssertionError(e)
+    fk1 = upload_test_file(test_sub_folder='test/')
+    fileset_version_map = get_fileset_versions_available(bucket_name=test_bucket)
+    assert (type(fileset_version_map) is dict and len(fileset_version_map) > 0)
+    logger.debug(f"test_get_fileset_versions_available test map: '{fileset_version_map}'")
+    delete_test_file(test_object_key=fk1)
 
 
 def test_is_location_available(
@@ -101,46 +101,26 @@ def test_is_location_available(
         assert False
 
 
-def test_is_not_location_available(test_object_location=TEST_LARGE_NODES_FILE_KEY, test_bucket=TEST_BUCKET):
-    """
-    Test in the positive:
-    * make dir
-    * test for existence
-    * assert not True (because it already exists)
-    * close/delete dir
-    """
-    try:
-        is_random_location_available = location_available(bucket_name=test_bucket, object_key=test_object_location)
-        assert (is_random_location_available is not True)
-    except AssertionError as e:
-        logger.error("ERROR: created location was not found")
-        logger.error(e)
-        assert False
+def test_object_keys_in_location():
+    fk1 = upload_test_file(test_sub_folder='test/')
+    kg_file_list = object_keys_in_location(bucket=TEST_BUCKET, object_location=fk1)
+    assert (len(kg_file_list) > 0)
+    assert fk1 in kg_file_list
+    print(kg_file_list)
+    delete_test_file(test_object_key=fk1)
 
 
-def test_object_keys_in_location(test_object_location=TEST_LARGE_NODES_FILE_KEY, test_bucket=TEST_BUCKET):
-    try:
-        kg_file_list = object_keys_in_location(bucket=test_bucket, object_location=test_object_location)
-        # print(kg_file_list)
-        assert (len(kg_file_list) > 0)
-    except AssertionError as e:
-        raise AssertionError(e)
+def test_object_folder_contents_size():
 
-
-def test_object_folder_contents_size(
-        test_kg_id=TEST_KG_ID,
-        test_fileset_version=TEST_FS_VERSION,
-        test_bucket=TEST_BUCKET
-):
     fk1 = upload_test_file(test_sub_folder='archive/')
     fk2 = upload_test_file(test_file_path=TEST_LARGE_FILE_PATH, test_sub_folder='archive/')
     
     size = object_folder_contents_size(
-        kg_id=test_kg_id,
-        fileset_version=test_fileset_version,
-        bucket=test_bucket
+        kg_id=TEST_KG_ID,
+        fileset_version=TEST_FS_VERSION,
+        bucket=TEST_BUCKET
     )
-    logger.info(f"{test_kg_id}/{test_fileset_version} S3 bucket folder is {size} bytes in size")
+    logger.info(f"{TEST_KG_ID}/{TEST_FS_VERSION} S3 bucket folder is {size} bytes in size")
     
     assert(size > 0)
     
@@ -417,13 +397,20 @@ def test_copy_file():
         assert False
 
 
-def test_large_aggregate_files():
-    target_folder = f"kge-data/{TEST_KG_ID}/{TEST_FS_VERSION}/archive"
+def test_aggregate_files():
+
+    test_kg_folder = f"kge-data/{TEST_KG_ID}"
+    test_fileset_folder = f"{test_kg_folder}/{TEST_FS_VERSION}"
+
+    test_object_key = upload_test_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID)
+
+    test_archive_folder = f"{test_fileset_folder}/archive"
+
     try:
         agg_path: str = aggregate_files(
-            target_folder=target_folder,
+            target_folder=test_archive_folder,
             target_name='nodes.tsv',
-            file_object_keys=[TEST_LARGE_NODES_FILE_KEY],
+            file_object_keys=[test_object_key],
             bucket=TEST_BUCKET,
             match_function=lambda x: True
         )
@@ -431,8 +418,11 @@ def test_large_aggregate_files():
         print_error_trace("Error while unpacking archive?: " + str(e))
         assert False
     
-    assert (agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes.tsv")
+    assert (agg_path == f"s3://{TEST_BUCKET}/{test_archive_folder}/nodes.tsv")
 
+    # This should delete all the current test artifacts
+    delete_test_file(test_object_key=f"{test_archive_folder}/nodes.tsv")
+    delete_test_file(test_object_key=test_object_key)
 
 @pytest.mark.skip(reason="Huge File Test not normally run")
 def test_huge_aggregate_files():
@@ -617,11 +607,11 @@ def test_get_archive_files():
 
     assert len(test_archive_files) == 3
 
-    assert test_archive_files[0][0] == "four.tar.gz"
-    assert test_archive_files[0][1] == 100000000
+    assert test_archive_files[0][1] == "four.tar.gz"
+    assert test_archive_files[0][2] == 100000000
 
-    assert test_archive_files[1][0] == "two.tar.gz"
-    assert test_archive_files[1][1] == 1000000
+    assert test_archive_files[1][1] == "two.tar.gz"
+    assert test_archive_files[1][2] == 1000000
 
-    assert test_archive_files[2][0] == "testing.tar.gz"
-    assert test_archive_files[2][1] == 10000
+    assert test_archive_files[2][1] == "testing.tar.gz"
+    assert test_archive_files[2][2] == 10000

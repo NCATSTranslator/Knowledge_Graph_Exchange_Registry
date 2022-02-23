@@ -46,7 +46,7 @@ class AssumeRole:
             self.iam_role_name = iam_role_name
 
             # Create an ARN out of the information provided by the user.
-            self.role_arn = "arn:aws:iam::" + self.host_account + ":role/"
+            self.role_arn = "arn:aws:iam::" + str(self.host_account) + ":role/"
             self.role_arn += self.iam_role_name
 
             self.assumed_role_object = None

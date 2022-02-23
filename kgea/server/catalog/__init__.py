@@ -371,12 +371,13 @@ class KgeFileSet:
 
     def get_archive_files(self) -> List[Tuple[str, str, int]]:
         """
-        Get the subset of 'tar.gz' archive file (object key, name and size) in the KgeFileSet.
+        Get the subset of 'tar.gz' archive file (object key, file name and size)
+        in the KgeFileSet, ordered descending from largest file size to smallest.
 
         A tacit design assumption is that this method is only called once the upload of the KgeFileSet is completed,
         since it 'caches' the result of its generation, to accelerate future calls to contains_file_of_type().
 
-        :return: list of archive file entries with object key, name and size, ordered from largest to smallest size.
+        :return: archive file entry list with object key, name and size, ordered from largest to smallest file size.
         """
         if not self.archive_file_list:
             # populate if the archive file subset of the self.data_files is empty?
@@ -387,7 +388,7 @@ class KgeFileSet:
                 if '.tar.gz' in file_name:
                     archive_file: Tuple[str, str, int] = object_key, file_name, file_size
                     self.archive_file_list.append(archive_file)
-            self.archive_file_list = sorted(self.archive_file_list, key=itemgetter(1), reverse=True)
+            self.archive_file_list = sorted(self.archive_file_list, key=itemgetter(2), reverse=True)
 
         return self.archive_file_list
     
