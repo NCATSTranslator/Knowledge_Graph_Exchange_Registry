@@ -15,7 +15,7 @@ from kgea.server.tests import (
     TEST_SMALL_FILE_PATH,
     TEST_SMALL_FILE_KEY
 )
-from kgea.server.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file, get_remote_client
+from kgea.server.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file, get_remote_s3_client
 
 import logging
 logger = logging.getLogger(__name__)
@@ -187,7 +187,7 @@ def test_s3_copy_to_new_key_in_different_bucket_and_account():
     
     logger.debug("Entering test_s3_copy_to_new_key_in_different_bucket_and_account()")
     
-    target_assumed_role, target_client, target_bucket = get_remote_client()
+    target_assumed_role, target_client, target_bucket = get_remote_s3_client()
     
     logger.debug("upload test file")
     
@@ -233,7 +233,7 @@ def test_s3_unix_remote_copy_to_new_key_in_different_bucket_and_account():
     
     logger.debug("Entering test_s3_local_copy_to_new_key_in_different_bucket_and_account()")
     
-    target_assumed_role, target_client, target_bucket = get_remote_client()
+    target_assumed_role, target_client, target_bucket = get_remote_s3_client()
     
     logger.debug("upload test file")
     

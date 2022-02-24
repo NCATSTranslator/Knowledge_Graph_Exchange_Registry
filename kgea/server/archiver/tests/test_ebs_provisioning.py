@@ -3,8 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from kgea.aws.ec2 import get_ec2_instance_id
-from kgea.server.kgea_file_ops import create_ebs_volume, delete_ebs_volume, is_valid_initial_status
+from kgea.aws.ec2 import (
+    get_ec2_instance_id,
+    is_valid_initial_status,
+    create_ebs_volume,
+    delete_ebs_volume
+)
 
 import logging
 logger = logging.getLogger(__name__)

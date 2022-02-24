@@ -1,9 +1,11 @@
+from asyncio import sleep
 from sys import stderr
 from typing import List
 
 import pytest
 
-from kgea.server.archiver.kge_archiver_util import compress_fileset, logger
+from kgea.server.archiver.kge_archiver_util import compress_fileset, logger, KgeArchiver
+from kgea.server.catalog.tests.test_catalog import prepare_test_file_set
 from kgea.server.tests import TEST_KG_ID, TEST_FS_VERSION, TEST_BUCKET
 from kgea.server.tests.unit.test_kgea_file_ops import logger
 
@@ -35,3 +37,36 @@ def test_kgx_data_validator():
         logger.error("test_contents_data_validator() errors: " + str(errors))
 
     assert not errors
+
+
+# This is a simple test of the KgxArchive queue/task.
+# It cannot be run with the given test_file_set object
+# since the data files don't exist in S3!
+@pytest.mark.asyncio
+async def archive_test():
+    """
+    async archive test wrapper
+    :return:
+    """
+    logger.debug("\nRunning test_stub_archiver()")
+
+    archiver: KgeArchiver = KgeArchiver()
+
+    # We now create all our workers in the KgeArchiver() constructor
+    # archiver.create_workers(2)
+
+    fs = prepare_test_file_set("1.0")
+    await archiver.process(fs)
+
+    # fs = test_file_set("1.1")
+    # await archiver.process(fs)
+    # fs = test_file_set("1.2")
+    # await archiver.process(fs)
+    # fs = test_file_set("1.3")
+    # await archiver.process(fs)
+
+    # # Don't want to finish too quickly...
+    await sleep(30)
+    #
+    logger.debug("\ntest_stub_archiver() shutdown now!\n")
+    await archiver.shutdown_workers()

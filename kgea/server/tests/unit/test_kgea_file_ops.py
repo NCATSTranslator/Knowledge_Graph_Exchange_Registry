@@ -10,26 +10,19 @@ import pytest
 import requests
 
 from botocore.exceptions import ClientError
-from botocore.config import Config
 
-from kgea.aws.assume_role import aws_config, AssumeRole
+from kgea.aws.s3 import get_remote_s3_client
 from kgea.server.catalog import KgeFileSet, KgeFileType
 from kgea.server.tests import (
     TEST_BUCKET,
-    
     TEST_KG_ID,
     TEST_FS_VERSION,
-
     TEST_OBJECT,
-    
     TEST_SMALL_FILE_PATH,
     TEST_SMALL_FILE_RESOURCE_URL,
-    
     TEST_LARGE_NODES_FILE,
-    TEST_LARGE_NODES_FILE_KEY,
     TEST_LARGE_FILE_RESOURCE_URL,
     TEST_LARGE_FILE_PATH,
-
     TEST_HUGE_NODES_FILE,
     TEST_HUGE_NODES_FILE_KEY,
     TEST_HUGE_EDGES_FILE_KEY,
@@ -140,52 +133,6 @@ def test_create_pre_signed_url(test_bucket=TEST_BUCKET):
         assert False
 
 
-def get_remote_client():
-    """
-
-    :return:
-    """
-    logger.debug("Validate 's3_remote' parameters")
-    
-    # config.yaml 's3_remote' override - must be completely specified?
-    assert (
-        [
-            tag in aws_config["s3_remote"]
-            for tag in [
-                    'guest_external_id',
-                    'host_account',
-                    'iam_role_name',
-                    'archive-directory',
-                    'bucket',
-                    'region'
-                ]
-        ]
-    )
-    
-    target_bucket = aws_config["s3_remote"]["bucket"]
-    
-    logger.debug("Assume remote role")
-    
-    target_assumed_role = AssumeRole(
-        host_account=aws_config["s3_remote"]['host_account'],
-        guest_external_id=aws_config["s3_remote"]['guest_external_id'],
-        iam_role_name=aws_config["s3_remote"]['iam_role_name']
-    )
-    
-    logger.debug("Configure target client")
-    
-    target_client = \
-        target_assumed_role.get_client(
-            's3',
-            config=Config(
-                signature_version='s3v4',
-                region_name=aws_config["s3_remote"]["region"]
-            )
-        )
-    
-    return target_assumed_role, target_client, target_bucket
-
-
 def upload_test_file(
         test_bucket=TEST_BUCKET,
         test_kg=TEST_KG_ID,
@@ -260,7 +207,7 @@ def test_upload_file_to_archive():
 
 def test_upload_file_to_remote_archive():
     
-    remote_target_assumed_role, remote_target_client, remote_target_bucket = get_remote_client()
+    remote_target_client, remote_target_bucket, remote_target_assumed_role = get_remote_s3_client()
     
     try:
         test_object_key = upload_test_file(
@@ -423,6 +370,7 @@ def test_aggregate_files():
     # This should delete all the current test artifacts
     delete_test_file(test_object_key=f"{test_archive_folder}/nodes.tsv")
     delete_test_file(test_object_key=test_object_key)
+
 
 @pytest.mark.skip(reason="Huge File Test not normally run")
 def test_huge_aggregate_files():

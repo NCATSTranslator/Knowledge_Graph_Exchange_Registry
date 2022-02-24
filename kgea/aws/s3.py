@@ -73,35 +73,46 @@ def get_remote_s3_client():
     """
     :return: result from AssumeRole.get_client() call using "s3_remote" config.yaml parameters
     """
-    if "s3_remote" not in aws_config:
-        raise RuntimeError("Remote account 's3_remote' configuration parameters are not provided in the config.yaml?")
-    
-    remote_host_account: str = aws_config["s3_remote"]["host_account"]
-    remote_guest_external_id: str = aws_config["s3_remote"]["guest_external_id"]
-    remote_iam_role_name: str = aws_config["s3_remote"]["iam_role_name"]
-    remote_s3_region_name: str = aws_config["s3_remote"]["region"]
-    
-    remote_assumed_role = AssumeRole(
-        host_account=remote_host_account,
-        guest_external_id=remote_guest_external_id,
-        iam_role_name=remote_iam_role_name
+    logger.debug("Validate 's3_remote' parameters")
+
+    # config.yaml 's3_remote' override - must be completely specified?
+    assert "s3_remote" in aws_config
+    assert (
+        [
+            tag in aws_config["s3_remote"]
+            for tag in [
+                'guest_external_id',
+                'host_account',
+                'iam_role_name',
+                'archive-directory',
+                'bucket',
+                'region'
+            ]
+        ]
     )
-    
-    remote_s3_client = \
+
+    remote_s3_bucket = aws_config["s3_remote"]["bucket"]
+
+    logger.debug("Assume remote role")
+
+    remote_assumed_role = AssumeRole(
+        host_account=aws_config["s3_remote"]['host_account'],
+        guest_external_id=aws_config["s3_remote"]['guest_external_id'],
+        iam_role_name=aws_config["s3_remote"]['iam_role_name']
+    )
+
+    logger.debug("Configuring target remote S3 client")
+
+    remote_client = \
         remote_assumed_role.get_client(
             's3',
             config=Config(
                 signature_version='s3v4',
-                region_name=remote_s3_region_name
+                region_name=aws_config["s3_remote"]["region"]
             )
         )
-    
-    return remote_s3_client
 
-
-if "s3_remote" in aws_config:
-    remote_s3_bucket_name: str = aws_config["s3_remote"]["bucket"]
-    remote_s3_directory: str = aws_config["s3_remote"]["archive-directory"]
+    return remote_client, remote_s3_bucket, remote_assumed_role
 
 
 class ProgressPercentage(object):
@@ -833,16 +844,17 @@ if __name__ == '__main__':
                     for source_object_key in object_keys:
                         if source_object_key[-1] != "/":
                             source_client = get_local_s3_client()
-                            target_client = get_remote_s3_client() if is_remote_target else source_client
+                            target_client, target_bucket, _ = get_remote_s3_client() \
+                                if is_remote_target else source_client, target_bucket, None
                             batch_copy_object(
                                 source_object_key=source_object_key,
                                 source_folder=source,
                                 source_client=source_client,
                                 target_folder=target,
                                 target_bucket=target_bucket,
-                                target_client=target_client,
-                                # debug=True
+                                target_client=target_client  # , debug=True
                             )
+
                     print("\nBatch copy of objects is completed!\n")
                 else:
                     print("Cancelling batch copy of objects...")
