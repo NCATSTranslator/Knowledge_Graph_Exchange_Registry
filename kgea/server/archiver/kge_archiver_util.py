@@ -26,7 +26,6 @@ from kgea.server.catalog import (
     add_to_s3_repository,
     KgeFileType
 )
-from kgea.server.catalog.tests.test_catalog import prepare_test_file_set
 
 from kgea.server.kgea_file_ops import (
     object_key_exists,
@@ -43,7 +42,6 @@ logger = logging.getLogger(__name__)
 s3_config = aws_config['s3']
 default_s3_bucket = s3_config['bucket']
 default_s3_root_key = s3_config['archive-directory']
-
 
 _KGEA_EDA_SCRIPT = f"{dirname(abspath(__file__))}{sep}scripts{sep}kge_extract_data_archive.bash"
 _EDA_OUTPUT_DATA_PREFIX = "file_entry="  # the Decompress-In-Place bash script comment output data signal prefix
@@ -95,38 +93,6 @@ def aggregate_files(
                     aggregated_file.write("\n")
 
     return agg_path
-
-
-async def compress_fileset(
-        kg_id,
-        version,
-        bucket=default_s3_bucket,
-        root=default_s3_root_key
-) -> str:
-    """
-    :param kg_id:
-    :param version:
-    :param bucket:
-    :param root:
-    :return:
-    """
-    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
-
-    logger.debug(f"Initiating execution of compress_fileset({s3_archive_key})")
-
-    try:
-        return_code = await run_script(
-            script=_KGEA_ARCHIVER_SCRIPT,
-            args=(bucket, root, kg_id, version)
-        )
-        logger.info(f"Finished archive script build {s3_archive_key}, return code: {str(return_code)}")
-
-    except Exception as e:
-        logger.error(f"compress_fileset({s3_archive_key}) exception: {str(e)}")
-
-    logger.debug(f"Exiting compress_fileset({s3_archive_key})")
-
-    return s3_archive_key
 
 
 async def compress_fileset(
@@ -238,86 +204,9 @@ async def extract_data_archive(
     return file_entries
 
 
-async def extract_data_archive(
-        kg_id: str,
-        file_set_version: str,
-        archive_filename: str,
-        bucket: str = default_s3_bucket,
-        root_directory: str = default_s3_root_key
-) -> List[Dict[str, str]]:
-    """
-    Decompress a tar.gz data archive file from a given S3 bucket, and upload back its internal files back.
-
-    Version 1.0 - decompress_in_place() below used Smart_Open... not scalable
-    Version 2.0 - this version uses an external bash shell script to perform this operation...
-
-    :param kg_id: knowledge graph identifier to which the archive belongs
-    :param file_set_version: file set version to which the archive belongs
-    :param archive_filename: base name of the tar.gz archive to be decompressed
-    :param bucket: in S3
-    :param root_directory: KGE data folder in the bucket
-
-    :return: list of file entries
-    """
-    # one step decompression - bash level script operations on the local disk
-    logger.debug(f"Initiating execution of extract_data_archive({archive_filename})")
-
-    if not archive_filename.endswith('.tar.gz'):
-        err_msg = f"archive name '{str(archive_filename)}' is not a 'tar.gz' archive?"
-        logger.error(err_msg)
-        raise RuntimeError(f"extract_data_archive(): {err_msg}")
-
-    part = archive_filename.split('.')
-    archive_filename = '.'.join(part[:-2])
-
-    file_entries: List[Dict[str, str]] = []
-
-    def output_parser(line: str):
-        """
-        :param line: bash script stdout line being parsed
-        """
-        if not line.strip():
-            return   # empty line?
-
-        # logger.debug(f"Entering output_parser(line: {line})!")
-        if line.startswith(_EDA_OUTPUT_DATA_PREFIX):
-            line = line.replace(_EDA_OUTPUT_DATA_PREFIX, '')
-            file_name, file_type, file_size, file_object_key = line.split(',')
-            logger.debug(f"DDA script file entry: {file_name}, {file_type}, {file_size}, {file_object_key}")
-            file_entries.append({
-                "file_name": file_name,
-                "file_type": file_type,
-                "file_size": str(file_size),
-                "object_key": file_object_key
-            })
-
-    try:
-        return_code = await run_script(
-            script=_KGEA_EDA_SCRIPT,
-            args=(
-                bucket,
-                root_directory,
-                kg_id,
-                file_set_version,
-                archive_filename,
-                scratch_dir_path()
-            ),
-            env=the_role.get_aws_env(),
-            stdout_parser=output_parser
-        )
-        logger.debug(f"Completed extract_data_archive({archive_filename}.tar.gz), with return code {str(return_code)}")
-
-    except Exception as e:
-        logger.error(f"extract_data_archive({archive_filename}.tar.gz): exception {str(e)}")
-
-    logger.debug(f"Exiting extract_data_archive({archive_filename}.tar.gz)")
-
-    return file_entries
-
-
 class ProgressMonitor:
     """
-    ProgressMonitor
+    ProgressMonitor for KGX Validation stream
     """
 
     # TODO: how do we best track the validation here?
@@ -1374,32 +1263,6 @@ class KgeArchiver:
         self._archiver_queue.put_nowait((process_token, file_set))  # sending a 2-tuple as an item
 
         return process_token
-
-
-class ProgressMonitor:
-    """
-    ProgressMonitor
-    """
-
-    # TODO: how do we best track the validation here?
-    #       We start by simply counting the nodes and edges
-    #       and periodically reporting to debug logger.
-    def __init__(self):
-        self._node_count = 0
-        self._edge_count = 0
-
-    def __call__(self, entity_type: GraphEntityType, rec: List):
-        logger.setLevel(logging.DEBUG)
-        if entity_type == GraphEntityType.EDGE:
-            self._edge_count += 1
-            if self._edge_count % 100000 == 0:
-                logger.info(str(self._edge_count) + " edges processed so far...")
-        elif entity_type == GraphEntityType.NODE:
-            self._node_count += 1
-            if self._node_count % 10000 == 0:
-                logger.info(str(self._node_count) + " nodes processed so far...")
-        else:
-            logger.warning("Unexpected GraphEntityType: " + str(entity_type))
 
 
 class KgxValidator:

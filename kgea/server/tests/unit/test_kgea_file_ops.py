@@ -24,20 +24,16 @@ from kgea.server.tests import (
     TEST_LARGE_FILE_RESOURCE_URL,
     TEST_LARGE_FILE_PATH,
     TEST_HUGE_NODES_FILE,
-    TEST_HUGE_NODES_FILE_KEY,
-    TEST_HUGE_EDGES_FILE_KEY,
     TEST_HUGE_FILE_RESOURCE_URL,
 )
 
 from kgea.server.kgea_file_ops import (
-    upload_from_link, get_url_file_size, get_archive_contents, object_keys_in_location, get_object_key,
+    upload_from_link, get_url_file_size, get_kge_archive_contents, object_keys_in_location, get_object_key,
     upload_file, with_version, get_object_location, upload_file_multipart,
     create_presigned_url, get_fileset_versions_available, random_alpha_string,
     s3_client, location_available, copy_file, object_key_exists,
     object_keys_for_fileset_version, object_folder_contents_size
 )
-from kgea.server.archiver.kge_archiver_util import aggregate_files
-from kgea.server import print_error_trace
 
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
@@ -344,64 +340,9 @@ def test_copy_file():
         assert False
 
 
-def test_aggregate_files():
-
-    test_kg_folder = f"kge-data/{TEST_KG_ID}"
-    test_fileset_folder = f"{test_kg_folder}/{TEST_FS_VERSION}"
-
-    test_object_key = upload_test_file(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID)
-
-    test_archive_folder = f"{test_fileset_folder}/archive"
-
-    try:
-        agg_path: str = aggregate_files(
-            target_folder=test_archive_folder,
-            target_name='nodes.tsv',
-            file_object_keys=[test_object_key],
-            bucket=TEST_BUCKET,
-            match_function=lambda x: True
-        )
-    except Exception as e:
-        print_error_trace("Error while unpacking archive?: " + str(e))
-        assert False
-    
-    assert (agg_path == f"s3://{TEST_BUCKET}/{test_archive_folder}/nodes.tsv")
-
-    # This should delete all the current test artifacts
-    delete_test_file(test_object_key=f"{test_archive_folder}/nodes.tsv")
-    delete_test_file(test_object_key=test_object_key)
-
-
-@pytest.mark.skip(reason="Huge File Test not normally run")
-def test_huge_aggregate_files():
-    """
-    NOTE: This test attempts transfer of a Huge pair or multi-gigabyte files in S3.
-    It is best to run this test on an EC2 server with the code.
-
-    :return:
-    """
-    target_folder = f"kge-data/{TEST_KG_ID}/{TEST_FS_VERSION}/archive"
-    try:
-        agg_path: str = aggregate_files(
-            bucket=TEST_BUCKET,
-            target_folder=target_folder,
-            target_name='nodes_plus_edges.tsv',
-            file_object_keys=[
-                TEST_HUGE_NODES_FILE_KEY,
-                TEST_HUGE_EDGES_FILE_KEY
-            ],
-            match_function=lambda x: True
-        )
-    except Exception as e:
-        print_error_trace("Error while unpacking archive?: " + str(e))
-        assert False
-    
-    assert (agg_path == f"s3://{TEST_BUCKET}/{target_folder}/nodes_plus_edges.tsv")
-
-
 def test_get_archive_contents(test_bucket=TEST_BUCKET):
     logger.info(f"test_get_archive_contents() test output:")
-    contents = get_archive_contents(test_bucket)
+    contents = get_kge_archive_contents(test_bucket)
     logger.info(str(contents))
     
 

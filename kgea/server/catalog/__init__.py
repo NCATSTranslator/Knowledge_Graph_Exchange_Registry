@@ -79,7 +79,7 @@ from kgea.server.kgea_file_ops import (
     default_s3_bucket,
     get_default_date_stamp,
     get_object_location,
-    get_archive_contents,
+    get_kge_archive_contents,
     get_object_key,
     with_version,
     load_s3_text_file,
@@ -1179,7 +1179,7 @@ class KnowledgeGraphCatalog:
 
         # Initialize catalog with the metadata of all the existing KGE Archive (AWS S3 stored) KGE File Sets
         # archive_contents keys are the kg_id's, entries are the rest of the KGE File Set metadata
-        archive_contents: Dict = get_archive_contents(bucket_name=default_s3_bucket)
+        archive_contents: Dict = get_kge_archive_contents(bucket_name=default_s3_bucket)
         for kg_id, entry in archive_contents.items():
             if self.is_complete_kg(kg_id, entry):
                 self.load_archive_entry(kg_id=kg_id, entry=entry)

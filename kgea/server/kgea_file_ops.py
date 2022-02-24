@@ -914,41 +914,6 @@ def decompress_to_kgx(gzipped_key, location, strict=False, prefix=True):
     return decompress_in_place(gzipped_key, location, traversal_func_kgx)
 
 
-def aggregate_files(
-        target_folder,
-        target_name,
-        file_object_keys,
-        bucket=default_s3_bucket,
-        match_function=lambda x: True
-) -> str:
-    """
-    Aggregates files matching a match_function.
-
-    :param bucket:
-    :param target_folder:
-    :param target_name: target data file format(s)
-    :param file_object_keys:
-    :param match_function:
-    :return:
-    """
-    if not file_object_keys:
-        return ''
-
-    agg_path = f"s3://{bucket}/{target_folder}/{target_name}"
-    logger.debug(f"agg_path: {agg_path}")
-    with smart_open.open(agg_path, 'w', encoding="utf-8", newline="\n") as aggregated_file:
-        file_object_keys = list(filter(match_function, file_object_keys))
-        for index, file_object_key in enumerate(file_object_keys):
-            target_key_uri = f"s3://{bucket}/{file_object_key}"
-            with smart_open.open(target_key_uri, 'r', encoding="utf-8", newline="\n") as subfile:
-                for line in subfile:
-                    aggregated_file.write(line)
-                if index < (len(file_object_keys) - 1):  # only add newline if it isn't the last file. -1 for zero index
-                    aggregated_file.write("\n")
-
-    return agg_path
-
-
 def copy_file(
         source_key,
         target_dir,
@@ -1004,7 +969,7 @@ def load_s3_text_file(bucket_name: str, object_name: str, mode: str = 'text') ->
     return data_string
 
 
-def get_archive_contents(bucket_name: str) -> \
+def get_kge_archive_contents(bucket_name: str) -> \
         Dict[
             str,  # kg_id's of every KGE archived knowledge graph
             Dict[
