@@ -11,9 +11,9 @@ from kgea.server.kgea_file_ops import object_key_exists
 from kgea.server.tests import (
     TEST_BUCKET_2,
     TEST_BUCKET,
-    TEST_SMALL_FILE,
-    TEST_SMALL_FILE_PATH,
-    TEST_SMALL_FILE_KEY
+    TEST_SMALL_FILE_1,
+    TEST_SMALL_FILE_1_PATH,
+    TEST_SMALL_FILE_1_KEY
 )
 from kgea.server.tests.unit.test_kgea_file_ops import upload_test_file, delete_test_file, get_remote_s3_client
 
@@ -37,11 +37,11 @@ def test_assumed_role_s3_access(
     :return:
     """
     
-    upload_file(bucket_name, TEST_SMALL_FILE_PATH, TEST_SMALL_FILE_KEY, client)
+    upload_file(bucket_name, TEST_SMALL_FILE_1_PATH, TEST_SMALL_FILE_1_KEY, client)
     
     list_files(bucket_name, client)
     
-    delete_object(bucket_name, TEST_SMALL_FILE_KEY, client)
+    delete_object(bucket_name, TEST_SMALL_FILE_1_KEY, client)
 
 
 def test_upload_file(
@@ -57,36 +57,36 @@ def test_upload_file(
     """
     upload_file(
         bucket_name=bucket_name,
-        source_file=TEST_SMALL_FILE_PATH,
-        target_object_key=TEST_SMALL_FILE_KEY,
+        source_file=TEST_SMALL_FILE_1_PATH,
+        target_object_key=TEST_SMALL_FILE_1_KEY,
         client=client
     )
     
     # successful upload?
-    assert (object_key_exists(object_key=TEST_SMALL_FILE_KEY))
+    assert (object_key_exists(object_key=TEST_SMALL_FILE_1_KEY))
     
     # clean up after test
     delete_object(
         bucket_name=bucket_name,
-        target_object_key=TEST_SMALL_FILE_KEY,
+        target_object_key=TEST_SMALL_FILE_1_KEY,
         client=client
     )
 
-    with open(TEST_SMALL_FILE_PATH, mode='rb') as test_fd:
+    with open(TEST_SMALL_FILE_1_PATH, mode='rb') as test_fd:
         upload_file(
             bucket_name=bucket_name,
             source_file=test_fd,
-            target_object_key=TEST_SMALL_FILE_KEY,
+            target_object_key=TEST_SMALL_FILE_1_KEY,
             client=client
         )
         
     # successful upload?
-    assert (object_key_exists(object_key=TEST_SMALL_FILE_KEY))
+    assert (object_key_exists(object_key=TEST_SMALL_FILE_1_KEY))
 
     # clean up after test
     delete_object(
         bucket_name=bucket_name,
-        target_object_key=TEST_SMALL_FILE_KEY,
+        target_object_key=TEST_SMALL_FILE_1_KEY,
         client=client
     )
 
@@ -111,18 +111,18 @@ def test_download_file(
     download_file(
         bucket_name=bucket_name,
         source_object_key=src_test_key,
-        target_file=TEST_SMALL_FILE,
+        target_file=TEST_SMALL_FILE_1,
         client=client
     )
 
     # successful download?
-    assert isfile(TEST_SMALL_FILE)
+    assert isfile(TEST_SMALL_FILE_1)
     
     # Clean up test file
-    remove(TEST_SMALL_FILE)
+    remove(TEST_SMALL_FILE_1)
     
     # Test next downloading the test object to write to a open file object of a given name
-    with open(TEST_SMALL_FILE, 'wb') as test_fd:
+    with open(TEST_SMALL_FILE_1, 'wb') as test_fd:
         download_file(
             bucket_name=bucket_name,
             source_object_key=src_test_key,
@@ -131,10 +131,10 @@ def test_download_file(
         )
 
     # successful download?
-    assert isfile(TEST_SMALL_FILE)
+    assert isfile(TEST_SMALL_FILE_1)
 
     # Clean up test file
-    remove(TEST_SMALL_FILE)
+    remove(TEST_SMALL_FILE_1)
 
     # Clean up test object in S3
     delete_object(

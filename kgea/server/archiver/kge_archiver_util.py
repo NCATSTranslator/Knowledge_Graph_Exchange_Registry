@@ -96,26 +96,34 @@ def aggregate_files(
 
 
 async def compress_fileset(
-        kg_id,
-        version,
+        kg_id: str,
+        version: str,
+        scratch_dir: str,
         bucket=default_s3_bucket,
-        root=default_s3_root_key
+        root_directory=default_s3_root_key
 ) -> str:
     """
-    :param kg_id:
-    :param version:
-    :param bucket:
-    :param root:
+    :param kg_id: KGE knowledge graph identifier
+    :param version:  KGE file set version
+    :param scratch_dir: local file directory for OS scripted file operations
+    :param bucket: target S3 bucket for operation
+    :param root_directory: root folder in target S3 bucket
     :return:
     """
-    s3_archive_key = f"s3://{bucket}/{root}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
+    s3_archive_key = f"s3://{bucket}/{root_directory}/{kg_id}/{version}/archive/{kg_id + '_' + version}.tar.gz"
 
     logger.info(f"Initiating execution of compress_fileset({s3_archive_key})")
 
     try:
         return_code = await run_script(
             script=_KGEA_ARCHIVER_SCRIPT,
-            args=(bucket, root, kg_id, version),
+            args=(
+                bucket,
+                root_directory,
+                kg_id,
+                version,
+                scratch_dir
+            ),
             env=the_role.get_aws_env()
         )
         logger.info(f"Finished archive script build {s3_archive_key}, return code: {str(return_code)}")
@@ -130,8 +138,9 @@ async def compress_fileset(
 
 async def extract_data_archive(
         kg_id: str,
-        file_set_version: str,
+        version: str,
         archive_filename: str,
+        scratch_dir: str,
         bucket: str = default_s3_bucket,
         root_directory: str = default_s3_root_key
 ) -> List[Dict[str, str]]:
@@ -142,8 +151,9 @@ async def extract_data_archive(
     Version 2.0 - this version uses an external bash shell script to perform this operation...
 
     :param kg_id: knowledge graph identifier to which the archive belongs
-    :param file_set_version: file set version to which the archive belongs
+    :param version: file set version to which the archive belongs
     :param archive_filename: base name of the tar.gz archive to be decompressed
+    :param scratch_dir: scratch directory on machine for all shell scripted operations (usually, an EBS mount point?)
     :param bucket: in S3
     :param root_directory: KGE data folder in the bucket
 
@@ -188,9 +198,9 @@ async def extract_data_archive(
                 bucket,
                 root_directory,
                 kg_id,
-                file_set_version,
+                version,
                 archive_filename,
-                scratch_dir_path()
+                scratch_dir
             ),
             stdout_parser=output_parser
         )
@@ -604,7 +614,7 @@ class KgeArchiver:
         # "scratch" EBS devices, mount points and volumes are locally managed, one set per task_id
         drive_letter = chr(ord('b') + task_id)
         device = f"/dev/sd{drive_letter}"
-        mount_point = f"{scratch_dir_path()}/data_{drive_letter}"
+        scratch_dir = f"{scratch_dir_path()}/data_{drive_letter}"
         ebs_volume_id: Optional[str] = None
 
         while True:
@@ -656,13 +666,13 @@ class KgeArchiver:
                         logger.debug(
                             f"{worker_name} Provisioning EBS storage volume " +
                             f"of size {estimated_ebs_storage_size}" +
-                            f"on device '{device}' mounted on '{mount_point}'..."
+                            f"on device '{device}' mounted on '{scratch_dir}'..."
                         )
 
                         ebs_volume_id = await create_ebs_volume(
                             size=estimated_ebs_storage_size,
                             device=device,
-                            mount_point=mount_point
+                            mount_point=scratch_dir
                         )
                         logger.debug(
                             f"{worker_name} EBS volume '{ebs_volume_id}' successfully provisioned!")
@@ -672,8 +682,9 @@ class KgeArchiver:
                     archive_file_entries: List[Dict[str, str]] = \
                         await extract_data_archive(
                             kg_id=file_set.get_kg_id(),
-                            file_set_version=file_set.get_fileset_version(),
-                            archive_filename=archive_filename
+                            version=file_set.get_fileset_version(),
+                            archive_filename=archive_filename,
+                            scratch_dir=scratch_dir
                         )
                     #
                     # ...Remove the archive entry from the KgxFileSet...
@@ -806,7 +817,7 @@ class KgeArchiver:
                     await delete_ebs_volume(
                         volume_id=ebs_volume_id,
                         device=device,
-                        mount_point=mount_point
+                        mount_point=scratch_dir
                     )
                     ebs_volume_id = None
 
@@ -819,7 +830,7 @@ class KgeArchiver:
                 await delete_ebs_volume(
                     volume_id=ebs_volume_id,
                     device=device,
-                    mount_point=mount_point
+                    mount_point=scratch_dir
                 )
                 ebs_volume_id = None
 

@@ -45,7 +45,8 @@ aws_config: Dict = _KGEA_APP_CONFIG['aws']
 ebs_config: Dict = aws_config.setdefault('ebs', dict())
 
 # we assume that '/dev/sdb' is already in use?
-_SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', 'sdc')}"
+_DEFAULT_DRIVE = "sdc"
+_SCRATCH_DEVICE = f"/dev/{ebs_config.setdefault('scratch_device', _DEFAULT_DRIVE)}"
 _SCRATCH_DIR = ebs_config.setdefault('scratch_dir', f"/opt/tmp")
 
 # Probably will rarely change the name of these scripts, but changed once already...

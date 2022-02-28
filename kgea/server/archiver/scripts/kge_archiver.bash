@@ -37,7 +37,7 @@ usage () {
     echo
     echo "Usage:"
     echo
-    echo "${0} <bucket> <root directory> <kg_id> <fileset version>"
+    echo "${0} <bucket> <root directory> <kg_id> <fileset version> <scratch_dir>"
     echo
 #    exit -1  bash exits 0-255
     exit 1
@@ -67,9 +67,17 @@ fi
 if [[ -z "${4}" ]]; then
     usage
 else
-    # TODO: [perhaps need to validate proper SemVer format of file set version string here?
     # File Set Version of the Knowledge Graph
     version=${4}
+fi
+
+if [[ -z "${5}" ]]; then
+    echo "Specify the local scratch device path (i.e. perhaps something like '/opt/tmp/data_one')!"
+    usage
+else
+    # Scratch data directory path for the script operations use
+    scratch_dir="${6}"
+    echo "Scratch data directory path: '${scratch_dir}'"
 fi
 
 echo
@@ -98,11 +106,11 @@ output=( "provider.yaml" "file_set.yaml" "content_metadata.json" \
          "nodes.tsv" "edges.tsv" "nodes/nodes.tsv" "edges/edges.tsv" \
          "nodes.jsonl" "edges.jsonl" "nodes/nodes.jsonl" "edges/edges.jsonl")
 
-# Set current working directory to a 'scratch' folder
-if [[ ! -d "scratch" ]]; then
-    mkdir "scratch"
+# Set current working directory to a specified 'scratch' directory (create if necessary)
+if [[ ! -d ${scratch_dir} ]]; then
+    mkdir -p ${scratch_dir}
 fi
-cd "scratch"
+cd ${scratch_dir}
 
 # iterate over files
 echo

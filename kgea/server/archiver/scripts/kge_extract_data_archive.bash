@@ -55,7 +55,7 @@ usage () {
     echo
     echo "Usage:"
     echo
-    echo "$0 <bucket> <root directory> <kg_id> <fileset version> <archive_root_filename>"
+    echo "$0 <bucket> <root directory> <kg_id> <fileset version> <archive_base_name> <scratch_dir>"
     echo
 #    exit -1  bash exits 0-255
     exit 1
@@ -102,16 +102,16 @@ else
 fi
 
 if [[ -z "${5}" ]]; then
-    echo "Specify target archive 'root' file name (i.e. name without the .tar.gz file extension)!"
+    echo "Specify target archive 'base' file name (i.e. name without the .tar.gz file extension)!"
     usage
 else
-    # Archive file name
+    # Archive base file name
     archive_base_name="${5}"
     echo "Archive file name: ${archive_base_name}.tar.gz"
 fi
 
 if [[ -z "${6}" ]]; then
-    echo "Specify the local scratch device path (i.e. perhaps something like '/scratch_data/one')!"
+    echo "Specify the local scratch device path (i.e. perhaps something like '/opt/tmp/data_one')!"
     usage
 else
     # Scratch data directory path for the script operations use
@@ -135,9 +135,9 @@ archive_object_key="${s3_uri}/${archive_filename}"
 echo
 echo "Beginning extraction of '${archive_object_key}'"
 
-# Set current working directory to a 'scratch' folder
+# Set current working directory to a 'scratch' directory (create if necessary)
 if [[ ! -d ${scratch_dir} ]]; then
-    mkdir ${scratch_dir}
+    mkdir -p ${scratch_dir}
 fi
 cd ${scratch_dir}
 

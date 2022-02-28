@@ -20,12 +20,19 @@ TEST_KG_ID = 'test-kg'
 TEST_FS_VERSION = "1.0"
 TEST_OBJECT = "test_object.txt"
 
-TEST_SMALL_FILE = 'small_edges.tsv'
-TEST_SMALL_FILE_PATH = str(TEST_DATA_DIR.joinpath(TEST_SMALL_FILE))
-TEST_SMALL_FILE_KEY = f"test-data/{TEST_SMALL_FILE}"
-TEST_SMALL_FILE_RESOURCE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
+TEST_SMALL_FILE_1 = 'small_edges_1.tsv'
+TEST_SMALL_FILE_1_PATH = str(TEST_DATA_DIR.joinpath(TEST_SMALL_FILE_1))
+TEST_SMALL_FILE_1_KEY = f"test-data/{TEST_SMALL_FILE_1}"
+TEST_SMALL_FILE_1_RESOURCE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
                                f"Knowledge_Graph_Exchange_Registry/" + \
-                               f"{KGE_CODE_BRANCH}/kgea/tests/data/{TEST_SMALL_FILE}"
+                               f"{KGE_CODE_BRANCH}/kgea/tests/data/{TEST_SMALL_FILE_1}"
+
+TEST_SMALL_FILE_2 = 'small_edges_2.tsv'
+TEST_SMALL_FILE_2_PATH = str(TEST_DATA_DIR.joinpath(TEST_SMALL_FILE_2))
+TEST_SMALL_FILE_2_KEY = f"test-data/{TEST_SMALL_FILE_2}"
+TEST_SMALL_FILE_2_RESOURCE_URL = "https://raw.githubusercontent.com/NCATSTranslator/" + \
+                               f"Knowledge_Graph_Exchange_Registry/" + \
+                               f"{KGE_CODE_BRANCH}/kgea/tests/data/{TEST_SMALL_FILE_2}"
 
 TEST_LARGE_NODES_FILE = "large_nodes.tsv"
 TEST_LARGE_FILE_PATH = str(TEST_DATA_DIR.joinpath(TEST_LARGE_NODES_FILE))

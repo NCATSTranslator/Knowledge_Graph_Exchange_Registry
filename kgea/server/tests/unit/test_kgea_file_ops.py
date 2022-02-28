@@ -18,8 +18,8 @@ from kgea.server.tests import (
     TEST_KG_ID,
     TEST_FS_VERSION,
     TEST_OBJECT,
-    TEST_SMALL_FILE_PATH,
-    TEST_SMALL_FILE_RESOURCE_URL,
+    TEST_SMALL_FILE_1_PATH,
+    TEST_SMALL_FILE_1_RESOURCE_URL,
     TEST_LARGE_NODES_FILE,
     TEST_LARGE_FILE_RESOURCE_URL,
     TEST_LARGE_FILE_PATH,
@@ -132,7 +132,7 @@ def test_create_pre_signed_url(test_bucket=TEST_BUCKET):
 def upload_test_file(
         test_bucket=TEST_BUCKET,
         test_kg=TEST_KG_ID,
-        test_file_path=TEST_SMALL_FILE_PATH,
+        test_file_path=TEST_SMALL_FILE_1_PATH,
         test_sub_folder='',
         test_client=s3_client()
 ):
@@ -250,7 +250,7 @@ def test_upload_file_multipart(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
     try:
 
         # NOTE: file must be read in binary mode!
-        with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
+        with open(TEST_SMALL_FILE_1_PATH, 'rb') as test_file:
             content_location, _ = with_version(get_object_location)(test_kg)
 
             object_key = upload_file_multipart(test_file, test_file.name, test_bucket, content_location)
@@ -278,7 +278,7 @@ def test_upload_file_timestamp(test_bucket=TEST_BUCKET, test_kg=TEST_KG_ID):
     try:
         test_location, time_created = with_version(get_object_location)(test_kg)
         # NOTE: file must be read in binary mode!
-        with open(TEST_SMALL_FILE_PATH, 'rb') as test_file:
+        with open(TEST_SMALL_FILE_1_PATH, 'rb') as test_file:
             object_key = get_object_key(test_location, test_file.name)
             upload_file(
                 bucket=test_bucket,
@@ -347,11 +347,11 @@ def test_get_archive_contents(test_bucket=TEST_BUCKET):
     
 
 def test_get_url_file_size():
-    url_resource_size: int = get_url_file_size(url=TEST_SMALL_FILE_RESOURCE_URL)
+    url_resource_size: int = get_url_file_size(url=TEST_SMALL_FILE_1_RESOURCE_URL)
     assert (url_resource_size > 0)
     logger.info(
         f"test_get_url_file_size(): reported file size is '{url_resource_size}'" +
-        f" for url resource {TEST_SMALL_FILE_RESOURCE_URL}"
+        f" for url resource {TEST_SMALL_FILE_1_RESOURCE_URL}"
     )
     url_resource_size = get_url_file_size(url=TEST_HUGE_FILE_RESOURCE_URL)
     assert (url_resource_size > 0)
