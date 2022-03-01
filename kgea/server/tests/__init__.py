@@ -49,5 +49,9 @@ TEST_HUGE_EDGES_FILE_KEY = f"kge-data/{TEST_KG_ID}/{TEST_FS_VERSION}/edges/{TEST
 # This is externally hosted Monarch data, the availability for which may change with time
 TEST_HUGE_FILE_RESOURCE_URL = 'https://archive.monarchinitiative.org/latest/kgx/sri-reference-kg_nodes.tsv'
 
+# a test kgx data archive
+TEST_DATA_ARCHIVE = "test_data_archive.tar.gz"
+TEST_DATA_ARCHIVE_PATH = str(TEST_DATA_DIR.joinpath(TEST_DATA_ARCHIVE))
+
 # a production server test files
 PROD_TEST_FILE_KEY = 'kge-data/sri-semantic-medline-database/4.3/content_metadata.json'
