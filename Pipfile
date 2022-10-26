@@ -23,12 +23,8 @@ jsonschema = "*"
 PyGithub = "*"
 smart_open = "*"
 kgx = ">=1.3.0"
-
-[dev-packages]
-cryptography
+connexion = {git = "https://github.com/STARInformatics/connexion.git", editable = true, ref = "fix-urlencoded-body-parameter-parsing"}
 
 [requires]
 python_version = "3.9"
 
-[packages]
-connexion = {git = "https://github.com/STARInformatics/connexion.git", editable = true, ref = "fix-urlencoded-body-parameter-parsing"}
