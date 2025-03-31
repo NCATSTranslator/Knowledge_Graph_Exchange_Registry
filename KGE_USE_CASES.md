@@ -6,7 +6,7 @@ be sitting on the same server or some proxied cloud storage location, e.g. in an
 
 **DECISION:** *In the KGE Working Group Meeting of January 6, 2021, it was the consensus that only Use Cases 1.1 and 2.1 
 (i.e. upload and indexing of KGE File Sets in the "Translator KGE Archive" are the only two relevant use cases for 
-implmentation. TRAPI web interfaces will not be used to convey such KGE file sets to end users).*
+implementation. TRAPI web interfaces will not be used to convey such KGE file sets to end users).*
 
 ## Use Case 1.1
 
